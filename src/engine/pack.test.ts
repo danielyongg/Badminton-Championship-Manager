@@ -87,11 +87,15 @@ describe('paket data (Editor, import/export)', () => {
     // Senior asli cukup → tanpa senior fiktif; junior (belum ada data asli) tetap ada.
     expect(ina.filter((p) => ageAt(p.birth, state.date) >= 18).every((p) => p.id.includes('-r-'))).toBe(true);
     expect(ina.some((p) => ageAt(p.birth, state.date) <= 17)).toBe(true);
-    expect(state.players.filter((p) => p.countryId === 'VIE' && p.gender === 'F' && ageAt(p.birth, state.date) >= 18).length).toBe(TEAM_MIN_PER_GENDER); // 1 asli + 6 fiktif
+    expect(state.players.filter((p) => p.countryId === 'MAC' && p.gender === 'F' && ageAt(p.birth, state.date) >= 18).length).toBe(TEAM_MIN_PER_GENDER); // sedikit atlet asli + fiktif
     // Semua negara bisa menurunkan tim beregu.
     for (const f of ['thomas', 'uber', 'sudirman'] as const) expect(teamStrengths(state, pack.ruleset, f).length).toBe(pack.world.countries.length);
     expect(state.pairs.some((p) => p.id === 'INA-r-MD1')).toBe(true);
     expect(state.players.some((p) => p.countryId === 'PHI')).toBe(true); // negara tanpa atlet asli tetap terisi
+    // Spesialis ganda asli tidak punya ranking tunggal awal (AI tidak mendaftarkannya di tunggal).
+    const doublesOnly = new Set(state.players.filter((p) => p.focus === 'D').map((p) => p.id));
+    expect(doublesOnly.size).toBeGreaterThan(0);
+    expect(state.results.some((r) => (r.discipline === 'MS' || r.discipline === 'WS') && doublesOnly.has(r.entrantId))).toBe(false);
     // Tiap atlet paling banyak satu pasangan aktif per nomor (dulu pasangan berisi spesialis tunggal tidak terhitung).
     const slots = state.pairs.filter((p) => !p.dissolved && !p.trial).flatMap((p) => p.playerIds.map((id) => `${p.discipline}:${id}`));
     expect(new Set(slots).size).toBe(slots.length);

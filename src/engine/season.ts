@@ -113,11 +113,12 @@ export function bootstrapResults(state: SeasonState, ruleset: Ruleset): RankingE
   // Pemain ganda (punya pasangan) di ranking tunggal awal ditaruh di bawah spesialis tunggal setara.
   // ASUMSI: penalti 10 poin CA; hanya urutan awal, hasil turnamen sesudahnya yang menentukan.
   const doubles = new Set(state.pairs.filter((p) => !p.dissolved && !p.trial && !p.adHoc).flatMap((p) => p.playerIds));
+  const doublesOnly = new Set(state.players.filter((p) => p.focus === 'D').map((p) => p.id));
   const out: RankingEntry[] = [];
   const start = absWeek(state.date);
   for (const d of DISCIPLINES) {
     const single = !isDoubles(d);
-    const list = entrantsFor(state, d)
+    const list = entrantsFor(state, d).filter((e) => !single || !doublesOnly.has(e.id))
       .map((e) => ({ ...e, s: e.playerIds.reduce((sum, id) => sum + ca.get(id)! - (single && doubles.has(id) ? 10 : 0), 0) / e.playerIds.length }))
       .sort((a, b) => b.s - a.s);
     list.forEach((e, r) => {
@@ -236,6 +237,7 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
   const playerEvent = new Map<string, string>();
   const fatigue = new Map(state.players.map((p) => [p.id, p.fatigue]));
   const injured = new Set(state.players.filter((p) => p.injury).map((p) => p.id));
+  const doublesOnly = new Set(state.players.filter((p) => p.focus === 'D').map((p) => p.id));
   const manual = state.manualEntries[weekKey(state.date)] ?? {};
 
   const wtf = events.find((e) => e.tierId === 'WTF');
@@ -262,6 +264,7 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
     const fixed = e.playerIds.map((id) => playerEvent.get(id)).find(Boolean);
     const options = events.filter((ev) => ev.tierId !== 'WTF' && tierOf(rs, ev).drawSize[d] > 0 && (!fixed || ev.id === fixed));
     const decision = e.countryId === state.managedCountryId ? manual[e.id] : undefined;
+    if (!decision && !isDoubles(d) && doublesOnly.has(e.id)) continue; // spesialis ganda: tunggal hanya bila didaftarkan manajer
     let choice = decision ? options.find((ev) => ev.id === decision) : options.find((ev) => state.commitments[e.id]?.includes(ev.id));
     if (!choice && !decision && !e.trial) { // pasangan percobaan tidak pernah didaftarkan AI
       const r = rank ?? 9999;

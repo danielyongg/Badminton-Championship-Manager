@@ -241,6 +241,8 @@ export interface Player {
   fatigue: number; // 0..100
   injury?: { weeksLeft: number; severe: boolean };
   trait?: 'late' | 'stagnant';
+  /** Spesialis ganda: tidak diberi ranking tunggal awal & tidak didaftarkan AI di nomor tunggal (manajer tetap boleh). */
+  focus?: 'D';
   retired?: number; // tahun pensiun
   location?: string; // cityId terakhir (untuk jarak perjalanan)
   caDelta?: number; // perubahan CA pada pemrosesan kuartal terakhir (panah naik/turun)
