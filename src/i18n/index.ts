@@ -328,6 +328,7 @@ const id = {
   nameMixed: 'Nama di tahun Sudirman Cup',
   yearsShort: 'th',
   language: 'Bahasa',
+  settings: 'Pengaturan',
   simulating: 'Menyimulasikan minggu {w}…',
   stop: 'Berhenti',
   step_summary: 'Bagan {N} posisi, {n} peserta, {byes} bye, {seeds} unggulan, {q} qualifier',

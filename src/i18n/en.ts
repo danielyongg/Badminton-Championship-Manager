@@ -328,6 +328,7 @@ export const en: Record<TextKey, string> = {
   nameMixed: 'Name in Sudirman Cup years',
   yearsShort: 'y',
   language: 'Language',
+  settings: 'Settings',
   simulating: 'Simulating week {w}…',
   stop: 'Stop',
   step_summary: 'Draw of {N} positions, {n} entrants, {byes} byes, {seeds} seeds, {q} qualifiers',
