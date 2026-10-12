@@ -46,4 +46,74 @@ for (const [rankId, catId, code] of CATS) {
   console.log(code, rankings[code].length);
 }
 writeFileSync(`${CACHE}/rankings.json`, JSON.stringify(rankings));
+
+// 2. Pilih atlet per negara game: senior s/d 24 per gender (terbaik dulu), junior (ranking junior) s/d 8.
+const COUNTRY = {
+  China: 'CHN', Indonesia: 'INA', Japan: 'JPN', Korea: 'KOR', Malaysia: 'MAS', 'Chinese Taipei': 'TPE', Thailand: 'THA',
+  India: 'IND', 'Hong Kong China': 'HKG', Singapore: 'SGP', Vietnam: 'VIE', Philippines: 'PHI', 'Macau China': 'MAC',
+  'United Arab Emirates': 'UAE', Denmark: 'DEN', France: 'FRA', England: 'ENG', Germany: 'GER', Spain: 'ESP', Netherlands: 'NED',
+  Scotland: 'SCO', Ireland: 'IRL', Sweden: 'SWE', Finland: 'FIN', Switzerland: 'SUI', Poland: 'POL', Bulgaria: 'BUL',
+  Czechia: 'CZE', Ukraine: 'UKR', Austria: 'AUT', Turkiye: 'TUR', Norway: 'NOR', Italy: 'ITA', Canada: 'CAN', USA: 'USA',
+  Guatemala: 'GUA', Brazil: 'BRA', Mexico: 'MEX', Peru: 'PER', Egypt: 'EGY', Nigeria: 'NGR', 'South Africa': 'RSA',
+  Algeria: 'ALG', Mauritius: 'MRI', Botswana: 'BOT', Australia: 'AUS', 'New Zealand': 'NZL',
+};
+const SENIOR_CAP = 24, JUNIOR_CAP = 8;
+// Nomor → [gender pemain 1, gender pemain 2, ganda?, junior?]. XD: pemain 1 putra.
+const KIND = { MS: ['M', null, 0, 0], WS: ['F', null, 0, 0], MD: ['M', 'M', 1, 0], WD: ['F', 'F', 1, 0], XD: ['M', 'F', 1, 0],
+  BS: ['M', null, 0, 1], GS: ['F', null, 0, 1], BD: ['M', null, 0, 1], GD: ['F', null, 0, 1], XDJ: ['M', null, 0, 1] };
+// Nama tampilan BWF ("Kunlavut VITIDSARN", "AN Se Young") → huruf besar-kecil biasa.
+const nameOf = (m) => m.name_display_bold.replace(/<[^>]+>/g, '').trim()
+  .replace(/\p{Lu}[\p{Lu}'-]+/gu, (w) => w[0] + w.slice(1).toLowerCase().replace(/(['-])(\p{Ll})/gu, (_, s, c) => s + c.toUpperCase()));
+// Level (≈ kemampuan 1–100) dari poin relatif terhadap peringkat 1 nomor itu.
+const levelOf = (pts, top, junior) => Math.round(junior ? 45 + 25 * (pts / top) ** 0.35 : 55 + 40 * (pts / top) ** 0.35);
+
+const people = new Map(); // bwfId → atlet
+const pairs = [];
+for (const [code, rows] of Object.entries(rankings)) {
+  const [g1, g2, dbl, junior] = KIND[code];
+  const top = Math.max(...rows.map((r) => +r.points));
+  for (const r of rows) {
+    const cid = COUNTRY[r.p1_country_model?.name];
+    if (!cid || !r.player1_model) continue;
+    const lvl = levelOf(+r.points, top, junior);
+    const ids = [];
+    for (const [m, g] of [[r.player1_model, g1], [r.player2_model, g2]]) {
+      if (!m || !g) continue;
+      const p = people.get(m.id) ?? people.set(m.id, { id: m.id, name: nameOf(m), cid, g, lvl: 0, focus: 'S', junior: false }).get(m.id);
+      if (lvl > p.lvl) { p.lvl = lvl; p.focus = dbl ? 'D' : 'S'; }
+      if (junior) p.junior = true; else p.senior = true;
+      ids.push(m.id);
+    }
+    if (dbl && ids.length === 2 && COUNTRY[r.p2_country_model?.name] === cid) pairs.push([code, ids[0], ids[1]]);
+  }
+}
+const chosen = new Set();
+for (const cid of Object.values(COUNTRY)) for (const g of ['M', 'F']) {
+  const all = [...people.values()].filter((p) => p.cid === cid && p.g === g).sort((a, b) => b.lvl - a.lvl);
+  all.filter((p) => p.senior).slice(0, SENIOR_CAP).forEach((p) => chosen.add(p.id));
+  all.filter((p) => !p.senior).slice(0, JUNIOR_CAP).forEach((p) => chosen.add(p.id));
+}
+console.log('dipilih', chosen.size);
+
+// 3. Tanggal lahir & tangan dari profil (satu permintaan per atlet terpilih).
+let n = 0;
+for (const id of chosen) {
+  const d = await get(`vue-player-summary?drawCount=1&playerId=${id}&isPara=false`, `${CACHE}/p-${id}.json`);
+  const p = people.get(id);
+  const dob = d?.results?.date_of_birth;
+  if (dob) p.born = dob.slice(0, 10);
+  if (++n % 100 === 0) console.log('profil', n);
+}
+
+// 4. Tulis data ringkas: atlet [bwfId, nama, negara, gender, lahir (YYYY-MM-DD | null), fokus, level, junior] & pasangan.
+const players = [...chosen].map((id) => people.get(id)).sort((a, b) => a.cid.localeCompare(b.cid) || b.lvl - a.lvl)
+  .map((p) => [+p.id, p.name, p.cid, p.g, p.born ?? null, p.focus, p.lvl, p.senior ? 0 : 1]);
+const busy = new Set();
+const keptPairs = pairs.filter(([d, a, b]) => {
+  if (!chosen.has(a) || !chosen.has(b) || busy.has(`${d}:${a}`) || busy.has(`${d}:${b}`)) return false;
+  busy.add(`${d}:${a}`).add(`${d}:${b}`);
+  return true;
+}).map(([d, a, b]) => [d, +a, +b]);
+writeFileSync('src/engine/presets/bwfPlayers.json', JSON.stringify({ source: 'BWF World & Junior Rankings', fetched: new Date().toISOString().slice(0, 10), players, pairs: keptPairs }));
+console.log('atlet', players.length, 'pasangan', keptPairs.length);
 await browser.close();
