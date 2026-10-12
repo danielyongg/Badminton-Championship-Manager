@@ -110,11 +110,15 @@ export function entrantsFor(state: SeasonState, d: Discipline): Entrant[] {
  */
 export function bootstrapResults(state: SeasonState, ruleset: Ruleset): RankingEntry[] {
   const ca = new Map(state.players.map((p) => [p.id, currentAbility(p.attrs)]));
+  // Pemain ganda (punya pasangan) di ranking tunggal awal ditaruh di bawah spesialis tunggal setara.
+  // ASUMSI: penalti 10 poin CA; hanya urutan awal, hasil turnamen sesudahnya yang menentukan.
+  const doubles = new Set(state.pairs.filter((p) => !p.dissolved && !p.trial && !p.adHoc).flatMap((p) => p.playerIds));
   const out: RankingEntry[] = [];
   const start = absWeek(state.date);
   for (const d of DISCIPLINES) {
+    const single = !isDoubles(d);
     const list = entrantsFor(state, d)
-      .map((e) => ({ ...e, s: e.playerIds.reduce((sum, id) => sum + ca.get(id)!, 0) / e.playerIds.length }))
+      .map((e) => ({ ...e, s: e.playerIds.reduce((sum, id) => sum + ca.get(id)! - (single && doubles.has(id) ? 10 : 0), 0) / e.playerIds.length }))
       .sort((a, b) => b.s - a.s);
     list.forEach((e, r) => {
       const each = Math.round((110000 * 0.985 ** r) / 10);
@@ -132,21 +136,24 @@ export function bootstrapResults(state: SeasonState, ruleset: Ruleset): RankingE
 
 /**
  * Dunia baru siap dimainkan (minggu 1). countryId = negara manajer; null = Mode Pengamat.
- * `roster` (dari paket data): atlet & pasangan buatan sendiri; negara tanpa atlet di roster diisi generator.
+ * `roster` (dari paket data): atlet & pasangan buatan sendiri; generator menambah atlet fiktif bila suatu negara kurang.
  */
 export function newSeason(
   world: World, ruleset: Ruleset, seed: number, date: GameDate = { year: 2026, week: 1 }, countryId: string | null = null,
   roster?: { players: Player[]; pairs: Pair[] },
 ): SeasonState {
-  const own = new Set(roster?.players.map((p) => p.countryId));
-  const w = generateWorld(makeRng(seed), ruleset.generator, world.countries.filter((c) => !own.has(c.id)), date);
+  const w = generateWorld(makeRng(seed), ruleset.generator, world.countries, date, roster?.players);
   const state: SeasonState = {
     date, players: [...structuredClone(roster?.players ?? []), ...w.players], pairs: [...structuredClone(roster?.pairs ?? []), ...w.pairs],
     results: [], matches: [], champions: [], commitments: {}, violations: [],
     experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
     career: { countryId, goals: [], reports: [], reputation: 50 },
   };
-  if (own.size) formPairs(state, ruleset, world, makeRng(seed + 2)); // negara roster yang belum punya cukup pasangan
+  if (roster?.players.length) {
+    // Negara roster yang belum punya cukup pasangan. Ranking awal dulu agar spesialis tunggal tidak ikut dipasangkan.
+    state.results = bootstrapResults(state, ruleset);
+    formPairs(state, ruleset, world, makeRng(seed + 2));
+  }
   state.managedCountryId = countryId;
   state.results = bootstrapResults(state, ruleset);
   startYear(state, ruleset, makeRng(seed + 1));
@@ -624,6 +631,7 @@ export function formPairs(state: SeasonState, rs: Ruleset, world: World, rng: Rn
   // Spesialis tunggal (top 64 dunia) tidak dipasangkan oleh AI.
   const singlesStars = new Set(['MS', 'WS'].flatMap((d) =>
     computeRanking(state.results, d as Discipline, absWeek(state.date), rs).filter((r) => r.rank <= 64).map((r) => r.entrantId)));
+  const countryOf = new Map(state.players.map((p) => [p.id, p.countryId]));
   for (const c of world.countries) {
     if (c.id === state.managedCountryId) continue;
     const target = Math.round(g.min + (c.traditionStrength / 100) * (g.max - g.min));
@@ -631,7 +639,8 @@ export function formPairs(state: SeasonState, rs: Ruleset, world: World, rng: Rn
       .filter((p) => p.countryId === c.id && p.retired === undefined && ageAt(p.birth, state.date) >= 17 && !singlesStars.has(p.id))
       .sort((a, b) => currentAbility(b.attrs) - currentAbility(a.attrs));
     for (const d of ['MD', 'WD', 'XD'] as const) {
-      const active = state.pairs.filter((p) => p.discipline === d && !p.dissolved && !p.trial && !p.adHoc && pool.some((x) => x.id === p.playerIds[0]));
+      // Pasangan negara ini dikenali dari negara atletnya, bukan dari `pool` (yang tidak memuat spesialis tunggal).
+      const active = state.pairs.filter((p) => p.discipline === d && !p.dissolved && !p.trial && !p.adHoc && countryOf.get(p.playerIds[0]) === c.id);
       const busy = new Set(active.flatMap((p) => p.playerIds));
       const free = (gender: 'M' | 'F') => pool.filter((p) => p.gender === gender && !busy.has(p.id));
       for (let k = active.length; k < target; k++) {

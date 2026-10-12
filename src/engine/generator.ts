@@ -42,13 +42,13 @@ function makeName(rng: Rng, country: Country, gender: 'M' | 'F', used = new Set<
 
 export function generatePlayer(
   rng: Rng, cfg: GeneratorConfig, country: Country, gender: 'M' | 'F', age: number, date: GameDate, id: string,
-  usedNames?: Set<string>,
+  usedNames?: Set<string>, maxPa = 99,
 ): Player {
   const roll = rng();
   const trait: Player['trait'] =
     roll < cfg.lateBloomerChance ? 'late' : roll < cfg.lateBloomerChance + cfg.stagnantChance ? 'stagnant' : undefined;
   const p = cfg.potential;
-  const pa = Math.round(clamp(normal(rng, p.base + country.traditionStrength * p.perTradition, p.sd), 20, 99));
+  const pa = Math.round(clamp(normal(rng, p.base + country.traditionStrength * p.perTradition, p.sd), 20, maxPa));
   const targetCa = pa * maturity(age, trait);
 
   // Gaya bermain: tiap atribut menyimpang acak dari target, lalu digeser agar rata-ratanya = target.
@@ -92,22 +92,32 @@ function pairUp(
   return pairs;
 }
 
-export function generateCountry(rng: Rng, cfg: GeneratorConfig, country: Country, date: GameDate) {
+/**
+ * Atlet fiktif satu negara. `existing` = atlet dari paket data (mis. nama asli): generator hanya menambah
+ * kekurangannya sampai jumlah normal, senior tambahan tidak lebih kuat dari senior paket terlemah,
+ * dan pasangan dibentuk kemudian oleh formPairs.
+ */
+export function generateCountry(rng: Rng, cfg: GeneratorConfig, country: Country, date: GameDate, existing: Player[] = []) {
   const tr = country.traditionStrength;
   const players: Player[] = [];
   const byGender: Record<'M' | 'F', Player[]> = { M: [], F: [] };
-  const usedNames = new Set<string>();
+  const usedNames = new Set(existing.map((p) => p.name));
 
   for (const gender of ['M', 'F'] as const) {
-    const seniors = lerp(cfg.seniorsPerGender, tr);
-    const juniors = lerp(cfg.juniorsPerGender, tr);
+    const own = existing.filter((p) => p.gender === gender);
+    const ownSeniors = own.filter((p) => ageAt(p.birth, date) > cfg.juniorAge.max);
+    const seniors = Math.max(0, lerp(cfg.seniorsPerGender, tr) - ownSeniors.length);
+    const juniors = Math.max(0, lerp(cfg.juniorsPerGender, tr) - (own.length - ownSeniors.length));
+    const cap = ownSeniors.length ? Math.min(...ownSeniors.map((p) => currentAbility(p.attrs))) : 99;
     for (let i = 0; i < seniors + juniors; i++) {
       const age = i < seniors ? randInt(rng, cfg.seniorAge.min, cfg.seniorAge.max) : randInt(rng, cfg.juniorAge.min, cfg.juniorAge.max);
-      const p = generatePlayer(rng, cfg, country, gender, age, date, `${country.id}-${gender}${i + 1}`, usedNames);
+      const p = generatePlayer(rng, cfg, country, gender, age, date, `${country.id}-${gender}${i + 1}`, usedNames, i < seniors ? cap : 99);
       players.push(p);
       if (i < seniors) byGender[gender].push(p);
     }
   }
+
+  if (existing.length) return { players, pairs: [] as Pair[] };
 
   // Senior diurutkan per CA, lalu dibagi bergantian: posisi genap fokus tunggal, ganjil fokus ganda.
   // ASUMSI: pembagian sederhana ini hanya untuk dunia awal; manajer/AI bisa membentuk ulang pasangan.
@@ -131,11 +141,11 @@ export function generateCountry(rng: Rng, cfg: GeneratorConfig, country: Country
   return { players, pairs };
 }
 
-export function generateWorld(rng: Rng, cfg: GeneratorConfig, countries: Country[], date: GameDate) {
+export function generateWorld(rng: Rng, cfg: GeneratorConfig, countries: Country[], date: GameDate, existing: Player[] = []) {
   const players: Player[] = [];
   const pairs: Pair[] = [];
   for (const c of countries) {
-    const r = generateCountry(rng, cfg, c, date);
+    const r = generateCountry(rng, cfg, c, date, existing.filter((p) => p.countryId === c.id));
     players.push(...r.players);
     pairs.push(...r.pairs);
   }
