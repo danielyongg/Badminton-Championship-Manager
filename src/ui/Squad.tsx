@@ -60,10 +60,10 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
       </nav>
       <div className="scroll">
         <table>
-          <thead><tr><th>{t('name')}</th><th>{t('age')}</th><th>{t('ability')}</th><th>{t('potential')}</th><th>{t('fatigue')}</th><th>{t('injury')}</th><th>{t('singlesRank')}</th><th>{t('pair')}</th></tr></thead>
+          <thead><tr><th>{t('name')}</th><th>{t('gender')}</th><th>{t('age')}</th><th>{t('ability')}</th><th>{t('potential')}</th><th>{t('fatigue')}</th><th>{t('injury')}</th><th>{t('singlesRank')}</th><th>{t('pair')}</th></tr></thead>
           <tbody>{list.map((p) => (
             <tr key={p.id} onClick={() => onOpen(p.id)} style={{ cursor: 'pointer' }}>
-              <td>{p.name} {p.gender === 'M' ? '♂' : '♀'}</td>
+              <td>{p.name}</td><td>{p.gender}</td>
               <td className="num">{ageAt(p.birth, state.date)}</td>
               <td className="num">{currentAbility(p.attrs)}<span className={p.caDelta! > 0 ? 'up' : 'down'}>{arrow(p.caDelta)}</span></td>
               <td className="stars">{starText(potentialStars(p, state.date, counts.get(p.id) ?? 0))}</td>
@@ -101,7 +101,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
   return (
     <section>
       <p><button onClick={onBack}>← {t('back')}</button></p>
-      <h2>{p.name} <small>({p.countryId}, {p.gender === 'M' ? '♂' : '♀'}, {p.hand})</small></h2>
+      <h2>{p.name} <small>({p.countryId}, {p.gender}, {p.hand})</small></h2>
       <p>
         {t('age')} {ageAt(p.birth, state.date)} · {t('ability')} <b>{currentAbility(p.attrs)}</b>{arrow(p.caDelta)} ·
         {' '}{t('potential')} <span className="stars">{starText(potentialStars(p, state.date, counts.get(p.id) ?? 0))}</span> ·
