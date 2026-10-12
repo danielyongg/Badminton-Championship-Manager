@@ -1,5 +1,6 @@
 import { BWF_2026 } from './presets/bwf2026';
 import { BWF_2027 } from './presets/bwf2027';
+import { realRoster } from './presets/realPlayers';
 import { WORLD } from './presets/world';
 import { ATTRS, DISCIPLINES, ROUNDS, type Confederation, type Pair, type Player, type Ruleset, type World } from './types';
 import { t } from '../i18n';
@@ -21,9 +22,9 @@ export interface DataPack {
 export const PRESETS = [BWF_2026, BWF_2027];
 export const CONFEDERATIONS: Confederation[] = ['BA', 'BE', 'BAM', 'BCA', 'BO'];
 
-/** Paket bawaan (hanya-baca): preset ruleset + dunia bawaan, tanpa atlet (semua fiktif). */
+/** Paket bawaan (hanya-baca): preset ruleset + dunia bawaan + atlet asli (kekurangan diisi atlet fiktif saat New Game). */
 export const presetPack = (rs: Ruleset): DataPack =>
-  ({ id: `preset-${rs.id}`, name: rs.name, updatedAt: 0, ruleset: rs, world: WORLD, players: [], pairs: [] });
+  ({ id: `preset-${rs.id}`, name: rs.name, updatedAt: 0, ruleset: rs, world: WORLD, ...realRoster(rs.startYear) });
 
 /** Isi pengaturan yang tidak ada dengan nilai bawaan (objek digabung per kunci; array & nilai lain diambil utuh). */
 export function withDefaults<T>(saved: T, defaults: T): T {

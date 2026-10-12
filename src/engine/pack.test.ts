@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateWorld } from './generator';
+import { ageAt, currentAbility, generateWorld } from './generator';
 import { normalizePack, presetPack, PRESETS, validatePack, type DataPack } from './pack';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
@@ -61,17 +61,34 @@ describe('paket data (Editor, import/export)', () => {
     expect(errs).toMatch(/Kota: id "kuala-lumpur" dipakai lebih dari sekali/);
   });
 
-  it('New Game memakai atlet paket; negara lain diisi generator; pasangan dibentuk bila kurang', () => {
+  it('New Game memakai atlet paket; kekurangan & negara lain diisi generator; pasangan dibentuk bila kurang', () => {
     const roster = ['M1', 'M2', 'M3', 'M4'].map((id) => player(id, 'INA', 'M')).concat(['F1', 'F2', 'F3'].map((id) => player(id, 'INA', 'F')));
     roster[0].name = 'Bintang Impor';
     const state = newSeason(WORLD, PRESETS[0], 1, undefined, 'INA', { players: roster, pairs: [] });
     const ina = state.players.filter((p) => p.countryId === 'INA');
-    expect(ina.map((p) => p.id).sort()).toEqual(['F1', 'F2', 'F3', 'M1', 'M2', 'M3', 'M4']);
+    expect(ina.length).toBeGreaterThan(roster.length);
+    for (const r of roster) expect(ina.some((p) => p.id === r.id)).toBe(true);
+    // Senior fiktif tambahan tidak lebih kuat dari senior paket terlemah.
+    const weakest = Math.min(...roster.map((p) => currentAbility(p.attrs)));
+    for (const p of ina) if (!roster.some((r) => r.id === p.id) && ageAt(p.birth, state.date) >= 18) expect(currentAbility(p.attrs)).toBeLessThanOrEqual(weakest);
     expect(state.players.find((p) => p.id === 'M1')!.name).toBe('Bintang Impor');
     expect(state.players.some((p) => p.countryId === 'CHN')).toBe(true);
-    const inaPairs = state.pairs.filter((p) => roster.some((r) => r.id === p.playerIds[0]));
+    const inaPairs = state.pairs.filter((p) => ina.some((r) => r.id === p.playerIds[0]));
     expect(new Set(inaPairs.map((p) => p.discipline))).toEqual(new Set(['MD', 'WD', 'XD']));
     expect(state.managedCountryId).toBe('INA');
     expect(roster[0].fatigue).toBe(0); // roster tidak ikut berubah (disalin)
+  });
+
+  it('paket bawaan berisi atlet asli; negara dilengkapi atlet fiktif', () => {
+    const pack = presetPack(PRESETS[0]);
+    const state = newSeason(pack.world, pack.ruleset, 1, undefined, 'INA', pack);
+    const ina = state.players.filter((p) => p.countryId === 'INA');
+    expect(ina.some((p) => p.name === 'Jonatan Christie')).toBe(true);
+    expect(ina.some((p) => !p.id.includes('-r-'))).toBe(true);
+    expect(state.pairs.some((p) => p.id === 'INA-r-MD1')).toBe(true);
+    expect(state.players.some((p) => p.countryId === 'PHI')).toBe(true); // negara tanpa atlet asli tetap terisi
+    // Tiap atlet paling banyak satu pasangan aktif per nomor (dulu pasangan berisi spesialis tunggal tidak terhitung).
+    const slots = state.pairs.filter((p) => !p.dissolved && !p.trial).flatMap((p) => p.playerIds.map((id) => `${p.discipline}:${id}`));
+    expect(new Set(slots).size).toBe(slots.length);
   });
 });
