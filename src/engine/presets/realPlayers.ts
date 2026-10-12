@@ -4,7 +4,7 @@ import data from './bwfPlayers.json';
 // Atlet asli bawaan (paket BWF 2026 / 2027+) dari ranking dunia & junior BWF, diambil dengan `scripts/fetch-bwf.mjs`.
 // Per negara game: senior s/d 24 per gender & junior s/d 8 per gender, terbaik dulu. Negara yang kurang dilengkapi
 // atlet fiktif oleh generator.
-// ASUMSI: "level" (≈ kemampuan) dihitung dari poin ranking relatif terhadap peringkat 1 nomornya; bukan data resmi.
+// ASUMSI: "level" (≈ kemampuan) dihitung dari peringkat BWF (lihat docs/ASUMSI.md); bukan data resmi.
 // Tanggal lahir dari profil BWF; bila kosong diperkirakan (senior 25 th, junior 17 th saat data diambil). Tangan: kanan.
 
 // [bwfId, nama, negara, gender, lahir YYYY-MM-DD | null, fokus tunggal/ganda, level, junior 0/1]
@@ -36,7 +36,7 @@ function toPlayer([bwfId, name, countryId, gender, dob, focus, level, junior]: R
   const age = startYear - birth.year;
   return {
     id: `${countryId}-r-${bwfId}`, name, countryId, gender, hand: 'R', birth,
-    attrs, pa: Math.min(99, level + Math.max(1, (24 - age) * 2)), form: 0, fatigue: 0,
+    attrs, pa: Math.min(99, level + Math.max(1, (24 - age) * 2)), form: 0, fatigue: 0, ...(focus === 'D' && { focus }),
     attrHistory: [{ year: startYear - 1, attrs: { ...attrs } }],
   };
 }

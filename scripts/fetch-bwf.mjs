@@ -64,23 +64,23 @@ const KIND = { MS: ['M', null, 0, 0], WS: ['F', null, 0, 0], MD: ['M', 'M', 1, 0
 // Nama tampilan BWF ("Kunlavut VITIDSARN", "AN Se Young") → huruf besar-kecil biasa.
 const nameOf = (m) => m.name_display_bold.replace(/<[^>]+>/g, '').trim()
   .replace(/\p{Lu}[\p{Lu}'-]+/gu, (w) => w[0] + w.slice(1).toLowerCase().replace(/(['-])(\p{Ll})/gu, (_, s, c) => s + c.toUpperCase()));
-// Level (≈ kemampuan 1–100) dari poin relatif terhadap peringkat 1 nomor itu.
-const levelOf = (pts, top, junior) => Math.round(junior ? 45 + 25 * (pts / top) ** 0.35 : 55 + 40 * (pts / top) ** 0.35);
+// Level (≈ kemampuan 1–100) dari peringkat: senior #1 ≈ 96, #10 ≈ 86, #100 ≈ 75, #1000 ≈ 65; junior #1 ≈ 72.
+const levelOf = (rank, junior) => Math.round(junior ? 72 - 4 * Math.log(rank) : 96 - 4.5 * Math.log(rank));
 
 const people = new Map(); // bwfId → atlet
 const pairs = [];
 for (const [code, rows] of Object.entries(rankings)) {
   const [g1, g2, dbl, junior] = KIND[code];
-  const top = Math.max(...rows.map((r) => +r.points));
   for (const r of rows) {
     const cid = COUNTRY[r.p1_country_model?.name];
     if (!cid || !r.player1_model) continue;
-    const lvl = levelOf(+r.points, top, junior);
+    const lvl = levelOf(r.rank, junior);
     const ids = [];
     for (const [m, g] of [[r.player1_model, g1], [r.player2_model, g2]]) {
       if (!m || !g) continue;
-      const p = people.get(m.id) ?? people.set(m.id, { id: m.id, name: nameOf(m), cid, g, lvl: 0, focus: 'S', junior: false }).get(m.id);
-      if (lvl > p.lvl) { p.lvl = lvl; p.focus = dbl ? 'D' : 'S'; }
+      const p = people.get(m.id) ?? people.set(m.id, { id: m.id, name: nameOf(m), cid, g, lvl: 0, s: 0, d: 0 }).get(m.id);
+      p.lvl = Math.max(p.lvl, lvl);
+      if (dbl) p.d = Math.max(p.d, lvl); else p.s = Math.max(p.s, lvl);
       if (junior) p.junior = true; else p.senior = true;
       ids.push(m.id);
     }
@@ -107,10 +107,12 @@ for (const id of chosen) {
 
 // 4. Tulis data ringkas: atlet [bwfId, nama, negara, gender, lahir (YYYY-MM-DD | null), fokus, level, junior] & pasangan.
 const players = [...chosen].map((id) => people.get(id)).sort((a, b) => a.cid.localeCompare(b.cid) || b.lvl - a.lvl)
-  .map((p) => [+p.id, p.name, p.cid, p.g, p.born ?? null, p.focus, p.lvl, p.senior ? 0 : 1]);
+  // Spesialis ganda: level tunggalnya jauh di bawah level ganda (atau tanpa ranking tunggal).
+  .map((p) => [+p.id, p.name, p.cid, p.g, p.born ?? null, p.s < p.d - 8 ? 'D' : 'S', p.lvl, p.senior ? 0 : 1]);
 const busy = new Set();
 const keptPairs = pairs.filter(([d, a, b]) => {
   if (!chosen.has(a) || !chosen.has(b) || busy.has(`${d}:${a}`) || busy.has(`${d}:${b}`)) return false;
+  if (people.get(a).cid !== people.get(b).cid) return false; // atlet yang tercatat di negara berbeda antar nomor
   busy.add(`${d}:${a}`).add(`${d}:${b}`);
   return true;
 }).map(([d, a, b]) => [d, +a, +b]);
