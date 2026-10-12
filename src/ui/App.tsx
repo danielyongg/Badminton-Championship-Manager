@@ -6,7 +6,7 @@ import { WORLD } from '../engine/presets/world';
 import { makeRng } from '../engine/rng';
 import { newSeason } from '../engine/season';
 import type { SaveMeta } from '../engine/types';
-import { t } from '../i18n';
+import { dataName, t } from '../i18n';
 import { CareerShell } from './Career';
 import { PackManager } from './Editor';
 import { LangSelect } from './LangSelect';
@@ -64,7 +64,7 @@ function MainMenu({ onStart, onLab, onEditor, onLang }: { onStart: (g: Game) => 
     if (blob) onStart(gameFromBlob(meta, blob));
   };
 
-  const countryName = (id: string | null) => (id ? WORLD.countries.find((c) => c.id === id)?.name ?? id : t('observer'));
+  const countryName = (id: string | null) => (id ? dataName(WORLD.countries.find((c) => c.id === id)?.name) ?? id : t('observer'));
 
   return (
     <main className="menu">
@@ -76,7 +76,7 @@ function MainMenu({ onStart, onLab, onEditor, onLang }: { onStart: (g: Game) => 
           <label>{t('saveName')}<input value={name} onChange={(e) => setName(e.target.value)} /></label>
           <label>{t('country')}
             <select value={countryId} onChange={(e) => setCountryId(e.target.value)}>
-              {pack.world.countries.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {pack.world.countries.map((c) => <option key={c.id} value={c.id}>{dataName(c.name)}</option>)}
               <option value="">{t('observer')}</option>
             </select>
           </label>

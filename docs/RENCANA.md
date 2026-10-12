@@ -5,8 +5,9 @@ Daftar fitur yang belum dibuat. Fase 1–10 sudah selesai (lihat `git log`); asu
 ## Fase 11 — Bahasa & simulasi lancar
 - [x] Teks bahasa Inggris: kamus `src/i18n/en.ts` (semua teks UI & pesan engine), pilihan bahasa di menu utama & header.
 - [x] Simulasi beberapa minggu tidak membekukan UI: jeda antar minggu + indikator "Menyimulasikan minggu X…" + tombol Berhenti. (Web worker tidak diperlukan untuk saat ini.)
-- [ ] Nama data bawaan (negara, kota, event seperti "Kejuaraan Beregu Asia", tier "Kejuaraan Dunia") masih bahasa Indonesia di mode Inggris — bisa diganti lewat Editor, atau dibuatkan paket data bahasa Inggris.
-- Dipindah ke tahap akhir: tampilan responsif (digabung dengan percantik UI) & deploy GitHub Pages.
+- [x] Nama data bawaan (negara, kota, event) tampil dalam bahasa Inggris di mode Inggris: `DATA_EN` di `src/i18n/en.ts`, dicocokkan per teks persis sehingga nama yang diubah lewat Editor tetap apa adanya. Editor tetap menampilkan nama asli.
+- [x] Tampilan responsif dasar (HP): pengaturan header terlipat di layar sempit, menu tab satu baris geser & melekat di atas, tabel lebar digeser di tempat, tombol & isian ramah jari. Penyempurnaan visual tetap di tahap akhir.
+- Dipindah ke tahap akhir: deploy GitHub Pages.
 
 ## Sisa spesifikasi awal
 - [x] Bagan turnamen di mode karier: halaman turnamen (entry, kualifikasi/grup, undian, bagan) dari Kalender, Dashboard & profil atlet; catatan 2 musim (±2 MB/musim). Spesifikasi: `docs/superpowers/specs/2026-10-12-bagan-turnamen-design.md`.

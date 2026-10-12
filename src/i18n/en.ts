@@ -328,6 +328,7 @@ export const en: Record<TextKey, string> = {
   nameMixed: 'Name in Sudirman Cup years',
   yearsShort: 'y',
   language: 'Language',
+  settings: 'Settings',
   simulating: 'Simulating week {w}…',
   stop: 'Stop',
   step_summary: 'Draw of {N} positions, {n} entrants, {byes} byes, {seeds} seeds, {q} qualifiers',
@@ -368,4 +369,17 @@ export const en: Record<TextKey, string> = {
   v_pairCountry: 'players from different countries.',
   v_pairGender: 'gender does not match {d}.',
   v_pairBusy: '{name} already has a {d} partner.',
+};
+
+// Nama data bawaan (negara, kota, event) yang berbahasa Indonesia → Inggris. Dicocokkan per teks persis,
+// jadi nama yang sudah diubah di Editor tetap tampil apa adanya.
+export const DATA_EN: Record<string, string> = {
+  Tiongkok: 'China', Jepang: 'Japan', 'Korea Selatan': 'South Korea', 'Taipei China': 'Chinese Taipei',
+  Singapura: 'Singapore', Filipina: 'Philippines', Makau: 'Macau', 'Uni Emirat Arab': 'United Arab Emirates',
+  Prancis: 'France', Inggris: 'England', Jerman: 'Germany', Spanyol: 'Spain', Belanda: 'Netherlands',
+  Skotlandia: 'Scotland', Irlandia: 'Ireland', Swedia: 'Sweden', Finlandia: 'Finland', Swiss: 'Switzerland',
+  Polandia: 'Poland', Ceko: 'Czech Republic', Ukraina: 'Ukraine', Turki: 'Türkiye', Norwegia: 'Norway',
+  Italia: 'Italy', Kanada: 'Canada', 'Amerika Serikat': 'United States', Brasil: 'Brazil', Meksiko: 'Mexico',
+  Mesir: 'Egypt', 'Afrika Selatan': 'South Africa', Aljazair: 'Algeria', 'Selandia Baru': 'New Zealand',
+  Kairo: 'Cairo', 'Kejuaraan Dunia': 'World Championships', Olimpiade: 'Olympics',
 };

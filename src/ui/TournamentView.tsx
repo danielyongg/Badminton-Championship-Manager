@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { DISCIPLINES, type Discipline } from '../engine/types';
-import { numLocale, t } from '../i18n';
+import { dataName, numLocale, t } from '../i18n';
 import { BracketView, DrawStepsView, EntryView, GroupView, QualView, SeedsView } from './EventViews';
 import { entrantLabel, eventName, lookup, useGame } from './game';
 import { LiveDraw } from './LiveDraw';
@@ -40,7 +40,7 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
     <section>
       <div className="controls"><button onClick={onBack}>{t('back')}</button></div>
       <h2>{eventName(ruleset, id, year)} {year}</h2>
-      <p>{tier} · {city?.name} ({city?.countryId}) · {t('week')} {def?.week}{prize}</p>
+      <p>{tier} · {dataName(city?.name)} ({city?.countryId}) · {t('week')} {def?.week}{prize}</p>
       {team.length > 0 ? team.map((r) => <FinalsResult key={r.format} r={r} />) : played.length === 0 ? <p>{t('notPlayedYet')}</p> : (
         <>
           <nav className="controls">
