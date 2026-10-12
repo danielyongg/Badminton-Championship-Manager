@@ -30,6 +30,7 @@ tr.sel { background: color-mix(in srgb, var(--accent) 20%, transparent); }
 .settings .controls { margin: 0; }
 .shell { position: sticky; top: 0; background: Canvas; padding: 6px 0; z-index: 2; border-bottom: 1px solid var(--line); }
 .dash { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; align-items: start; }
+.dash > * { overflow-x: auto; }
 .bar { display: inline-block; width: 60px; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; vertical-align: middle; }
 .bar span { display: block; height: 100%; }
 .modal { position: fixed; inset: 0; background: #0008; display: flex; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto; z-index: 10; }
