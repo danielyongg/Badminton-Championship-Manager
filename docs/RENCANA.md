@@ -14,7 +14,7 @@ Daftar fitur yang belum dibuat. Fase 1–10 sudah selesai (lihat `git log`); asu
 - [x] Grafik atribut per usia di profil atlet (Kemampuan + satu atribut pilihan; tabel tetap ada).
 - [x] Hadiah uang: per atlet per musim (profil: musim ini & karier; Federasi: total negara & pendapatan terbesar).
 - [ ] Avatar atlet di Editor (opsional).
-- [x] Atlet asli di paket bawaan (292 atlet, 31 negara); kekurangan diisi atlet fiktif. Junior masih fiktif. Detail: `docs/ASUMSI.md`.
+- [x] Atlet asli di paket bawaan (292 atlet, 31 negara); atlet fiktif hanya untuk melengkapi tim beregu (7 senior per gender) & negara tanpa data. Detail: `docs/ASUMSI.md`.
 
 ## Fitur tambahan dari diskusi
 - [x] **Live drawing** (gaya Football Manager): pilihan header *Mati / Turnamen besar saja / Semua yang diikuti atlet saya*; mangkuk pot + bagan/grup terisi, pengumuman tiap langkah, pemisahan negara menyala; putar ulang dari halaman turnamen & hasil beregu. Undian babak kualifikasi tidak ditampilkan (hanya pembagian seksi acak).

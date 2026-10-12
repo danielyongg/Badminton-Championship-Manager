@@ -635,15 +635,20 @@ export function formPairs(state: SeasonState, rs: Ruleset, world: World, rng: Rn
   for (const c of world.countries) {
     if (c.id === state.managedCountryId) continue;
     const target = Math.round(g.min + (c.traditionStrength / 100) * (g.max - g.min));
-    const pool = state.players
-      .filter((p) => p.countryId === c.id && p.retired === undefined && ageAt(p.birth, state.date) >= 17 && !singlesStars.has(p.id))
+    const all = state.players
+      .filter((p) => p.countryId === c.id && p.retired === undefined && ageAt(p.birth, state.date) >= 17)
       .sort((a, b) => currentAbility(b.attrs) - currentAbility(a.attrs));
+    const pool = all.filter((p) => !singlesStars.has(p.id));
+    const stars = all.filter((p) => singlesStars.has(p.id));
     for (const d of ['MD', 'WD', 'XD'] as const) {
       // Pasangan negara ini dikenali dari negara atletnya, bukan dari `pool` (yang tidak memuat spesialis tunggal).
       const active = state.pairs.filter((p) => p.discipline === d && !p.dissolved && !p.trial && !p.adHoc && countryOf.get(p.playerIds[0]) === c.id);
       const busy = new Set(active.flatMap((p) => p.playerIds));
-      const free = (gender: 'M' | 'F') => pool.filter((p) => p.gender === gender && !busy.has(p.id));
-      for (let k = active.length; k < target; k++) {
+      // Spesialis tunggal hanya dipakai bila perlu untuk minimum tim beregu (2 pasangan MD/WD, 1 XD).
+      const minPairs = d === 'XD' ? 1 : 2;
+      let k = active.length;
+      const free = (gender: 'M' | 'F') => [...pool, ...(k < minPairs ? stars : [])].filter((p) => p.gender === gender && !busy.has(p.id));
+      for (; k < target; k++) {
         const [a, b] = d === 'MD' ? free('M').slice(0, 2) : d === 'WD' ? free('F').slice(0, 2) : [free('M')[0], free('F')[0]];
         if (!a || !b) break;
         state.pairs.push({

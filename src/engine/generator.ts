@@ -92,10 +92,13 @@ function pairUp(
   return pairs;
 }
 
+/** Senior per gender agar bisa menurunkan tim beregu: 3 tunggal + 2 pasangan ganda (Thomas/Uber). */
+export const TEAM_MIN_PER_GENDER = 7;
+
 /**
- * Atlet fiktif satu negara. `existing` = atlet dari paket data (mis. nama asli): generator hanya menambah
- * kekurangannya sampai jumlah normal, senior tambahan tidak lebih kuat dari senior paket terlemah,
- * dan pasangan dibentuk kemudian oleh formPairs.
+ * Atlet fiktif satu negara. `existing` = atlet dari paket data (mis. nama asli): generator hanya menambah senior
+ * sampai cukup untuk tim beregu (tanpa junior; junior baru tetap datang tiap musim), senior tambahan tidak lebih
+ * kuat dari senior paket terlemah, dan pasangan dibentuk kemudian oleh formPairs.
  */
 export function generateCountry(rng: Rng, cfg: GeneratorConfig, country: Country, date: GameDate, existing: Player[] = []) {
   const tr = country.traditionStrength;
@@ -106,8 +109,8 @@ export function generateCountry(rng: Rng, cfg: GeneratorConfig, country: Country
   for (const gender of ['M', 'F'] as const) {
     const own = existing.filter((p) => p.gender === gender);
     const ownSeniors = own.filter((p) => ageAt(p.birth, date) > cfg.juniorAge.max);
-    const seniors = Math.max(0, lerp(cfg.seniorsPerGender, tr) - ownSeniors.length);
-    const juniors = Math.max(0, lerp(cfg.juniorsPerGender, tr) - (own.length - ownSeniors.length));
+    const seniors = existing.length ? Math.max(0, TEAM_MIN_PER_GENDER - ownSeniors.length) : lerp(cfg.seniorsPerGender, tr);
+    const juniors = existing.length ? 0 : lerp(cfg.juniorsPerGender, tr);
     const cap = ownSeniors.length ? Math.min(...ownSeniors.map((p) => currentAbility(p.attrs))) : 99;
     for (let i = 0; i < seniors + juniors; i++) {
       const age = i < seniors ? randInt(rng, cfg.seniorAge.min, cfg.seniorAge.max) : randInt(rng, cfg.juniorAge.min, cfg.juniorAge.max);

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { ageAt, currentAbility, generateWorld } from './generator';
+import { ageAt, currentAbility, generateWorld, TEAM_MIN_PER_GENDER } from './generator';
 import { normalizePack, presetPack, PRESETS, validatePack, type DataPack } from './pack';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
-import { newSeason } from './season';
+import { newSeason, teamStrengths } from './season';
 import { ATTRS, type Player } from './types';
 
 /** Paket penuh: preset + atlet fiktif yang sudah diedit (seperti hasil "Salin untuk diedit"). */
@@ -66,7 +66,7 @@ describe('paket data (Editor, import/export)', () => {
     roster[0].name = 'Bintang Impor';
     const state = newSeason(WORLD, PRESETS[0], 1, undefined, 'INA', { players: roster, pairs: [] });
     const ina = state.players.filter((p) => p.countryId === 'INA');
-    expect(ina.length).toBeGreaterThan(roster.length);
+    expect(ina.filter((p) => p.gender === 'M').length).toBe(TEAM_MIN_PER_GENDER); // 4 asli + 3 fiktif
     for (const r of roster) expect(ina.some((p) => p.id === r.id)).toBe(true);
     // Senior fiktif tambahan tidak lebih kuat dari senior paket terlemah.
     const weakest = Math.min(...roster.map((p) => currentAbility(p.attrs)));
@@ -79,12 +79,15 @@ describe('paket data (Editor, import/export)', () => {
     expect(roster[0].fatigue).toBe(0); // roster tidak ikut berubah (disalin)
   });
 
-  it('paket bawaan berisi atlet asli; negara dilengkapi atlet fiktif', () => {
+  it('paket bawaan berisi atlet asli; atlet fiktif hanya untuk melengkapi tim beregu', () => {
     const pack = presetPack(PRESETS[0]);
     const state = newSeason(pack.world, pack.ruleset, 1, undefined, 'INA', pack);
     const ina = state.players.filter((p) => p.countryId === 'INA');
     expect(ina.some((p) => p.name === 'Jonatan Christie')).toBe(true);
-    expect(ina.some((p) => !p.id.includes('-r-'))).toBe(true);
+    expect(ina.every((p) => p.id.includes('-r-'))).toBe(true); // cukup atlet asli → tanpa atlet fiktif
+    expect(state.players.filter((p) => p.countryId === 'VIE' && p.gender === 'F').length).toBe(TEAM_MIN_PER_GENDER); // 1 asli + 6 fiktif
+    // Semua negara bisa menurunkan tim beregu.
+    for (const f of ['thomas', 'uber', 'sudirman'] as const) expect(teamStrengths(state, pack.ruleset, f).length).toBe(pack.world.countries.length);
     expect(state.pairs.some((p) => p.id === 'INA-r-MD1')).toBe(true);
     expect(state.players.some((p) => p.countryId === 'PHI')).toBe(true); // negara tanpa atlet asli tetap terisi
     // Tiap atlet paling banyak satu pasangan aktif per nomor (dulu pasangan berisi spesialis tunggal tidak terhitung).
