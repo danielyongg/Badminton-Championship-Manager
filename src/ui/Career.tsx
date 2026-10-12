@@ -1,0 +1,383 @@
+import { useRef, useState } from 'react';
+import type { MatchResult } from '../engine/match';
+import type { DrawHook, DrawShow, LiveHook, LiveRequest } from '../engine/tournament';
+import { goalProgress } from '../engine/career';
+import { isHeld, switchCountry, type EntryHook, type TeamHook } from '../engine/season';
+import type { Lineup, TeamEntrant } from '../engine/team';
+import type { MatchRound } from '../engine/knockout';
+import type { TeamFormat } from '../engine/types';
+import type { FederationGoal } from '../engine/types';
+import { t, type TextKey } from '../i18n';
+import { downloadPack, Editor, useDebounced } from './Editor';
+import { Entries } from './Entries';
+import { LangSelect } from './LangSelect';
+import { LiveDraw } from './LiveDraw';
+import { LiveMatch } from './LiveMatch';
+import { advance, entrantLabel, eventName, lookup, saveGame, useGame } from './game';
+import { Pairs } from './Pairs';
+import { SeasonViews } from './Ranking';
+import { Profile, Squad, usd } from './Squad';
+import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
+import { TournamentView } from './TournamentView';
+
+/** Tier "turnamen besar" untuk live drawing (plus putaran final beregu). */
+const BIG_TIERS = new Set(['S1000', 'S750', 'WC', 'OG', 'WTF']);
+
+type Tab = 'dashboard' | 'squad' | 'pairs' | 'entries' | 'team' | 'world' | 'federation' | 'editor';
+
+export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: () => void }) {
+  const { game, version, changed } = useGame();
+  const { state, world } = game;
+  const managed = state.career?.countryId ?? null;
+  const [tab, setTab] = useState<Tab>('dashboard');
+  const [profileId, setProfileId] = useState<string>();
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [busy, setBusy] = useState(false);
+  const [simWeek, setSimWeek] = useState<number>(); // minggu yang sedang disimulasikan (lanjut beberapa minggu)
+  const stop = useRef(false);
+  const [liveMode, setLiveMode] = useState<'off' | 'finals' | 'all'>('finals');
+  const [live, setLive] = useState<{ req: LiveRequest; mySide: 0 | 1; resolve: (r: MatchResult) => void }>();
+  const autoRest = useRef(false);
+  type TeamAsk = { eventId: string; format: TeamFormat; pool: Record<string, TeamEntrant[]> } & (
+    | { kind: 'squad'; suggested: string[]; resolve: (v: string[]) => void }
+    | { kind: 'lineup'; round: MatchRound; opponent: string; squad: string[]; suggested: Lineup; resolve: (v: Lineup) => void });
+  const [teamAsk, setTeamAsk] = useState<TeamAsk>();
+
+  // Beregu: pop-up skuad sebelum turnamen & line-up sebelum tiap pertandingan (kecuali mode Otomatis / "Auto sisa minggu").
+  const askTeam = () => !!managed && !state.teamAuto && !autoRest.current;
+  const teamHook: TeamHook = {
+    squad: (req) => (askTeam() ? new Promise((resolve) => setTeamAsk({ ...req, kind: 'squad', resolve })) : null),
+    lineup: (req) => (askTeam() ? new Promise((resolve) => setTeamAsk({ ...req, kind: 'lineup', resolve })) : null),
+  };
+  // Pop-up entry: sebelum minggu turnamen (besar saja / semua), manajer memeriksa & mengubah entry minggu itu.
+  const [entryMode, setEntryMode] = useState<'off' | 'big' | 'all'>('off');
+  const [entryAsk, setEntryAsk] = useState<{ week: number; resolve: () => void }>();
+  const skipEntry = useRef(false);
+  const entryHook: EntryHook = ({ week, events }) => {
+    if (!managed || entryMode === 'off' || skipEntry.current) return null;
+    if (entryMode === 'big' && !events.some((e) => BIG_TIERS.has(e.tierId))) return null;
+    return new Promise<void>((resolve) => setEntryAsk({ week, resolve }));
+  };
+  // Live drawing: undian turnamen yang diikuti atlet sendiri (semua, atau turnamen besar + final beregu saja).
+  const [drawMode, setDrawMode] = useState<'off' | 'big' | 'mine'>('big');
+  const [drawAsk, setDrawAsk] = useState<{ d: DrawShow; resolve: () => void }>();
+  const skipDraw = useRef<string>(undefined);
+  const drawHook: DrawHook = (d) => {
+    if (!managed || drawMode === 'off' || autoRest.current || skipDraw.current === d.tournamentId) return null;
+    const tier = game.ruleset.calendar.find((e) => e.id === d.tournamentId)?.tierId ?? '';
+    if (drawMode === 'big' && d.discipline && !BIG_TIERS.has(tier)) return null; // tanpa nomor = final beregu
+    const mine = d.entrants.some((id) => (d.discipline ? entrantLabel(state, id).country === managed : id === managed));
+    return mine ? new Promise<void>((resolve) => setDrawAsk({ d, resolve })) : null;
+  };
+  const nameOfCountry = (id: string) => world.countries.find((c) => c.id === id)?.name ?? id;
+  const teamTitle = (eventId: string) => eventName(game.ruleset, eventId, state.date.year) ?? eventId;
+
+  // Laga atlet negara sendiri dimainkan Live sesuai pengaturan; sisanya Auto.
+  const hook: LiveHook = (req) => {
+    if (!managed || liveMode === 'off' || autoRest.current) return null;
+    if (liveMode === 'finals' && req.round !== 'SF' && req.round !== 'F') return null;
+    const mine = req.entrants.map((id) => entrantLabel(state, id).country === managed);
+    if (!mine[0] && !mine[1]) return null;
+    return new Promise((resolve) => setLive({ req, mySide: mine[0] ? 0 : 1, resolve }));
+  };
+
+  const persist = async () => {
+    setStatus('saving');
+    await saveGame(game);
+    setStatus('saved');
+  };
+  const persistSoon = useDebounced(() => void persist());
+  // Ekspor dunia save ini sebagai paket data (atlet aktif & pasangan aktif, tanpa kelelahan/cedera).
+  const exportSave = () => downloadPack({
+    id: '', name: game.meta.name, updatedAt: Date.now(), ruleset: game.ruleset, world,
+    players: state.players.filter((p) => p.retired === undefined).map((p) => ({ ...p, fatigue: 0, injury: undefined, location: undefined })),
+    pairs: state.pairs.filter((p) => !p.dissolved),
+  });
+  const go = async (weeks: number) => {
+    setBusy(true);
+    stop.current = false;
+    skipDraw.current = undefined;
+    skipEntry.current = false;
+    autoRest.current = false;
+    for (let i = 0; i < weeks && !stop.current; i++) {
+      if (weeks > 1) setSimWeek(state.date.week);
+      await advance(game, 1, { entry: entryHook, live: hook, team: teamHook, draw: drawHook });
+      autoRest.current = false;
+      // Beri kesempatan browser menggambar ulang & menerima klik (Berhenti) di antara minggu → UI tidak membeku.
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    setSimWeek(undefined);
+    setBusy(false);
+    changed();
+    void persist();
+  };
+  const weeksToSeasonEnd = 52 - state.date.week + 1;
+  const countryName = managed ? world.countries.find((c) => c.id === managed)?.name : t('observer');
+  const tabs: Tab[] = managed ? ['dashboard', 'squad', 'pairs', 'entries', 'team', 'world', 'federation', 'editor'] : ['dashboard', 'team', 'world', 'federation', 'editor'];
+  const tabLabel: Record<Tab, TextKey> = {
+    dashboard: 'tabDashboard', squad: 'tabSquad', pairs: 'tabPairs', entries: 'tabEntries', team: 'tabTeam', world: 'tabWorld', federation: 'tabFederation', editor: 'tabEditor',
+  };
+  // Profil & halaman turnamen dibuka dari atas (bukan di posisi scroll daftar sebelumnya).
+  const open = (id: string) => { setProfileId(id); window.scrollTo(0, 0); };
+  const [eventView, setEventView] = useState<{ id: string; year: number }>();
+  const openEvent = (id: string, year: number) => { setProfileId(undefined); setEventView({ id, year }); window.scrollTo(0, 0); };
+
+  return (
+    <main>
+      <header className="controls shell">
+        <b>{countryName}</b>
+        <span>{state.date.year} · {t('week')} {state.date.week}</span>
+        {managed && <span>{t('reputation')}: {state.career!.reputation}</span>}
+        <button disabled={busy} onClick={() => go(1)}>{t('advance1')}</button>
+        <button disabled={busy} onClick={() => go(4)}>{t('advance4')}</button>
+        <button disabled={busy} onClick={() => go(weeksToSeasonEnd)}>{t('advanceSeason')}</button>
+        {managed && (
+          <label>{t('liveMode')}
+            <select value={liveMode} onChange={(e) => setLiveMode(e.target.value as typeof liveMode)}>
+              <option value="off">{t('live_off')}</option>
+              <option value="finals">{t('live_finals')}</option>
+              <option value="all">{t('live_all')}</option>
+            </select>
+          </label>
+        )}
+        {managed && (
+          <label>{t('entryPopup')}
+            <select value={entryMode} onChange={(e) => setEntryMode(e.target.value as typeof entryMode)}>
+              <option value="off">{t('liveDraw_off')}</option>
+              <option value="big">{t('entryPopup_big')}</option>
+              <option value="all">{t('entryPopup_all')}</option>
+            </select>
+          </label>
+        )}
+        {managed && (
+          <label>{t('liveDraw')}
+            <select value={drawMode} onChange={(e) => setDrawMode(e.target.value as typeof drawMode)}>
+              <option value="off">{t('liveDraw_off')}</option>
+              <option value="big">{t('liveDraw_big')}</option>
+              <option value="mine">{t('liveDraw_mine')}</option>
+            </select>
+          </label>
+        )}
+        {managed && (
+          <label>{t('teamMode')}
+            <select value={state.teamAuto ? 'auto' : 'manual'} onChange={(e) => { state.teamAuto = e.target.value === 'auto'; changed(); void persist(); }}>
+              <option value="manual">{t('teamMode_manual')}</option>
+              <option value="auto">{t('teamMode_auto')}</option>
+            </select>
+          </label>
+        )}
+        {simWeek !== undefined && <span>{t('simulating', { w: simWeek })} <button onClick={() => { stop.current = true; }}>{t('stop')}</button></span>}
+        <LangSelect onChange={onLang} />
+        <small>{status === 'saving' ? t('saving') : status === 'saved' ? t('saved') : ''}</small>
+        <button disabled={busy} onClick={onQuit}>{t('mainMenu')}</button>
+      </header>
+      {live && (
+        <LiveMatch
+          key={`${live.req.tournamentId}-${live.req.entrants.join('-')}-${live.req.round}`}
+          sides={live.req.sides}
+          names={[entrantLabel(state, live.req.entrants[0]).name, entrantLabel(state, live.req.entrants[1]).name]}
+          mySide={live.mySide}
+          cfg={game.ruleset.match}
+          rng={game.rng}
+          title={`${eventName(game.ruleset, live.req.tournamentId, state.date.year)} · ${live.req.discipline} ${live.req.round}`}
+          onDone={(r) => { setLive(undefined); live.resolve(r); }}
+          onAutoRest={() => { autoRest.current = true; }}
+        />
+      )}
+      {entryAsk && (
+        <div className="modal" role="dialog" aria-label={t('entryPopupTitle')}>
+          <div className="live card">
+            <h3>{t('entryPopupTitle')} · {t('week')} {entryAsk.week}</h3>
+            <Entries fixedWeek={entryAsk.week} />
+            <div className="controls">
+              <button onClick={() => { setEntryAsk(undefined); entryAsk.resolve(); }}>{t('entryConfirm')}</button>
+              <button onClick={() => { skipEntry.current = true; setEntryAsk(undefined); entryAsk.resolve(); }}>{t('entrySkipRun')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {drawAsk && (
+        <LiveDraw key={`${drawAsk.d.tournamentId}-${drawAsk.d.discipline}`} show={drawAsk.d}
+          title={`${eventName(game.ruleset, drawAsk.d.tournamentId, state.date.year)}${drawAsk.d.discipline ? ` · ${drawAsk.d.discipline}` : ''}`}
+          name={(id) => (drawAsk.d.discipline ? `${entrantLabel(state, id).name} (${entrantLabel(state, id).country})` : nameOfCountry(id))}
+          mine={(id) => (drawAsk.d.discipline ? entrantLabel(state, id).country === managed : id === managed)}
+          onClose={() => { setDrawAsk(undefined); drawAsk.resolve(); }}
+          onSkipEvent={() => { skipDraw.current = drawAsk.d.tournamentId; }} />
+      )}
+      {teamAsk?.kind === 'squad' && (
+        <SquadModal key={`${teamAsk.eventId}-${teamAsk.format}`} title={teamTitle(teamAsk.eventId)} format={teamAsk.format} pool={teamAsk.pool}
+          suggested={teamAsk.suggested} onDone={(v) => { setTeamAsk(undefined); teamAsk.resolve(v); }} />
+      )}
+      {teamAsk?.kind === 'lineup' && (
+        <TieLineupModal key={`${teamAsk.eventId}-${teamAsk.format}-${teamAsk.round}-${teamAsk.opponent}`} title={teamTitle(teamAsk.eventId)}
+          format={teamAsk.format} round={teamAsk.round} opponent={teamAsk.opponent} pool={teamAsk.pool} squad={teamAsk.squad} suggested={teamAsk.suggested}
+          onDone={(v) => { setTeamAsk(undefined); teamAsk.resolve(v); }} onAuto={() => { autoRest.current = true; }} />
+      )}
+      <nav className="controls">
+        {tabs.map((x) => <button key={x} aria-pressed={tab === x && !profileId && !eventView} onClick={() => { setTab(x); setProfileId(undefined); setEventView(undefined); }}>{t(tabLabel[x])}</button>)}
+      </nav>
+      {profileId ? <Profile id={profileId} onBack={() => setProfileId(undefined)} onOpen={open} onOpenEvent={openEvent} />
+        : eventView ? <TournamentView key={`${eventView.id}-${eventView.year}`} id={eventView.id} year={eventView.year} onOpenPlayer={open} onBack={() => setEventView(undefined)} />
+        : tab === 'dashboard' ? <Dashboard onOpen={open} onOpenEvent={openEvent} />
+        : tab === 'squad' ? <Squad onOpen={open} />
+        : tab === 'pairs' ? <Pairs onOpen={open} />
+        : tab === 'entries' ? <Entries />
+        : tab === 'team' ? <Team />
+        : tab === 'editor' ? (
+          <Editor data={{ ruleset: game.ruleset, world, players: state.players, pairs: state.pairs }} mode="save" date={state.date} country={managed ?? undefined}
+            onChange={() => { changed(); persistSoon(); }} toolbar={<button onClick={exportSave}>{t('export')}</button>} />
+        )
+        : tab === 'world' ? <SeasonViews state={state} ruleset={game.ruleset} world={world} version={version} onOpenPlayer={open} onOpenEvent={openEvent} />
+        : <Federation onChanged={() => { changed(); void persist(); }} />}
+    </main>
+  );
+}
+
+function GoalTable({ goals, current }: { goals: FederationGoal[]; current?: (g: FederationGoal) => number }) {
+  return (
+    <table style={{ maxWidth: 480 }}>
+      <thead><tr><th></th><th>{t('target')}</th><th>{t('progress')}</th></tr></thead>
+      <tbody>{goals.map((g) => {
+        const now = current ? current(g) : g.achieved ?? 0;
+        const show = (n: number) => (g.kind === 'team' ? levelName(n) : n);
+        return (
+          <tr key={g.kind + (g.format ?? '')}>
+            <td>{t(`goal_${g.kind}` as TextKey)}{g.format && `: ${formatName(g.format)}`}</td>
+            <td className="num">{show(g.target)}</td><td className={`num ${now >= g.target ? 'up' : ''}`}>{show(now)}</td>
+          </tr>
+        );
+      })}</tbody>
+    </table>
+  );
+}
+
+function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOpenEvent: (id: string, year: number) => void }) {
+  const { game } = useGame();
+  const { state, ruleset, world } = game;
+  const managed = state.career?.countryId;
+  const { year, week } = state.date;
+  const upcoming = [...ruleset.calendar, ...ruleset.team.events.map((e) => ({ ...e, tierId: t('tabTeam') }))]
+    .filter((e) => isHeld(e, year) && e.week >= week && e.week < week + 4)
+    .sort((a, b) => a.week - b.week);
+  const city = (id: string) => world.cities.find((c) => c.id === id)?.name;
+
+  // Hasil minggu lalu: laga terakhir tiap peserta negara ini di turnamen minggu lalu.
+  const lastWeekEvents = new Set(ruleset.calendar.filter((e) => e.week === week - 1 && isHeld(e, year)).map((e) => e.id));
+  const last = new Map<string, { event: string; round: string; won: boolean }>();
+  for (const m of state.matches) {
+    if (m.year !== year || !lastWeekEvents.has(m.tournamentId)) continue;
+    m.sides.forEach((side, i) => {
+      if (entrantLabel(state, side).country === managed) last.set(`${m.tournamentId}:${side}`, { event: m.tournamentId, round: m.round, won: m.winner === i });
+    });
+  }
+  // Beregu minggu lalu: babak terakhir negara ini per format.
+  const lastTeam = state.teamResults.filter((r) => r.year === year && r.teams.includes(managed ?? '')
+    && ruleset.team.events.find((e) => e.id === r.eventId)?.week === week - 1);
+  const injured = state.players.filter((p) => p.countryId === managed && p.injury && p.retired === undefined);
+  const lastReport = state.career?.reports.at(-1);
+
+  return (
+    <div className="dash">
+      {!managed && <p>{t('observerNote')}</p>}
+      {managed && (
+        <section className="card">
+          <h3>{t('goals')} {year}</h3>
+          <GoalTable goals={state.career!.goals} current={(g) => goalProgress(state, ruleset, managed, g)} />
+        </section>
+      )}
+      {lastReport && week <= 4 && (
+        <section className="card">
+          <h3>{t('seasonEndReport')} {lastReport.year}: {t('grade')} {lastReport.grade} ({lastReport.reputationChange >= 0 ? '+' : ''}{lastReport.reputationChange} {t('reputation')})</h3>
+          <GoalTable goals={lastReport.goals} />
+        </section>
+      )}
+      <section className="card">
+        <h3>{t('upcoming')}</h3>
+        {upcoming.length === 0 ? <p>—</p> : <ul>{upcoming.map((e) => <li key={e.id}>{t('week')} {e.week}: <b>{eventName(ruleset, e.id, year)}</b> ({e.tierId}, {city(e.cityId)})</li>)}</ul>}
+      </section>
+      {managed && (
+        <section className="card">
+          <h3>{t('recentResults')}</h3>
+          {lastTeam.map((r) => {
+            const reached = r.reached[managed!];
+            return <p key={r.eventId + r.format}><b><EventLink id={r.eventId} year={r.year} onOpen={onOpenEvent} /> · {formatName(r.format)}</b>: {reached === 'W' ? `🏆 ${t('champion')}` : `${t('lost')} ${reached ?? t('group')}`}</p>;
+          })}
+          {last.size === 0 && lastTeam.length === 0 ? <p>—</p> : (
+            <ul>{[...last].map(([key, r]) => {
+              const id = key.split(':')[1];
+              return <li key={key}><a href="#" onClick={(e) => { e.preventDefault(); onOpen(state.pairs.find((p) => p.id === id)?.playerIds[0] ?? id); }}>{entrantLabel(state, id).name}</a> — <EventLink id={r.event} year={year} onOpen={onOpenEvent} />: {r.won && r.round === 'F' ? `🏆 ${t('champion')}` : `${t('lost')} ${r.round}`}</li>;
+            })}</ul>
+          )}
+        </section>
+      )}
+      {managed && injured.length > 0 && (
+        <section className="card">
+          <h3>{t('injuries')}</h3>
+          <ul>{injured.map((p) => <li key={p.id}>{p.name} — {p.injury!.weeksLeft} {t('weeks')}{p.injury!.severe ? ` (${t('injurySevere')})` : ''}</li>)}</ul>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function Federation({ onChanged }: { onChanged: () => void }) {
+  const { game } = useGame();
+  const { state, ruleset, world } = game;
+  const [next, setNext] = useState(state.career?.countryId ?? '');
+  const reports = state.career?.reports ?? [];
+  const country = state.career?.countryId;
+  const { players } = lookup(state);
+  const years = Object.keys(state.earnings).sort().reverse();
+  const ofCountry = (y: string) => Object.entries(state.earnings[y]).filter(([id]) => players.get(id)?.countryId === country);
+  return (
+    <>
+      {country && years.length > 0 && (
+        <section className="card">
+          <h3>{t('prizeMoney')}</h3>
+          <table style={{ maxWidth: 520 }}>
+            <tbody>{years.map((y) => <tr key={y}><td>{y}</td><td className="num"><b>{usd(ofCountry(y).reduce((s, [, v]) => s + v, 0))}</b></td></tr>)}</tbody>
+          </table>
+          <h4>{t('topEarners')} {years[0]}</h4>
+          <ol>{ofCountry(years[0]).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([id, v]) => <li key={id}>{players.get(id)!.name} — {usd(v)}</li>)}</ol>
+        </section>
+      )}
+      <section className="card">
+        <h3>{t('reports')}</h3>
+        {reports.length === 0 ? <p>—</p> : (
+          <table>
+            <thead><tr><th>{t('year')}</th><th>{t('country')}</th><th>{t('grade')}</th><th>{t('goal_titles')}</th><th>{t('goal_top10')}</th><th>{t('goal_team')}</th><th>{t('violations')}</th><th>{t('reputation')}</th></tr></thead>
+            <tbody>{reports.map((r) => {
+              const g = (k: string) => r.goals.find((x) => x.kind === k);
+              return (
+                <tr key={r.year}><td>{r.year}</td><td>{r.countryId}</td><td><b>{r.grade}</b></td>
+                  <td>{g('titles')?.achieved}/{g('titles')?.target}</td><td>{g('top10')?.achieved}/{g('top10')?.target}</td>
+                  <td>{r.goals.filter((x) => x.kind === 'team').map((x) => `${formatName(x.format!)}: ${levelName(x.achieved ?? 0)} / ${levelName(x.target)}`).join(' · ')}</td>
+                  <td>{r.violations}</td><td>{r.reputationChange >= 0 ? '+' : ''}{r.reputationChange}</td></tr>
+              );
+            })}</tbody>
+          </table>
+        )}
+      </section>
+      <section className="card">
+        <h3>{t('changeCountry')}</h3>
+        <div className="controls">
+          <select value={next} onChange={(e) => setNext(e.target.value)}>
+            {world.countries.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            <option value="">{t('observer')}</option>
+          </select>
+          <button disabled={next === (state.career?.countryId ?? '')} onClick={() => {
+            if (!confirm(t('confirmChangeCountry'))) return;
+            switchCountry(state, ruleset, next || null);
+            onChanged();
+          }}>{t('changeCountry')}</button>
+        </div>
+      </section>
+    </>
+  );
+}
+
+/** Nama turnamen yang bisa diklik → halaman turnamen. */
+export function EventLink({ id, year, onOpen }: { id: string; year: number; onOpen: (id: string, year: number) => void }) {
+  const { game } = useGame();
+  return <a href="#" onClick={(e) => { e.preventDefault(); onOpen(id, year); }}>{eventName(game.ruleset, id, year) ?? id}</a>;
+}

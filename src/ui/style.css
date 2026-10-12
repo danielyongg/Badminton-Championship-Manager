@@ -1,0 +1,54 @@
+:root { font-family: system-ui, sans-serif; color-scheme: light dark; --line: #8884; --accent: #0a7d4f; --series-1: #2a78d6; --series-2: #eb6834; }
+@media (prefers-color-scheme: dark) { :root { --series-1: #3987e5; --series-2: #d95926; } }
+.swatch { display: inline-block; width: 12px; height: 4px; border-radius: 2px; vertical-align: middle; }
+body { margin: 0; padding: 16px; }
+h1 { font-size: 1.3rem; margin: 0 0 12px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 12px; align-items: end; }
+.controls label { display: flex; flex-direction: column; font-size: .8rem; gap: 2px; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { position: sticky; top: 0; background: Canvas; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.stars { color: #d4a017; letter-spacing: -1px; }
+button[aria-pressed=true] { background: var(--accent); color: white; }
+.bracket { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; }
+.round { display: flex; flex-direction: column; justify-content: space-around; gap: 6px; min-width: 210px; }
+.match { border: 1px solid var(--line); border-radius: 4px; padding: 3px 6px; font-size: .78rem; }
+.match .win { font-weight: 700; }
+.match small { opacity: .7; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+@media (min-width: 900px) { .split { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
+tr.sel { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+.groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.up { color: #1a8f3a; font-size: .8em; }
+.down { color: #c0392b; font-size: .8em; }
+.menu { max-width: 900px; }
+.card { border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; }
+.card h2, .card h3 { margin: 4px 0 8px; font-size: 1.05rem; }
+.shell { position: sticky; top: 0; background: Canvas; padding: 6px 0; z-index: 2; border-bottom: 1px solid var(--line); }
+.dash { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; align-items: start; }
+.bar { display: inline-block; width: 60px; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; vertical-align: middle; }
+.bar span { display: block; height: 100%; }
+.modal { position: fixed; inset: 0; background: #0008; display: flex; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto; z-index: 10; }
+.live { background: Canvas; width: min(860px, 100%); position: relative; }
+.live .close { position: absolute; top: 8px; right: 8px; }
+.livebar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); background: Canvas; z-index: 10; display: flex; gap: 12px; align-items: center; box-shadow: 0 2px 12px #0006; }
+.board td { font-size: 1rem; }
+.board td.big { font-size: 1.6rem; font-weight: 700; min-width: 2.2em; text-align: center; }
+.board tr.mine td:nth-child(2) { font-weight: 700; color: var(--accent); }
+.momentum { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+.momentum .track { position: relative; flex: 1; max-width: 300px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, #c0392b, var(--line), #1a8f3a); }
+.momentum .marker { position: absolute; top: -3px; width: 4px; height: 16px; background: currentColor; transform: translateX(-2px); }
+.log { font-size: .8rem; margin: 0; padding-left: 2.2em; max-height: 240px; overflow-y: auto; }
+.hint { font-size: .85rem; opacity: .8; }
+.mine { color: var(--accent); font-weight: 600; }
+.muted { opacity: .6; }
+.tag { font-size: .72rem; padding: 0 5px; border: 1px solid var(--accent); border-radius: 8px; color: var(--accent); }
+.announce { font-size: 1.1rem; font-weight: 600; min-height: 1.6em; }
+.drawlayout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+@media (min-width: 700px) { .drawlayout { grid-template-columns: minmax(160px, 1fr) minmax(0, 3fr); } }
+.bowl ul { margin: 0; padding-left: 1.2em; max-height: 360px; overflow-y: auto; }
+.halves { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.drawboard td { padding: 1px 6px; font-size: .82rem; }
+.flash { background: color-mix(in srgb, #d4a017 35%, transparent); transition: background .3s; }
