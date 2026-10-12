@@ -214,10 +214,10 @@ function Development({ state, world, onOpen }: { state: SeasonState; world: Worl
       <div className="split">
         <div className="scroll">
           <table>
-            <thead><tr><th>{t('name')}</th><th>{t('age')}</th><th>{t('ability')}</th><th>{t('potential')}</th><th>{t('status')}</th></tr></thead>
+            <thead><tr><th>{t('name')}</th><th>{t('gender')}</th><th>{t('age')}</th><th>{t('ability')}</th><th>{t('potential')}</th><th>{t('status')}</th></tr></thead>
             <tbody>{list.map((p) => (
               <tr key={p.id} onClick={() => (onOpen ? onOpen(p.id) : setSelected(p))} className={selected?.id === p.id ? 'sel' : ''} style={{ cursor: 'pointer' }}>
-                <td>{p.name} {p.gender === 'M' ? '♂' : '♀'}</td>
+                <td>{p.name}</td><td>{p.gender}</td>
                 <td className="num">{ageAt(p.birth, state.date)}</td>
                 <td className="num">{currentAbility(p.attrs)}<span className={p.caDelta! > 0 ? 'up' : 'down'}>{arrow(p.caDelta)}</span></td>
                 <td className="stars">{'★'.repeat(Math.max(1, Math.round(p.pa / 20)))}</td>

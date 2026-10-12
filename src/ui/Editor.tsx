@@ -125,7 +125,7 @@ function Players({ data, mode, date, ch, country: initial }: SectionProps) {
           <table>
             <tbody>{list.slice(0, 200).map((x) => (
               <tr key={x.id} className={x.id === sel ? 'sel' : ''} onClick={() => setSel(x.id)} style={{ cursor: 'pointer' }}>
-                <td>{x.name} {x.gender === 'M' ? '♂' : '♀'}</td><td className="num">{ageAt(x.birth, date)} {t('yearsShort')}</td>
+                <td>{x.name}</td><td>{x.gender}</td><td className="num">{ageAt(x.birth, date)} {t('yearsShort')}</td>
                 <td className="num">{currentAbility(x.attrs)}</td><td className="num">PA {x.pa}</td>
               </tr>
             ))}</tbody>
@@ -174,7 +174,7 @@ function Pairs({ data, mode, date, ch, country: initial }: SectionProps) {
   const pick = (v: string, set: (x: string) => void) => (
     <select value={v} onChange={(e) => set(e.target.value)}>
       <option value="">—</option>
-      {athletes.map((p) => <option key={p.id} value={p.id}>{p.name} {p.gender === 'M' ? '♂' : '♀'} ({currentAbility(p.attrs)})</option>)}
+      {athletes.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.gender}, {currentAbility(p.attrs)})</option>)}
     </select>
   );
   return (

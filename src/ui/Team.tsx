@@ -79,7 +79,7 @@ export function SquadPicker({ pool, value, onChange, size }: {
             const on = value.includes(id);
             return (
               <tr key={id} className={on ? 'sel' : ''}>
-                <td><label><input type="checkbox" checked={on} onChange={() => onChange(on ? value.filter((x) => x !== id) : [...value, id])} /> {p.name} {p.gender === 'M' ? '♂' : '♀'}</label></td>
+                <td><label><input type="checkbox" checked={on} onChange={() => onChange(on ? value.filter((x) => x !== id) : [...value, id])} /> {p.name}</label></td><td>{p.gender}</td>
                 <td className="num">{ageAt(p.birth, game.state.date)} {t('yearsShort')}</td><td className="num">{currentAbility(p.attrs)}</td><td>{plays(id)}</td>
               </tr>
             );
