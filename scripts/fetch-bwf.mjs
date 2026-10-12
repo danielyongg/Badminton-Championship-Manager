@@ -24,9 +24,10 @@ async function get(path, file) {
     await page.waitForTimeout(DELAY);
     if (r.s === 200) { writeFileSync(file, r.t); return JSON.parse(r.t); }
     console.warn('retry', r.s, path);
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(5000);
   }
-  throw new Error('gagal: ' + path);
+  console.warn('dilewati (server terus gagal):', path); // mis. satu halaman ranking yang selalu error 500
+  return null;
 }
 
 // 1. Ranking (semua halaman, 100 per halaman).
@@ -34,11 +35,13 @@ const rankings = {};
 for (const [rankId, catId, code] of CATS) {
   const doubles = /D/.test(code);
   rankings[code] = [];
+  let last = 1;
   for (let pg = 1; ; pg++) {
     const q = new URLSearchParams({ rankId, catId, publicationId: 0, doubles, searchKey: '', pageKey: 100, page: pg, drawCount: 1 });
     const d = await get(`vue-rankingtable?${q}`, `${CACHE}/r-${code}-${pg}.json`);
-    rankings[code].push(...d.results.data);
-    if (pg >= d.results.last_page) break;
+    if (d) rankings[code].push(...d.results.data);
+    if (pg >= (d?.results.last_page ?? last)) break;
+    last = d?.results.last_page ?? last;
   }
   console.log(code, rankings[code].length);
 }
