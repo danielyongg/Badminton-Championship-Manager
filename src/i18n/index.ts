@@ -1,5 +1,5 @@
 // Kamus teks UI & pesan engine. `{nama}` di teks diganti parameter t(key, { nama }). Bahasa lain: lihat en.ts.
-import { en } from './en';
+import { DATA_EN, en } from './en';
 
 const id = {
   appTitle: 'Badminton Championship Manager',
@@ -387,3 +387,6 @@ export const numLocale = () => (lang === 'en' ? 'en-US' : 'id-ID');
 
 export const t = (key: TextKey, vars?: Record<string, string | number>) =>
   vars ? dicts[lang][key].replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m)) : dicts[lang][key];
+
+/** Nama data bawaan (negara/kota/event) dalam bahasa terpilih; nama buatan user dikembalikan apa adanya. */
+export const dataName = <T extends string | undefined>(name: T): T => (lang === 'en' && name && DATA_EN[name] ? DATA_EN[name] : name) as T;

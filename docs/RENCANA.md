@@ -5,7 +5,7 @@ Daftar fitur yang belum dibuat. Fase 1–10 sudah selesai (lihat `git log`); asu
 ## Fase 11 — Bahasa & simulasi lancar
 - [x] Teks bahasa Inggris: kamus `src/i18n/en.ts` (semua teks UI & pesan engine), pilihan bahasa di menu utama & header.
 - [x] Simulasi beberapa minggu tidak membekukan UI: jeda antar minggu + indikator "Menyimulasikan minggu X…" + tombol Berhenti. (Web worker tidak diperlukan untuk saat ini.)
-- [ ] Nama data bawaan (negara, kota, event seperti "Kejuaraan Beregu Asia", tier "Kejuaraan Dunia") masih bahasa Indonesia di mode Inggris — bisa diganti lewat Editor, atau dibuatkan paket data bahasa Inggris.
+- [x] Nama data bawaan (negara, kota, event) tampil dalam bahasa Inggris di mode Inggris: `DATA_EN` di `src/i18n/en.ts`, dicocokkan per teks persis sehingga nama yang diubah lewat Editor tetap apa adanya. Editor tetap menampilkan nama asli.
 - Dipindah ke tahap akhir: tampilan responsif (digabung dengan percantik UI) & deploy GitHub Pages.
 
 ## Sisa spesifikasi awal

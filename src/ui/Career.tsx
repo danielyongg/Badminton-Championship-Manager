@@ -7,7 +7,7 @@ import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
 import type { TeamFormat } from '../engine/types';
 import type { FederationGoal } from '../engine/types';
-import { t, type TextKey } from '../i18n';
+import { dataName, t, type TextKey } from '../i18n';
 import { downloadPack, Editor, useDebounced } from './Editor';
 import { Entries } from './Entries';
 import { LangSelect } from './LangSelect';
@@ -69,7 +69,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
     const mine = d.entrants.some((id) => (d.discipline ? entrantLabel(state, id).country === managed : id === managed));
     return mine ? new Promise<void>((resolve) => setDrawAsk({ d, resolve })) : null;
   };
-  const nameOfCountry = (id: string) => world.countries.find((c) => c.id === id)?.name ?? id;
+  const nameOfCountry = (id: string) => dataName(world.countries.find((c) => c.id === id)?.name) ?? id;
   const teamTitle = (eventId: string) => eventName(game.ruleset, eventId, state.date.year) ?? eventId;
 
   // Laga atlet negara sendiri dimainkan Live sesuai pengaturan; sisanya Auto.
@@ -112,7 +112,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
     void persist();
   };
   const weeksToSeasonEnd = 52 - state.date.week + 1;
-  const countryName = managed ? world.countries.find((c) => c.id === managed)?.name : t('observer');
+  const countryName = managed ? dataName(world.countries.find((c) => c.id === managed)?.name) : t('observer');
   const tabs: Tab[] = managed ? ['dashboard', 'squad', 'pairs', 'entries', 'team', 'world', 'federation', 'editor'] : ['dashboard', 'team', 'world', 'federation', 'editor'];
   const tabLabel: Record<Tab, TextKey> = {
     dashboard: 'tabDashboard', squad: 'tabSquad', pairs: 'tabPairs', entries: 'tabEntries', team: 'tabTeam', world: 'tabWorld', federation: 'tabFederation', editor: 'tabEditor',
@@ -259,7 +259,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
   const upcoming = [...ruleset.calendar, ...ruleset.team.events.map((e) => ({ ...e, tierId: t('tabTeam') }))]
     .filter((e) => isHeld(e, year) && e.week >= week && e.week < week + 4)
     .sort((a, b) => a.week - b.week);
-  const city = (id: string) => world.cities.find((c) => c.id === id)?.name;
+  const city = (id: string) => dataName(world.cities.find((c) => c.id === id)?.name);
 
   // Hasil minggu lalu: laga terakhir tiap peserta negara ini di turnamen minggu lalu.
   const lastWeekEvents = new Set(ruleset.calendar.filter((e) => e.week === week - 1 && isHeld(e, year)).map((e) => e.id));
@@ -362,7 +362,7 @@ function Federation({ onChanged }: { onChanged: () => void }) {
         <h3>{t('changeCountry')}</h3>
         <div className="controls">
           <select value={next} onChange={(e) => setNext(e.target.value)}>
-            {world.countries.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {world.countries.map((c) => <option key={c.id} value={c.id}>{dataName(c.name)}</option>)}
             <option value="">{t('observer')}</option>
           </select>
           <button disabled={next === (state.career?.countryId ?? '')} onClick={() => {

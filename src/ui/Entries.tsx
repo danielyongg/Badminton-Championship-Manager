@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { entrantsFor, isHeld, weekKey } from '../engine/season';
 import { DISCIPLINES } from '../engine/types';
-import { t } from '../i18n';
+import { dataName, t } from '../i18n';
 import { entrantLabel, lookup, saveGame, useGame } from './game';
 import { FatigueBar } from './Squad';
 
@@ -47,7 +47,7 @@ export function Entries({ fixedWeek }: { fixedWeek?: number }) {
       </nav>}
       {events.length === 0 ? <p>{t('noEvents')}</p> : (
         <>
-          <p>{events.map((e) => `${e.name} (${e.tierId})`).join(' · ')}</p>
+          <p>{events.map((e) => `${dataName(e.name)} (${e.tierId})`).join(' · ')}</p>
           <div className="scroll">
             <table>
               <thead><tr><th>{t('discipline')}</th><th>{t('name')}</th><th>{t('rank')}</th><th>{t('fatigue')}</th><th>{t('tournament')}</th></tr></thead>
@@ -65,7 +65,7 @@ export function Entries({ fixedWeek }: { fixedWeek?: number }) {
                     <td>{injured ? `🩹 ${t('injury')}` : (
                       <select value={decisions[e.id] ?? 'auto'} onChange={(ev) => set(e.id, ev.target.value)}>
                         <option value="auto">{e.trial ? t('notEntered') : t('auto')}</option>
-                        {offered.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                        {offered.map((ev) => <option key={ev.id} value={ev.id}>{dataName(ev.name)}</option>)}
                         <option value="rest">{t('rest')}</option>
                       </select>
                     )}</td>

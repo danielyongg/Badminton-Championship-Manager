@@ -4,7 +4,7 @@ import { makeRng } from '../engine/rng';
 import { isHeld, newSeason, playWeek, rankFromSnapshots, type SeasonState } from '../engine/season';
 import { ageAt, currentAbility } from '../engine/generator';
 import { ATTRS, DISCIPLINES, type Discipline, type Player, type Ruleset, type World } from '../engine/types';
-import { numLocale, t } from '../i18n';
+import { dataName, numLocale, t } from '../i18n';
 import { entrantLabel, eventName as eventNameOf } from './game';
 
 /** Lab: dunia simulasi sendiri dengan tombol maju minggu, menampilkan SeasonViews. */
@@ -154,8 +154,8 @@ function Calendar({ state, ruleset, world, short, onOpenEvent }: { state: Season
         <thead><tr><th>{t('week')}</th><th>{t('tournament')}</th><th>{t('tier')}</th><th>{t('city')}</th><th>{t('prize')}</th>{DISCIPLINES.map((d) => <th key={d}>{d}</th>)}</tr></thead>
         <tbody>{events.map((e) => (
           <tr key={e.id} className={year === state.date.year && e.week === state.date.week ? 'sel' : ''}>
-            <td className="num">{e.week}</td><td>{onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, year); }}>{e.name}</a> : e.name}</td><td>{e.tierId}</td>
-            <td>{city.get(e.cityId)?.name} ({city.get(e.cityId)?.countryId})</td>
+            <td className="num">{e.week}</td><td>{onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, year); }}>{dataName(e.name)}</a> : dataName(e.name)}</td><td>{e.tierId}</td>
+            <td>{dataName(city.get(e.cityId)?.name)} ({city.get(e.cityId)?.countryId})</td>
             <td className="num">{e.prizeUsd ? `$${e.prizeUsd.toLocaleString(numLocale())}` : '—'}</td>
             {DISCIPLINES.map((d) => {
               const c = state.champions.find((x) => x.year === year && x.tournamentId === e.id && x.discipline === d);
@@ -204,7 +204,7 @@ function Development({ state, world, onOpen }: { state: SeasonState; world: Worl
       <div className="controls">
         <label>{t('country')}
           <select value={countryId} onChange={(e) => { setCountryId(e.target.value); setSelected(undefined); }}>
-            {world.countries.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {world.countries.map((c) => <option key={c.id} value={c.id}>{dataName(c.name)}</option>)}
           </select>
         </label>
         <label style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>

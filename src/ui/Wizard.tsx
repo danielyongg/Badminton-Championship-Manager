@@ -5,7 +5,7 @@ import { currentAbility } from '../engine/generator';
 import { runEvent, simPlay, toRecord, type EventRecord } from '../engine/tournament';
 import { makeRng } from '../engine/rng';
 import { DISCIPLINES, isDoubles, type Discipline, type Match, type Pair, type Player, type Ruleset, type World } from '../engine/types';
-import { t } from '../i18n';
+import { dataName, t } from '../i18n';
 
 const STAGES = ['stageEntry', 'stageQual', 'stageSeeds', 'stageDraw', 'stageBracket'] as const;
 
@@ -63,7 +63,7 @@ export function Wizard({ players, pairs, ruleset, world }: { players: Player[]; 
       <div className="controls">
         <label>{t('tournament')}
           <select value={eventId} onChange={(e) => { setEventId(e.target.value); reset(); }}>
-            {events.map((e) => <option key={e.id} value={e.id}>{t('week')} {e.week} · {e.name} ({e.tierId})</option>)}
+            {events.map((e) => <option key={e.id} value={e.id}>{t('week')} {e.week} · {dataName(e.name)} ({e.tierId})</option>)}
           </select>
         </label>
         <label>{t('discipline')}

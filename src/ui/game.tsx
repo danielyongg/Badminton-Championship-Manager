@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react';
 import { writeSave } from '../db/saves';
 import { PRESETS, withDefaults } from '../engine/pack';
 import { BWF_2026 } from '../engine/presets/bwf2026';
+import { dataName } from '../i18n';
 import { makeRng, type Rng } from '../engine/rng';
 import { playWeek, teamFormatsIn, type SeasonState, type WeekHooks } from '../engine/season';
 import type { Ruleset, SaveMeta, World } from '../engine/types';
@@ -69,7 +70,7 @@ export function lookup(state: SeasonState) {
 /** Nama turnamen individu atau kejuaraan beregu (kejuaraan kontinental bernama lain di tahun Sudirman Cup). */
 export function eventName(ruleset: Ruleset, id: string, year?: number) {
   const team = ruleset.team.events.find((e) => e.id === id);
-  if (!team) return ruleset.calendar.find((e) => e.id === id)?.name;
+  if (!team) return dataName(ruleset.calendar.find((e) => e.id === id)?.name);
   const mixed = year !== undefined && teamFormatsIn(ruleset, year).includes('sudirman');
   return (mixed && team.nameMixed) || team.name;
 }

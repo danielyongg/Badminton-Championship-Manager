@@ -4,7 +4,7 @@ import { BWF_2026 } from '../engine/presets/bwf2026';
 import { BWF_2027 } from '../engine/presets/bwf2027';
 import { WORLD } from '../engine/presets/world';
 import { makeRng } from '../engine/rng';
-import { t } from '../i18n';
+import { dataName, t } from '../i18n';
 import { MatchLab } from './MatchLab';
 import { Ranking } from './Ranking';
 import { Wizard } from './Wizard';
@@ -59,7 +59,7 @@ export function Lab({ onBack }: { onBack: () => void }) {
         <label>{t('country')}
           <select value={countryId} onChange={(e) => setCountryId(e.target.value)}>
             <option value="">{t('allCountries')}</option>
-            {WORLD.countries.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {WORLD.countries.map((c) => <option key={c.id} value={c.id}>{dataName(c.name)}</option>)}
           </select>
         </label>
         <label>{t('gender')}

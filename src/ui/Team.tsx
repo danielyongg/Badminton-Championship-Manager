@@ -3,7 +3,7 @@ import { isHeld, teamFormatsIn, teamStrengths, type TeamResult, type TeamStrengt
 import { ageAt, currentAbility } from '../engine/generator';
 import { AD_HOC, adHocEntrants, adHocId, autoLineup, autoSquad, lineupError, squadError, squadPool, type Lineup, type TeamEntrant } from '../engine/team';
 import { isDoubles, type Discipline, type TeamFormat } from '../engine/types';
-import { t, type TextKey } from '../i18n';
+import { dataName, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, useGame } from './game';
 import { LiveDraw } from './LiveDraw';
 
@@ -19,7 +19,7 @@ export function Team() {
   const managed = state.career?.countryId ?? null;
   const { year, week } = state.date;
   const formats = teamFormatsIn(ruleset, year);
-  const city = (id: string) => world.cities.find((c) => c.id === id)?.name;
+  const city = (id: string) => dataName(world.cities.find((c) => c.id === id)?.name);
   const strengths = useMemo(
     () => Object.fromEntries(formats.map((f) => [f, teamStrengths(state, ruleset, f)])) as Record<TeamFormat, TeamStrength[]>,
     [version, state, ruleset, year],
@@ -236,7 +236,7 @@ export function TieLineupModal({ title, format, round, opponent, pool, squad, su
   const order = rs.team.order[format];
   const [lineup, setLineup] = useState(suggested);
   const err = lineupProblem(lineup, order, pool, squad, rs.team.maxMatchesPerPlayer, (id) => lookup(game.state).players.get(id)?.gender);
-  const name = game.world.countries.find((c) => c.id === opponent)?.name ?? opponent;
+  const name = dataName(game.world.countries.find((c) => c.id === opponent)?.name) ?? opponent;
   return (
     <div className="modal" role="dialog" aria-label={t('lineup')}>
       <div className="live card">
@@ -257,7 +257,7 @@ export function TieLineupModal({ title, format, round, opponent, pool, squad, su
 export function FinalsResult({ r }: { r: TeamResult }) {
   const { game } = useGame();
   const champion = winnerOf(r);
-  const name = (c: string) => game.world.countries.find((x) => x.id === c)?.name ?? c;
+  const name = (c: string) => dataName(game.world.countries.find((x) => x.id === c)?.name) ?? c;
   const managed = game.state.career?.countryId;
   const ko = r.ties.filter((x) => x.round !== 'G');
   const [replay, setReplay] = useState(false);
