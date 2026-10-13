@@ -141,6 +141,7 @@ const id = {
   injurySevere: 'berat',
   singlesRank: 'Rank tunggal',
   pair: 'Pasangan',
+  sector: 'Sektor', manageSectors: 'Atur sektor', choosePartner: 'Pilih partner…', noPartner: 'Tidak ada partner yang tersedia (semua sudah punya pasangan utama di nomor ini).', singlesHint: 'Ikut nomor tunggal (tanpa centang = spesialis ganda, tidak didaftarkan otomatis di tunggal)',
   dissolve: 'Bubarkan',
   confirmDissolve: 'Bubarkan pasangan ini? Ranking pasangan hilang (pasangan baru mulai dari 0).',
   formPair: 'Bentuk pasangan baru',

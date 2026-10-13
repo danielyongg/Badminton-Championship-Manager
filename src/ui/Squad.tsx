@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
-import { potentialStars } from '../engine/career';
+import { dissolvePair, formPair, potentialStars } from '../engine/career';
 import { ageAt, currentAbility } from '../engine/generator';
 import { headToHead } from '../engine/match';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { rankFromSnapshots } from '../engine/season';
-import { ATTRS, type Attr, type Discipline, type GameDate, type Player } from '../engine/types';
+import { ATTRS, type Attr, type Discipline, type GameDate, type Pair, type Player } from '../engine/types';
 import { numLocale, t, type TextKey } from '../i18n';
-import { entrantLabel, eventName as eventNameOf, lookup, useGame } from './game';
+import { entrantLabel, eventName as eventNameOf, lookup, saveGame, useGame } from './game';
 import { RankChart } from './Ranking';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
@@ -39,29 +39,33 @@ export function FatigueBar({ value }: { value: number }) {
 }
 
 export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
-  const { game, version } = useGame();
+  const { game, version, changed } = useGame();
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
   const [juniors, setJuniors] = useState(false);
+  const commit = () => { changed(); void saveGame(game); };
   const counts = useMatchCounts();
   const ranks = useMemo(() => {
     const now = absWeek(state.date);
     return { MS: rankMap(computeRanking(state.results, 'MS', now, ruleset)), WS: rankMap(computeRanking(state.results, 'WS', now, ruleset)) };
   }, [version]);
-  const pairsOf = (id: string) => state.pairs.filter((p) => !p.dissolved && !p.adHoc && p.playerIds.includes(id)).map((p) => p.discipline).join(', ');
+  // Sektor = nomor yang dimainkan: tunggal (bila bukan spesialis ganda) + pasangan utama aktif.
+  const mainPair = (id: string, d: DoublesD) => state.pairs.find((p) => p.discipline === d && !p.dissolved && !p.trial && !p.adHoc && p.playerIds.includes(id));
+  const sectorsOf = (p: Player) => [...(p.focus === 'D' ? [] : [p.gender === 'M' ? 'MS' : 'WS']), ...doublesOf(p).filter((d) => mainPair(p.id, d))];
+  const pairsOf = (id: string) => sectorsOf(lookup(state).players.get(id)!).join(', ');
   const rankOf = (p: Player) => ranks[p.gender === 'M' ? 'MS' : 'WS'].get(p.id);
   const starsOf = (p: Player) => potentialStars(p, state.date, counts.get(p.id) ?? 0);
   // Kolom yang bisa diurutkan: nilai sort + arah awal (angka besar dulu untuk kemampuan dsb., kecil dulu untuk usia/ranking).
   const COLS: { key: string; label: TextKey; num?: boolean; value: (p: Player) => string | number; desc?: boolean }[] = [
     { key: 'name', label: 'name', value: (p) => p.name },
     { key: 'gender', label: 'gender', value: (p) => p.gender },
+    { key: 'sector', label: 'sector', value: (p) => pairsOf(p.id) },
     { key: 'age', label: 'age', num: true, value: (p) => ageAt(p.birth, state.date) },
     { key: 'ability', label: 'ability', num: true, value: (p) => currentAbility(p.attrs), desc: true },
     { key: 'potential', label: 'potential', value: starsOf, desc: true },
     { key: 'fatigue', label: 'fatigue', value: (p) => p.fatigue, desc: true },
     { key: 'injury', label: 'injury', value: (p) => p.injury?.weeksLeft ?? 0, desc: true },
     { key: 'rank', label: 'singlesRank', num: true, value: (p) => rankOf(p) ?? Infinity },
-    { key: 'pair', label: 'pair', value: (p) => pairsOf(p.id) },
   ];
   const [sort, setSort] = useState({ key: 'ability', desc: true });
   const col = COLS.find((c) => c.key === sort.key)!;
@@ -88,22 +92,73 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               onClick={() => setSort(sort.key === c.key ? { key: c.key, desc: !sort.desc } : { key: c.key, desc: !!c.desc })}>
               {t(c.label)}{sort.key === c.key ? (sort.desc ? ' ▼' : ' ▲') : ''}
             </th>
-          ))}</tr></thead>
+          ))}<th>{t('manageSectors')}</th></tr></thead>
           <tbody>{list.map((p) => (
             <tr key={p.id} onClick={() => onOpen(p.id)} style={{ cursor: 'pointer' }}>
               <td>{p.name}</td><td>{p.gender}</td>
+              <td>{sectorsOf(p).map((d) => {
+                const pair = d.length === 2 && d[1] === 'D' ? mainPair(p.id, d as DoublesD) : undefined;
+                const partner = pair && lookup(state).players.get(pair.playerIds.find((x) => x !== p.id)!)?.name;
+                return <span key={d} className="chip sector" title={partner}>{d}</span>;
+              })}</td>
               <td className="num">{ageAt(p.birth, state.date)}</td>
               <td className="num">{currentAbility(p.attrs)}<span className={p.caDelta! > 0 ? 'up' : 'down'}>{arrow(p.caDelta)}</span></td>
               <td className="stars">{starText(starsOf(p))}</td>
               <td><FatigueBar value={p.fatigue} /></td>
               <td>{p.injury ? `${p.injury.weeksLeft} ${t('weeks')}${p.injury.severe ? ' ⚠' : ''}` : ''}</td>
               <td className="num">{rankOf(p) ?? '—'}</td>
-              <td>{pairsOf(p.id)}</td>
+              <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}><SectorPicker p={p} mainPair={mainPair} onChange={commit} /></td>
             </tr>
           ))}</tbody>
         </table>
       </div>
     </>
+  );
+}
+
+type DoublesD = 'MD' | 'WD' | 'XD';
+const doublesOf = (p: Player): DoublesD[] => [p.gender === 'M' ? 'MD' : 'WD', 'XD'];
+
+/** Atur sektor satu atlet: centang tunggal (fokus) & tiap nomor ganda (bentuk pasangan dengan memilih partner / bubarkan). */
+function SectorPicker({ p, mainPair, onChange }: { p: Player; mainPair: (id: string, d: DoublesD) => Pair | undefined; onChange: () => void }) {
+  const { game } = useGame();
+  const { state } = game;
+  const [picking, setPicking] = useState<DoublesD>();
+  const [err, setErr] = useState('');
+  const partnerGender = (d: DoublesD) => (d === 'XD' ? (p.gender === 'M' ? 'F' : 'M') : p.gender);
+  const candidates = (d: DoublesD) => state.players
+    .filter((x) => x.countryId === p.countryId && x.id !== p.id && x.retired === undefined && x.gender === partnerGender(d) && !mainPair(x.id, d))
+    .sort((a, b) => currentAbility(b.attrs) - currentAbility(a.attrs));
+  const singles = p.gender === 'M' ? 'MS' : 'WS';
+  return (
+    <span className="sectors">
+      <label title={t('singlesHint')}>
+        <input type="checkbox" checked={p.focus !== 'D'} onChange={(e) => { if (e.target.checked) delete p.focus; else p.focus = 'D'; onChange(); }} />{singles}
+      </label>
+      {doublesOf(p).map((d) => {
+        const pair = mainPair(p.id, d);
+        return (
+          <label key={d}>
+            <input type="checkbox" checked={!!pair || picking === d} onChange={(e) => {
+              setErr('');
+              if (e.target.checked) setPicking(d);
+              else if (pair) { if (confirm(t('confirmDissolve'))) { dissolvePair(state, pair.id); onChange(); } }
+              else setPicking(undefined);
+            }} />{d}
+            {picking === d && !pair && (candidates(d).length ? (
+              <select autoFocus value="" onChange={(e) => {
+                const r = formPair(state, d, p.id, e.target.value, game.rng);
+                if (typeof r === 'string') setErr(r); else { setPicking(undefined); onChange(); }
+              }}>
+                <option value="">{t('choosePartner')}</option>
+                {candidates(d).map((x) => <option key={x.id} value={x.id}>{x.name} ({currentAbility(x.attrs)})</option>)}
+              </select>
+            ) : <small className="muted-text"> {t('noPartner')}</small>)}
+          </label>
+        );
+      })}
+      {err && <small className="down"> {err}</small>}
+    </span>
   );
 }
 

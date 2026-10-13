@@ -141,3 +141,7 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Pasangan ganda**: dari ranking ganda senior (satu pasangan per atlet per nomor, yang peringkatnya terbaik; pasangan beda negara dilewati). Ranking ganda junior bersifat perorangan, jadi junior dipasangkan oleh AI.
 - **Pelengkap fiktif**: negara yang punya atlet asli hanya ditambah senior fiktif sampai **7 per gender** (cukup untuk tim beregu: 3 tunggal + 2 pasangan ganda) dan junior fiktif sampai jumlah normal generator. Senior fiktif tambahan tidak lebih kuat dari senior asli terlemah negara itu. Negara tanpa atlet asli diisi generator seperti biasa. Junior baru tiap musim (fiktif) tetap datang ke semua negara. Pasangan tambahan dibentuk AI setelah ranking awal; spesialis tunggal hanya dipasangkan bila perlu untuk minimum tim (2 pasangan MD/WD, 1 XD).
 - **Ranking tunggal awal**: pemain yang punya pasangan ganda diberi penalti 10 poin kemampuan, agar spesialis ganda tidak berada di atas spesialis tunggal.
+
+## Sektor atlet (tab Skuad)
+- **Sektor** = nomor yang dimainkan: tunggal (kecuali spesialis ganda, `focus: 'D'`) + nomor ganda tempat atlet punya pasangan utama aktif. Pasangan percobaan & ganda dadakan beregu tidak dihitung.
+- **Atur sektor**: centang tunggal = ikut didaftarkan otomatis di tunggal (tanpa centang = spesialis ganda; entry manual tetap bisa). Centang nomor ganda = pilih partner (atlet negara sendiri, gender sesuai, belum punya pasangan utama di nomor itu) → pasangan utama baru; hapus centang = bubarkan pasangan utama (konfirmasi).
