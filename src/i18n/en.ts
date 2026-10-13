@@ -140,6 +140,7 @@ export const en: Record<TextKey, string> = {
   injury: 'Injury',
   injurySevere: 'severe',
   singlesRank: 'Singles rank',
+  bwfRank: 'BWF rank',
   pair: 'Pair',
   sector: 'Sector', manageSectors: 'Set sectors', choosePartner: 'Choose partner…', noPartner: 'No partner available (everyone already has a main pair in this event).', singlesHint: 'Plays singles (unchecked = doubles specialist, not entered in singles automatically)',
   dissolve: 'Split',

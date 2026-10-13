@@ -4,7 +4,7 @@ import { ageAt, currentAbility } from '../engine/generator';
 import { headToHead } from '../engine/match';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { rankFromSnapshots } from '../engine/season';
-import { ATTRS, type Attr, type Discipline, type GameDate, type Pair, type Player } from '../engine/types';
+import { ATTRS, DISCIPLINES, type Attr, type Discipline, type GameDate, type Pair, type Player } from '../engine/types';
 import { numLocale, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName as eventNameOf, lookup, saveGame, useGame } from './game';
 import { RankChart } from './Ranking';
@@ -47,13 +47,17 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   const counts = useMatchCounts();
   const ranks = useMemo(() => {
     const now = absWeek(state.date);
-    return { MS: rankMap(computeRanking(state.results, 'MS', now, ruleset)), WS: rankMap(computeRanking(state.results, 'WS', now, ruleset)) };
+    return Object.fromEntries(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.results, d, now, ruleset))])) as Record<Discipline, Map<string, number>>;
   }, [version]);
   // Sektor = nomor yang dimainkan: tunggal (bila bukan spesialis ganda) + pasangan utama aktif.
   const mainPair = (id: string, d: DoublesD) => state.pairs.find((p) => p.discipline === d && !p.dissolved && !p.trial && !p.adHoc && p.playerIds.includes(id));
   const sectorsOf = (p: Player) => [...(p.focus === 'D' ? [] : [p.gender === 'M' ? 'MS' : 'WS']), ...doublesOf(p).filter((d) => mainPair(p.id, d))];
   const pairsOf = (id: string) => sectorsOf(lookup(state).players.get(id)!).join(', ');
-  const rankOf = (p: Player) => ranks[p.gender === 'M' ? 'MS' : 'WS'].get(p.id);
+  // BWF rank = peringkat terbaik atlet: tunggal atau pasangan utama di nomor ganda.
+  const bestRank = (p: Player) => [
+    { d: p.gender === 'M' ? 'MS' : 'WS', r: ranks[p.gender === 'M' ? 'MS' : 'WS'].get(p.id) },
+    ...doublesOf(p).map((d) => ({ d, r: ranks[d].get(mainPair(p.id, d)?.id ?? '') })),
+  ].filter((x) => x.r !== undefined).sort((a, b) => a.r! - b.r!)[0];
   const starsOf = (p: Player) => potentialStars(p, state.date, counts.get(p.id) ?? 0);
   // Kolom yang bisa diurutkan: nilai sort + arah awal (angka besar dulu untuk kemampuan dsb., kecil dulu untuk usia/ranking).
   const COLS: { key: string; label: TextKey; num?: boolean; value: (p: Player) => string | number; desc?: boolean }[] = [
@@ -65,7 +69,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
     { key: 'potential', label: 'potential', value: starsOf, desc: true },
     { key: 'fatigue', label: 'fatigue', value: (p) => p.fatigue, desc: true },
     { key: 'injury', label: 'injury', value: (p) => p.injury?.weeksLeft ?? 0, desc: true },
-    { key: 'rank', label: 'singlesRank', num: true, value: (p) => rankOf(p) ?? Infinity },
+    { key: 'rank', label: 'bwfRank', num: true, value: (p) => bestRank(p)?.r ?? Infinity },
   ];
   const [sort, setSort] = useState({ key: 'ability', desc: true });
   const col = COLS.find((c) => c.key === sort.key)!;
@@ -106,7 +110,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               <td className="stars">{starText(starsOf(p))}</td>
               <td><FatigueBar value={p.fatigue} /></td>
               <td>{p.injury ? `${p.injury.weeksLeft} ${t('weeks')}${p.injury.severe ? ' ⚠' : ''}` : ''}</td>
-              <td className="num">{rankOf(p) ?? '—'}</td>
+              <td className="num">{(() => { const b = bestRank(p); return b ? <>{b.r} <small className="muted-text">{b.d}</small></> : '—'; })()}</td>
               <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}><SectorPicker p={p} mainPair={mainPair} onChange={commit} /></td>
             </tr>
           ))}</tbody>

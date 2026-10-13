@@ -140,6 +140,7 @@ const id = {
   injury: 'Cedera',
   injurySevere: 'berat',
   singlesRank: 'Rank tunggal',
+  bwfRank: 'BWF rank',
   pair: 'Pasangan',
   sector: 'Sektor', manageSectors: 'Atur sektor', choosePartner: 'Pilih partner…', noPartner: 'Tidak ada partner yang tersedia (semua sudah punya pasangan utama di nomor ini).', singlesHint: 'Ikut nomor tunggal (tanpa centang = spesialis ganda, tidak didaftarkan otomatis di tunggal)',
   dissolve: 'Bubarkan',
