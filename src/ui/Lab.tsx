@@ -64,7 +64,7 @@ export function Lab({ onBack }: { onBack: () => void }) {
             <option value="F">{t('women')}</option>
           </select>
         </label>
-        <span>{players.length} {t('players')}</span>
+        <span className="count">{players.length} {t('players')}</span>
       </div>
 
       <div className="scroll">

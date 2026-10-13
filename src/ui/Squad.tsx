@@ -58,7 +58,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
       <nav className="controls">
         <button aria-pressed={!juniors} onClick={() => setJuniors(false)}>{t('seniors')}</button>
         <button aria-pressed={juniors} onClick={() => setJuniors(true)}>{t('juniors')}</button>
-        <span>{list.length} {t('players')}</span>
+        <span className="count">{list.length} {t('players')}</span>
       </nav>
       <div className="scroll">
         <table>
