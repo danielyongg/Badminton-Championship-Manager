@@ -199,6 +199,24 @@ td.strong { font-weight: 700; }
   main > nav.controls { position: sticky; top: 0; z-index: 2; background: var(--surface); flex-wrap: nowrap; overflow-x: auto; margin: 0 -12px 12px; padding: 0 12px; }
   main > nav.controls button { flex: none; }
   button, select, input { min-height: 36px; font-size: 16px; }
+  input[type=checkbox], input[type=radio] { min-height: 0; width: 18px; height: 18px; }
+  /* Header ringkas: tombol lebih kecil agar muat 2 baris. */
+  .shell { gap: 6px 8px; }
+  .shell button { min-height: 32px; font-size: 14px; padding: 2px 10px; }
+  /* Tabel lebar (Skuad, Pairs): kolom nama tetap terlihat saat digeser. */
+  .scroll table td:first-child, .scroll table th:first-child { position: sticky; left: 0; z-index: 1; background: var(--bg); box-shadow: 1px 0 var(--line); }
+  .scroll table td:first-child { white-space: normal; min-width: 110px; max-width: 140px; }
+  .card .scroll table td:first-child, .card .scroll table th:first-child { background: var(--surface); }
+  .scroll table tr.sel td:first-child { background: color-mix(in srgb, var(--accent-soft) 100%, var(--surface)); }
+  /* Line-up: dua pilihan atlet ganda boleh turun baris. */
+  .lineup { display: table; }
+  .modal table:not(.board) { display: table; }
+  .lineup td { white-space: normal; }
+  .lineup td:first-child, .lineup td:nth-child(2) { white-space: nowrap; }
+  .board.scoreline td:first-child { min-width: 0; white-space: normal; }
+  .lineup select { max-width: 100%; margin: 2px 0; }
+  /* Dashboard: kartu hasil turnamen (panjang) di paling bawah agar ranking & cedera terlihat dulu. */
+  .dash > .tall { order: 10; grid-row: auto; }
   table { display: block; overflow-x: auto; }
   .modal { padding: 0; }
   .livebar { left: 12px; right: 12px; transform: none; flex-wrap: wrap; }

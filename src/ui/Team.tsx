@@ -36,7 +36,7 @@ export function Team() {
       <section className="card">
         <h3>{t('teamSchedule')} {year}</h3>
         <ul>{ruleset.team.events.filter((e) => isHeld(e, year)).sort((a, b) => a.week - b.week).map((e) => (
-          <li key={e.id}>{t('week')} {e.week}: <b>{eventName(ruleset, e.id, year)}</b> ({(e.formats ?? formats).map(formatName).join(', ')}, {city(e.cityId)}){e.week < week ? ' ✓' : ''}</li>
+          <li key={e.id}>{t('week')} {e.week}: <b>{eventName(ruleset, e.id, year)}</b> ({(e.formats ?? teamFormatsIn(ruleset, year)).map(formatName).join(', ')}, {city(e.cityId)}){e.week < week ? ' ✓' : ''}</li>
         ))}</ul>
         <p className="hint">{t('teamHelp')}</p>
       </section>
@@ -131,7 +131,7 @@ export function LineupPicker({ order, pool, squad, value, onChange }: {
     );
   };
   return (
-    <table style={{ maxWidth: 680 }}>
+    <table className="lineup" style={{ maxWidth: 680 }}>
       <tbody>{order.map((d, i) => (
         <tr key={i}>
           <td>{t('matchNo')} {i + 1}</td><td>{d}</td>
