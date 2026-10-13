@@ -79,6 +79,19 @@ tr.sel { background: var(--accent-soft); }
 .groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
 .dash { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; align-items: start; }
 .dash > * { overflow-x: auto; }
+/* Daftar dashboard: judul kelompok (minggu/turnamen) + baris rapat dengan chip di kiri & badge di kanan. */
+.dlist + .dlist { margin-top: 10px; }
+.dlist h4 { margin: 0 0 2px; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.dlist h4 a { color: inherit; }
+.drow { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.drow:last-child { border-bottom: none; }
+.drow .chip { flex: none; min-width: 2.6em; text-align: center; margin-top: 2px; }
+.drow .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.drow .grow:has(> b) { display: block; }
+.muted-text { color: var(--muted); font-size: .8rem; }
+.badge { flex: none; font-size: .72rem; font-weight: 700; padding: 1px 6px; border-radius: 3px; background: var(--line); color: var(--fg); white-space: nowrap; }
+.badge.good { background: var(--accent-soft); color: var(--accent-strong); }
+.badge.gold { background: var(--gold-soft); color: var(--gold); }
 .goals { list-style: none; margin: 0; padding: 0; }
 .goals li { display: flex; flex-direction: column; gap: 1px; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .goals li > span { font-size: .85rem; color: var(--muted); }

@@ -5,13 +5,14 @@ import { goalProgress } from '../engine/career';
 import { isHeld, switchCountry, type EntryHook, type TeamHook } from '../engine/season';
 import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
-import type { TeamFormat } from '../engine/types';
+import { ROUNDS, type Match, type TeamFormat } from '../engine/types';
 import type { FederationGoal } from '../engine/types';
 import { dataName, t, type TextKey } from '../i18n';
 import { downloadPack, Editor, useDebounced } from './Editor';
 import { Entries } from './Entries';
 import { LangSelect } from './LangSelect';
 import { ThemeSelect } from './ThemeSelect';
+import { Flag } from './Flag';
 import { LiveDraw } from './LiveDraw';
 import { LiveMatch } from './LiveMatch';
 import { advance, entrantLabel, eventName, lookup, saveGame, useGame } from './game';
@@ -271,13 +272,18 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
 
   // Hasil minggu lalu: laga terakhir tiap peserta negara ini di turnamen minggu lalu.
   const lastWeekEvents = new Set(ruleset.calendar.filter((e) => e.week === week - 1 && isHeld(e, year)).map((e) => e.id));
-  const last = new Map<string, { event: string; round: string; won: boolean }>();
+  const last = new Map<string, { event: string; id: string; m: Match; i: 0 | 1 }>();
   for (const m of state.matches) {
     if (m.year !== year || !lastWeekEvents.has(m.tournamentId)) continue;
     m.sides.forEach((side, i) => {
-      if (entrantLabel(state, side).country === managed) last.set(`${m.tournamentId}:${side}`, { event: m.tournamentId, round: m.round, won: m.winner === i });
+      if (entrantLabel(state, side).country === managed) last.set(`${m.tournamentId}:${side}`, { event: m.tournamentId, id: side, m, i: i as 0 | 1 });
     });
   }
+  // Per turnamen, urut dari babak terjauh (juara dulu).
+  const reachedOf = (r: { m: Match; i: 0 | 1 }) => (r.m.winner === r.i && r.m.round === 'F' ? 'W' : r.m.round);
+  const byEvent = groupBy([...last.values()], (r) => r.event);
+  for (const list of byEvent.values()) list.sort((a, b) => ROUND_ORDER.indexOf(reachedOf(a)) - ROUND_ORDER.indexOf(reachedOf(b)));
+  const byWeek = groupBy(upcoming, (e) => e.week);
   // Beregu minggu lalu: babak terakhir negara ini per format.
   const lastTeam = state.teamResults.filter((r) => r.year === year && r.teams.includes(managed ?? '')
     && ruleset.team.events.find((e) => e.id === r.eventId)?.week === week - 1);
@@ -301,7 +307,17 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
       )}
       <section className="card">
         <h3>{t('upcoming')}</h3>
-        {upcoming.length === 0 ? <p>—</p> : <ul>{upcoming.map((e) => <li key={e.id}>{t('week')} {e.week}: <b>{eventName(ruleset, e.id, year)}</b> ({e.tierId}, {city(e.cityId)})</li>)}</ul>}
+        {upcoming.length === 0 ? <p>—</p> : [...byWeek].map(([w, list]) => (
+          <div key={w} className="dlist">
+            <h4>{t('week')} {w}</h4>
+            {list.map((e) => (
+              <div key={e.id} className="drow">
+                <span className="chip">{e.tierId}</span>
+                <span className="grow"><b>{eventName(ruleset, e.id, year)}</b> <small className="muted-text">{city(e.cityId)}</small></span>
+              </div>
+            ))}
+          </div>
+        ))}
       </section>
       {managed && (
         <section className="card">
@@ -311,10 +327,25 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
             return <p key={r.eventId + r.format}><b><EventLink id={r.eventId} year={r.year} onOpen={onOpenEvent} /> · {formatName(r.format)}</b>: {reached === 'W' ? `🏆 ${t('champion')}` : `${t('lost')} ${reached ?? t('group')}`}</p>;
           })}
           {last.size === 0 && lastTeam.length === 0 ? <p>—</p> : (
-            <ul>{[...last].map(([key, r]) => {
-              const id = key.split(':')[1];
-              return <li key={key}><a href="#" onClick={(e) => { e.preventDefault(); onOpen(state.pairs.find((p) => p.id === id)?.playerIds[0] ?? id); }}>{entrantLabel(state, id).name}</a> — <EventLink id={r.event} year={year} onOpen={onOpenEvent} />: {r.won && r.round === 'F' ? `🏆 ${t('champion')}` : `${t('lost')} ${r.round}`}</li>;
-            })}</ul>
+            [...byEvent].map(([event, list]) => (
+              <div key={event} className="dlist">
+                <h4><EventLink id={event} year={year} onOpen={onOpenEvent} /></h4>
+                {list.map(({ id, m, i }) => {
+                  const reached = reachedOf({ m, i });
+                  const opp = m.sides[1 - i];
+                  return (
+                    <div key={id} className="drow">
+                      <span className="chip">{m.discipline}</span>
+                      <span className="grow">
+                        <a href="#" onClick={(e) => { e.preventDefault(); onOpen(state.pairs.find((p) => p.id === id)?.playerIds[0] ?? id); }}>{entrantLabel(state, id).name}</a>
+                        <small className="muted-text">{m.winner === i ? t('wins') : t('lost')} vs <Flag id={opp} />{entrantLabel(state, opp).name} · {m.scores.map((g) => `${g[i]}-${g[1 - i]}`).join(', ')}</small>
+                      </span>
+                      <span className={`badge${reached === 'W' ? ' gold' : reached === 'F' || reached === 'SF' ? ' good' : ''}`}>{reached === 'W' ? `🏆 ${t('champion')}` : reached}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ))
           )}
         </section>
       )}
@@ -385,6 +416,14 @@ function Federation({ onChanged }: { onChanged: () => void }) {
 }
 
 /** Nama turnamen yang bisa diklik → halaman turnamen. */
+const ROUND_ORDER: string[] = [...ROUNDS, 'G', 'Q3', 'Q2', 'Q1'];
+// ponytail: pengganti Map.groupBy (ES2024, belum ada di Safari lama).
+function groupBy<T, K>(xs: T[], key: (x: T) => K) {
+  const m = new Map<K, T[]>();
+  for (const x of xs) m.set(key(x), [...(m.get(key(x)) ?? []), x]);
+  return m;
+}
+
 export function EventLink({ id, year, onOpen }: { id: string; year: number; onOpen: (id: string, year: number) => void }) {
   const { game } = useGame();
   return <a href="#" onClick={(e) => { e.preventDefault(); onOpen(id, year); }}>{eventName(game.ruleset, id, year) ?? id}</a>;
