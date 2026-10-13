@@ -313,9 +313,14 @@ function TieDetail({ r, tie, name, onClose }: { r: TeamResult; tie: TeamTie; nam
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
-  const byId = new Map(state.matches.map((m) => [m.id, m]));
-  const rubbers = (tie.matchIds ?? []).map((id) => byId.get(id)!).filter(Boolean);
   const who = (id: string) => entrantLabel(state, id).name;
+  const country = (id: string) => entrantLabel(state, id).country;
+  const order = new Set(game.ruleset.team.order[r.format]);
+  // Save lama (tanpa matchIds): cari laga event/tahun/babak yang sama antara kedua negara, nomor sesuai format.
+  const rubbers = tie.matchIds
+    ? tie.matchIds.map((id) => state.matches.find((m) => m.id === id)!).filter(Boolean)
+    : state.matches.filter((m) => m.tournamentId === r.eventId && m.year === r.year && m.round === tie.round && order.has(m.discipline)
+      && [country(m.sides[0]), country(m.sides[1])].sort().join() === [...tie.sides].sort().join());
   const title = `${eventName(game.ruleset, r.eventId, r.year)} · ${formatName(r.format)}`;
   return (
     <div className="modal" role="dialog" aria-label={t('matchDetail')} onClick={(e) => e.target === e.currentTarget && onClose()}>
