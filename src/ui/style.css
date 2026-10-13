@@ -79,6 +79,10 @@ tr.sel { background: var(--accent-soft); }
 .groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
 .dash { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; align-items: start; }
 .dash > * { overflow-x: auto; }
+.goals { list-style: none; margin: 0; padding: 0; }
+.goals li { display: flex; flex-direction: column; gap: 1px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.goals li > span { font-size: .85rem; color: var(--muted); }
+.goals .up { font-size: inherit; font-weight: 700; }
 .bar { display: inline-block; width: 60px; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; vertical-align: middle; }
 .bar span { display: block; height: 100%; }
 

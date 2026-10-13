@@ -244,20 +244,18 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
 }
 
 function GoalTable({ goals, current }: { goals: FederationGoal[]; current?: (g: FederationGoal) => number }) {
+  // Daftar bertumpuk (bukan tabel) agar tidak terpotong di kartu dashboard yang sempit.
   return (
-    <table style={{ maxWidth: 480 }}>
-      <thead><tr><th></th><th>{t('target')}</th><th>{t('progress')}</th></tr></thead>
-      <tbody>{goals.map((g) => {
-        const now = current ? current(g) : g.achieved ?? 0;
-        const show = (n: number) => (g.kind === 'team' ? levelName(n) : n);
-        return (
-          <tr key={g.kind + (g.format ?? '')}>
-            <td>{t(`goal_${g.kind}` as TextKey)}{g.format && `: ${formatName(g.format)}`}</td>
-            <td className="num">{show(g.target)}</td><td className={`num ${now >= g.target ? 'up' : ''}`}>{show(now)}</td>
-          </tr>
-        );
-      })}</tbody>
-    </table>
+    <ul className="goals">{goals.map((g) => {
+      const now = current ? current(g) : g.achieved ?? 0;
+      const show = (n: number) => (g.kind === 'team' ? levelName(n) : n);
+      return (
+        <li key={g.kind + (g.format ?? '')}>
+          <b>{t(`goal_${g.kind}` as TextKey)}{g.format && `: ${formatName(g.format)}`}</b>
+          <span>{t('target')}: {show(g.target)} · {t('progress')}: <span className={now >= g.target ? 'up' : ''}>{show(now)}</span></span>
+        </li>
+      );
+    })}</ul>
   );
 }
 
