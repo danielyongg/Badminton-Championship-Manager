@@ -130,7 +130,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
         <b>{countryName}</b>
         <span className="date">{state.date.year} · {t('week')} {state.date.week}</span>
         {managed && <span>{t('reputation')}: {state.career!.reputation}</span>}
-        <button disabled={busy} onClick={() => go(1)}>{t('advance1')}</button>
+        <button className="primary" disabled={busy} onClick={() => go(1)}>{t('advance1')}</button>
         <button disabled={busy} onClick={() => go(4)}>{t('advance4')}</button>
         <button disabled={busy} onClick={() => go(weeksToSeasonEnd)}>{t('advanceSeason')}</button>
         {simWeek !== undefined && <span>{t('simulating', { w: simWeek })} <button onClick={() => { stop.current = true; }}>{t('stop')}</button></span>}
@@ -185,6 +185,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
           key={`${live.req.tournamentId}-${live.req.entrants.join('-')}-${live.req.round}`}
           sides={live.req.sides}
           names={[entrantLabel(state, live.req.entrants[0]).name, entrantLabel(state, live.req.entrants[1]).name]}
+          ids={[entrantLabel(state, live.req.entrants[0]).country, entrantLabel(state, live.req.entrants[1]).country]}
           mySide={live.mySide}
           cfg={game.ruleset.match}
           rng={game.rng}
@@ -199,7 +200,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
             <h3>{t('entryPopupTitle')} · {t('week')} {entryAsk.week}</h3>
             <Entries fixedWeek={entryAsk.week} />
             <div className="controls">
-              <button onClick={() => { setEntryAsk(undefined); entryAsk.resolve(); }}>{t('entryConfirm')}</button>
+              <button className="primary" onClick={() => { setEntryAsk(undefined); entryAsk.resolve(); }}>{t('entryConfirm')}</button>
               <button onClick={() => { skipEntry.current = true; setEntryAsk(undefined); entryAsk.resolve(); }}>{t('entrySkipRun')}</button>
             </div>
           </div>

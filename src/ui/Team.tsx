@@ -195,7 +195,7 @@ function DefaultTeamEditor({ format, strengths, country }: { format: TeamFormat;
         </div>
       </div>
       <div className="controls" style={{ marginTop: 8 }}>
-        <button disabled={!!(squadErr || lineupErr)} onClick={() => commit(true)}>{t('saveLineup')}</button>
+        <button className="primary" disabled={!!(squadErr || lineupErr)} onClick={() => commit(true)}>{t('saveLineup')}</button>
         <button onClick={() => commit(false)}>{t('useAutoLineup')}</button>
         <small className={squadErr || lineupErr ? 'down' : 'up'}>{squadErr ?? lineupErr ?? msg}</small>
       </div>
@@ -218,7 +218,7 @@ export function SquadModal({ title, format, pool, suggested, onDone }: {
         <p className="hint">{t('squadHint')}</p>
         <SquadPicker pool={pool} value={squad} onChange={setSquad} size={rs.team.squadSize[format]} />
         <div className="controls" style={{ marginTop: 8 }}>
-          <button disabled={!!err} onClick={() => onDone(squad)}>{t('registerSquad')}</button>
+          <button className="primary" disabled={!!err} onClick={() => onDone(squad)}>{t('registerSquad')}</button>
           <button onClick={() => setSquad(suggested)}>{t('resetSuggestion')}</button>
           <small className="down">{err}</small>
         </div>
@@ -245,7 +245,7 @@ export function TieLineupModal({ title, format, round, opponent, pool, squad, su
         <p className="hint">{t('tieLineupHint')}</p>
         <LineupPicker order={order} pool={pool} squad={squad} value={lineup} onChange={setLineup} />
         <div className="controls" style={{ marginTop: 8 }}>
-          <button disabled={!!err} onClick={() => onDone(lineup)}>{t('confirmLineup')}</button>
+          <button className="primary" disabled={!!err} onClick={() => onDone(lineup)}>{t('confirmLineup')}</button>
           <button onClick={() => setLineup(suggested)}>{t('resetSuggestion')}</button>
           <button onClick={() => { onAuto(); onDone(suggested); }}>{t('autoRestOfWeek')}</button>
           <small className="down">{err}</small>

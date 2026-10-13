@@ -111,7 +111,7 @@ function RoundColumns({ rounds, matches, tag, ...who }: WhoProps & { rounds: (st
           {Array.from({ length: field.length / 2 }, (_, k) => {
             const a = field[2 * k], b = field[2 * k + 1], w = rounds[r + 1][k];
             return (
-              <div className="match" key={k}>
+              <div className={`match${a && who.mine?.(a) || b && who.mine?.(b) ? ' mine' : ''}`} key={k}>
                 <div className={w && w === a ? 'win' : ''}><Who id={a} {...who} suffix={tag?.(a)} /></div>
                 <div className={w && w === b ? 'win' : ''}><Who id={b} {...who} suffix={tag?.(b)} /></div>
                 <small>{scoreOf(matches, a, b)}</small>

@@ -29,7 +29,7 @@ function useMatchCounts() {
 }
 
 export function FatigueBar({ value }: { value: number }) {
-  const color = value > 60 ? '#c0392b' : value > 35 ? '#d4a017' : '#1a8f3a';
+  const color = value > 60 ? 'var(--danger)' : value > 35 ? 'var(--gold)' : 'var(--accent)';
   return (
     <span className="bar" title={`${Math.round(value)}`}>
       <span style={{ width: `${Math.min(100, value)}%`, background: color }} />

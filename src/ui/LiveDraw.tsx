@@ -73,7 +73,7 @@ export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay
               {Object.keys(SPEEDS).map((s) => <option key={s} value={s}>{t(`speed_${s}` as 'speed_slow')}</option>)}
             </select>
           </label>
-          <button onClick={onClose}>{replay ? t('draw_closeReplay') : t('draw_close')}</button>
+          <button className="primary" onClick={onClose}>{replay ? t('draw_closeReplay') : t('draw_close')}</button>
           {onSkipEvent && <button onClick={() => { onSkipEvent(); onClose(); }}>{t('draw_skipEvent')}</button>}
         </div>
         <div className="drawlayout">

@@ -3,6 +3,7 @@ import { createMatch, matchResult, playRally, type MatchResult, type MatchState,
 import type { Rng } from '../engine/rng';
 import { STRATEGIES, type MatchConfig, type PointType, type Strategy } from '../engine/types';
 import { t, type TextKey } from '../i18n';
+import { Flag } from './Flag';
 
 const SPEEDS = { slow: 600, normal: 250, fast: 60 } as const;
 const TYPES: PointType[] = ['smash', 'net', 'clear', 'drop', 'error', 'service'];
@@ -11,8 +12,8 @@ const TYPES: PointType[] = ['smash', 'net', 'clear', 'drop', 'error', 'service']
  * Live Match: rally demi rally. Strategi dipilih sebelum laga, saat interval 11 poin, dan antar game.
  * Lawan (AI) memakai strategi 'balanced'.
  */
-export function LiveMatch({ sides, names, mySide, cfg, rng, title, onDone, onAutoRest }: {
-  sides: [SideInput, SideInput]; names: [string, string]; mySide: 0 | 1; cfg: MatchConfig; rng: Rng; title: string;
+export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, onDone, onAutoRest }: {
+  sides: [SideInput, SideInput]; names: [string, string]; ids?: [string, string]; mySide: 0 | 1; cfg: MatchConfig; rng: Rng; title: string;
   onDone: (r: MatchResult) => void; onAutoRest?: () => void;
 }) {
   const st = useRef<MatchState>(null);
@@ -77,12 +78,12 @@ export function LiveMatch({ sides, names, mySide, cfg, rng, title, onDone, onAut
           <tbody>
             {([0, 1] as const).map((s) => (
               <tr key={s} className={s === mySide ? 'mine' : ''}>
-                <td>{m.server === s && !done ? '🏸' : ''}</td>
-                <td>{names[s]}</td>
-                {m.games.map((g, i) => <td key={i} className="num">{g[s]}</td>)}
-                {!done && <td className="num big">{m.score[s]}</td>}
+                <td className="srv" title={m.server === s && !done ? t('serve') : undefined}>{m.server === s && !done ? '●' : ''}</td>
+                <td><Flag id={ids?.[s]} />{names[s]}</td>
+                {m.games.map((g, i) => <td key={i} className="num muted">{g[s]}</td>)}
+                {!done && <td className="pt">{m.score[s]}</td>}
                 <td className="num"><b>{gamesWon(s)}</b></td>
-                <td><span className="bar" title={`${t('energy')} ${Math.round(m.sides[s].energy)}`}><span style={{ width: `${m.sides[s].energy}%`, background: '#1a8f3a' }} /></span></td>
+                <td><span className="bar" title={`${t('energy')} ${Math.round(m.sides[s].energy)}`}><span style={{ width: `${m.sides[s].energy}%`, background: 'var(--accent)' }} /></span></td>
               </tr>
             ))}
           </tbody>
@@ -106,8 +107,8 @@ export function LiveMatch({ sides, names, mySide, cfg, rng, title, onDone, onAut
               </select>
             </label>
             {running
-              ? <button onClick={() => setRunning(false)}>{t('pause')}</button>
-              : <button onClick={() => setRunning(true)}>{m.rallies === 0 ? t('startMatch') : t('resume')}</button>}
+              ? <button className="primary" onClick={() => setRunning(false)}>{t('pause')}</button>
+              : <button className="primary" onClick={() => setRunning(true)}>{m.rallies === 0 ? t('startMatch') : t('resume')}</button>}
             <button disabled={running} onClick={() => step()}>{t('oneRally')}</button>
             <button onClick={finish}>{t('autoFinish')}</button>
           </div>
@@ -117,7 +118,7 @@ export function LiveMatch({ sides, names, mySide, cfg, rng, title, onDone, onAut
         <div className="split">
           <ol className="log">
             {log.map(({ ev, score }, i) => (
-              <li key={i}>{score} — {names[ev.winner]}: {t(ev.type)}{ev.interval ? ` · ${t('interval')}` : ''}{ev.gameOver ? ` · ${t('gameOver')}` : ''}</li>
+              <li key={i}><b>{score}</b> <span className={`chip${ev.winner === mySide ? '' : ' opp'}`}>{t(ev.type)}</span> {names[ev.winner]}{ev.interval ? ` · ${t('interval')}` : ''}{ev.gameOver ? ` · ${t('gameOver')}` : ''}</li>
             ))}
           </ol>
           <table>
@@ -129,7 +130,7 @@ export function LiveMatch({ sides, names, mySide, cfg, rng, title, onDone, onAut
         {done && (
           <div className="controls">
             <b>{names[m.winner!]} {t('wins')}!</b>
-            <button onClick={() => onDone(matchResult(m))}>{t('continue')}</button>
+            <button className="primary" onClick={() => onDone(matchResult(m))}>{t('continue')}</button>
             {onAutoRest && <button onClick={() => { onDone(matchResult(m)); onAutoRest(); }}>{t('autoRestOfWeek')}</button>}
           </div>
         )}

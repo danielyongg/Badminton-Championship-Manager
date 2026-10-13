@@ -87,7 +87,7 @@ function MainMenu({ onStart, onLab, onEditor, onLang }: { onStart: (g: Game) => 
             </select>
           </label>
           <label>{t('seed')}<input type="number" value={seed} onChange={(e) => setSeed(Number(e.target.value))} style={{ width: 100 }} /></label>
-          <button disabled={busy || !name.trim()} onClick={start}>{busy ? '…' : t('start')}</button>
+          <button className="primary" disabled={busy || !name.trim()} onClick={start}>{busy ? '…' : t('start')}</button>
         </div>
       </section>
       <section className="card">
