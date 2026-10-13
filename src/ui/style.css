@@ -59,6 +59,8 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .sectors { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
 .sectors label { display: inline-flex; align-items: center; gap: 3px; font-size: .8rem; cursor: pointer; }
 .sectors select { font-size: .8rem; padding: 2px 28px 2px 6px; margin-left: 4px; }
+.controls.subnav { margin-top: -6px; }
+.controls.subnav button[aria-pressed] { font-size: .85rem; padding: 2px 10px; }
 .scroll { overflow-x: auto; }
 
 /* Tabel */

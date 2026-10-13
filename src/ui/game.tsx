@@ -40,6 +40,8 @@ export async function saveGame(g: Game) {
   await writeSave(g.meta, { id: g.meta.id, state: g.state, ruleset: g.ruleset, world: g.world, rngState: g.rng.state() });
 }
 
+export const JUNIOR_MAX_AGE = 18; // ASUMSI: junior = U19
+
 export async function advance(g: Game, weeks: number, hooks: WeekHooks = {}) {
   for (let i = 0; i < weeks; i++) await playWeek(g.state, g.ruleset, g.world, g.rng, hooks);
 }

@@ -55,6 +55,7 @@ export const en: Record<TextKey, string> = {
   section: 'Section',
   champion: 'Champion',
   pageEvent: 'Tournament', winnersOf: 'Winners {y}', winnersHistory: 'Winners history', runnerUp: 'Runner-up', finalScore: 'Final score', noChampions: 'No winners recorded yet.',
+  players_tab: 'Players',
   bye: 'Bye',
   tabRanking: 'Ranking',
   playWeek: 'Play 1 week',

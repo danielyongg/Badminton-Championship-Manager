@@ -4,11 +4,12 @@ import { ageAt, currentAbility } from '../engine/generator';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import type { Pair } from '../engine/types';
 import { t } from '../i18n';
-import { lookup, saveGame, useGame } from './game';
+import { JUNIOR_MAX_AGE, lookup, saveGame, useGame } from './game';
 
 const DOUBLES: Pair['discipline'][] = ['MD', 'WD', 'XD'];
 
-export function Pairs({ onOpen }: { onOpen: (id: string) => void }) {
+/** Pasangan negara sendiri untuk satu kelompok usia: junior = kedua atlet junior, selain itu senior. */
+export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => void; juniors?: boolean }) {
   const { game, version, changed } = useGame();
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
@@ -25,9 +26,10 @@ export function Pairs({ onOpen }: { onOpen: (id: string) => void }) {
   }, [version, state, ruleset]);
 
   const commit = () => { changed(); void saveGame(game); };
-  const mine = state.pairs.filter((p) => !p.dissolved && !p.adHoc && players.get(p.playerIds[0])?.countryId === country);
+  const isJunior = (id: string) => ageAt(players.get(id)!.birth, state.date) <= JUNIOR_MAX_AGE;
+  const mine = state.pairs.filter((p) => !p.dissolved && !p.adHoc && players.get(p.playerIds[0])?.countryId === country && p.playerIds.every(isJunior) === juniors);
   const athletes = (gender: 'M' | 'F') => state.players
-    .filter((p) => p.countryId === country && p.retired === undefined && p.gender === gender)
+    .filter((p) => p.countryId === country && p.retired === undefined && p.gender === gender && isJunior(p.id) === juniors)
     .sort((x, y) => currentAbility(y.attrs) - currentAbility(x.attrs));
   const genders: Record<Pair['discipline'], ['M' | 'F', 'M' | 'F']> = { MD: ['M', 'M'], WD: ['F', 'F'], XD: ['M', 'F'] };
   const option = (id: string) => {
@@ -40,7 +42,7 @@ export function Pairs({ onOpen }: { onOpen: (id: string) => void }) {
       {DOUBLES.map((disc) => (
         <section key={disc} className="card">
           <h3>{disc}</h3>
-          <table>
+          {!mine.some((p) => p.discipline === disc) ? <p className="hint">—</p> : <table>
             <thead><tr><th>{t('pair')}</th><th className="num">{t('chemistry')}</th><th className="num">{t('matchesTogether')}</th><th className="num">{t('rank')}</th><th></th></tr></thead>
             <tbody>{mine.filter((p) => p.discipline === disc).map((p) => (
               <tr key={p.id}>
@@ -56,7 +58,7 @@ export function Pairs({ onOpen }: { onOpen: (id: string) => void }) {
                 </td>
               </tr>
             ))}</tbody>
-          </table>
+          </table>}
         </section>
       ))}
       <section className="card">

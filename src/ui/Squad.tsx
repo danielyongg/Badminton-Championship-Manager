@@ -6,13 +6,12 @@ import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { rankFromSnapshots } from '../engine/season';
 import { ATTRS, DISCIPLINES, type Attr, type Discipline, type GameDate, type Pair, type Player } from '../engine/types';
 import { numLocale, t, type TextKey } from '../i18n';
-import { entrantLabel, eventName as eventNameOf, lookup, saveGame, useGame } from './game';
+import { entrantLabel, eventName as eventNameOf, JUNIOR_MAX_AGE, lookup, saveGame, useGame } from './game';
 import { Pairs } from './Pairs';
 import { RankChart } from './Ranking';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
 
-const JUNIOR_MAX_AGE = 18; // ASUMSI: junior = U19
 
 export const starText = (n: number) => '★'.repeat(Math.floor(n)) + (n % 1 ? '½' : '');
 const arrow = (d?: number) => (!d ? '' : d > 0 ? ` ▲${d}` : ` ▼${-d}`);
@@ -43,8 +42,9 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   const { game, version, changed } = useGame();
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
-  const [view, setView] = useState<'seniors' | 'juniors' | 'pairs'>('seniors'); // Pasangan digabung ke Skuad
-  const juniors = view === 'juniors';
+  // Skuad → Senior/Junior → Pemain/Pasangan.
+  const [juniors, setJuniors] = useState(false);
+  const [view, setView] = useState<'players' | 'pairs'>('players');
   const commit = () => { changed(); void saveGame(game); };
   const counts = useMatchCounts();
   const ranks = useMemo(() => {
@@ -87,12 +87,15 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   return (
     <>
       <nav className="controls">
-        <button aria-pressed={view === 'seniors'} onClick={() => setView('seniors')}>{t('seniors')}</button>
-        <button aria-pressed={juniors} onClick={() => setView('juniors')}>{t('juniors')}</button>
-        <button aria-pressed={view === 'pairs'} onClick={() => setView('pairs')}>{t('tabPairs')}</button>
-        {view !== 'pairs' && <span className="count">{list.length} {t('players')}</span>}
+        <button aria-pressed={!juniors} onClick={() => setJuniors(false)}>{t('seniors')}</button>
+        <button aria-pressed={juniors} onClick={() => setJuniors(true)}>{t('juniors')}</button>
       </nav>
-      {view === 'pairs' ? <Pairs onOpen={onOpen} /> : (
+      <nav className="controls subnav">
+        <button aria-pressed={view === 'players'} onClick={() => setView('players')}>{t('players_tab')}</button>
+        <button aria-pressed={view === 'pairs'} onClick={() => setView('pairs')}>{t('tabPairs')}</button>
+        {view === 'players' && <span className="count">{list.length} {t('players')}</span>}
+      </nav>
+      {view === 'pairs' ? <Pairs onOpen={onOpen} juniors={juniors} /> : (
       <div className="scroll">
         <table>
           <thead><tr>{COLS.map((c) => (
