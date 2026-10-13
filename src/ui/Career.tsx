@@ -103,7 +103,8 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
     autoRest.current = false;
     for (let i = 0; i < weeks && !stop.current; i++) {
       if (weeks > 1) setSimWeek(state.date.week);
-      await advance(game, 1, { entry: entryHook, live: hook, team: teamHook, draw: drawHook });
+      // Maju beberapa minggu = serba otomatis: tanpa pop-up entry, Live Match, skuad/line-up beregu & live drawing.
+      await advance(game, 1, weeks > 1 ? {} : { entry: entryHook, live: hook, team: teamHook, draw: drawHook });
       autoRest.current = false;
       // Beri kesempatan browser menggambar ulang & menerima klik (Berhenti) di antara minggu → UI tidak membeku.
       await new Promise((r) => setTimeout(r, 0));
