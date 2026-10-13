@@ -8,7 +8,7 @@ import type { MatchRound } from '../engine/knockout';
 import { DISCIPLINES, ROUNDS, type Discipline, type Match, type TeamFormat } from '../engine/types';
 import { absWeek, computeRanking } from '../engine/ranking';
 import type { FederationGoal } from '../engine/types';
-import { dataName, t, type TextKey } from '../i18n';
+import { dataName, numLocale, t, type TextKey } from '../i18n';
 import { downloadPack, Editor, useDebounced } from './Editor';
 import { Entries } from './Entries';
 import { LangSelect } from './LangSelect';
@@ -274,7 +274,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
     const now = absWeek(state.date);
     const prev = state.rankSnapshots.filter((x) => x.discipline === rankD && x.absWeek <= now - 4).at(-1);
     return computeRanking(state.results, rankD, now, ruleset).slice(0, 10)
-      .map((r) => { const i = prev?.ids.indexOf(r.entrantId) ?? -1; return { id: r.entrantId, rank: r.rank, delta: i < 0 ? undefined : i + 1 - r.rank }; });
+      .map((r) => { const i = prev?.ids.indexOf(r.entrantId) ?? -1; return { id: r.entrantId, rank: r.rank, points: r.points, delta: i < 0 ? undefined : i + 1 - r.rank }; });
   }, [version, rankD]);
   const upcoming = [...ruleset.calendar, ...ruleset.team.events.map((e) => ({ ...e, tierId: t('teamShort') }))]
     .filter((e) => isHeld(e, year) && e.week >= week && e.week < week + 4)
@@ -399,7 +399,8 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
               <span className="grow">
                 <a href="#" onClick={(e) => { e.preventDefault(); onOpen(state.pairs.find((p) => p.id === r.id)?.playerIds[0] ?? r.id); }}><Flag id={r.id} />{entrantLabel(state, r.id).name}</a>
               </span>
-              {r.delta ? <span className={r.delta > 0 ? 'up' : 'down'}>{r.delta > 0 ? '▲' : '▼'}{Math.abs(r.delta)}</span> : <span className="muted-text">–</span>}
+              <span className="pts">{r.points.toLocaleString(numLocale())}</span>
+              <span className="delta">{r.delta ? <span className={r.delta > 0 ? 'up' : 'down'}>{r.delta > 0 ? '▲' : '▼'}{Math.abs(r.delta)}</span> : <span className="muted-text">–</span>}</span>
             </div>
           );
         })}

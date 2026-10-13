@@ -112,6 +112,8 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .badge.gold { background: var(--gold-soft); color: var(--gold); }
 .drow.mine-row { background: var(--accent-soft); margin: 0 -6px; padding-left: 6px; padding-right: 6px; border-radius: 4px; }
 .drow.mine-row a { color: var(--accent-strong); font-weight: 600; }
+.drow > .pts { flex: none; font-variant-numeric: tabular-nums; font-size: .82rem; color: var(--muted); }
+.drow > .delta { flex: none; min-width: 2.4em; text-align: right; }
 .drow > .badge:first-child { min-width: 2.2em; text-align: center; }
 .badge.danger { background: var(--danger-soft); color: var(--danger); }
 .badge.danger.strong { background: var(--danger); color: var(--surface); }
