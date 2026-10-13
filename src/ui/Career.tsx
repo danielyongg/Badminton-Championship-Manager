@@ -275,6 +275,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
 
   // Hasil turnamen: minggu-minggu lampau yang diikuti negara ini (tahun*100 + minggu), bisa dimaju-mundurkan.
   const weekOf = new Map([...ruleset.calendar, ...ruleset.team.events].map((e) => [e.id, e.week]));
+  const teamEventIds = new Set(ruleset.team.events.map((e) => e.id));
   const playerCountry = new Map(state.players.map((p) => [p.id, p.countryId]));
   const mine = new Set([
     ...state.players.filter((p) => p.countryId === managed).map((p) => p.id),
@@ -290,7 +291,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
   // Laga terakhir tiap peserta negara ini di turnamen minggu terpilih.
   const last = new Map<string, { event: string; id: string; m: Match; i: 0 | 1 }>();
   for (const m of state.matches) {
-    if (m.year !== selYear || weekOf.get(m.tournamentId) !== selWeek) continue;
+    if (m.year !== selYear || weekOf.get(m.tournamentId) !== selWeek || teamEventIds.has(m.tournamentId)) continue; // partai beregu: lihat baris Tim
     m.sides.forEach((side, i) => {
       if (mine.has(side)) last.set(`${m.tournamentId}:${side}`, { event: m.tournamentId, id: side, m, i: i as 0 | 1 });
     });
@@ -335,7 +336,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
         ))}
       </section>
       {managed && (
-        <section className="card">
+        <section className="card tall">
           <h3>{t('tournamentResults')}</h3>
           {sel !== undefined && (
             <div className="pager">
