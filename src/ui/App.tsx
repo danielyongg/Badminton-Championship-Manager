@@ -10,6 +10,7 @@ import { dataName, t } from '../i18n';
 import { CareerShell } from './Career';
 import { PackManager } from './Editor';
 import { LangSelect } from './LangSelect';
+import { ThemeSelect } from './ThemeSelect';
 import { GameContext, gameFromBlob, saveGame, type Game } from './game';
 import { Lab } from './Lab';
 
@@ -69,7 +70,7 @@ function MainMenu({ onStart, onLab, onEditor, onLang }: { onStart: (g: Game) => 
   return (
     <main className="menu">
       <h1>{t('appTitle')}</h1>
-      <div className="controls"><LangSelect onChange={onLang} /></div>
+      <div className="controls"><LangSelect onChange={onLang} /><ThemeSelect /></div>
       <section className="card">
         <h2>{t('newGame')}</h2>
         <div className="controls">

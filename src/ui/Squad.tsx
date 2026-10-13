@@ -213,7 +213,7 @@ function AttrChart({ p, date }: { p: Player; date: GameDate }) {
           <g key={s.key}>
             <polyline points={s.vals.map((v, i) => `${x(ages[i])},${y(v)}`).join(' ')} fill="none" stroke={s.color} strokeWidth="2" />
             {s.vals.map((v, i) => (
-              <circle key={i} cx={x(ages[i])} cy={y(v)} r="4" fill={s.color} stroke="Canvas" strokeWidth="2">
+              <circle key={i} cx={x(ages[i])} cy={y(v)} r="4" fill={s.color} stroke="var(--surface)" strokeWidth="2">
                 <title>{`${s.label} · ${Math.floor(ages[i])} ${t('yearsShort')}: ${v}`}</title>
               </circle>
             ))}

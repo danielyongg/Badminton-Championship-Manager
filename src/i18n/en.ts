@@ -328,6 +328,7 @@ export const en: Record<TextKey, string> = {
   nameMixed: 'Name in Sudirman Cup years',
   yearsShort: 'y',
   language: 'Language',
+  theme: 'Theme', theme_auto: 'Automatic', theme_light: 'Light', theme_dark: 'Dark',
   settings: 'Settings',
   simulating: 'Simulating week {w}…',
   stop: 'Stop',

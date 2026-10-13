@@ -11,6 +11,7 @@ import { dataName, t, type TextKey } from '../i18n';
 import { downloadPack, Editor, useDebounced } from './Editor';
 import { Entries } from './Entries';
 import { LangSelect } from './LangSelect';
+import { ThemeSelect } from './ThemeSelect';
 import { LiveDraw } from './LiveDraw';
 import { LiveMatch } from './LiveMatch';
 import { advance, entrantLabel, eventName, lookup, saveGame, useGame } from './game';
@@ -127,7 +128,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
     <main>
       <header className="controls shell">
         <b>{countryName}</b>
-        <span>{state.date.year} · {t('week')} {state.date.week}</span>
+        <span className="date">{state.date.year} · {t('week')} {state.date.week}</span>
         {managed && <span>{t('reputation')}: {state.career!.reputation}</span>}
         <button disabled={busy} onClick={() => go(1)}>{t('advance1')}</button>
         <button disabled={busy} onClick={() => go(4)}>{t('advance4')}</button>
@@ -173,6 +174,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
               </label>
             )}
             <LangSelect onChange={onLang} />
+            <ThemeSelect />
           </div>
         </details>
         <small>{status === 'saving' ? t('saving') : status === 'saved' ? t('saved') : ''}</small>

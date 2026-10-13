@@ -328,6 +328,7 @@ const id = {
   nameMixed: 'Nama di tahun Sudirman Cup',
   yearsShort: 'th',
   language: 'Bahasa',
+  theme: 'Tema', theme_auto: 'Otomatis', theme_light: 'Terang', theme_dark: 'Gelap',
   settings: 'Pengaturan',
   simulating: 'Menyimulasikan minggu {w}…',
   stop: 'Berhenti',
