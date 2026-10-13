@@ -53,11 +53,11 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   const mainPair = (id: string, d: DoublesD) => state.pairs.find((p) => p.discipline === d && !p.dissolved && !p.trial && !p.adHoc && p.playerIds.includes(id));
   const sectorsOf = (p: Player) => [...(p.focus === 'D' ? [] : [p.gender === 'M' ? 'MS' : 'WS']), ...doublesOf(p).filter((d) => mainPair(p.id, d))];
   const pairsOf = (id: string) => sectorsOf(lookup(state).players.get(id)!).join(', ');
-  // BWF rank = peringkat terbaik atlet: tunggal atau pasangan utama di nomor ganda.
-  const bestRank = (p: Player) => [
+  // BWF rank = semua peringkat atlet (tunggal & pasangan utama ganda), terbaik dulu.
+  const allRanks = (p: Player) => [
     { d: p.gender === 'M' ? 'MS' : 'WS', r: ranks[p.gender === 'M' ? 'MS' : 'WS'].get(p.id) },
     ...doublesOf(p).map((d) => ({ d, r: ranks[d].get(mainPair(p.id, d)?.id ?? '') })),
-  ].filter((x) => x.r !== undefined).sort((a, b) => a.r! - b.r!)[0];
+  ].filter((x) => x.r !== undefined).sort((a, b) => a.r! - b.r!);
   const starsOf = (p: Player) => potentialStars(p, state.date, counts.get(p.id) ?? 0);
   // Kolom yang bisa diurutkan: nilai sort + arah awal (angka besar dulu untuk kemampuan dsb., kecil dulu untuk usia/ranking).
   const COLS: { key: string; label: TextKey; num?: boolean; value: (p: Player) => string | number; desc?: boolean }[] = [
@@ -69,7 +69,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
     { key: 'potential', label: 'potential', value: starsOf, desc: true },
     { key: 'fatigue', label: 'fatigue', value: (p) => p.fatigue, desc: true },
     { key: 'injury', label: 'injury', value: (p) => p.injury?.weeksLeft ?? 0, desc: true },
-    { key: 'rank', label: 'bwfRank', num: true, value: (p) => bestRank(p)?.r ?? Infinity },
+    { key: 'rank', label: 'bwfRank', num: true, value: (p) => allRanks(p)[0]?.r ?? Infinity }, // urut menurut peringkat terbaik
   ];
   const [sort, setSort] = useState({ key: 'ability', desc: true });
   const col = COLS.find((c) => c.key === sort.key)!;
@@ -110,7 +110,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               <td className="stars">{starText(starsOf(p))}</td>
               <td><FatigueBar value={p.fatigue} /></td>
               <td>{p.injury ? `${p.injury.weeksLeft} ${t('weeks')}${p.injury.severe ? ' ⚠' : ''}` : ''}</td>
-              <td className="num">{(() => { const b = bestRank(p); return b ? <>{b.r} <small className="muted-text">{b.d}</small></> : '—'; })()}</td>
+              <td className="num">{allRanks(p).map((x, i) => <span key={x.d}>{i > 0 && <span className="muted-text"> · </span>}{x.r} <small className="muted-text">{x.d}</small></span>)}{allRanks(p).length === 0 && '—'}</td>
               <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}><SectorPicker p={p} mainPair={mainPair} onChange={commit} /></td>
             </tr>
           ))}</tbody>
