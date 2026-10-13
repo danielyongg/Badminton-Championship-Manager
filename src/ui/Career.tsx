@@ -16,7 +16,6 @@ import { Flag } from './Flag';
 import { LiveDraw } from './LiveDraw';
 import { LiveMatch } from './LiveMatch';
 import { advance, entrantLabel, eventName, lookup, saveGame, useGame } from './game';
-import { Pairs } from './Pairs';
 import { SeasonViews } from './Ranking';
 import { Profile, Squad, usd } from './Squad';
 import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
@@ -26,7 +25,7 @@ import { MatchLink } from './MatchDetail';
 /** Tier "turnamen besar" untuk live drawing (plus putaran final beregu). */
 const BIG_TIERS = new Set(['S1000', 'S750', 'WC', 'OG', 'WTF']);
 
-type Tab = 'dashboard' | 'squad' | 'pairs' | 'entries' | 'team' | 'world' | 'federation' | 'editor' | 'settings';
+type Tab = 'dashboard' | 'squad' | 'entries' | 'team' | 'world' | 'federation' | 'editor' | 'settings';
 
 export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: () => void }) {
   const { game, version, changed } = useGame();
@@ -117,9 +116,9 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   };
   const weeksToSeasonEnd = 52 - state.date.week + 1;
   const countryName = managed ? dataName(world.countries.find((c) => c.id === managed)?.name) : t('observer');
-  const tabs: Tab[] = managed ? ['dashboard', 'squad', 'pairs', 'entries', 'team', 'world', 'federation', 'editor', 'settings'] : ['dashboard', 'team', 'world', 'federation', 'editor', 'settings'];
+  const tabs: Tab[] = managed ? ['dashboard', 'squad', 'entries', 'team', 'world', 'federation', 'editor', 'settings'] : ['dashboard', 'team', 'world', 'federation', 'editor', 'settings'];
   const tabLabel: Record<Tab, TextKey> = {
-    dashboard: 'tabDashboard', settings: 'settings', squad: 'tabSquad', pairs: 'tabPairs', entries: 'tabEntries', team: 'tabTeam', world: 'tabWorld', federation: 'tabFederation', editor: 'tabEditor',
+    dashboard: 'tabDashboard', settings: 'settings', squad: 'tabSquad', entries: 'tabEntries', team: 'tabTeam', world: 'tabWorld', federation: 'tabFederation', editor: 'tabEditor',
   };
   // Profil & halaman turnamen dibuka dari atas (bukan di posisi scroll daftar sebelumnya).
   const open = (id: string) => { setProfileId(id); window.scrollTo(0, 0); };
@@ -233,7 +232,6 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
         )
         : tab === 'dashboard' ? <Dashboard onOpen={open} onOpenEvent={openEvent} />
         : tab === 'squad' ? <Squad onOpen={open} />
-        : tab === 'pairs' ? <Pairs onOpen={open} />
         : tab === 'entries' ? <Entries />
         : tab === 'team' ? <Team />
         : tab === 'editor' ? (

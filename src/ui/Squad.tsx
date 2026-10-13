@@ -7,6 +7,7 @@ import { rankFromSnapshots } from '../engine/season';
 import { ATTRS, DISCIPLINES, type Attr, type Discipline, type GameDate, type Pair, type Player } from '../engine/types';
 import { numLocale, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName as eventNameOf, lookup, saveGame, useGame } from './game';
+import { Pairs } from './Pairs';
 import { RankChart } from './Ranking';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
@@ -42,7 +43,8 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   const { game, version, changed } = useGame();
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
-  const [juniors, setJuniors] = useState(false);
+  const [view, setView] = useState<'seniors' | 'juniors' | 'pairs'>('seniors'); // Pasangan digabung ke Skuad
+  const juniors = view === 'juniors';
   const commit = () => { changed(); void saveGame(game); };
   const counts = useMatchCounts();
   const ranks = useMemo(() => {
@@ -85,10 +87,12 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   return (
     <>
       <nav className="controls">
-        <button aria-pressed={!juniors} onClick={() => setJuniors(false)}>{t('seniors')}</button>
-        <button aria-pressed={juniors} onClick={() => setJuniors(true)}>{t('juniors')}</button>
-        <span className="count">{list.length} {t('players')}</span>
+        <button aria-pressed={view === 'seniors'} onClick={() => setView('seniors')}>{t('seniors')}</button>
+        <button aria-pressed={juniors} onClick={() => setView('juniors')}>{t('juniors')}</button>
+        <button aria-pressed={view === 'pairs'} onClick={() => setView('pairs')}>{t('tabPairs')}</button>
+        {view !== 'pairs' && <span className="count">{list.length} {t('players')}</span>}
       </nav>
+      {view === 'pairs' ? <Pairs onOpen={onOpen} /> : (
       <div className="scroll">
         <table>
           <thead><tr>{COLS.map((c) => (
@@ -116,6 +120,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
           ))}</tbody>
         </table>
       </div>
+      )}
     </>
   );
 }

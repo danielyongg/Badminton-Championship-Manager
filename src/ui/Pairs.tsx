@@ -41,7 +41,7 @@ export function Pairs({ onOpen }: { onOpen: (id: string) => void }) {
         <section key={disc} className="card">
           <h3>{disc}</h3>
           <table>
-            <thead><tr><th>{t('pair')}</th><th>{t('chemistry')}</th><th>{t('matchesTogether')}</th><th>{t('rank')}</th><th></th></tr></thead>
+            <thead><tr><th>{t('pair')}</th><th className="num">{t('chemistry')}</th><th className="num">{t('matchesTogether')}</th><th className="num">{t('rank')}</th><th></th></tr></thead>
             <tbody>{mine.filter((p) => p.discipline === disc).map((p) => (
               <tr key={p.id}>
                 <td>{p.playerIds.map((id, i) => (
