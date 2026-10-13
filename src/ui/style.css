@@ -25,7 +25,8 @@
 }
 
 body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg); }
-a { color: var(--accent-strong); }
+a { color: inherit; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 2px; }
+a:hover { color: var(--accent-strong); text-decoration-color: currentColor; }
 h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: .01em; margin: 0 0 12px; }
 h2, h3, h4 { font-weight: 600; }
 .swatch { display: inline-block; width: 12px; height: 4px; border-radius: 2px; vertical-align: middle; }
@@ -98,7 +99,9 @@ main > nav.controls { gap: 2px; border-bottom: 1px solid var(--line); }
 .live { background: var(--surface); width: min(860px, 100%); position: relative; }
 .live .close { position: absolute; top: 8px; right: 8px; }
 .livebar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); background: var(--surface); z-index: 10; display: flex; gap: 12px; align-items: center; box-shadow: 0 2px 12px #0006; }
+.board { width: auto; }
 .board td { font-size: 1rem; }
+.board td:nth-child(2) { min-width: 14em; }
 .board td.pt { font-size: 1.6rem; font-weight: 800; min-width: 2.2em; text-align: center; background: var(--fg); color: var(--surface); }
 .board tr.mine td:nth-child(2) { font-weight: 700; color: var(--accent-strong); }
 .board tr.mine td.pt { background: var(--accent); color: var(--on-accent); }
