@@ -27,6 +27,7 @@ const id = {
   score: 'Skor',
   pointType: 'Jenis poin',
   matchDetail: 'Detail laga', close: 'Tutup', walkover: 'Walkover', retiredMatch: 'Mundur (cedera)', totalPoints: 'Total poin', noStats: 'Statistik laga ini sudah tidak tersimpan (hanya musim ini & musim lalu).',
+  tieNoDetail: 'Detail partai tidak tersedia untuk pertandingan yang dimainkan sebelum pembaruan ini.',
   h2h: 'Head-to-head',
   smash: 'Smash',
   net: 'Net',

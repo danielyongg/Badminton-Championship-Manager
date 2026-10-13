@@ -69,7 +69,8 @@ export interface TeamHook {
   lineup: (req: { eventId: string; format: TeamFormat; round: MatchRound; opponent: string; pool: Record<string, TeamEntrant[]>; squad: string[]; suggested: Lineup }) => Promise<Lineup> | null;
 }
 
-export interface TeamTie { round: MatchRound; sides: [string, string]; score: [number, number] }
+/** `matchIds`: laga per partai berurutan (partai walkover tidak punya laga). Save lama: tidak ada. */
+export interface TeamTie { round: MatchRound; sides: [string, string]; score: [number, number]; matchIds?: string[] }
 
 export interface TeamResult {
   eventId: string;
@@ -551,9 +552,11 @@ async function playTeamWeek(state: SeasonState, rs: Ruleset, world: World, rng: 
       })).get(d)!;
       const ties: TeamTie[] = [];
       const tie: PlayFn = async (a, b, round) => {
-        const r = await playTie([await lineupOf(a, b, round), await lineupOf(b, a, round)], order, round, playOf, round === 'G');
+        const lineups: [Lineup, Lineup] = [await lineupOf(a, b, round), await lineupOf(b, a, round)];
+        const from = state.matches.length;
+        const r = await playTie(lineups, order, round, playOf, round === 'G');
         const won = r.scores.filter(([x, y]) => x > y).length;
-        ties.push({ round, sides: [a, b], score: [won, r.scores.length - won] });
+        ties.push({ round, sides: [a, b], score: [won, r.scores.length - won], matchIds: state.matches.slice(from).map((m) => m.id) });
         return r;
       };
       const run = await runTeamEvent(teams, ev.confederation ? undefined : rs.team.finals.groups, tie, rng,

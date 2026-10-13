@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { isHeld, teamFormatsIn, teamStrengths, type TeamResult, type TeamStrength } from '../engine/season';
+import { useEffect, useMemo, useState } from 'react';
+import { isHeld, teamFormatsIn, teamStrengths, type TeamResult, type TeamStrength, type TeamTie } from '../engine/season';
 import { ageAt, currentAbility } from '../engine/generator';
 import { AD_HOC, adHocEntrants, adHocId, autoLineup, autoSquad, lineupError, squadError, squadPool, type Lineup, type TeamEntrant } from '../engine/team';
 import { isDoubles, type Discipline, type TeamFormat } from '../engine/types';
@@ -7,6 +7,7 @@ import { dataName, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, useGame } from './game';
 import { LiveDraw } from './LiveDraw';
 import { Flag } from './Flag';
+import { MatchLink } from './MatchDetail';
 
 // Beregu: jadwal, line-up negara sendiri, dan hasil Thomas/Uber/Sudirman Cup + kejuaraan kontinental.
 
@@ -262,8 +263,17 @@ export function FinalsResult({ r }: { r: TeamResult }) {
   const managed = game.state.career?.countryId;
   const ko = r.ties.filter((x) => x.round !== 'G');
   const [replay, setReplay] = useState(false);
+  const [open, setOpen] = useState<TeamTie>();
+  // Kotak pertandingan beregu: klik → detail tiap partai.
+  const tieBox = (x: TeamTie, i: number) => (
+    <div key={i} role="button" tabIndex={0} title={t('matchDetail')} className={`match clickable${managed && x.sides.includes(managed) ? ' mine' : ''}`}
+      onClick={() => setOpen(x)} onKeyDown={(e) => e.key === 'Enter' && setOpen(x)}>
+      {x.sides.map((c, k) => <div key={c} className={x.score[k] > x.score[1 - k] ? 'win' : ''}><Flag id={c} />{name(c)} <small>{x.score[k]}</small></div>)}
+    </div>
+  );
   return (
     <section className="card">
+      {open && <TieDetail r={r} tie={open} name={name} onClose={() => setOpen(undefined)} />}
       <h3>{formatName(r.format)} — {t('champion')}: {champion ? name(champion) : '—'}</h3>
       {r.drawSteps && <button onClick={() => setReplay(true)}>{t('draw_replay')}</button>}
       {replay && r.drawSteps && (
@@ -272,7 +282,8 @@ export function FinalsResult({ r }: { r: TeamResult }) {
       )}
       {r.groups && (
         <div className="groups">{r.standings!.map((s, gi) => (
-          <table key={gi}>
+          <div key={gi}>
+          <table>
             <thead><tr><th>{t('group')} {String.fromCharCode(65 + gi)}</th><th>{t('tiesWon')}</th><th>{t('matchDiff')}</th><th>{t('gameDiff')}</th></tr></thead>
             <tbody>{s.map((row, place) => (
               <tr key={row.id} className={row.id === managed ? 'sel' : ''}>
@@ -281,16 +292,57 @@ export function FinalsResult({ r }: { r: TeamResult }) {
               </tr>
             ))}</tbody>
           </table>
+          <div className="tiegrid">{r.ties.filter((x) => x.round === 'G' && r.groups![gi].includes(x.sides[0])).map(tieBox)}</div>
+          </div>
         ))}</div>
       )}
       <h4>{t('knockout')}</h4>
       <div className="bracket">{['QF', 'SF', 'F'].map((round) => (
-        <div key={round} className="round">{ko.filter((x) => x.round === round).map((x, i) => (
-          <div key={i} className={`match${managed && x.sides.includes(managed) ? ' mine' : ''}`}>
-            {x.sides.map((c, k) => <div key={c} className={x.score[k] > x.score[1 - k] ? 'win' : ''}><Flag id={c} />{name(c)} <small>{x.score[k]}</small></div>)}
-          </div>
-        ))}</div>
+        <div key={round} className="round">{ko.filter((x) => x.round === round).map(tieBox)}</div>
       ))}</div>
     </section>
+  );
+}
+
+/** Pop-up satu pertandingan beregu: tiap partai (nomor, atlet, skor → detail laga). */
+function TieDetail({ r, tie, name, onClose }: { r: TeamResult; tie: TeamTie; name: (c: string) => string; onClose: () => void }) {
+  const { game } = useGame();
+  const { state } = game;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  const byId = new Map(state.matches.map((m) => [m.id, m]));
+  const rubbers = (tie.matchIds ?? []).map((id) => byId.get(id)!).filter(Boolean);
+  const who = (id: string) => entrantLabel(state, id).name;
+  const title = `${eventName(game.ruleset, r.eventId, r.year)} · ${formatName(r.format)}`;
+  return (
+    <div className="modal" role="dialog" aria-label={t('matchDetail')} onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="live card" style={{ width: 'min(720px, 100%)' }}>
+        <button className="close" aria-label={t('close')} title={t('close')} onClick={onClose}>✕</button>
+        <h3>{title} · {tie.round === 'G' ? t('group') : tie.round}</h3>
+        <p className="tiehead">
+          <span className={tie.score[0] > tie.score[1] ? 'win' : ''}><Flag id={tie.sides[0]} />{name(tie.sides[0])}</span>
+          <b>{tie.score[0]} – {tie.score[1]}</b>
+          <span className={tie.score[1] > tie.score[0] ? 'win' : ''}><Flag id={tie.sides[1]} />{name(tie.sides[1])}</span>
+        </p>
+        {rubbers.length === 0 ? <p className="hint">{t('tieNoDetail')}</p> : (
+          <div className="scroll">
+            <table>
+              <tbody>{rubbers.map((m, i) => (
+                <tr key={m.id}>
+                  <td className="muted-text">{t('matchNo')} {i + 1}</td>
+                  <td><span className="chip">{m.discipline}</span></td>
+                  <td className={m.winner === 0 ? 'strong' : 'muted-text'}>{who(m.sides[0])}</td>
+                  <td className="num"><MatchLink m={m} name={who} title={title}>{m.scores.map((g) => g.join('-')).join(', ')}</MatchLink></td>
+                  <td className={m.winner === 1 ? 'strong' : 'muted-text'}>{who(m.sides[1])}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

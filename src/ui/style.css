@@ -123,9 +123,18 @@ main > nav.controls { gap: 2px; border-bottom: 1px solid var(--line); }
 .match > div { color: var(--muted); }
 .match > div.win { color: var(--fg); font-weight: 700; }
 .match small { color: var(--muted); }
+.match.clickable { cursor: pointer; }
+.match.clickable:hover { border-color: var(--accent); }
+.tiegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; margin-top: 6px; }
+.tiehead { display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 1.1rem; margin: 4px 0 10px; }
+.tiehead b { font-size: 1.5rem; font-weight: 800; }
+.tiehead .win { font-weight: 800; }
+td.strong { font-weight: 700; }
 
 /* Modal & Live Match */
 .modal { position: fixed; inset: 0; background: #000a; backdrop-filter: blur(2px); display: flex; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto; z-index: 10; }
+.modal { text-align: left; font-weight: normal; white-space: normal; } /* bisa dirender di dalam sel tabel */
+.live h3 { padding-right: 40px; }
 .live { background: var(--surface); width: min(860px, 100%); position: relative; }
 .live .close { position: absolute; top: 8px; right: 8px; }
 .livebar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); background: var(--surface); z-index: 10; display: flex; gap: 12px; align-items: center; box-shadow: 0 2px 12px #0006; }

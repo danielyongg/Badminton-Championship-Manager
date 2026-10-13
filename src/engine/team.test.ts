@@ -184,6 +184,19 @@ describe('Thomas, Uber & Sudirman Cup', () => {
     expect(entrantsFor(state, 'MD').some((e) => e.id === pair.id)).toBe(false); // bukan peserta turnamen individu
   });
 
+  it('tiap pertandingan beregu menyimpan laga per partai (untuk detail laga)', async () => {
+    const state = newSeason(WORLD, BWF_2026, 9, undefined, null);
+    await until(state, BWF_2026, 19, 9);
+    const finals = state.teamResults.find((r) => r.eventId === 'thomas-uber-cup' && r.format === 'thomas')!;
+    const byId = new Map(state.matches.map((m) => [m.id, m]));
+    for (const tie of finals.ties) {
+      const ms = tie.matchIds!.map((id) => byId.get(id)!);
+      expect(ms.length).toBe(tie.score[0] + tie.score[1]);
+      expect(ms.every((m) => m.tournamentId === 'thomas-uber-cup' && m.round === tie.round)).toBe(true);
+      expect(ms.map((m) => m.discipline)).toEqual(BWF_2026.team.order.thomas.slice(0, ms.length));
+    }
+  });
+
   it('juara bertahan lolos ke putaran final walau timnya lemah', () => {
     const state = newSeason(WORLD, BWF_2026, 5, undefined, null);
     const all = teamStrengths(state, BWF_2026, 'thomas');

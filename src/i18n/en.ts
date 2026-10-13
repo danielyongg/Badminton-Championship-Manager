@@ -27,6 +27,7 @@ export const en: Record<TextKey, string> = {
   score: 'Score',
   pointType: 'Point type',
   matchDetail: 'Match details', close: 'Close', walkover: 'Walkover', retiredMatch: 'Retired (injury)', totalPoints: 'Total points', noStats: 'Stats for this match are no longer kept (this season and last season only).',
+  tieNoDetail: 'Rubber details are not available for ties played before this update.',
   h2h: 'Head-to-head',
   smash: 'Smash',
   net: 'Net',
