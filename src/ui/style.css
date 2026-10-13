@@ -130,6 +130,9 @@ main > nav.controls { gap: 2px; border-bottom: 1px solid var(--line); }
 .tiehead b { font-size: 1.5rem; font-weight: 800; }
 .tiehead .win { font-weight: 800; }
 td.strong { font-weight: 700; }
+.rubbers td { white-space: normal; vertical-align: middle; }
+.rubbers td:nth-child(1), .rubbers td:nth-child(2), .rubbers td.num { white-space: nowrap; }
+.rubbers td:nth-child(3), .rubbers td:nth-child(5) { width: 40%; }
 
 /* Modal & Live Match */
 .modal { position: fixed; inset: 0; background: #000a; backdrop-filter: blur(2px); display: flex; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto; z-index: 10; }

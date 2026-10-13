@@ -324,7 +324,7 @@ function TieDetail({ r, tie, name, onClose }: { r: TeamResult; tie: TeamTie; nam
   const title = `${eventName(game.ruleset, r.eventId, r.year)} · ${formatName(r.format)}`;
   return (
     <div className="modal" role="dialog" aria-label={t('matchDetail')} onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="live card" style={{ width: 'min(720px, 100%)' }}>
+      <div className="live card" style={{ width: 'min(980px, 100%)' }}>
         <button className="close" aria-label={t('close')} title={t('close')} onClick={onClose}>✕</button>
         <h3>{title} · {tie.round === 'G' ? t('group') : tie.round}</h3>
         <p className="tiehead">
@@ -334,7 +334,7 @@ function TieDetail({ r, tie, name, onClose }: { r: TeamResult; tie: TeamTie; nam
         </p>
         {rubbers.length === 0 ? <p className="hint">{t('tieNoDetail')}</p> : (
           <div className="scroll">
-            <table>
+            <table className="rubbers">
               <tbody>{rubbers.map((m, i) => (
                 <tr key={m.id}>
                   <td className="muted-text">{t('matchNo')} {i + 1}</td>
