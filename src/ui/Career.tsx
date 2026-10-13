@@ -112,7 +112,6 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
     changed();
     void persist();
   };
-  const wide = window.matchMedia?.('(min-width: 701px)').matches ?? true;
   const weeksToSeasonEnd = 52 - state.date.week + 1;
   const countryName = managed ? dataName(world.countries.find((c) => c.id === managed)?.name) : t('observer');
   const tabs: Tab[] = managed ? ['dashboard', 'squad', 'pairs', 'entries', 'team', 'world', 'federation', 'editor'] : ['dashboard', 'team', 'world', 'federation', 'editor'];
@@ -134,8 +133,10 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
         <button disabled={busy} onClick={() => go(4)}>{t('advance4')}</button>
         <button disabled={busy} onClick={() => go(weeksToSeasonEnd)}>{t('advanceSeason')}</button>
         {simWeek !== undefined && <span>{t('simulating', { w: simWeek })} <button onClick={() => { stop.current = true; }}>{t('stop')}</button></span>}
-        {/* Pengaturan: terbuka di layar lebar, terlipat di HP agar header tidak memenuhi layar. */}
-        <details className="settings" open={wide}>
+        <small>{status === 'saving' ? t('saving') : status === 'saved' ? t('saved') : ''}</small>
+        <button disabled={busy} onClick={onQuit}>{t('mainMenu')}</button>
+        {/* Pengaturan terlipat agar header melekat cukup satu baris; bila dibuka, isinya turun ke baris sendiri. */}
+        <details className="settings">
           <summary>{t('settings')}</summary>
           <div className="controls">
             {managed && (
@@ -177,8 +178,6 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
             <ThemeSelect />
           </div>
         </details>
-        <small>{status === 'saving' ? t('saving') : status === 'saved' ? t('saved') : ''}</small>
-        <button disabled={busy} onClick={onQuit}>{t('mainMenu')}</button>
       </header>
       {live && (
         <LiveMatch

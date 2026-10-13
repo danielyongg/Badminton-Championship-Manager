@@ -90,8 +90,11 @@ tr.sel { background: var(--accent-soft); }
 .shell { position: sticky; top: 0; background: var(--surface); margin: -16px -16px 12px; padding: 8px 16px; z-index: 2; border-bottom: 1px solid var(--line); }
 .shell > b { font-size: 1.1rem; font-weight: 800; }
 .shell .date { color: var(--accent-strong); font-weight: 800; }
-.settings summary { cursor: pointer; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
-.settings .controls { margin: 0; }
+.shell { align-items: center; }
+.shell small { color: var(--muted); }
+.settings summary { cursor: pointer; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 4px 0; }
+.settings[open] { flex-basis: 100%; }
+.settings .controls { margin: 4px 0 0; }
 main > nav.controls { gap: 2px; border-bottom: 1px solid var(--line); }
 
 /* Bagan */
@@ -138,7 +141,6 @@ main > nav.controls { gap: 2px; border-bottom: 1px solid var(--line); }
 @media (max-width: 700px) {
   body { padding: 12px; }
   .shell { position: static; margin: -12px -12px 12px; padding: 8px 12px; }
-  .settings[open] { flex-basis: 100%; }
   main > nav.controls { position: sticky; top: 0; z-index: 2; background: var(--surface); flex-wrap: nowrap; overflow-x: auto; margin: 0 -12px 12px; padding: 0 12px; }
   main > nav.controls button { flex: none; }
   button, select, input { min-height: 36px; font-size: 16px; }
