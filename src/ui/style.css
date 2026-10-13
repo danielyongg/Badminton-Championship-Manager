@@ -183,6 +183,8 @@ td.strong { font-weight: 700; }
 .chip.opp { background: var(--danger-soft); color: var(--danger); }
 
 /* Live drawing */
+.drawhead { position: sticky; top: 0; z-index: 2; background: var(--surface); margin: -8px -12px 8px; padding: 8px 12px 4px; border-bottom: 1px solid var(--line); }
+.drawhead .controls { margin-bottom: 4px; }
 .announce { font-size: 1.1rem; font-weight: 800; min-height: 1.6em; }
 .drawlayout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 @media (min-width: 700px) { .drawlayout { grid-template-columns: minmax(160px, 1fr) minmax(0, 3fr); } }
@@ -211,6 +213,16 @@ td.strong { font-weight: 700; }
   /* Line-up: dua pilihan atlet ganda boleh turun baris. */
   .lineup { display: table; }
   .modal table:not(.board) { display: table; }
+  /* Pop-up (Live Match, live drawing): kontrol ringkas. */
+  .live { padding: 10px; }
+  .live .controls { gap: 6px; }
+  .live .controls button, .live .controls select { min-height: 32px; font-size: 14px; padding: 2px 10px; }
+  .live .controls select { padding-right: 28px; }
+  /* Papan skor Live Match muat selebar HP. */
+  .board td { padding: 4px 4px; }
+  .board td:nth-child(2) { min-width: 0; white-space: normal; }
+  .board td.pt { font-size: 1.3rem; min-width: 1.8em; }
+  .board .bar { width: 36px; }
   .lineup td { white-space: normal; }
   .lineup td:first-child, .lineup td:nth-child(2) { white-space: nowrap; }
   .board.scoreline td:first-child { min-width: 0; white-space: normal; }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { bowlAt, phaseOf, replayDraw } from '../engine/drawReplay';
 import type { DrawStep } from '../engine/types';
 import { t } from '../i18n';
@@ -27,6 +27,9 @@ export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay
   const [running, setRunning] = useState(true);
   const [speed, setSpeed] = useState<keyof typeof SPEEDS>('normal');
   const done = idx >= steps.length;
+  // Posisi yang baru diisi digeser ke tengah layar (undian 128 posisi tidak muat satu layar, terutama di HP).
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => { box.current?.querySelector('.flash')?.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, [idx]);
 
   useEffect(() => {
     if (!running || done) return;
@@ -58,8 +61,10 @@ export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay
   );
 
   return (
-    <div className="modal" role="dialog" aria-label={t('draw_title')}>
+    <div className="modal" role="dialog" aria-label={t('draw_title')} ref={box}>
       <div className="live card">
+        {/* Judul, pengumuman & kontrol menempel di atas saat bagan digulir. */}
+        <div className="drawhead">
         <h3>{title} · {t('draw_title')}</h3>
         <p className="announce">{last ? stepText(last, name) : t('draw_start')}</p>
         <div className="controls">
@@ -75,6 +80,7 @@ export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay
           </label>
           <button className="primary" onClick={onClose}>{replay ? t('draw_closeReplay') : t('draw_close')}</button>
           {onSkipEvent && <button onClick={() => { onSkipEvent(); onClose(); }}>{t('draw_skipEvent')}</button>}
+        </div>
         </div>
         <div className="drawlayout">
           <section className="bowl">
