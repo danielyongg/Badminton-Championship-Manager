@@ -13,7 +13,7 @@ import { MatchLink } from './MatchDetail';
 
 export const formatName = (f: TeamFormat) => t(`team_${f}` as TextKey);
 export const levelName = (n: number) => t(`teamLevel_${n}` as TextKey);
-const winnerOf = (r: TeamResult) => Object.keys(r.reached).find((c) => r.reached[c] === 'W');
+export const winnerOf = (r: TeamResult) => Object.keys(r.reached).find((c) => r.reached[c] === 'W');
 
 export function Team() {
   const { game, version } = useGame();

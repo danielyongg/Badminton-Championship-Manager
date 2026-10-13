@@ -54,6 +54,7 @@ const id = {
   noQualifying: 'Turnamen ini tanpa babak kualifikasi.',
   section: 'Seksi',
   champion: 'Juara',
+  pageEvent: 'Turnamen', winnersOf: 'Juara {y}', winnersHistory: 'Riwayat juara', runnerUp: 'Runner-up', finalScore: 'Skor final', noChampions: 'Belum ada juara tercatat.',
   bye: 'Bye',
   tabRanking: 'Ranking',
   playWeek: 'Main 1 minggu',

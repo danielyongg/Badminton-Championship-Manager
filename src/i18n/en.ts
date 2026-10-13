@@ -54,6 +54,7 @@ export const en: Record<TextKey, string> = {
   noQualifying: 'This tournament has no qualifying rounds.',
   section: 'Section',
   champion: 'Champion',
+  pageEvent: 'Tournament', winnersOf: 'Winners {y}', winnersHistory: 'Winners history', runnerUp: 'Runner-up', finalScore: 'Final score', noChampions: 'No winners recorded yet.',
   bye: 'Bye',
   tabRanking: 'Ranking',
   playWeek: 'Play 1 week',
