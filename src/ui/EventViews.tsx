@@ -3,6 +3,7 @@ import type { EventRecord } from '../engine/tournament';
 import type { DrawStep, Match } from '../engine/types';
 import { t } from '../i18n';
 import { Flag } from './Flag';
+import { MatchLink } from './MatchDetail';
 
 // Tampilan satu nomor turnamen (entry, kualifikasi, grup, undian, bagan). Dipakai Wizard (Lab) & halaman turnamen karier.
 
@@ -12,8 +13,9 @@ export interface ViewProps {
   matches: Match[]; // laga nomor ini saja (untuk skor)
   mine?: (id: string) => boolean; // disorot (atlet negara sendiri)
   onOpen?: (id: string) => void; // klik nama → profil
+  eventTitle?: string; // judul pop-up detail laga
 }
-type WhoProps = Pick<ViewProps, 'name' | 'mine' | 'onOpen'>;
+type WhoProps = Pick<ViewProps, 'name' | 'mine' | 'onOpen' | 'eventTitle'>;
 
 /** Nama peserta: disorot bila milik negara sendiri, bisa diklik bila `onOpen` ada. */
 export function Who({ id, name, mine, onOpen, suffix = '' }: WhoProps & { id?: string | null; suffix?: string }) {
@@ -41,10 +43,10 @@ export function EntryView({ rec, ...who }: ViewProps) {
   );
 }
 
-const scoreOf = (matches: Match[], a?: string | null, b?: string | null) => {
-  const m = a && b && matches.find((x) => x.sides.includes(a) && x.sides.includes(b));
-  return m ? m.scores.map(([x, y]) => (m.sides[0] === a ? `${x}-${y}` : `${y}-${x}`)).join(', ') + (m.walkover ? ' w/o' : m.retired ? ' ret.' : '') : '';
-};
+const matchOf = (matches: Match[], a?: string | null, b?: string | null) =>
+  (a && b && matches.find((x) => x.sides.includes(a) && x.sides.includes(b))) || undefined;
+const scoreText = (m: Match, a: string) =>
+  m.scores.map(([x, y]) => (m.sides[0] === a ? `${x}-${y}` : `${y}-${x}`)).join(', ') + (m.walkover ? ' w/o' : m.retired ? ' ret.' : '');
 
 export function QualView({ rec, matches, ...who }: ViewProps) {
   if (!rec.qualRounds.length) return <p>{t('noQualifying')}</p>;
@@ -110,11 +112,12 @@ function RoundColumns({ rounds, matches, tag, ...who }: WhoProps & { rounds: (st
         <div className="round" key={r}>
           {Array.from({ length: field.length / 2 }, (_, k) => {
             const a = field[2 * k], b = field[2 * k + 1], w = rounds[r + 1][k];
+            const m = matchOf(matches, a, b);
             return (
               <div className={`match${a && who.mine?.(a) || b && who.mine?.(b) ? ' mine' : ''}`} key={k}>
                 <div className={w && w === a ? 'win' : ''}><Who id={a} {...who} suffix={tag?.(a)} /></div>
                 <div className={w && w === b ? 'win' : ''}><Who id={b} {...who} suffix={tag?.(b)} /></div>
-                <small>{scoreOf(matches, a, b)}</small>
+                <small>{m && a && <MatchLink m={m} name={who.name} title={who.eventTitle}>{scoreText(m, a)}</MatchLink>}</small>
               </div>
             );
           })}

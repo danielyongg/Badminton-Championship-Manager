@@ -9,6 +9,7 @@ import { numLocale, t } from '../i18n';
 import { entrantLabel, eventName as eventNameOf, lookup, useGame } from './game';
 import { RankChart } from './Ranking';
 import { Flag } from './Flag';
+import { MatchLink } from './MatchDetail';
 
 const JUNIOR_MAX_AGE = 18; // ASUMSI: junior = U19
 
@@ -146,7 +147,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
               <tr key={m.id}>
                 <td>{m.year}</td><td>{onOpenEvent ? <a href="#" onClick={(e) => { e.preventDefault(); onOpenEvent(m.tournamentId, m.year); }}>{eventName(m.tournamentId, m.year)}</a> : eventName(m.tournamentId, m.year)}</td><td>{m.discipline} {m.round}</td>
                 <td><a href="#" onClick={(e) => { e.preventDefault(); onOpen(lookup(state).pairs.get(opp)?.playerIds[0] ?? opp); }}>{entrantLabel(state, opp).name} ({entrantLabel(state, opp).country})</a></td>
-                <td>{m.scores.map(([a, b]) => (i === 0 ? `${a}-${b}` : `${b}-${a}`)).join(', ')}</td>
+                <td><MatchLink m={m} name={(x) => entrantLabel(state, x).name} title={eventName(m.tournamentId, m.year)}>{m.scores.map(([a, b]) => (i === 0 ? `${a}-${b}` : `${b}-${a}`)).join(', ')}</MatchLink></td>
                 <td className={m.winner === i ? 'up' : 'down'}>{m.winner === i ? t('won') : t('lost')}</td>
               </tr>
             );

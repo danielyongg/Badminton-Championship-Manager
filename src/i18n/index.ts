@@ -26,6 +26,7 @@ const id = {
   playHundred: 'Main 100 laga',
   score: 'Skor',
   pointType: 'Jenis poin',
+  matchDetail: 'Detail laga', close: 'Tutup', walkover: 'Walkover', retiredMatch: 'Mundur (cedera)', totalPoints: 'Total poin', noStats: 'Statistik laga ini sudah tidak tersimpan (hanya musim ini & musim lalu).',
   h2h: 'Head-to-head',
   smash: 'Smash',
   net: 'Net',

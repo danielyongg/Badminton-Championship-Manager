@@ -58,7 +58,7 @@ button[aria-pressed]:hover:not(:disabled) { border-color: transparent; color: va
 table { border-collapse: collapse; width: 100%; font-size: .9rem; }
 th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 th { position: sticky; top: 0; background: var(--surface); color: var(--muted); font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
-td.num { text-align: right; font-variant-numeric: tabular-nums; }
+th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
 tr.sel { background: var(--accent-soft); }
 .stars { color: var(--gold); letter-spacing: -1px; }
 .up { color: var(--accent-strong); font-size: .8em; }
@@ -131,6 +131,10 @@ main > nav.controls { gap: 2px; border-bottom: 1px solid var(--line); }
 .livebar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); background: var(--surface); z-index: 10; display: flex; gap: 12px; align-items: center; box-shadow: 0 2px 12px #0006; }
 .board { width: auto; }
 .board td { font-size: 1rem; }
+.board.scoreline td:nth-child(2) { min-width: 0; }
+.board.scoreline td:first-child { min-width: 14em; }
+.board.scoreline td.num { min-width: 2em; text-align: center; }
+.board tr.winner td:first-child { font-weight: 700; }
 .board td:nth-child(2) { min-width: 14em; }
 .board td.pt { font-size: 1.6rem; font-weight: 800; min-width: 2.2em; text-align: center; background: var(--fg); color: var(--surface); }
 .board tr.mine td:nth-child(2) { font-weight: 700; color: var(--accent-strong); }

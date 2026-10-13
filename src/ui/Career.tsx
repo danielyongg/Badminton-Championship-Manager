@@ -21,6 +21,7 @@ import { SeasonViews } from './Ranking';
 import { Profile, Squad, usd } from './Squad';
 import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
 import { TournamentView } from './TournamentView';
+import { MatchLink } from './MatchDetail';
 
 /** Tier "turnamen besar" untuk live drawing (plus putaran final beregu). */
 const BIG_TIERS = new Set(['S1000', 'S750', 'WC', 'OG', 'WTF']);
@@ -365,7 +366,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
                       <span className="chip">{m.discipline}</span>
                       <span className="grow">
                         <a href="#" onClick={(e) => { e.preventDefault(); onOpen(state.pairs.find((p) => p.id === id)?.playerIds[0] ?? id); }}>{entrantLabel(state, id).name}</a>
-                        <small className="muted-text">{m.winner === i ? t('wins') : t('lost')} vs <Flag id={opp} />{entrantLabel(state, opp).name} · {m.scores.map((g) => `${g[i]}-${g[1 - i]}`).join(', ')}</small>
+                        <small className="muted-text">{m.winner === i ? t('wins') : t('lost')} vs <Flag id={opp} />{entrantLabel(state, opp).name} · <MatchLink m={m} name={(x) => entrantLabel(state, x).name} title={eventName(ruleset, m.tournamentId, m.year)}>{m.scores.map((g) => `${g[i]}-${g[1 - i]}`).join(', ')}</MatchLink></small>
                       </span>
                       <span className={`badge${reached === 'W' ? ' gold' : reached === 'F' || reached === 'SF' ? ' good' : ''}`}>{reached === 'W' ? `🏆 ${t('champion')}` : reached}</span>
                     </div>

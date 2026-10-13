@@ -26,6 +26,7 @@ export const en: Record<TextKey, string> = {
   playHundred: 'Play 100 matches',
   score: 'Score',
   pointType: 'Point type',
+  matchDetail: 'Match details', close: 'Close', walkover: 'Walkover', retiredMatch: 'Retired (injury)', totalPoints: 'Total points', noStats: 'Stats for this match are no longer kept (this season and last season only).',
   h2h: 'Head-to-head',
   smash: 'Smash',
   net: 'Net',

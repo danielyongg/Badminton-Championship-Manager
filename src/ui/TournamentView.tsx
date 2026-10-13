@@ -29,6 +29,7 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
     name: label,
     mine: (x: string) => !!managed && entrantLabel(state, x).country === managed,
     onOpen: (x: string) => onOpenPlayer(lookup(state).pairs.get(x)?.playerIds[0] ?? x),
+    eventTitle: eventName(ruleset, id, year),
   };
   const team = state.teamResults.filter((r) => r.eventId === id && r.year === year);
   const tier = def && 'tierId' in def ? def.tierId : t('tabTeam');
