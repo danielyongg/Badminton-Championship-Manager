@@ -9,7 +9,7 @@ import data from './bwfPlayers.json';
 
 // [bwfId, nama, negara, gender, lahir YYYY-MM-DD | null, fokus tunggal/ganda, level, junior 0/1]
 type Row = [number, string, string, 'M' | 'F', string | null, 'S' | 'D', number, number];
-const ROWS = data.players as Row[];
+const ROWS = (data.players as Row[]).map((r): Row => [r[0], r[1].replace(/\s+/g, ' ').trim(), ...r.slice(2)] as Row); // BWF kadang memakai spasi ganda
 const PAIRS = data.pairs as [Pair['discipline'], number, number][];
 const FETCHED_YEAR = Number(data.fetched.slice(0, 4));
 
