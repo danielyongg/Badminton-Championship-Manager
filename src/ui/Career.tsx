@@ -265,18 +265,32 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
   const { state, ruleset, world } = game;
   const managed = state.career?.countryId;
   const { year, week } = state.date;
-  const upcoming = [...ruleset.calendar, ...ruleset.team.events.map((e) => ({ ...e, tierId: t('tabTeam') }))]
+  const [back, setBack] = useState(0); // 0 = minggu terakhir yang punya hasil
+  const upcoming = [...ruleset.calendar, ...ruleset.team.events.map((e) => ({ ...e, tierId: t('teamShort') }))]
     .filter((e) => isHeld(e, year) && e.week >= week && e.week < week + 4)
     .sort((a, b) => a.week - b.week);
   const city = (id: string) => dataName(world.cities.find((c) => c.id === id)?.name);
 
-  // Hasil minggu lalu: laga terakhir tiap peserta negara ini di turnamen minggu lalu.
-  const lastWeekEvents = new Set(ruleset.calendar.filter((e) => e.week === week - 1 && isHeld(e, year)).map((e) => e.id));
+  // Hasil turnamen: minggu-minggu lampau yang diikuti negara ini (tahun*100 + minggu), bisa dimaju-mundurkan.
+  const weekOf = new Map([...ruleset.calendar, ...ruleset.team.events].map((e) => [e.id, e.week]));
+  const playerCountry = new Map(state.players.map((p) => [p.id, p.countryId]));
+  const mine = new Set([
+    ...state.players.filter((p) => p.countryId === managed).map((p) => p.id),
+    ...state.pairs.filter((p) => playerCountry.get(p.playerIds[0]) === managed).map((p) => p.id),
+  ]);
+  const myTeams = state.teamResults.filter((r) => r.teams.includes(managed ?? ''));
+  const resultWeeks = [...new Set([
+    ...state.matches.filter((m) => mine.has(m.sides[0]) || mine.has(m.sides[1])).map((m) => m.year * 100 + (weekOf.get(m.tournamentId) ?? 0)),
+    ...myTeams.map((r) => r.year * 100 + (weekOf.get(r.eventId) ?? 0)),
+  ])].filter((k) => k % 100 > 0 && k < year * 100 + week).sort((a, b) => a - b);
+  const sel = resultWeeks[Math.max(0, resultWeeks.length - 1 - back)];
+  const selYear = Math.floor((sel ?? 0) / 100), selWeek = (sel ?? 0) % 100;
+  // Laga terakhir tiap peserta negara ini di turnamen minggu terpilih.
   const last = new Map<string, { event: string; id: string; m: Match; i: 0 | 1 }>();
   for (const m of state.matches) {
-    if (m.year !== year || !lastWeekEvents.has(m.tournamentId)) continue;
+    if (m.year !== selYear || weekOf.get(m.tournamentId) !== selWeek) continue;
     m.sides.forEach((side, i) => {
-      if (entrantLabel(state, side).country === managed) last.set(`${m.tournamentId}:${side}`, { event: m.tournamentId, id: side, m, i: i as 0 | 1 });
+      if (mine.has(side)) last.set(`${m.tournamentId}:${side}`, { event: m.tournamentId, id: side, m, i: i as 0 | 1 });
     });
   }
   // Per turnamen, urut dari babak terjauh (juara dulu).
@@ -284,9 +298,8 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
   const byEvent = groupBy([...last.values()], (r) => r.event);
   for (const list of byEvent.values()) list.sort((a, b) => ROUND_ORDER.indexOf(reachedOf(a)) - ROUND_ORDER.indexOf(reachedOf(b)));
   const byWeek = groupBy(upcoming, (e) => e.week);
-  // Beregu minggu lalu: babak terakhir negara ini per format.
-  const lastTeam = state.teamResults.filter((r) => r.year === year && r.teams.includes(managed ?? '')
-    && ruleset.team.events.find((e) => e.id === r.eventId)?.week === week - 1);
+  // Beregu minggu terpilih: babak terakhir negara ini per format.
+  const lastTeam = myTeams.filter((r) => r.year === selYear && weekOf.get(r.eventId) === selWeek);
   const injured = state.players.filter((p) => p.countryId === managed && p.injury && p.retired === undefined);
   const lastReport = state.career?.reports.at(-1);
 
@@ -321,20 +334,33 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
       </section>
       {managed && (
         <section className="card">
-          <h3>{t('recentResults')}</h3>
+          <h3>{t('tournamentResults')}</h3>
+          {sel !== undefined && (
+            <div className="pager">
+              <button aria-label={t('prevWeek')} disabled={back >= resultWeeks.length - 1} onClick={() => setBack(back + 1)}>‹</button>
+              <b>{t('week')} {selWeek} · {selYear}</b>
+              <button aria-label={t('nextWeek')} disabled={back === 0} onClick={() => setBack(back - 1)}>›</button>
+            </div>
+          )}
           {lastTeam.map((r) => {
             const reached = r.reached[managed!];
-            return <p key={r.eventId + r.format}><b><EventLink id={r.eventId} year={r.year} onOpen={onOpenEvent} /> · {formatName(r.format)}</b>: {reached === 'W' ? `🏆 ${t('champion')}` : `${t('lost')} ${reached ?? t('group')}`}</p>;
+            return (
+              <div key={r.eventId + r.format} className={`drow${reached === 'W' ? ' champ' : ''}`}>
+                <span className="chip">{t('teamShort')}</span>
+                <span className="grow"><b><EventLink id={r.eventId} year={r.year} onOpen={onOpenEvent} /> · {formatName(r.format)}</b></span>
+                <span className={`badge${reached === 'W' ? ' gold' : reached === 'F' || reached === 'SF' ? ' good' : ''}`}>{reached === 'W' ? `🏆 ${t('champion')}` : reached ?? t('group')}</span>
+              </div>
+            );
           })}
           {last.size === 0 && lastTeam.length === 0 ? <p>—</p> : (
             [...byEvent].map(([event, list]) => (
               <div key={event} className="dlist">
-                <h4><EventLink id={event} year={year} onOpen={onOpenEvent} /></h4>
+                <h4><EventLink id={event} year={selYear} onOpen={onOpenEvent} /></h4>
                 {list.map(({ id, m, i }) => {
                   const reached = reachedOf({ m, i });
                   const opp = m.sides[1 - i];
                   return (
-                    <div key={id} className="drow">
+                    <div key={id} className={`drow${reached === 'W' ? ' champ' : ''}`}>
                       <span className="chip">{m.discipline}</span>
                       <span className="grow">
                         <a href="#" onClick={(e) => { e.preventDefault(); onOpen(state.pairs.find((p) => p.id === id)?.playerIds[0] ?? id); }}>{entrantLabel(state, id).name}</a>

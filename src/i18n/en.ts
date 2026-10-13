@@ -119,7 +119,7 @@ export const en: Record<TextKey, string> = {
   tabWorld: 'World',
   tabFederation: 'Federation',
   upcoming: 'Upcoming tournaments',
-  recentResults: "Last week's results",
+  tournamentResults: 'Tournament results', prevWeek: 'Previous week', nextWeek: 'Next week', teamShort: 'Team',
   injuries: 'Injuries',
   weeks: 'weeks',
   goals: 'Season goals',

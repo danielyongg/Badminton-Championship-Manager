@@ -119,7 +119,7 @@ const id = {
   tabWorld: 'Dunia',
   tabFederation: 'Federasi',
   upcoming: 'Turnamen mendatang',
-  recentResults: 'Hasil minggu lalu',
+  tournamentResults: 'Hasil turnamen', prevWeek: 'Minggu sebelumnya', nextWeek: 'Minggu berikutnya', teamShort: 'Tim',
   injuries: 'Cedera',
   weeks: 'minggu',
   goals: 'Target musim ini',
