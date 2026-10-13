@@ -141,6 +141,7 @@ const id = {
   fatigue: 'Kelelahan',
   injury: 'Cedera',
   injurySevere: 'berat',
+  weeksShort: '{n} mg', injuryMinorLong: 'Cedera ringan', injurySevereLong: 'Cedera berat', returnsWeek: 'kembali minggu {w}',
   singlesRank: 'Rank tunggal',
   bwfRank: 'BWF rank',
   pair: 'Pasangan',

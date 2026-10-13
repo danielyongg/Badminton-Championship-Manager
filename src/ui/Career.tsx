@@ -379,7 +379,22 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
       {managed && injured.length > 0 && (
         <section className="card">
           <h3>{t('injuries')}</h3>
-          <ul>{injured.map((p) => <li key={p.id}>{p.name} — {p.injury!.weeksLeft} {t('weeks')}{p.injury!.severe ? ` (${t('injurySevere')})` : ''}</li>)}</ul>
+          {injured.map((p) => {
+            const back = state.date.week + p.injury!.weeksLeft;
+            // Sektor utama: tunggal, atau nomor ganda pasangan utamanya (spesialis ganda).
+            const sector = p.focus !== 'D' ? (p.gender === 'M' ? 'MS' : 'WS')
+              : state.pairs.find((x) => !x.dissolved && !x.trial && !x.adHoc && x.playerIds.includes(p.id))?.discipline ?? (p.gender === 'M' ? 'MD' : 'WD');
+            return (
+              <div key={p.id} className="drow">
+                <span className="chip">{sector}</span>
+                <span className="grow">
+                  <a href="#" onClick={(e) => { e.preventDefault(); onOpen(p.id); }}>{p.name}</a>
+                  <small className="muted-text">{p.injury!.severe ? t('injurySevereLong') : t('injuryMinorLong')} · {t('returnsWeek', { w: back > 52 ? back - 52 : back })}</small>
+                </span>
+                <span className={`badge danger${p.injury!.severe ? ' strong' : ''}`}>🩹 {t('weeksShort', { n: p.injury!.weeksLeft })}</span>
+              </div>
+            );
+          })}
         </section>
       )}
     </div>

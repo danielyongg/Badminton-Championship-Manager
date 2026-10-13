@@ -110,6 +110,8 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .badge { flex: none; font-size: .72rem; font-weight: 700; padding: 1px 6px; border-radius: 3px; background: var(--line); color: var(--fg); white-space: nowrap; }
 .badge.good { background: var(--accent-soft); color: var(--accent-strong); }
 .badge.gold { background: var(--gold-soft); color: var(--gold); }
+.badge.danger { background: var(--danger-soft); color: var(--danger); }
+.badge.danger.strong { background: var(--danger); color: var(--surface); }
 .goals { list-style: none; margin: 0; padding: 0; }
 .goals li { display: flex; flex-direction: column; gap: 1px; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .goals li > span { font-size: .85rem; color: var(--muted); }

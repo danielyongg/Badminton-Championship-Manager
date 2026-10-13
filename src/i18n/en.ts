@@ -141,6 +141,7 @@ export const en: Record<TextKey, string> = {
   fatigue: 'Fatigue',
   injury: 'Injury',
   injurySevere: 'severe',
+  weeksShort: '{n} wk', injuryMinorLong: 'Minor injury', injurySevereLong: 'Severe injury', returnsWeek: 'back in week {w}',
   singlesRank: 'Singles rank',
   bwfRank: 'BWF rank',
   pair: 'Pair',
