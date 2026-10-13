@@ -1,11 +1,12 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { MatchResult } from '../engine/match';
 import type { DrawHook, DrawShow, LiveHook, LiveRequest } from '../engine/tournament';
 import { goalProgress } from '../engine/career';
 import { isHeld, switchCountry, type EntryHook, type TeamHook } from '../engine/season';
 import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
-import { ROUNDS, type Match, type TeamFormat } from '../engine/types';
+import { DISCIPLINES, ROUNDS, type Match, type TeamFormat } from '../engine/types';
+import { absWeek, computeRanking } from '../engine/ranking';
 import type { FederationGoal } from '../engine/types';
 import { dataName, t, type TextKey } from '../i18n';
 import { downloadPack, Editor, useDebounced } from './Editor';
@@ -266,6 +267,19 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
   const managed = state.career?.countryId;
   const { year, week } = state.date;
   const [back, setBack] = useState(0); // 0 = minggu terakhir yang punya hasil
+  // Ranking BWF saat ini: 3 teratas negara ini per nomor + perubahan dibanding snapshot ≥ 4 minggu lalu.
+  const { version } = useGame();
+  const bwf = useMemo(() => {
+    if (!managed) return [];
+    const now = absWeek(state.date);
+    const country = (id: string) => entrantLabel(state, id).country;
+    return DISCIPLINES.map((d) => {
+      const prev = state.rankSnapshots.filter((x) => x.discipline === d && x.absWeek <= now - 4).at(-1);
+      const rows = computeRanking(state.results, d, now, ruleset).filter((r) => country(r.entrantId) === managed).slice(0, 3)
+        .map((r) => { const i = prev?.ids.indexOf(r.entrantId) ?? -1; return { id: r.entrantId, rank: r.rank, delta: i < 0 ? undefined : i + 1 - r.rank }; });
+      return { d, rows };
+    });
+  }, [version, managed]);
   const upcoming = [...ruleset.calendar, ...ruleset.team.events.map((e) => ({ ...e, tierId: t('teamShort') }))]
     .filter((e) => isHeld(e, year) && e.week >= week && e.week < week + 4)
     .sort((a, b) => a.week - b.week);
@@ -374,6 +388,25 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
               </div>
             ))
           )}
+        </section>
+      )}
+      {managed && (
+        <section className="card">
+          <h3>{t('bwfRankNow')}</h3>
+          {bwf.map(({ d, rows }) => (
+            <div key={d} className="dlist">
+              <h4>{d}</h4>
+              {rows.length === 0 ? <p className="hint">—</p> : rows.map((r) => (
+                <div key={r.id} className="drow">
+                  <span className="badge good">#{r.rank}</span>
+                  <span className="grow">
+                    <a href="#" onClick={(e) => { e.preventDefault(); onOpen(state.pairs.find((p) => p.id === r.id)?.playerIds[0] ?? r.id); }}>{entrantLabel(state, r.id).name}</a>
+                  </span>
+                  {r.delta ? <span className={r.delta > 0 ? 'up' : 'down'}>{r.delta > 0 ? '▲' : '▼'}{Math.abs(r.delta)}</span> : <span className="muted-text">–</span>}
+                </div>
+              ))}
+            </div>
+          ))}
         </section>
       )}
       {managed && injured.length > 0 && (

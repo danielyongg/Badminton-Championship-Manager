@@ -144,6 +144,7 @@ export const en: Record<TextKey, string> = {
   weeksShort: '{n} wk', injuryMinorLong: 'Minor injury', injurySevereLong: 'Severe injury', returnsWeek: 'back in week {w}',
   singlesRank: 'Singles rank',
   bwfRank: 'BWF rank',
+  bwfRankNow: 'Current BWF ranking',
   pair: 'Pair',
   sector: 'Sector', manageSectors: 'Set sectors', choosePartner: 'Choose partner…', noPartner: 'No partner available (everyone already has a main pair in this event).', singlesHint: 'Plays singles (unchecked = doubles specialist, not entered in singles automatically)',
   mainPair: 'Main',

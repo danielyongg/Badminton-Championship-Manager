@@ -144,6 +144,7 @@ const id = {
   weeksShort: '{n} mg', injuryMinorLong: 'Cedera ringan', injurySevereLong: 'Cedera berat', returnsWeek: 'kembali minggu {w}',
   singlesRank: 'Rank tunggal',
   bwfRank: 'BWF rank',
+  bwfRankNow: 'Ranking BWF saat ini',
   pair: 'Pasangan',
   sector: 'Sektor', manageSectors: 'Atur sektor', choosePartner: 'Pilih partner…', noPartner: 'Tidak ada partner yang tersedia (semua sudah punya pasangan utama di nomor ini).', singlesHint: 'Ikut nomor tunggal (tanpa centang = spesialis ganda, tidak didaftarkan otomatis di tunggal)',
   mainPair: 'Utama',
