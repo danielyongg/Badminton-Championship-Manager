@@ -1,6 +1,7 @@
 import type { Candidate } from './entry';
 import { currentAbility, isJuniorAge } from './generator';
 import type { Rng } from './rng';
+import { adHocId } from './team';
 import { DISCIPLINES, isDoubles, type Discipline, type Pair, type Player, type Ruleset, type TournamentDef, type World } from './types';
 
 // Turnamen junior (U19): peserta dipilih otomatis per negara (maks kuota tier), diurutkan ranking junior lalu kemampuan.
@@ -98,6 +99,36 @@ function juniorPairs(
       }
       out.push({ id: pair.id, countryId: country, playerIds: [a.id, b.id] });
       have++;
+    }
+  }
+  return out;
+}
+
+/**
+ * Peserta tim junior (Suhandinata Cup) satu nomor, tanpa efek samping: tunggal = atlet U19; ganda = pasangan aktif yang
+ * kedua atletnya U19, lalu sisa junior dipasangkan sebagai ganda dadakan (`adhoc:a+b`, jadi pasangan nyata saat main).
+ */
+export function juniorTeamEntrants(state: JuniorState, d: Discipline, perCountry = 3) {
+  const junior = (p: Player) => p.retired === undefined && isJuniorAge(p, state.date);
+  const players = new Map(state.players.map((p) => [p.id, p]));
+  if (!isDoubles(d))
+    return state.players.filter((p) => junior(p) && p.gender === (d === 'MS' ? 'M' : 'F')).map((p) => ({ id: p.id, countryId: p.countryId, playerIds: [p.id] }));
+  const ok = (id: string) => { const p = players.get(id); return !!p && junior(p); };
+  const out = state.pairs.filter((p) => p.discipline === d && !p.dissolved && !p.trial && p.playerIds.every(ok))
+    .map((p) => ({ id: p.id, countryId: players.get(p.playerIds[0])!.countryId, playerIds: [...p.playerIds] }));
+  const used = new Set(out.flatMap((e) => e.playerIds));
+  const [g1, g2] = GENDERS[d as 'MD' | 'WD' | 'XD'];
+  const byCountry = new Map<string, Player[]>();
+  for (const p of state.players) if (junior(p) && !used.has(p.id)) byCountry.set(p.countryId, [...(byCountry.get(p.countryId) ?? []), p]);
+  for (const [country, pool] of byCountry) {
+    const left = pool.sort((a, b) => currentAbility(b.attrs) - currentAbility(a.attrs));
+    for (let have = out.filter((e) => e.countryId === country).length; have < perCountry; have++) {
+      const a = left.find((p) => p.gender === g1);
+      const b = a && left.find((p) => p !== a && p.gender === g2);
+      if (!a || !b) break;
+      left.splice(left.indexOf(a), 1);
+      left.splice(left.indexOf(b), 1);
+      out.push({ id: adHocId(a.id, b.id), countryId: country, playerIds: [a.id, b.id] });
     }
   }
   return out;

@@ -269,6 +269,7 @@ export const en: Record<TextKey, string> = {
   team_thomas: 'Thomas Cup',
   team_uber: 'Uber Cup',
   team_sudirman: 'Sudirman Cup',
+  team_suhandinata: 'Suhandinata Cup',
   teamLevel_0: 'Did not qualify',
   teamLevel_1: 'Group stage',
   teamLevel_2: 'Quarter-final',

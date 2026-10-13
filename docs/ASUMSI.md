@@ -162,3 +162,10 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Poin** masuk **Ranking Junior Dunia** (`state.juniorResults`, kedaluwarsa 52 minggu), bukan ranking senior; tanpa hadiah uang. Juara (WJC) 10.000, JC 7.000, JC2 4.000.
 - **Kalibrasi atlet asli**: level dari ranking junior BWF = 82 − 4,5·ln(peringkat) (sebelumnya 72 − 4·ln; junior #1 ≈ senior #20). Di luar papan atas (level < 86), level dikurangi s/d 8 menurut lemahnya tradisi negara (poin banyak dari turnamen kecil di kawasannya) — berlaku juga untuk senior. Hanya untuk New Game.
 - Save lama: tier & event junior ditambahkan dari preset saat dimuat.
+
+## Junior: Suhandinata Cup (tahap 3)
+- **BWF World Junior Mixed Team Championships (Suhandinata Cup)**: setiap tahun minggu 40 (Guwahati), seminggu sebelum Kejuaraan Dunia Junior. Format `suhandinata`: beregu campuran 5 partai, urutan seperti Sudirman Cup (XD, WS, MS, WD, MD), skuad 4–12.
+- **Peserta**: semua negara yang bisa menurunkan tim junior lengkap, maks **32 tim** (tuan rumah & juara bertahan dulu, lalu terkuat); **8 grup × 4**, 2 teratas ke babak 16 besar. (Kenyataannya ±38 tim dengan grup bervariasi.)
+- **Atlet**: hanya U19. Kekuatan tim & urutan pool memakai **ranking junior** (lalu kemampuan). Ganda: pasangan aktif yang kedua atletnya U19; sisanya ganda dadakan junior (juga untuk tim AI). Pasangan dadakan yang terbentuk ditandai `junior` sehingga dipakai ulang di Kejuaraan Dunia Junior.
+- Di minggu Suhandinata, semua junior tidak didaftarkan otomatis ke turnamen senior (entry manual tetap bisa).
+- Tidak masuk target musim federasi dan tidak dimainkan di kejuaraan beregu kontinental. Skuad & line-up negara manajer lewat pop-up yang sama dengan Thomas/Uber/Sudirman.

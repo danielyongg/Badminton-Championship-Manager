@@ -1,16 +1,16 @@
 import { seasonGoals, seasonReport } from './career';
 import { applySevereInjury, developQuarter, newJuniors, retirementChance } from './development';
 import { applyCountryQuota, type Candidate } from './entry';
-import { ageAt, currentAbility, generateWorld, isPratama } from './generator';
+import { ageAt, currentAbility, generateWorld, isJuniorAge, isPratama } from './generator';
 import { absWeek, computeRace, computeRanking, knockoutResults, rankMap } from './ranking';
 import { makeRng, shuffle, type Rng } from './rng';
 import type { Standing } from './groups';
 import type { MatchRound, PlayFn } from './knockout';
-import { juniorEntries } from './junior';
+import { juniorEntries, juniorTeamEntrants } from './junior';
 import { AD_HOC, adHocEntrants, autoLineup, autoSquad, lineupError, playTie, runTeamEvent, squadError, squadPool, type Lineup, type TeamEntrant } from './team';
 import { runEvent, simPlay, toRecord, type DrawHook, type EventRecord, type LiveHook } from './tournament';
 import {
-  DISCIPLINES, isDoubles, ROUNDS, type Career, type City, type Confederation, type Discipline, type DrawStep, type EntrantId, type GameDate, type Match, type Pair,
+  DISCIPLINES, isDoubles, isJuniorFormat, ROUNDS, type Career, type City, type Confederation, type Discipline, type DrawStep, type EntrantId, type GameDate, type Match, type Pair,
   type Player, type RankingEntry, type Round, type Ruleset, type Tier, type TeamFormat, type TournamentDef, type World,
 } from './types';
 
@@ -317,6 +317,9 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   const junior = juniorEntries(state, events.filter(isJunior), rs, world, juniorRanks, state.manualEntries[weekKey(state.date)] ?? {}, rng);
   state.pairs.push(...junior.created);
   for (const p of junior.created) pairs.set(p.id, p);
+  // Minggu beregu junior (Suhandinata Cup): semua junior disiapkan untuk timnya, tidak didaftarkan otomatis ke turnamen senior.
+  if (rs.team.events.some((e) => e.week === week && isHeld(e, year) && e.formats?.some(isJuniorFormat)))
+    for (const p of state.players) if (isJuniorAge(p, state.date)) junior.busy.add(p.id);
   const entries = chooseEntries(state, events.filter((e) => !isJunior(e)), rs, rng, ranks, junior.busy);
   for (const [id, byD] of junior.entries) entries.set(id, byD);
 
@@ -416,9 +419,9 @@ function applyEventLoad(state: SeasonState, rs: Ruleset, rng: Rng, firstMatch: n
 }
 
 /** Poin ranking terkini per nomor (untuk line-up & kekuatan tim beregu). */
-function rankingPoints(state: SeasonState, rs: Ruleset) {
+function rankingPoints(state: SeasonState, rs: Ruleset, results = state.results) {
   const now = absWeek(state.date);
-  return new Map(DISCIPLINES.map((d) => [d, new Map(computeRanking(state.results, d, now, rs).map((r) => [r.entrantId, r.points]))]));
+  return new Map(DISCIPLINES.map((d) => [d, new Map(computeRanking(results, d, now, rs).map((r) => [r.entrantId, r.points]))]));
 }
 
 export interface TeamStrength { countryId: string; strength: number; lineup: Lineup; pool: Record<string, TeamEntrant[]> }
@@ -429,14 +432,16 @@ export interface TeamStrength { countryId: string; strength: number; lineup: Lin
  */
 export function teamStrengths(state: SeasonState, rs: Ruleset, format: TeamFormat): TeamStrength[] {
   const order = rs.team.order[format];
-  const points = rankingPoints(state, rs);
+  // Format junior (Suhandinata): atlet U19 & ranking junior; ganda boleh ganda dadakan junior.
+  const junior = isJuniorFormat(format);
+  const points = rankingPoints(state, rs, junior ? state.juniorResults ?? [] : state.results);
   const injured = new Set(state.players.filter((p) => p.injury).map((p) => p.id));
   const ca = new Map(state.players.map((p) => [p.id, currentAbility(p.attrs)]));
   const pools = new Map<string, Record<string, TeamEntrant[]>>();
   for (const d of new Set(order)) {
     const pts = points.get(d)!;
     const score = (e: Entrant) => e.playerIds.reduce((s, id) => s + ca.get(id)!, 0);
-    const list = entrantsFor(state, d).filter((e) => !e.playerIds.some((id) => injured.has(id)))
+    const list = (junior ? juniorTeamEntrants(state, d) : entrantsFor(state, d)).filter((e) => !e.playerIds.some((id) => injured.has(id)))
       .sort((a, b) => (pts.get(b.id) ?? 0) - (pts.get(a.id) ?? 0) || score(b) - score(a));
     for (const e of list) {
       const pool = pools.get(e.countryId) ?? pools.set(e.countryId, {}).get(e.countryId)!;
@@ -457,8 +462,9 @@ export const teamHolder = (state: SeasonState, format: TeamFormat) =>
   winnerOf(state.teamResults.filter((r) => r.format === format && !r.confederation).at(-1));
 
 /** Format yang dimainkan tahun ini (dari putaran final yang digelar). */
+/** Format beregu senior yang putaran finalnya digelar tahun ini (juga format kejuaraan kontinental & target musim). */
 export const teamFormatsIn = (rs: Ruleset, year: number) =>
-  rs.team.events.filter((e) => !e.confederation && isHeld(e, year)).flatMap((e) => e.formats ?? []);
+  rs.team.events.filter((e) => !e.confederation && isHeld(e, year)).flatMap((e) => e.formats ?? []).filter((f) => !isJuniorFormat(f));
 
 /**
  * Peserta putaran final: tuan rumah, juara bertahan, lalu `qualifiers` tim teratas tiap kejuaraan kontinental
@@ -466,7 +472,7 @@ export const teamFormatsIn = (rs: Ruleset, year: number) =>
  * dilewati dan kursinya jatuh ke tim berikutnya dari benua itu), lalu tim terkuat sampai kuota terpenuhi.
  * Urutan hasil = urutan unggulan (kekuatan tim).
  */
-export function finalsTeams(state: SeasonState, rs: Ruleset, format: TeamFormat, hostCountryId: string, all: TeamStrength[]) {
+export function finalsTeams(state: SeasonState, rs: Ruleset, format: TeamFormat, hostCountryId: string, all: TeamStrength[], size = rs.team.finals.teams) {
   const eligible = new Set(all.map((t) => t.countryId));
   const picked = new Set([hostCountryId, teamHolder(state, format)].filter((c): c is string => !!c && eligible.has(c)));
   for (const r of state.teamResults.filter((x) => x.year === state.date.year && x.format === format && x.confederation)) {
@@ -481,7 +487,7 @@ export function finalsTeams(state: SeasonState, rs: Ruleset, format: TeamFormat,
       added++;
     }
   }
-  for (const t of all) if (picked.size < rs.team.finals.teams) picked.add(t.countryId);
+  for (const t of all) if (picked.size < size) picked.add(t.countryId);
   return all.filter((t) => picked.has(t.countryId)).map((t) => t.countryId);
 }
 
@@ -500,12 +506,13 @@ async function playTeamWeek(state: SeasonState, rs: Ruleset, world: World, rng: 
   for (const ev of rs.team.events.filter((e) => e.week === week && isHeld(e, year))) {
     const city = cities.get(ev.cityId)!;
     const firstMatch = state.matches.length;
+    const finals = ev.finals ?? rs.team.finals;
     for (const format of ev.formats ?? teamFormatsIn(rs, year)) {
       const order = rs.team.order[format];
       const all = teamStrengths(state, rs, format);
       const teams = ev.confederation
         ? all.filter((t) => confederation.get(t.countryId) === ev.confederation).slice(0, rs.team.continentalTeams).map((t) => t.countryId)
-        : finalsTeams(state, rs, format, city.countryId, all);
+        : finalsTeams(state, rs, format, city.countryId, all, finals.teams);
       if (teams.length < 2) {
         // Satu-satunya tim di konfederasinya menjadi juara kontinental tanpa bertanding (tetap lolos ke final).
         if (ev.confederation && teams.length === 1)
@@ -532,8 +539,9 @@ async function playTeamWeek(state: SeasonState, rs: Ruleset, world: World, rng: 
       }
       const lineupOf = async (c: string, opponent: string, round: MatchRound): Promise<Lineup> => {
         const pool = pools.get(c)!;
+        const real = (l: Lineup) => l.map((id, i) => (id?.startsWith(AD_HOC) ? adHocPair(c, order[i], id) : id)); // ganda dadakan → pasangan
         const auto = autoLineup(order, pool, max);
-        if (c !== state.managedCountryId) return auto;
+        if (c !== state.managedCountryId) return real(auto);
         // Line-up manajer boleh memakai ganda dadakan (adhoc:a+b) dari atlet skuad.
         const squad = new Set(squads[c]);
         const ok = (l: Lineup | undefined) => {
@@ -544,7 +552,7 @@ async function playTeamWeek(state: SeasonState, rs: Ruleset, world: World, rng: 
         const asked = team?.lineup({ eventId: ev.id, format, round, opponent, pool, squad: squads[c], suggested: ok(state.teamLineups[format]) ?? auto });
         const chosen = ok(asked ? await asked : state.teamLineups[format]);
         if (chosen && asked) state.teamLineups[format] = chosen; // jadi saran untuk pertandingan berikutnya
-        return chosen ? chosen.map((id, i) => (id?.startsWith(AD_HOC) ? adHocPair(c, order[i], id) : id)) : auto;
+        return real(chosen ?? auto);
       };
       /** Pasangan nyata untuk ganda dadakan: pakai pasangan aktif dengan atlet yang sama, atau buat pasangan khusus beregu. */
       const adHocPair = (c: string, d: Discipline, token: string) => {
@@ -554,7 +562,7 @@ async function playTeamWeek(state: SeasonState, rs: Ruleset, world: World, rng: 
         if (!pair) {
           pair = {
             id: `${c}-${d}-T${year}-${state.pairs.length}`, discipline: d as Pair['discipline'], playerIds: [ids[0], ids[1]],
-            chemistry: 25, matchesTogether: 0, formed: { ...state.date }, adHoc: true, // ASUMSI: chemistry awal rendah
+            chemistry: 25, matchesTogether: 0, formed: { ...state.date }, adHoc: true, ...(isJuniorFormat(format) && { junior: true }), // ASUMSI: chemistry awal rendah
           };
           state.pairs.push(pair);
           pairs.set(pair.id, pair);
@@ -574,8 +582,8 @@ async function playTeamWeek(state: SeasonState, rs: Ruleset, world: World, rng: 
         ties.push({ round, sides: [a, b], score: [won, r.scores.length - won], matchIds: state.matches.slice(from).map((m) => m.id) });
         return r;
       };
-      const run = await runTeamEvent(teams, ev.confederation ? undefined : rs.team.finals.groups, tie, rng,
-        (steps) => draw?.({ tournamentId: ev.id, entrants: teams, steps, groups: rs.team.finals.groups.groups }) ?? null);
+      const run = await runTeamEvent(teams, ev.confederation ? undefined : finals.groups, tie, rng,
+        (steps) => draw?.({ tournamentId: ev.id, entrants: teams, steps, groups: finals.groups.groups }) ?? null);
       state.teamResults.push({
         eventId: ev.id, year, format, confederation: ev.confederation, teams,
         groups: run.groups, standings: run.standings, reached: Object.fromEntries(run.reached), ties, squads, drawSteps: run.steps,

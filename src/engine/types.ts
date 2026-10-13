@@ -85,8 +85,10 @@ export interface Ruleset {
 }
 
 /** Beregu: Thomas Cup (putra), Uber Cup (putri), Sudirman Cup (campuran). */
-export type TeamFormat = 'thomas' | 'uber' | 'sudirman';
-export const TEAM_FORMATS: TeamFormat[] = ['thomas', 'uber', 'sudirman'];
+/** `suhandinata` = beregu campuran junior (U19), memakai ranking junior. */
+export type TeamFormat = 'thomas' | 'uber' | 'sudirman' | 'suhandinata';
+export const TEAM_FORMATS: TeamFormat[] = ['thomas', 'uber', 'sudirman', 'suhandinata'];
+export const isJuniorFormat = (f: TeamFormat) => f === 'suhandinata';
 
 export interface TeamEventDef {
   id: string;
@@ -101,6 +103,8 @@ export interface TeamEventDef {
   /** Kejuaraan kontinental: jumlah tim teratas yang lolos ke putaran final (bawaan 1 = juara). */
   qualifiers?: number;
   everyYears?: TournamentDef['everyYears'];
+  /** Ukuran putaran final event ini (bawaan `team.finals`). */
+  finals?: { teams: number; groups: GroupStage };
 }
 
 export interface TeamConfig {

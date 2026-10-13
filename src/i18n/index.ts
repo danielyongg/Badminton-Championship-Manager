@@ -269,6 +269,7 @@ const id = {
   team_thomas: 'Thomas Cup',
   team_uber: 'Uber Cup',
   team_sudirman: 'Sudirman Cup',
+  team_suhandinata: 'Suhandinata Cup',
   teamLevel_0: 'Tidak lolos',
   teamLevel_1: 'Fase grup',
   teamLevel_2: 'Perempat final',

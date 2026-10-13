@@ -5,6 +5,7 @@ import { BWF_2027 } from './presets/bwf2027';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
 import { entrantsFor, finalsTeams, newSeason, playWeek, teamStrengths, type SeasonState, type TeamHook, type WeekHooks } from './season';
+import { isJuniorAge } from './generator';
 import { adHocId, autoLineup, autoSquad, lineupError, playTie, squadError, type Lineup, type TeamEntrant } from './team';
 import type { DrawShow } from './tournament';
 import type { Ruleset } from './types';
@@ -196,6 +197,27 @@ describe('Thomas, Uber & Sudirman Cup', () => {
       expect(ms.map((m) => m.discipline)).toEqual(BWF_2026.team.order.thomas.slice(0, ms.length));
     }
   });
+
+  it('Suhandinata Cup (minggu 40): beregu campuran U19 tiap tahun, s/d 32 tim, ranking junior; tidak masuk target musim', async () => {
+    for (const r of [BWF_2026, BWF_2027]) expect(r.team.events.filter((e) => e.formats?.includes('suhandinata') && !e.everyYears && e.week === 40)).toHaveLength(1);
+    const state = newSeason(WORLD, BWF_2026, 12, undefined, 'INA');
+    await until(state, BWF_2026, 41, 12);
+    const res = state.teamResults.find((r) => r.format === 'suhandinata')!;
+    expect(res.teams.length).toBeGreaterThan(16); // semua negara yang bisa menurunkan tim junior lengkap, maks 32
+    expect(res.teams.length).toBeLessThanOrEqual(32);
+    expect(res.ties.filter((t) => t.round === 'R16')).toHaveLength(8);
+    expect(res.teams).toContain('INA');
+    const players = new Map(state.players.map((p) => [p.id, p]));
+    const pairs = new Map(state.pairs.map((p) => [p.id, p]));
+    const ids = res.ties.flatMap((t) => t.matchIds!).map((id) => state.matches.find((m) => m.id === id)!);
+    expect(ids.length).toBeGreaterThan(60);
+    for (const m of ids) for (const s of m.sides) for (const id of pairs.get(s)?.playerIds ?? [s])
+      expect(isJuniorAge(players.get(id)!, { year: 2026, week: 40 })).toBe(true);
+    expect(Object.values(res.squads).flat().every((id) => isJuniorAge(players.get(id)!, { year: 2026, week: 40 }))).toBe(true);
+    expect(state.career!.goals.some((g) => g.format === 'suhandinata')).toBe(false);
+    // Kejuaraan kontinental tidak memainkan format junior.
+    expect(state.teamResults.some((r) => r.confederation && r.format === 'suhandinata')).toBe(false);
+  }, 60000);
 
   it('juara bertahan lolos ke putaran final walau timnya lemah', () => {
     const state = newSeason(WORLD, BWF_2026, 5, undefined, null);

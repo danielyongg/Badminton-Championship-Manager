@@ -317,16 +317,21 @@ export const BWF_2026: Ruleset = {
       { id: 'oceania-team', name: 'Oceania Team Championships', nameMixed: 'Oceania Mixed Team Championships', cityId: 'auckland', week: 7, confederation: 'BO' },
       { id: 'thomas-uber-cup', name: 'Thomas & Uber Cup', cityId: 'horsens', week: 18, formats: ['thomas', 'uber'], everyYears: { interval: 2, offset: 0 } },
       { id: 'sudirman-cup', name: 'Sudirman Cup', cityId: 'xiamen', week: 18, formats: ['sudirman'], everyYears: { interval: 2, offset: 1 } },
+      // Kejuaraan Dunia Beregu Campuran Junior (U19), setiap tahun seminggu sebelum Kejuaraan Dunia Junior. ASUMSI: tuan rumah.
+      // ASUMSI: 32 tim (8 grup × 4, 2 teratas ke babak 16 besar); kenyataannya ±38 tim dengan grup bervariasi.
+      { id: 'suhandinata-cup', name: 'BWF World Junior Mixed Team Championships', cityId: 'guwahati', week: 40, formats: ['suhandinata'],
+        finals: { teams: 32, groups: { groups: 8, perGroup: 4, advance: 2 } } },
     ],
     // ASUMSI: urutan partai Sudirman Cup tetap XD–WS–MS–WD–MD (aslinya bisa berubah per edisi).
     order: {
       thomas: ['MS', 'MD', 'MS', 'MD', 'MS'],
       uber: ['WS', 'WD', 'WS', 'WD', 'WS'],
       sudirman: ['XD', 'WS', 'MS', 'WD', 'MD'],
+      suhandinata: ['XD', 'WS', 'MS', 'WD', 'MD'], // ASUMSI: urutan partai seperti Sudirman Cup
     },
     maxMatchesPerPlayer: 2,
     // ASUMSI: skuad Thomas/Uber 4–10 atlet, Sudirman 4–12 atlet.
-    squadSize: { thomas: { min: 4, max: 10 }, uber: { min: 4, max: 10 }, sudirman: { min: 4, max: 12 } },
+    squadSize: { thomas: { min: 4, max: 10 }, uber: { min: 4, max: 10 }, sudirman: { min: 4, max: 12 }, suhandinata: { min: 4, max: 12 } },
     finals: { teams: 16, groups: { groups: 4, perGroup: 4, advance: 2 } },
     continentalTeams: 8,
   },

@@ -5,7 +5,7 @@ import { BWF_2026 } from '../engine/presets/bwf2026';
 import { dataName } from '../i18n';
 import { makeRng, type Rng } from '../engine/rng';
 import { playWeek, teamFormatsIn, type SeasonState, type WeekHooks } from '../engine/season';
-import type { Ruleset, SaveMeta, World } from '../engine/types';
+import { isJuniorFormat, type Ruleset, type SaveMeta, type World } from '../engine/types';
 
 // Satu permainan aktif (save yang sedang dimainkan). Engine mengubah `state` di tempat; `version` memicu render ulang.
 
@@ -37,6 +37,12 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
     if (p && e.qualifiers === undefined && p.qualifiers) e.qualifiers = p.qualifiers; // kuota kontinental (Asia & Eropa 4)
   }
   for (const r of blob.state.teamResults) r.squads ??= {};
+  // Save sebelum Suhandinata Cup: tambahkan event beregu junior dari preset.
+  for (const e of preset.team.events.filter((x) => x.formats?.some(isJuniorFormat))) {
+    const saved = blob.ruleset.team.events.find((y) => y.id === e.id);
+    if (!saved) blob.ruleset.team.events.push({ ...e });
+    else saved.finals ??= e.finals;
+  }
   if (!blob.state.juniorPromotion) {
     // Save sebelum promosi junior: junior yang sudah pernah main di turnamen senior langsung pelatnas utama.
     const pairIds = new Map(blob.state.pairs.map((p) => [p.id, p.playerIds]));

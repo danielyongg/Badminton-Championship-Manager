@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { isHeld, teamFormatsIn, teamStrengths, type TeamResult, type TeamStrength, type TeamTie } from '../engine/season';
 import { ageAt, currentAbility } from '../engine/generator';
 import { AD_HOC, adHocEntrants, adHocId, autoLineup, autoSquad, lineupError, squadError, squadPool, type Lineup, type TeamEntrant } from '../engine/team';
-import { isDoubles, type Discipline, type TeamFormat } from '../engine/types';
+import { isDoubles, isJuniorFormat, type Discipline, type TeamFormat } from '../engine/types';
 import { dataName, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, useGame } from './game';
 import { LiveDraw } from './LiveDraw';
@@ -20,7 +20,8 @@ export function Team() {
   const { state, ruleset, world } = game;
   const managed = state.career?.countryId ?? null;
   const { year, week } = state.date;
-  const formats = teamFormatsIn(ruleset, year);
+  // Format senior tahun ini + Suhandinata Cup (junior) bila digelar.
+  const formats = [...teamFormatsIn(ruleset, year), ...ruleset.team.events.filter((e) => isHeld(e, year)).flatMap((e) => e.formats ?? []).filter(isJuniorFormat)];
   const city = (id: string) => dataName(world.cities.find((c) => c.id === id)?.name);
   const strengths = useMemo(
     () => Object.fromEntries(formats.map((f) => [f, teamStrengths(state, ruleset, f)])) as Record<TeamFormat, TeamStrength[]>,
@@ -297,7 +298,7 @@ export function FinalsResult({ r }: { r: TeamResult }) {
         ))}</div>
       )}
       <h4>{t('knockout')}</h4>
-      <div className="bracket">{['QF', 'SF', 'F'].map((round) => (
+      <div className="bracket">{(ko.some((x) => x.round === 'R16') ? ['R16', 'QF', 'SF', 'F'] : ['QF', 'SF', 'F']).map((round) => (
         <div key={round} className="round">{ko.filter((x) => x.round === round).map(tieBox)}</div>
       ))}</div>
     </section>
