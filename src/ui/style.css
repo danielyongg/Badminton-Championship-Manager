@@ -53,6 +53,8 @@ button[aria-pressed]:hover:not(:disabled) { border-color: transparent; color: va
 .controls label { display: flex; flex-direction: column; font-size: .75rem; gap: 2px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 .controls label select, .controls label input { text-transform: none; letter-spacing: normal; font-size: .9rem; }
 .controls > .count { align-self: center; color: var(--muted); font-size: .85rem; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .scroll { overflow-x: auto; }
 
 /* Tabel */

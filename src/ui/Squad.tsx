@@ -5,7 +5,7 @@ import { headToHead } from '../engine/match';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { rankFromSnapshots } from '../engine/season';
 import { ATTRS, type Attr, type Discipline, type GameDate, type Player } from '../engine/types';
-import { numLocale, t } from '../i18n';
+import { numLocale, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName as eventNameOf, lookup, useGame } from './game';
 import { RankChart } from './Ranking';
 import { Flag } from './Flag';
@@ -49,9 +49,30 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
     return { MS: rankMap(computeRanking(state.results, 'MS', now, ruleset)), WS: rankMap(computeRanking(state.results, 'WS', now, ruleset)) };
   }, [version]);
   const pairsOf = (id: string) => state.pairs.filter((p) => !p.dissolved && !p.adHoc && p.playerIds.includes(id)).map((p) => p.discipline).join(', ');
+  const rankOf = (p: Player) => ranks[p.gender === 'M' ? 'MS' : 'WS'].get(p.id);
+  const starsOf = (p: Player) => potentialStars(p, state.date, counts.get(p.id) ?? 0);
+  // Kolom yang bisa diurutkan: nilai sort + arah awal (angka besar dulu untuk kemampuan dsb., kecil dulu untuk usia/ranking).
+  const COLS: { key: string; label: TextKey; num?: boolean; value: (p: Player) => string | number; desc?: boolean }[] = [
+    { key: 'name', label: 'name', value: (p) => p.name },
+    { key: 'gender', label: 'gender', value: (p) => p.gender },
+    { key: 'age', label: 'age', num: true, value: (p) => ageAt(p.birth, state.date) },
+    { key: 'ability', label: 'ability', num: true, value: (p) => currentAbility(p.attrs), desc: true },
+    { key: 'potential', label: 'potential', value: starsOf, desc: true },
+    { key: 'fatigue', label: 'fatigue', value: (p) => p.fatigue, desc: true },
+    { key: 'injury', label: 'injury', value: (p) => p.injury?.weeksLeft ?? 0, desc: true },
+    { key: 'rank', label: 'singlesRank', num: true, value: (p) => rankOf(p) ?? Infinity },
+    { key: 'pair', label: 'pair', value: (p) => pairsOf(p.id) },
+  ];
+  const [sort, setSort] = useState({ key: 'ability', desc: true });
+  const col = COLS.find((c) => c.key === sort.key)!;
+  const cmp = (a: Player, b: Player) => {
+    const x = col.value(a), y = col.value(b);
+    const r = typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y));
+    return sort.desc ? -r : r;
+  };
   const list = state.players
     .filter((p) => p.countryId === country && p.retired === undefined && (ageAt(p.birth, state.date) <= JUNIOR_MAX_AGE) === juniors)
-    .sort((a, b) => currentAbility(b.attrs) - currentAbility(a.attrs));
+    .sort((a, b) => cmp(a, b) || currentAbility(b.attrs) - currentAbility(a.attrs));
 
   return (
     <>
@@ -62,16 +83,21 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
       </nav>
       <div className="scroll">
         <table>
-          <thead><tr><th>{t('name')}</th><th>{t('gender')}</th><th>{t('age')}</th><th>{t('ability')}</th><th>{t('potential')}</th><th>{t('fatigue')}</th><th>{t('injury')}</th><th>{t('singlesRank')}</th><th>{t('pair')}</th></tr></thead>
+          <thead><tr>{COLS.map((c) => (
+            <th key={c.key} className={`sortable${c.num ? ' num' : ''}`} aria-sort={sort.key === c.key ? (sort.desc ? 'descending' : 'ascending') : undefined}
+              onClick={() => setSort(sort.key === c.key ? { key: c.key, desc: !sort.desc } : { key: c.key, desc: !!c.desc })}>
+              {t(c.label)}{sort.key === c.key ? (sort.desc ? ' ▼' : ' ▲') : ''}
+            </th>
+          ))}</tr></thead>
           <tbody>{list.map((p) => (
             <tr key={p.id} onClick={() => onOpen(p.id)} style={{ cursor: 'pointer' }}>
               <td>{p.name}</td><td>{p.gender}</td>
               <td className="num">{ageAt(p.birth, state.date)}</td>
               <td className="num">{currentAbility(p.attrs)}<span className={p.caDelta! > 0 ? 'up' : 'down'}>{arrow(p.caDelta)}</span></td>
-              <td className="stars">{starText(potentialStars(p, state.date, counts.get(p.id) ?? 0))}</td>
+              <td className="stars">{starText(starsOf(p))}</td>
               <td><FatigueBar value={p.fatigue} /></td>
               <td>{p.injury ? `${p.injury.weeksLeft} ${t('weeks')}${p.injury.severe ? ' ⚠' : ''}` : ''}</td>
-              <td className="num">{ranks[p.gender === 'M' ? 'MS' : 'WS'].get(p.id) ?? '—'}</td>
+              <td className="num">{rankOf(p) ?? '—'}</td>
               <td>{pairsOf(p.id)}</td>
             </tr>
           ))}</tbody>
