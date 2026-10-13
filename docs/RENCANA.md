@@ -22,6 +22,9 @@ Daftar fitur yang belum dibuat. Fase 1–10 sudah selesai (lihat `git log`); asu
 - [x] Pop-up "Daftarkan atlet" sebelum minggu turnamen (pilihan header: Mati / Minggu turnamen besar / Tiap minggu turnamen; bawaan Mati).
 - [x] Ganda dadakan khusus beregu: slot ganda di line-up = dua atlet skuad bebas; pasangan khusus beregu tanpa ranking.
 - [x] Lab memakai dunia yang sama dengan New Game (atlet asli BWF + pelengkap fiktif dari seed); spesialis ganda tidak masuk uji laga & wizard tunggal.
+- [x] Junior tahap 1 — promosi pelatnas pratama → utama (tombol di Skuad → Junior; usia 19 otomatis).
+- [ ] Junior tahap 2 — turnamen junior individu (Kejuaraan Junior Kontinental ±minggu 28, Kejuaraan Dunia Junior ±minggu 41), ranking junior dunia, pasangan junior otomatis.
+- [ ] Junior tahap 3 — Suhandinata Cup (beregu campuran U19, ±minggu 40).
 
 ## Tahap akhir — Percantik UI & perbaikan UX (setelah semua fitur selesai)
 - [x] Desain visual baru: gaya "Arena" (rapat ala game manajer) + palet hijau "Lapangan", tema terang/gelap dengan pilihan Otomatis/Terang/Gelap, huruf Barlow, bendera 47 negara, bagan bertema, papan skor Live Match ala TV. Spesifikasi: `docs/superpowers/specs/2026-10-13-percantik-ui-design.md`.

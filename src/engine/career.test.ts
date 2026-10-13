@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { dissolvePair, formPair, potentialStars, promoteTrial } from './career';
+import { dissolvePair, formPair, potentialStars, promoteJunior, promoteTrial } from './career';
+import { isJuniorAge, isPratama } from './generator';
 import { validatePack } from './pack';
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
@@ -170,4 +171,31 @@ it('perkiraan potensi makin akurat seiring usia & jumlah laga', async () => {
   };
   expect(err(16, 0)).toBeGreaterThan(err(24, 100));
   expect(err(24, 100)).toBeLessThan(0.3);
+});
+
+describe('promosi junior (pelatnas pratama → utama)', () => {
+  it('junior pratama negara sendiri tidak didaftarkan otomatis ke turnamen senior; manual & promosi bisa', async () => {
+    const state = newSeason(WORLD, rs, 11, undefined, 'INA');
+    const rng = makeRng(11);
+    const pratama = () => state.players.filter((p) => p.countryId === 'INA' && isPratama(p, state.date));
+    expect(pratama().length).toBeGreaterThan(2);
+    const ids = new Set(pratama().map((p) => p.id));
+    const sides = (m: { sides: string[] }) => m.sides.flatMap((s) => state.pairs.find((x) => x.id === s)?.playerIds ?? [s]);
+    for (let i = 0; i < 6; i++) await playWeek(state, rs, WORLD, rng);
+    expect(state.matches.some((m) => sides(m).some((id) => ids.has(id)))).toBe(false);
+    // Junior AI tetap bermain di sirkuit senior.
+    const aiJuniors = new Set(state.players.filter((p) => p.countryId !== 'INA' && isJuniorAge(p, state.date)).map((p) => p.id));
+    expect(state.matches.some((m) => sides(m).some((id) => aiJuniors.has(id)))).toBe(true);
+    // Didaftarkan manual: ikut walau pratama.
+    while (!rs.calendar.some((e) => e.week === state.date.week && e.tierId === 'S300')) await playWeek(state, rs, WORLD, rng);
+    const ev = rs.calendar.find((e) => e.week === state.date.week && e.tierId === 'S300')!;
+    const j = pratama().find((p) => p.gender === 'M' && p.focus !== 'D')!;
+    state.manualEntries[weekKey(state.date)] = { [j.id]: ev.id };
+    const year = state.date.year;
+    await playWeek(state, rs, WORLD, rng);
+    const rec = state.eventRecords.find((r) => r.tournamentId === ev.id && r.year === year && r.discipline === 'MS')!;
+    expect([...rec.entry.main, ...rec.entry.wildcards, ...rec.entry.qualifying, ...rec.entry.reserves].map((c) => c.id)).toContain(j.id);
+    promoteJunior(state, j.id);
+    expect(isPratama(j, state.date)).toBe(false);
+  });
 });

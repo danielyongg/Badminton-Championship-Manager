@@ -243,6 +243,8 @@ export interface Player {
   trait?: 'late' | 'stagnant';
   /** Spesialis ganda: tidak diberi ranking tunggal awal & tidak didaftarkan AI di nomor tunggal (manajer tetap boleh). */
   focus?: 'D';
+  /** Junior (U19) yang sudah dipromosikan ke pelatnas utama: ikut didaftarkan otomatis ke turnamen senior. */
+  promoted?: boolean;
   retired?: number; // tahun pensiun
   location?: string; // cityId terakhir (untuk jarak perjalanan)
   caDelta?: number; // perubahan CA pada pemrosesan kuartal terakhir (panah naik/turun)

@@ -145,3 +145,10 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 ## Sektor atlet (tab Skuad)
 - **Sektor** = nomor yang dimainkan: tunggal (kecuali spesialis ganda, `focus: 'D'`) + nomor ganda tempat atlet punya pasangan utama aktif. Pasangan percobaan & ganda dadakan beregu tidak dihitung.
 - **Atur sektor**: centang tunggal = ikut didaftarkan otomatis di tunggal (tanpa centang = spesialis ganda; entry manual tetap bisa). Centang nomor ganda = pilih partner (atlet negara sendiri, gender sesuai, belum punya pasangan utama di nomor itu) → pasangan utama baru; hapus centang = bubarkan pasangan utama (konfirmasi).
+
+## Junior: promosi pelatnas (tahap 1 fitur junior)
+- **Junior** = usia ≤ 18 (U19), `JUNIOR_MAX_AGE` di `src/engine/generator.ts`.
+- Junior negara manajer berstatus **Pratama** (belum dipromosikan) atau **Utama** (`Player.promoted`). Pratama tidak didaftarkan otomatis ke turnamen senior (entry manual tetap bisa, beregu tetap boleh). Usia 19 = otomatis senior.
+- Negara AI tidak memakai status ini: junior mereka tetap ikut sirkuit senior menurut peringkat.
+- Paket bawaan: atlet dari ranking **senior** BWF yang masih U19 langsung Utama; atlet dari ranking junior & junior fiktif = Pratama.
+- Save lama (sebelum fitur ini): sekali saat dimuat, junior yang sudah pernah bermain di turnamen senior dijadikan Utama.

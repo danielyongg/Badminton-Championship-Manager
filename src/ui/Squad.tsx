@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { dissolvePair, formPair, potentialStars } from '../engine/career';
-import { ageAt, currentAbility } from '../engine/generator';
+import { dissolvePair, formPair, potentialStars, promoteJunior } from '../engine/career';
+import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { headToHead } from '../engine/match';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { rankFromSnapshots } from '../engine/season';
@@ -73,6 +73,8 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
     { key: 'injury', label: 'injury', value: (p) => p.injury?.weeksLeft ?? 0, desc: true },
     { key: 'rank', label: 'bwfRank', num: true, value: (p) => allRanks(p)[0]?.r ?? Infinity }, // urut menurut peringkat terbaik
   ];
+  // Junior: kolom status pelatnas (pratama/utama) + tombol promosi.
+  if (juniors) COLS.splice(2, 0, { key: 'level', label: 'squadLevel', value: (p) => (isPratama(p, state.date) ? 0 : 1) });
   const [sort, setSort] = useState({ key: 'ability', desc: true });
   const col = COLS.find((c) => c.key === sort.key)!;
   const cmp = (a: Player, b: Player) => {
@@ -97,6 +99,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
         <button aria-pressed={view === 'pairs'} onClick={() => setView('pairs')}>{t('sector_pairs')}</button>
         {view !== 'pairs' && <span className="count">{list.length} {t('players')}</span>}
       </nav>
+      {juniors && view !== 'pairs' && <p className="hint">{t('pratamaHint')}</p>}
       {view === 'pairs' ? <Pairs onOpen={onOpen} juniors={juniors} /> : (
       <div className="scroll">
         <table>
@@ -109,6 +112,9 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
           <tbody>{list.map((p) => (
             <tr key={p.id} onClick={() => onOpen(p.id)} style={{ cursor: 'pointer' }}>
               <td>{p.name}</td><td>{p.gender}</td>
+              {juniors && <td onClick={(e) => e.stopPropagation()}>{isPratama(p, state.date)
+                ? <><span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span> <button className="mini" onClick={() => { promoteJunior(state, p.id); commit(); }}>{t('promote')}</button></>
+                : <span className="tag">{t('utama')}</span>}</td>}
               <td>{sectorsOf(p).map((d) => {
                 const pair = d.length === 2 && d[1] === 'D' ? mainPair(p.id, d as DoublesD) : undefined;
                 const partner = pair && lookup(state).players.get(pair.playerIds.find((x) => x !== p.id)!)?.name;

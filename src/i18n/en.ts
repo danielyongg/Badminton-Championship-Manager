@@ -145,6 +145,7 @@ export const en: Record<TextKey, string> = {
   bwfRank: 'BWF rank',
   pair: 'Pair',
   sector: 'Sector', manageSectors: 'Set sectors', choosePartner: 'Choose partner…', noPartner: 'No partner available (everyone already has a main pair in this event).', singlesHint: 'Plays singles (unchecked = doubles specialist, not entered in singles automatically)',
+  pratama: 'Development', utama: 'First team', promote: 'Promote', squadLevel: 'Squad level', pratamaHint: 'Development juniors are not entered in senior tournaments automatically (manual entry still works). Promote them to the first team to join the senior circuit; at 19 they become seniors automatically.',
   dissolve: 'Split',
   confirmDissolve: 'Split this pair? The pair ranking is lost (a new pair starts from 0).',
   formPair: 'Form a new pair',

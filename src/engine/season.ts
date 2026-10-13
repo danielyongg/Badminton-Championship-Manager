@@ -1,7 +1,7 @@
 import { seasonGoals, seasonReport } from './career';
 import { applySevereInjury, developQuarter, newJuniors, retirementChance } from './development';
 import { applyCountryQuota, type Candidate } from './entry';
-import { ageAt, currentAbility, generateWorld } from './generator';
+import { ageAt, currentAbility, generateWorld, isPratama } from './generator';
 import { absWeek, computeRace, computeRanking, knockoutResults, rankMap } from './ranking';
 import { makeRng, shuffle, type Rng } from './rng';
 import type { Standing } from './groups';
@@ -36,6 +36,8 @@ export interface SeasonState {
   results: RankingEntry[];
   matches: Match[];
   champions: Champion[];
+  /** Sistem promosi junior aktif (save lama dimigrasi sekali saat dimuat). */
+  juniorPromotion?: true;
   /** Top Committed Players musim ini: entrantId → id turnamen wajib. */
   commitments: Record<EntrantId, string[]>;
   commitmentsYear?: number;
@@ -148,7 +150,7 @@ export function newSeason(
   const state: SeasonState = {
     date, players: [...structuredClone(roster?.players ?? []), ...w.players], pairs: [...structuredClone(roster?.pairs ?? []), ...w.pairs],
     results: [], matches: [], champions: [], commitments: {}, violations: [],
-    experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
+    juniorPromotion: true, experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
     career: { countryId, goals: [], reports: [], reputation: 50 },
   };
   if (roster?.players.length) {
@@ -240,6 +242,8 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
   const injured = new Set(state.players.filter((p) => p.injury).map((p) => p.id));
   const doublesOnly = new Set(state.players.filter((p) => p.focus === 'D').map((p) => p.id));
   const manual = state.manualEntries[weekKey(state.date)] ?? {};
+  // Junior pratama negara manajer: tidak didaftarkan otomatis (manual tetap bisa).
+  const pratama = new Set(state.players.filter((p) => p.countryId === state.managedCountryId && isPratama(p, state.date)).map((p) => p.id));
 
   const wtf = events.find((e) => e.tierId === 'WTF');
   if (wtf)
@@ -266,6 +270,7 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
     const options = events.filter((ev) => ev.tierId !== 'WTF' && tierOf(rs, ev).drawSize[d] > 0 && (!fixed || ev.id === fixed));
     const decision = e.countryId === state.managedCountryId ? manual[e.id] : undefined;
     if (!decision && !isDoubles(d) && doublesOnly.has(e.id)) continue; // spesialis ganda: tunggal hanya bila didaftarkan manajer
+    if (!decision && e.playerIds.some((id) => pratama.has(id))) continue;
     let choice = decision ? options.find((ev) => ev.id === decision) : options.find((ev) => state.commitments[e.id]?.includes(ev.id));
     if (!choice && !decision && !e.trial) { // pasangan percobaan tidak pernah didaftarkan AI
       const r = rank ?? 9999;

@@ -132,6 +132,12 @@ export function promoteTrial(state: SeasonState, pairId: string) {
   delete pair.trial;
 }
 
+/** Promosikan junior ke pelatnas utama (ikut didaftarkan otomatis ke turnamen senior). */
+export function promoteJunior(state: Pick<SeasonState, 'players'>, playerId: string) {
+  const p = state.players.find((x) => x.id === playerId);
+  if (p) p.promoted = true;
+}
+
 export function dissolvePair(state: SeasonState, pairId: string) {
   const pair = state.pairs.find((p) => p.id === pairId);
   if (pair && !pair.dissolved) pair.dissolved = { ...state.date };

@@ -32,6 +32,13 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
     if (p && e.qualifiers === undefined && p.qualifiers) e.qualifiers = p.qualifiers; // kuota kontinental (Asia & Eropa 4)
   }
   for (const r of blob.state.teamResults) r.squads ??= {};
+  if (!blob.state.juniorPromotion) {
+    // Save sebelum promosi junior: junior yang sudah pernah main di turnamen senior langsung pelatnas utama.
+    const pairIds = new Map(blob.state.pairs.map((p) => [p.id, p.playerIds]));
+    const played = new Set(blob.state.matches.flatMap((m) => m.sides.flatMap((x) => pairIds.get(x) ?? [x])));
+    for (const p of blob.state.players) if (played.has(p.id)) p.promoted = true;
+    blob.state.juniorPromotion = true;
+  }
   return { meta, state: blob.state, ruleset: withDefaults(blob.ruleset, preset), world: blob.world, rng: makeRng(blob.rngState) };
 }
 
@@ -40,7 +47,7 @@ export async function saveGame(g: Game) {
   await writeSave(g.meta, { id: g.meta.id, state: g.state, ruleset: g.ruleset, world: g.world, rngState: g.rng.state() });
 }
 
-export const JUNIOR_MAX_AGE = 18; // ASUMSI: junior = U19
+export { JUNIOR_MAX_AGE } from '../engine/generator';
 
 export async function advance(g: Game, weeks: number, hooks: WeekHooks = {}) {
   for (let i = 0; i < weeks; i++) await playWeek(g.state, g.ruleset, g.world, g.rng, hooks);

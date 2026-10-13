@@ -5,6 +5,7 @@ import { DISCIPLINES } from '../engine/types';
 import { dataName, t } from '../i18n';
 import { entrantLabel, lookup, saveGame, useGame } from './game';
 import { FatigueBar } from './Squad';
+import { isPratama } from '../engine/generator';
 
 /** Kalender & entry: pilih turnamen (atau istirahat) per atlet/pasangan untuk minggu-minggu mendatang. */
 /** `fixedWeek`: hanya minggu itu, tanpa tombol pilih minggu (dipakai pop-up entry mingguan). */
@@ -59,7 +60,7 @@ export function Entries({ fixedWeek }: { fixedWeek?: number }) {
                 return (
                   <tr key={e.id}>
                     <td>{e.d}</td>
-                    <td>{entrantLabel(state, e.id).name}{required ? ` ⭐ ${t('required')}` : ''}{e.trial && <> <span className="tag">{t('trialPair')}</span></>}</td>
+                    <td>{entrantLabel(state, e.id).name}{required ? ` ⭐ ${t('required')}` : ''}{e.trial && <> <span className="tag">{t('trialPair')}</span></>}{e.playerIds.some((id) => { const x = players.get(id); return x && isPratama(x, state.date); }) && <> <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span></>}</td>
                     <td className="num">{e.rank ?? '—'}</td>
                     <td><FatigueBar value={tired} /></td>
                     <td>{injured ? `🩹 ${t('injury')}` : (

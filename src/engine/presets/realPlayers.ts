@@ -37,6 +37,7 @@ function toPlayer([bwfId, name, countryId, gender, dob, focus, level, junior]: R
   return {
     id: `${countryId}-r-${bwfId}`, name, countryId, gender, hand: 'R', birth,
     attrs, pa: Math.min(99, level + Math.max(1, (24 - age) * 2)), form: 0, fatigue: 0, ...(focus === 'D' && { focus }),
+    ...(!junior && { promoted: true }), // atlet ranking senior BWF: sudah di sirkuit senior walau masih U19
     attrHistory: [{ year: startYear - 1, attrs: { ...attrs } }],
   };
 }

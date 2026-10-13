@@ -40,6 +40,12 @@ function makeName(rng: Rng, country: Country, gender: 'M' | 'F', used = new Set<
   return name;
 }
 
+/** Junior = usia ≤ 18 (U19). ASUMSI: batas usia junior BWF. */
+export const JUNIOR_MAX_AGE = 18;
+export const isJuniorAge = (p: Pick<Player, 'birth'>, date: GameDate) => ageAt(p.birth, date) <= JUNIOR_MAX_AGE;
+/** Junior pelatnas pratama: belum dipromosikan → tidak didaftarkan otomatis ke turnamen senior (hanya negara manajer). */
+export const isPratama = (p: Pick<Player, 'birth' | 'promoted'>, date: GameDate) => isJuniorAge(p, date) && !p.promoted;
+
 export function generatePlayer(
   rng: Rng, cfg: GeneratorConfig, country: Country, gender: 'M' | 'F', age: number, date: GameDate, id: string,
   usedNames?: Set<string>, maxPa = 99,
