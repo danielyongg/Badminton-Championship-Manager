@@ -92,9 +92,10 @@ tr.sel { background: var(--accent-soft); }
 .shell .date { color: var(--accent-strong); font-weight: 800; }
 .shell { align-items: center; }
 .shell small { color: var(--muted); }
-.settings summary { cursor: pointer; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 4px 0; }
-.settings[open] { flex-basis: 100%; }
-.settings .controls { margin: 4px 0 0; }
+/* Halaman Pengaturan: satu pengaturan per baris, label kiri & pilihan kanan (bertumpuk di HP). */
+.settings-form { display: grid; gap: 10px; max-width: 560px; }
+.settings-form label { display: grid; grid-template-columns: 200px minmax(0, 1fr); align-items: center; gap: 12px; }
+@media (max-width: 700px) { .settings-form label { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
 main > nav.controls { gap: 2px; border-bottom: 1px solid var(--line); }
 
 /* Bagan */

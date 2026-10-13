@@ -24,7 +24,7 @@ import { TournamentView } from './TournamentView';
 /** Tier "turnamen besar" untuk live drawing (plus putaran final beregu). */
 const BIG_TIERS = new Set(['S1000', 'S750', 'WC', 'OG', 'WTF']);
 
-type Tab = 'dashboard' | 'squad' | 'pairs' | 'entries' | 'team' | 'world' | 'federation' | 'editor';
+type Tab = 'dashboard' | 'squad' | 'pairs' | 'entries' | 'team' | 'world' | 'federation' | 'editor' | 'settings';
 
 export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: () => void }) {
   const { game, version, changed } = useGame();
@@ -114,9 +114,9 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   };
   const weeksToSeasonEnd = 52 - state.date.week + 1;
   const countryName = managed ? dataName(world.countries.find((c) => c.id === managed)?.name) : t('observer');
-  const tabs: Tab[] = managed ? ['dashboard', 'squad', 'pairs', 'entries', 'team', 'world', 'federation', 'editor'] : ['dashboard', 'team', 'world', 'federation', 'editor'];
+  const tabs: Tab[] = managed ? ['dashboard', 'squad', 'pairs', 'entries', 'team', 'world', 'federation', 'editor', 'settings'] : ['dashboard', 'team', 'world', 'federation', 'editor', 'settings'];
   const tabLabel: Record<Tab, TextKey> = {
-    dashboard: 'tabDashboard', squad: 'tabSquad', pairs: 'tabPairs', entries: 'tabEntries', team: 'tabTeam', world: 'tabWorld', federation: 'tabFederation', editor: 'tabEditor',
+    dashboard: 'tabDashboard', settings: 'settings', squad: 'tabSquad', pairs: 'tabPairs', entries: 'tabEntries', team: 'tabTeam', world: 'tabWorld', federation: 'tabFederation', editor: 'tabEditor',
   };
   // Profil & halaman turnamen dibuka dari atas (bukan di posisi scroll daftar sebelumnya).
   const open = (id: string) => { setProfileId(id); window.scrollTo(0, 0); };
@@ -135,49 +135,6 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
         {simWeek !== undefined && <span>{t('simulating', { w: simWeek })} <button onClick={() => { stop.current = true; }}>{t('stop')}</button></span>}
         <small>{status === 'saving' ? t('saving') : status === 'saved' ? t('saved') : ''}</small>
         <button disabled={busy} onClick={onQuit}>{t('mainMenu')}</button>
-        {/* Pengaturan terlipat agar header melekat cukup satu baris; bila dibuka, isinya turun ke baris sendiri. */}
-        <details className="settings">
-          <summary>{t('settings')}</summary>
-          <div className="controls">
-            {managed && (
-              <label>{t('liveMode')}
-                <select value={liveMode} onChange={(e) => setLiveMode(e.target.value as typeof liveMode)}>
-                  <option value="off">{t('live_off')}</option>
-                  <option value="finals">{t('live_finals')}</option>
-                  <option value="all">{t('live_all')}</option>
-                </select>
-              </label>
-            )}
-            {managed && (
-              <label>{t('entryPopup')}
-                <select value={entryMode} onChange={(e) => setEntryMode(e.target.value as typeof entryMode)}>
-                  <option value="off">{t('liveDraw_off')}</option>
-                  <option value="big">{t('entryPopup_big')}</option>
-                  <option value="all">{t('entryPopup_all')}</option>
-                </select>
-              </label>
-            )}
-            {managed && (
-              <label>{t('liveDraw')}
-                <select value={drawMode} onChange={(e) => setDrawMode(e.target.value as typeof drawMode)}>
-                  <option value="off">{t('liveDraw_off')}</option>
-                  <option value="big">{t('liveDraw_big')}</option>
-                  <option value="mine">{t('liveDraw_mine')}</option>
-                </select>
-              </label>
-            )}
-            {managed && (
-              <label>{t('teamMode')}
-                <select value={state.teamAuto ? 'auto' : 'manual'} onChange={(e) => { state.teamAuto = e.target.value === 'auto'; changed(); void persist(); }}>
-                  <option value="manual">{t('teamMode_manual')}</option>
-                  <option value="auto">{t('teamMode_auto')}</option>
-                </select>
-              </label>
-            )}
-            <LangSelect onChange={onLang} />
-            <ThemeSelect />
-          </div>
-        </details>
       </header>
       {live && (
         <LiveMatch
@@ -227,6 +184,50 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
       </nav>
       {profileId ? <Profile id={profileId} onBack={() => setProfileId(undefined)} onOpen={open} onOpenEvent={openEvent} />
         : eventView ? <TournamentView key={`${eventView.id}-${eventView.year}`} id={eventView.id} year={eventView.year} onOpenPlayer={open} onBack={() => setEventView(undefined)} />
+        : tab === 'settings' ? (
+          <section className="card">
+            <h3>{t('settings')}</h3>
+            <div className="settings-form">
+              {managed && (
+                <label>{t('liveMode')}
+                  <select value={liveMode} onChange={(e) => setLiveMode(e.target.value as typeof liveMode)}>
+                    <option value="off">{t('live_off')}</option>
+                    <option value="finals">{t('live_finals')}</option>
+                    <option value="all">{t('live_all')}</option>
+                  </select>
+                </label>
+              )}
+              {managed && (
+                <label>{t('entryPopup')}
+                  <select value={entryMode} onChange={(e) => setEntryMode(e.target.value as typeof entryMode)}>
+                    <option value="off">{t('liveDraw_off')}</option>
+                    <option value="big">{t('entryPopup_big')}</option>
+                    <option value="all">{t('entryPopup_all')}</option>
+                  </select>
+                </label>
+              )}
+              {managed && (
+                <label>{t('liveDraw')}
+                  <select value={drawMode} onChange={(e) => setDrawMode(e.target.value as typeof drawMode)}>
+                    <option value="off">{t('liveDraw_off')}</option>
+                    <option value="big">{t('liveDraw_big')}</option>
+                    <option value="mine">{t('liveDraw_mine')}</option>
+                  </select>
+                </label>
+              )}
+              {managed && (
+                <label>{t('teamMode')}
+                  <select value={state.teamAuto ? 'auto' : 'manual'} onChange={(e) => { state.teamAuto = e.target.value === 'auto'; changed(); void persist(); }}>
+                    <option value="manual">{t('teamMode_manual')}</option>
+                    <option value="auto">{t('teamMode_auto')}</option>
+                  </select>
+                </label>
+              )}
+              <LangSelect onChange={onLang} />
+              <ThemeSelect />
+            </div>
+          </section>
+        )
         : tab === 'dashboard' ? <Dashboard onOpen={open} onOpenEvent={openEvent} />
         : tab === 'squad' ? <Squad onOpen={open} />
         : tab === 'pairs' ? <Pairs onOpen={open} />
