@@ -65,7 +65,7 @@ const KIND = { MS: ['M', null, 0, 0], WS: ['F', null, 0, 0], MD: ['M', 'M', 1, 0
 const nameOf = (m) => m.name_display_bold.replace(/<[^>]+>/g, '').trim()
   .replace(/\p{Lu}[\p{Lu}'-]+/gu, (w) => w[0] + w.slice(1).toLowerCase().replace(/(['-])(\p{Ll})/gu, (_, s, c) => s + c.toUpperCase()));
 // Level (≈ kemampuan 1–100) dari peringkat: senior #1 ≈ 96, #10 ≈ 86, #100 ≈ 75, #1000 ≈ 65; junior #1 ≈ 72.
-const levelOf = (rank, junior) => Math.round(junior ? 72 - 4 * Math.log(rank) : 96 - 4.5 * Math.log(rank));
+const levelOf = (rank, junior) => Math.round(junior ? 82 - 4.5 * Math.log(rank) : 96 - 4.5 * Math.log(rank)); // junior #1 ≈ senior #20
 
 const people = new Map(); // bwfId → atlet
 const pairs = [];
@@ -116,6 +116,6 @@ const keptPairs = pairs.filter(([d, a, b]) => {
   busy.add(`${d}:${a}`).add(`${d}:${b}`);
   return true;
 }).map(([d, a, b]) => [d, +a, +b]);
-writeFileSync('src/engine/presets/bwfPlayers.json', JSON.stringify({ source: 'BWF World & Junior Rankings', fetched: new Date().toISOString().slice(0, 10), players, pairs: keptPairs }));
+writeFileSync('src/engine/presets/bwfPlayers.json', JSON.stringify({ source: 'BWF World & Junior Rankings', fetched: new Date().toISOString().slice(0, 10), juniorLevel: 2, players, pairs: keptPairs }));
 console.log('atlet', players.length, 'pasangan', keptPairs.length);
 await browser.close();

@@ -97,6 +97,32 @@ export const TIERS_2026: Tier[] = [
     prizeUsd: 5000, prizeSplit: PRIZE_SPLIT,
     drawSize: draws(32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: false,
   },
+  // ASUMSI: turnamen junior U19 — tanpa hadiah & tanpa poin senior; poin ranking junior disederhanakan.
+  {
+    id: 'WJC', name: 'Kejuaraan Dunia Junior', grade: 2,
+    points: [10000, 8500, 7000, 5500, 4000, 2500, 1000, 500, 0],
+    prizeUsd: 0, prizeSplit: NO_PRIZE,
+    drawSize: { MS: 128, WS: 128, MD: 64, WD: 64, XD: 64 },
+    qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
+    junior: { quota: { singles: 3, doubles: 2 } },
+  },
+  {
+    id: 'JC', name: 'Kejuaraan Junior Kontinental', grade: 3,
+    points: [7000, 5950, 4900, 3850, 2800, 1750, 700, 350, 0],
+    prizeUsd: 0, prizeSplit: NO_PRIZE,
+    drawSize: { MS: 64, WS: 64, MD: 32, WD: 32, XD: 32 },
+    qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
+    junior: { quota: { singles: 4, doubles: 3 } },
+  },
+  {
+    // ASUMSI: kejuaraan junior kontinental dengan persaingan lebih ringan (Pan Am, Afrika, Oseania) → poin lebih kecil.
+    id: 'JC2', name: 'Kejuaraan Junior Kontinental (kelas 2)', grade: 3,
+    points: [4000, 3400, 2800, 2200, 1600, 1000, 400, 200, 0],
+    prizeUsd: 0, prizeSplit: NO_PRIZE,
+    drawSize: { MS: 64, WS: 64, MD: 32, WD: 32, XD: 32 },
+    qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
+    junior: { quota: { singles: 4, doubles: 3 } },
+  },
 ];
 // ASUMSI: S1000/S750 tanpa babak kualifikasi (draw 32 diisi dari ranking); kualifikasi mulai S500.
 
@@ -157,6 +183,13 @@ export const CALENDAR_2026: TournamentDef[] = [
   t('syed-modi', 'Syed Modi International', 'lucknow', 48, 'S300', 250000),
   t('odisha-masters', 'Odisha Masters', 'cuttack', 49, 'S100', 110000),
   t('world-tour-finals', 'World Tour Finals', 'hangzhou', 50, 'WTF', 2500000),
+  // Turnamen junior (U19). ASUMSI: kota tuan rumah & minggu disederhanakan.
+  { id: 'asia-junior', name: 'Badminton Asia Junior Championships', cityId: 'surabaya', week: 28, tierId: 'JC', prizeUsd: 0, confederation: 'BA' },
+  { id: 'europe-junior', name: 'European Junior Championships', cityId: 'brno', week: 28, tierId: 'JC', prizeUsd: 0, confederation: 'BE' },
+  { id: 'panam-junior', name: 'Pan Am Junior Championships', cityId: 'lima', week: 28, tierId: 'JC2', prizeUsd: 0, confederation: 'BAM' },
+  { id: 'africa-junior', name: 'African Junior Championships', cityId: 'lagos', week: 28, tierId: 'JC2', prizeUsd: 0, confederation: 'BCA' },
+  { id: 'oceania-junior', name: 'Oceania Junior Championships', cityId: 'sydney', week: 28, tierId: 'JC2', prizeUsd: 0, confederation: 'BO' },
+  { id: 'world-junior', name: 'BWF World Junior Championships', cityId: 'guwahati', week: 41, tierId: 'WJC', prizeUsd: 0 },
 ];
 
 export const BWF_2026: Ruleset = {

@@ -6,6 +6,7 @@ import { absWeek, computeRace, computeRanking, knockoutResults, rankMap } from '
 import { makeRng, shuffle, type Rng } from './rng';
 import type { Standing } from './groups';
 import type { MatchRound, PlayFn } from './knockout';
+import { juniorEntries } from './junior';
 import { AD_HOC, adHocEntrants, autoLineup, autoSquad, lineupError, playTie, runTeamEvent, squadError, squadPool, type Lineup, type TeamEntrant } from './team';
 import { runEvent, simPlay, toRecord, type DrawHook, type EventRecord, type LiveHook } from './tournament';
 import {
@@ -36,6 +37,8 @@ export interface SeasonState {
   results: RankingEntry[];
   matches: Match[];
   champions: Champion[];
+  /** Poin turnamen junior (ranking junior dunia), terpisah dari ranking senior. */
+  juniorResults: RankingEntry[];
   /** Sistem promosi junior aktif (save lama dimigrasi sekali saat dimuat). */
   juniorPromotion?: true;
   /** Top Committed Players musim ini: entrantId → id turnamen wajib. */
@@ -149,7 +152,7 @@ export function newSeason(
   const w = generateWorld(makeRng(seed), ruleset.generator, world.countries, date, roster?.players);
   const state: SeasonState = {
     date, players: [...structuredClone(roster?.players ?? []), ...w.players], pairs: [...structuredClone(roster?.pairs ?? []), ...w.pairs],
-    results: [], matches: [], champions: [], commitments: {}, violations: [],
+    results: [], juniorResults: [], matches: [], champions: [], commitments: {}, violations: [],
     juniorPromotion: true, experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
     career: { countryId, goals: [], reports: [], reputation: 50 },
   };
@@ -235,7 +238,7 @@ function distanceKm(a: City, b: City) {
  * Urutan nomor MS→XD: turnamen pertama yang dipilih seorang atlet mengikat nomor lainnya (satu turnamen per minggu).
  * Turnamen wajib (Top Committed) selalu dipilih; lainnya menurut rentang peringkat, peluang ikut & kelelahan.
  */
-function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset, rng: Rng, ranks: Map<Discipline, Map<string, number>>) {
+function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset, rng: Rng, ranks: Map<Discipline, Map<string, number>>, busy = new Set<string>()) {
   const entries = new Map(events.map((e) => [e.id, new Map<Discipline, Candidate[]>(DISCIPLINES.map((d) => [d, []]))]));
   const playerEvent = new Map<string, string>();
   const fatigue = new Map(state.players.map((p) => [p.id, p.fatigue]));
@@ -270,7 +273,7 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
     const options = events.filter((ev) => ev.tierId !== 'WTF' && tierOf(rs, ev).drawSize[d] > 0 && (!fixed || ev.id === fixed));
     const decision = e.countryId === state.managedCountryId ? manual[e.id] : undefined;
     if (!decision && !isDoubles(d) && doublesOnly.has(e.id)) continue; // spesialis ganda: tunggal hanya bila didaftarkan manajer
-    if (!decision && e.playerIds.some((id) => pratama.has(id))) continue;
+    if (!decision && e.playerIds.some((id) => pratama.has(id) || busy.has(id))) continue;
     let choice = decision ? options.find((ev) => ev.id === decision) : options.find((ev) => state.commitments[e.id]?.includes(ev.id));
     if (!choice && !decision && !e.trial) { // pasangan percobaan tidak pernah didaftarkan AI
       const r = rank ?? 9999;
@@ -307,8 +310,15 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     p.fatigue = Math.max(0, p.fatigue - rs.fatigue.recoveryPerWeek);
     if (p.injury && --p.injury.weeksLeft <= 0) p.injury = undefined;
   }
-  if (events.some((e) => e.tierId !== 'WTF')) await hooks.entry?.({ week, events });
-  const entries = chooseEntries(state, events, rs, rng, ranks);
+  const isJunior = (e: TournamentDef) => !!tierOf(rs, e).junior;
+  if (events.some((e) => e.tierId !== 'WTF' && !isJunior(e))) await hooks.entry?.({ week, events: events.filter((e) => !isJunior(e)) });
+  // Turnamen junior lebih dulu: atlet yang ikut tidak didaftarkan ke turnamen senior minggu ini.
+  const juniorRanks = new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.juniorResults, d, cutoff, rs))]));
+  const junior = juniorEntries(state, events.filter(isJunior), rs, world, juniorRanks, state.manualEntries[weekKey(state.date)] ?? {}, rng);
+  state.pairs.push(...junior.created);
+  for (const p of junior.created) pairs.set(p.id, p);
+  const entries = chooseEntries(state, events.filter((e) => !isJunior(e)), rs, rng, ranks, junior.busy);
+  for (const [id, byD] of junior.entries) entries.set(id, byD);
 
   for (const event of events) {
     const tier = tierOf(rs, event);
@@ -320,7 +330,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
       if (tier.countryQuota) candidates = applyCountryQuota(candidates, tier.countryQuota);
       const play = simPlay({ players, pairs, cfg: rs.match, rng, tournamentId: event.id, year, discipline: d, matches: state.matches, live });
       const run = await runEvent({ tournament: event, discipline: d, year, hostCountryId: city.countryId, candidates, ruleset: rs, rng, play, onDraw: draw });
-      state.results.push(...knockoutResults(run.main, run.slots, event, tier, d, state.date, rs));
+      (tier.junior ? state.juniorResults : state.results).push(...knockoutResults(run.main, run.slots, event, tier, d, state.date, rs));
       state.eventRecords.push(toRecord(event.id, year, d, run));
       awardPrizes(state, event, tier, d, run.main.reached, pairs);
       state.champions.push({ tournamentId: event.id, year, discipline: d, winner: run.main.rounds.at(-1)![0]! });
@@ -617,6 +627,7 @@ function endYear(state: SeasonState, rs: Ruleset, world: World, rng: Rng) {
   for (const m of state.matches) if (m.year < year - 1) delete m.stats;
   state.eventRecords = state.eventRecords.filter((r) => r.year >= year - 1);
   state.results = state.results.filter((r) => r.expiresAbsWeek > now - 52);
+  state.juniorResults = state.juniorResults.filter((r) => r.expiresAbsWeek > now - 52);
   const rank = new Map<string, number>();
   for (const d of ['MS', 'WS'] as const) for (const r of computeRanking(state.results, d, now, rs)) rank.set(r.entrantId, r.rank);
   for (const p of state.players) {

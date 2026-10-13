@@ -25,6 +25,11 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
   blob.state.teamSquads ??= {};
   blob.state.earnings ??= {};
   blob.state.eventRecords ??= []; // save sebelum halaman turnamen: bagan disusun dari daftar laga
+  blob.state.juniorResults ??= []; // save sebelum turnamen junior
+  // Save sebelum turnamen junior: tambahkan tier & event junior dari preset (event lain di kalender tidak diubah).
+  for (const tier of preset.tiers.filter((x) => x.junior && !blob.ruleset.tiers.some((y) => y.id === x.id))) blob.ruleset.tiers.push(structuredClone(tier));
+  const juniorTiers = new Set(preset.tiers.filter((x) => x.junior).map((x) => x.id));
+  for (const e of preset.calendar.filter((x) => juniorTiers.has(x.tierId) && !blob.ruleset.calendar.some((y) => y.id === x.id))) blob.ruleset.calendar.push({ ...e });
   // ponytail: save sebelum nama resmi kejuaraan kontinental → ambil nama dari preset (hanya nama lama bawaan "Kejuaraan Beregu …").
   for (const e of blob.ruleset.team?.events ?? []) {
     const p = preset.team.events.find((x) => x.id === e.id);

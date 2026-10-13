@@ -326,7 +326,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
             <h4>{t('week')} {w}</h4>
             {list.map((e) => (
               <div key={e.id} className="drow">
-                <span className="chip">{e.tierId}</span>
+                <span className="chip">{ruleset.tiers.find((x) => x.id === e.tierId)?.junior ? t('juniorShort') : e.tierId}</span>
                 <span className="grow"><b>{eventName(ruleset, e.id, year)}</b> <small className="muted-text">{city(e.cityId)}</small></span>
               </div>
             ))}

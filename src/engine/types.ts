@@ -37,6 +37,8 @@ export interface Tier {
   zeroPointsForR1WildcardLoss: boolean;
   /** Kuota per negara (Kejuaraan Dunia/Olimpiade): `base`, atau s/d `max` bila semua di top `topRank`. */
   countryQuota?: { base: number; max: number; topRank: number };
+  /** Turnamen junior (U19): peserta dipilih otomatis per negara (maks `quota`), poin masuk ranking junior saja. */
+  junior?: { quota: { singles: number; doubles: number } };
 }
 
 export interface TournamentDef {
@@ -48,6 +50,8 @@ export interface TournamentDef {
   prizeUsd: number;
   /** Hanya digelar bila tahun % interval === offset (invert: kebalikannya). Olimpiade: {4,0}; Kejuaraan Dunia: {4,0,invert}. */
   everyYears?: { interval: number; offset: number; invert?: boolean };
+  /** Turnamen khusus atlet satu konfederasi (kejuaraan junior kontinental). */
+  confederation?: Confederation;
 }
 
 export interface AgeBand {
@@ -263,6 +267,8 @@ export interface Pair {
   trial?: boolean;
   /** Pasangan dadakan khusus beregu (dibentuk dari line-up): tidak punya ranking & tidak ikut turnamen individu. */
   adHoc?: boolean;
+  /** Pasangan junior otomatis (turnamen junior); juga `adHoc` sehingga tidak ikut turnamen senior. */
+  junior?: boolean;
 }
 
 /** playerId (tunggal) atau pairId (ganda) */

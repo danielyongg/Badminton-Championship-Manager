@@ -23,7 +23,7 @@ Daftar fitur yang belum dibuat. Fase 1–10 sudah selesai (lihat `git log`); asu
 - [x] Ganda dadakan khusus beregu: slot ganda di line-up = dua atlet skuad bebas; pasangan khusus beregu tanpa ranking.
 - [x] Lab memakai dunia yang sama dengan New Game (atlet asli BWF + pelengkap fiktif dari seed); spesialis ganda tidak masuk uji laga & wizard tunggal.
 - [x] Junior tahap 1 — promosi pelatnas pratama → utama (tombol di Skuad → Junior; usia 19 otomatis).
-- [ ] Junior tahap 2 — turnamen junior individu (Kejuaraan Junior Kontinental ±minggu 28, Kejuaraan Dunia Junior ±minggu 41), ranking junior dunia, pasangan junior otomatis.
+- [x] Junior tahap 2 — turnamen junior individu (Kejuaraan Junior Kontinental ±minggu 28, Kejuaraan Dunia Junior ±minggu 41), ranking junior dunia, pasangan junior otomatis.
 - [ ] Junior tahap 3 — Suhandinata Cup (beregu campuran U19, ±minggu 40).
 
 ## Tahap akhir — Percantik UI & perbaikan UX (setelah semua fitur selesai)

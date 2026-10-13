@@ -39,7 +39,7 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
   state: SeasonState; ruleset: Ruleset; world: World; version: number; onOpenPlayer?: (id: string) => void; onOpenEvent?: (id: string, year: number) => void;
 }) {
   const [discipline, setDiscipline] = useState<Discipline>('MS');
-  const [mode, setMode] = useState<'world' | 'race'>('world');
+  const [mode, setMode] = useState<'world' | 'race' | 'junior'>('world');
   const [selected, setSelected] = useState<string>();
   const [view, setView] = useState<'ranking' | 'calendar' | 'committed' | 'players'>('ranking');
   const now = absWeek(state.date);
@@ -47,7 +47,9 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
   const eventName = (id: string) => eventNameOf(ruleset, id) ?? t('preseason');
 
   const rows = useMemo(
-    () => (mode === 'world' ? computeRanking(state.results, discipline, now, ruleset) : computeRace(state.results, discipline, state.date.year, ruleset)),
+    () => (mode === 'world' ? computeRanking(state.results, discipline, now, ruleset)
+      : mode === 'junior' ? computeRanking(state.juniorResults ?? [], discipline, now, ruleset)
+      : computeRace(state.results, discipline, state.date.year, ruleset)),
     [version, discipline, mode, now, ruleset],
   );
   const lastChampions = state.champions.filter((c) => c.year === state.date.year && ruleset.calendar.find((e) => e.id === c.tournamentId)?.week === state.date.week - 1);
@@ -69,9 +71,10 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
           </select>
         </label>
         <label>{t('rankingType')}
-          <select value={mode} onChange={(e) => setMode(e.target.value as 'world' | 'race')}>
+          <select value={mode} onChange={(e) => { setMode(e.target.value as typeof mode); setSelected(undefined); }}>
             <option value="world">{t('worldRanking')}</option>
             <option value="race">{t('raceToFinals')}</option>
+            <option value="junior">{t('juniorRanking')}</option>
           </select>
         </label>
       </div>
@@ -95,18 +98,18 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
             </tbody>
           </table>
         </div>
-        {selected && <Detail id={selected} label={name(selected).name} state={state} discipline={discipline} ruleset={ruleset} eventName={eventName} />}
+        {selected && <Detail id={selected} label={name(selected).name} state={state} discipline={discipline} ruleset={ruleset} eventName={eventName} junior={mode === 'junior'} />}
       </div>}
     </section>
   );
 }
 
-function Detail({ id, label, state, discipline, ruleset, eventName }: {
-  id: string; label: string; state: SeasonState; discipline: Discipline; ruleset: Ruleset; eventName: (id: string) => string;
+function Detail({ id, label, state, discipline, ruleset, eventName, junior }: {
+  id: string; label: string; state: SeasonState; discipline: Discipline; ruleset: Ruleset; eventName: (id: string) => string; junior?: boolean;
 }) {
   const now = absWeek(state.date);
   const history = rankFromSnapshots(state, id, discipline);
-  const expiring = expiringPoints(state.results, id, discipline, now, 12, ruleset);
+  const expiring = expiringPoints(junior ? state.juniorResults ?? [] : state.results, id, discipline, now, 12, ruleset);
   return (
     <aside>
       <h3>{label}</h3>

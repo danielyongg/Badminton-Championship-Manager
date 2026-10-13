@@ -93,11 +93,12 @@ describe('pasangan', () => {
     const junior = ina('M').sort((a, b) => b.birth.year - a.birth.year)[0];
     const fresh = formPair(state, 'MD', pair.playerIds[0], junior.id, rng);
     expect(typeof fresh).toBe('object');
-    const inaPairsBefore = state.pairs.filter((p) => p.id.startsWith('INA')).length;
+    const inaPairsBefore = state.pairs.filter((p) => p.id.startsWith('INA') && !p.adHoc).length;
     while (state.date.year === 2026) await playWeek(state, rs, WORLD, rng);
     const formedByAi = state.pairs.filter((p) => p.id.startsWith('INA') && p.formed.year === 2026 && p.formed.week === 52);
     expect(formedByAi).toHaveLength(0);
-    expect(state.pairs.filter((p) => p.id.startsWith('INA')).length).toBe(inaPairsBefore);
+    // Pasangan junior otomatis (adHoc, khusus turnamen junior) bukan pasangan utama negara manajer.
+    expect(state.pairs.filter((p) => p.id.startsWith('INA') && !p.adHoc).length).toBe(inaPairsBefore);
   });
 });
 

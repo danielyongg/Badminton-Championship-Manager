@@ -11,7 +11,7 @@ const STAGES = ['stageEntry', 'stageQual', 'stageSeeds', 'stageDraw', 'stageBrac
 
 /** Wizard Turnamen: entry → kualifikasi → seeding → drawing → bagan. */
 export function Wizard({ players, pairs, ruleset, world }: { players: Player[]; pairs: Pair[]; ruleset: Ruleset; world: World }) {
-  const events = ruleset.calendar.filter((e) => !e.everyYears);
+  const events = ruleset.calendar.filter((e) => !e.everyYears && !ruleset.tiers.find((x) => x.id === e.tierId)?.junior);
   const [eventId, setEventId] = useState(events[0].id);
   const [discipline, setDiscipline] = useState<Discipline>('MS');
   const [seed, setSeed] = useState(1);

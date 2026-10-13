@@ -152,3 +152,13 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - Negara AI tidak memakai status ini: junior mereka tetap ikut sirkuit senior menurut peringkat.
 - Paket bawaan: atlet dari ranking **senior** BWF yang masih U19 langsung Utama; atlet dari ranking junior & junior fiktif = Pratama.
 - Save lama (sebelum fitur ini): sekali saat dimuat, junior yang sudah pernah bermain di turnamen senior dijadikan Utama.
+
+## Junior: turnamen junior individu & ranking junior (tahap 2)
+- **Kalender** (2026 & 2027+): minggu 28 Kejuaraan Junior Kontinental — Asia (Surabaya) & Eropa (Brno) tier `JC`; Pan Am (Lima), Afrika (Lagos), Oseania (Sydney) tier `JC2` (poin lebih kecil karena persaingan lebih ringan); minggu 41 BWF World Junior Championships (Guwahati) tier `WJC`. Kota & minggu disederhanakan.
+- **Peserta** U19 (usia ≤ 18 saat turnamen), dipilih otomatis per negara: maks 3 tunggal & 2 pasangan (Dunia Junior), 4 & 3 (kontinental). Kontinental hanya negara konfederasinya. Urutan: ranking junior, lalu kemampuan. Junior pratama ikut. Keputusan entry manajer minggu itu (istirahat / turnamen senior) dihormati — atlet itu tidak ikut turnamen junior. Tab Kalender & Entry tidak menampilkan turnamen junior.
+- **Undian**: Dunia Junior 128 tunggal / 64 ganda; kontinental 64 / 32; tanpa kualifikasi & wildcard.
+- **Bentrok**: atlet yang ikut turnamen junior tidak didaftarkan otomatis ke turnamen senior minggu yang sama.
+- **Ganda junior**: pasangan aktif yang kedua atletnya U19 dipakai; sisanya dipasangkan otomatis per negara (pasangan `junior` + `adHoc`: tidak ikut turnamen senior, tidak tampil di daftar pasangan, dipakai ulang bila atletnya sama).
+- **Poin** masuk **Ranking Junior Dunia** (`state.juniorResults`, kedaluwarsa 52 minggu), bukan ranking senior; tanpa hadiah uang. Juara (WJC) 10.000, JC 7.000, JC2 4.000.
+- **Kalibrasi atlet asli**: level dari ranking junior BWF = 82 − 4,5·ln(peringkat) (sebelumnya 72 − 4·ln; junior #1 ≈ senior #20). Di luar papan atas (level < 86), level dikurangi s/d 8 menurut lemahnya tradisi negara (poin banyak dari turnamen kecil di kawasannya) — berlaku juga untuk senior. Hanya untuk New Game.
+- Save lama: tier & event junior ditambahkan dari preset saat dimuat.

@@ -1,5 +1,6 @@
 import { ATTRS, type Attrs, type Pair, type Player } from '../types';
 import data from './bwfPlayers.json';
+import { WORLD } from './world';
 
 // Atlet asli bawaan (paket BWF 2026 / 2027+) dari ranking dunia & junior BWF, diambil dengan `scripts/fetch-bwf.mjs`.
 // Per negara game: senior s/d 24 per gender & junior s/d 8 per gender, terbaik dulu. Negara yang kurang dilengkapi
@@ -27,7 +28,17 @@ function birthOf(dob: string | null, junior: number) {
   return { year: d.getUTCFullYear(), week: Math.min(52, Math.floor(dayOfYear / 7) + 1) };
 }
 
+// File lama memakai rumus junior 72 − 4·ln(peringkat) (junior elit jauh di bawah remaja negara kecil di ranking senior);
+// rumus sekarang 82 − 4,5·ln(peringkat) → konversi: 82 − 1,125·(72 − level).
+const JUNIOR_V1 = !('juniorLevel' in data);
+const TRADITION = new Map(WORLD.countries.map((c) => [c.id, c.traditionStrength]));
+
 function toPlayer([bwfId, name, countryId, gender, dob, focus, level, junior]: Row, startYear: number): Player {
+  if (junior && JUNIOR_V1) level = Math.round(82 - 1.125 * (72 - level));
+  // ASUMSI: di luar papan atas, peringkat pemain negara bertradisi lemah banyak dari turnamen kecil di kawasannya →
+  // level dikurangi s/d 8 (tradisi 0) secara bertahap di bawah level 86; negara kuat hampir tidak berubah.
+  const tradition = TRADITION.get(countryId) ?? 50;
+  level -= Math.round((1 - tradition / 100) * 8 * Math.min(1, Math.max(0, (86 - level) / 10)));
   // Variasi kecil per atlet (tetap sama tiap New Game), lalu digeser agar rata-rata = level.
   const raw = ATTRS.map((a) => level + (SHAPE[focus][a] ?? 0) + (hash(name + a) % 7) - 3);
   const shift = level - raw.reduce((s, x) => s + x, 0) / raw.length;

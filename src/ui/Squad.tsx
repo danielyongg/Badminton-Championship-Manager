@@ -49,17 +49,23 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   const counts = useMatchCounts();
   const ranks = useMemo(() => {
     const now = absWeek(state.date);
-    return Object.fromEntries(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.results, d, now, ruleset))])) as Record<Discipline, Map<string, number>>;
+    const of = (results: typeof state.results) => Object.fromEntries(DISCIPLINES.map((d) => [d, rankMap(computeRanking(results, d, now, ruleset))])) as Record<Discipline, Map<string, number>>;
+    return { senior: of(state.results), junior: of(state.juniorResults ?? []) };
   }, [version]);
   // Sektor = nomor yang dimainkan: tunggal (bila bukan spesialis ganda) + pasangan utama aktif.
   const mainPair = (id: string, d: DoublesD) => state.pairs.find((p) => p.discipline === d && !p.dissolved && !p.trial && !p.adHoc && p.playerIds.includes(id));
   const sectorsOf = (p: Player) => [...(p.focus === 'D' ? [] : [p.gender === 'M' ? 'MS' : 'WS']), ...doublesOf(p).filter((d) => mainPair(p.id, d))];
   const pairsOf = (id: string) => sectorsOf(lookup(state).players.get(id)!).join(', ');
   // BWF rank = semua peringkat atlet (tunggal & pasangan utama ganda), terbaik dulu.
-  const allRanks = (p: Player) => [
-    { d: p.gender === 'M' ? 'MS' : 'WS', r: ranks[p.gender === 'M' ? 'MS' : 'WS'].get(p.id) },
-    ...doublesOf(p).map((d) => ({ d, r: ranks[d].get(mainPair(p.id, d)?.id ?? '') })),
-  ].filter((x) => x.r !== undefined).sort((a, b) => a.r! - b.r!);
+  // Pasangan junior otomatis (turnamen junior) juga punya ranking junior.
+  const juniorPair = (id: string, d: DoublesD) => state.pairs.find((p) => p.discipline === d && p.junior && p.playerIds.includes(id) && ranks.junior[d].has(p.id));
+  const allRanks = (p: Player) => {
+    const s = p.gender === 'M' ? 'MS' : 'WS';
+    const senior = [{ d: s, r: ranks.senior[s].get(p.id) }, ...doublesOf(p).map((d) => ({ d, r: ranks.senior[d].get(mainPair(p.id, d)?.id ?? '') }))];
+    const junior = !juniors ? [] : [{ d: `${s} ${t('juniorShort')}`, r: ranks.junior[s].get(p.id) },
+      ...doublesOf(p).map((d) => ({ d: `${d} ${t('juniorShort')}`, r: ranks.junior[d].get((mainPair(p.id, d) ?? juniorPair(p.id, d))?.id ?? '') }))];
+    return [...senior, ...junior].filter((x) => x.r !== undefined).sort((a, b) => a.r! - b.r!);
+  };
   const starsOf = (p: Player) => potentialStars(p, state.date, counts.get(p.id) ?? 0);
   // Kolom yang bisa diurutkan: nilai sort + arah awal (angka besar dulu untuk kemampuan dsb., kecil dulu untuk usia/ranking).
   const COLS: { key: string; label: TextKey; num?: boolean; value: (p: Player) => string | number; desc?: boolean }[] = [

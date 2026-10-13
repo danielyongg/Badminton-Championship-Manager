@@ -17,7 +17,7 @@ export function Entries({ fixedWeek }: { fixedWeek?: number }) {
   const weeks = [...new Set(ruleset.calendar.filter((e) => isHeld(e, year) && e.week >= week).map((e) => e.week))].sort((a, b) => a - b).slice(0, 8);
   const [chosen, setW] = useState(weeks[0] ?? week);
   const w = fixedWeek ?? chosen;
-  const events = ruleset.calendar.filter((e) => e.week === w && isHeld(e, year) && e.tierId !== 'WTF');
+  const events = ruleset.calendar.filter((e) => e.week === w && isHeld(e, year) && e.tierId !== 'WTF' && !ruleset.tiers.find((x) => x.id === e.tierId)?.junior); // junior: otomatis
   const key = weekKey({ year, week: w });
   const decisions = state.manualEntries[key] ?? {};
   const { players } = lookup(state);
