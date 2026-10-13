@@ -42,9 +42,9 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   const { game, version, changed } = useGame();
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
-  // Skuad → Senior/Junior → Pemain/Pasangan.
+  // Skuad → Senior/Junior (semua pemain) → filter sektor: Single (pemain tunggal) / Pairs (pasangan ganda).
   const [juniors, setJuniors] = useState(false);
-  const [view, setView] = useState<'players' | 'pairs'>('players');
+  const [view, setView] = useState<'all' | 'singles' | 'pairs'>('all');
   const commit = () => { changed(); void saveGame(game); };
   const counts = useMatchCounts();
   const ranks = useMemo(() => {
@@ -82,6 +82,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   };
   const list = state.players
     .filter((p) => p.countryId === country && p.retired === undefined && (ageAt(p.birth, state.date) <= JUNIOR_MAX_AGE) === juniors)
+    .filter((p) => view !== 'singles' || p.focus !== 'D')
     .sort((a, b) => cmp(a, b) || currentAbility(b.attrs) - currentAbility(a.attrs));
 
   return (
@@ -91,9 +92,10 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
         <button aria-pressed={juniors} onClick={() => setJuniors(true)}>{t('juniors')}</button>
       </nav>
       <nav className="controls subnav">
-        <button aria-pressed={view === 'players'} onClick={() => setView('players')}>{t('players_tab')}</button>
-        <button aria-pressed={view === 'pairs'} onClick={() => setView('pairs')}>{t('tabPairs')}</button>
-        {view === 'players' && <span className="count">{list.length} {t('players')}</span>}
+        <button aria-pressed={view === 'all'} onClick={() => setView('all')}>{t('all')}</button>
+        <button aria-pressed={view === 'singles'} onClick={() => setView('singles')}>{t('sector_singles')}</button>
+        <button aria-pressed={view === 'pairs'} onClick={() => setView('pairs')}>{t('sector_pairs')}</button>
+        {view !== 'pairs' && <span className="count">{list.length} {t('players')}</span>}
       </nav>
       {view === 'pairs' ? <Pairs onOpen={onOpen} juniors={juniors} /> : (
       <div className="scroll">

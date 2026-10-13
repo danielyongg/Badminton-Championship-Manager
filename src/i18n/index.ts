@@ -55,7 +55,7 @@ const id = {
   section: 'Seksi',
   champion: 'Juara',
   pageEvent: 'Turnamen', winnersOf: 'Juara {y}', winnersHistory: 'Riwayat juara', runnerUp: 'Runner-up', finalScore: 'Skor final', noChampions: 'Belum ada juara tercatat.',
-  players_tab: 'Pemain',
+  all: 'Semua', sector_singles: 'Single', sector_pairs: 'Pairs',
   bye: 'Bye',
   tabRanking: 'Ranking',
   playWeek: 'Main 1 minggu',
