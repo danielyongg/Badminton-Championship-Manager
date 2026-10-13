@@ -41,17 +41,17 @@ export function Wizard({ players, pairs, ruleset, world }: { players: Player[]; 
     };
     const gender = discipline === 'MS' || discipline === 'MD' ? 'M' : 'F';
     const pool: { id: string; countryId: string }[] = isDoubles(discipline)
-      ? pairs.filter((p) => p.discipline === discipline).map((p) => ({ id: p.id, countryId: playerById.get(p.playerIds[0])!.countryId }))
-      : players.filter((p) => p.gender === gender).map((p) => ({ id: p.id, countryId: p.countryId }));
+      ? pairs.filter((p) => p.discipline === discipline && !p.dissolved && !p.trial).map((p) => ({ id: p.id, countryId: playerById.get(p.playerIds[0])!.countryId }))
+      : players.filter((p) => p.gender === gender && p.focus !== 'D').map((p) => ({ id: p.id, countryId: p.countryId }));
     const candidates: Candidate[] = pool
       .sort((a, b) => strength(b.id) - strength(a.id))
       .map((c, i) => ({ ...c, rank: i + 1 }));
     const rng = makeRng(seed);
     const matches: Match[] = [];
     const host = world.cities.find((c) => c.id === event.cityId)!.countryId;
-    const play = simPlay({ players: playerById, pairs: pairById, cfg: ruleset.match, rng, tournamentId: event.id, year: 2026, discipline, matches });
-    void runEvent({ tournament: event, discipline, year: 2026, hostCountryId: host, candidates, ruleset, rng, play })
-      .then((run) => { if (!cancelled) setResult({ rec: toRecord(event.id, 2026, discipline, run), matches }); });
+    const play = simPlay({ players: playerById, pairs: pairById, cfg: ruleset.match, rng, tournamentId: event.id, year: ruleset.startYear, discipline, matches });
+    void runEvent({ tournament: event, discipline, year: ruleset.startYear, hostCountryId: host, candidates, ruleset, rng, play })
+      .then((run) => { if (!cancelled) setResult({ rec: toRecord(event.id, ruleset.startYear, discipline, run), matches }); });
     return () => { cancelled = true; };
   }, [event, discipline, seed, ruleset, players, pairs, playerById, pairById, world]);
 

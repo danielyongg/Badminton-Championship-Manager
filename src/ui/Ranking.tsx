@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { absWeek, computeRace, computeRanking, expiringPoints } from '../engine/ranking';
+import { presetPack } from '../engine/pack';
 import { makeRng } from '../engine/rng';
 import { isHeld, newSeason, playWeek, rankFromSnapshots, type SeasonState } from '../engine/season';
 import { ageAt, currentAbility } from '../engine/generator';
@@ -11,7 +12,7 @@ import { Flag } from './Flag';
 /** Lab: dunia simulasi sendiri dengan tombol maju minggu, menampilkan SeasonViews. */
 export function Ranking({ ruleset, world, seed }: { ruleset: Ruleset; world: World; seed: number }) {
   // Dunia simulasi sendiri (objek atlet terpisah), karena musim mengubah kelelahan/lokasi atlet.
-  const make = () => ({ state: newSeason(world, ruleset, seed), rng: makeRng(seed) });
+  const make = () => ({ state: newSeason(world, ruleset, seed, { year: ruleset.startYear, week: 1 }, null, presetPack(ruleset)), rng: makeRng(seed) });
   const sim = useRef(make());
   const [key, setKey] = useState(`${seed}:${ruleset.id}`);
   if (key !== `${seed}:${ruleset.id}`) { sim.current = make(); setKey(`${seed}:${ruleset.id}`); }

@@ -1,16 +1,13 @@
 import { useMemo, useState } from 'react';
-import { ageAt, currentAbility, generateWorld } from '../engine/generator';
-import { BWF_2026 } from '../engine/presets/bwf2026';
-import { BWF_2027 } from '../engine/presets/bwf2027';
+import { ageAt, currentAbility } from '../engine/generator';
+import { PRESETS, presetPack } from '../engine/pack';
 import { WORLD } from '../engine/presets/world';
-import { makeRng } from '../engine/rng';
+import { newSeason } from '../engine/season';
 import { dataName, t } from '../i18n';
 import { MatchLab } from './MatchLab';
 import { Ranking } from './Ranking';
 import { Wizard } from './Wizard';
 
-const PRESETS = [BWF_2026, BWF_2027];
-const START = { year: 2026, week: 1 };
 
 // ponytail: potensi tampil sebagai bintang kasar; akurasi bertahap menurut usia menyusul di Fase 7.
 const stars = (pa: number) => '★'.repeat(Math.max(1, Math.round(pa / 20)));
@@ -23,10 +20,9 @@ export function Lab({ onBack }: { onBack: () => void }) {
   const [tab, setTab] = useState<'players' | 'match' | 'wizard' | 'ranking'>('players');
 
   const ruleset = PRESETS.find((r) => r.id === rulesetId)!;
-  const world = useMemo(
-    () => generateWorld(makeRng(seed), ruleset.generator, WORLD.countries, START),
-    [seed, ruleset],
-  );
+  const start = { year: ruleset.startYear, week: 1 };
+  // Dunia sama seperti New Game dengan paket bawaan: atlet asli BWF + pelengkap fiktif dari seed.
+  const world = useMemo(() => newSeason(WORLD, ruleset, seed, start, null, presetPack(ruleset)), [seed, ruleset]);
   const byId = useMemo(() => new Map(world.players.map((p) => [p.id, p])), [world]);
 
   const players = world.players
@@ -46,7 +42,7 @@ export function Lab({ onBack }: { onBack: () => void }) {
       </nav>
       {tab === 'ranking' ? <Ranking ruleset={ruleset} world={WORLD} seed={seed} />
       : tab === 'wizard' ? <Wizard players={world.players} pairs={world.pairs} ruleset={ruleset} world={WORLD} />
-      : tab === 'match' ? <MatchLab players={world.players.filter((p) => p.gender === gender)} cfg={ruleset.match} /> : <>
+      : tab === 'match' ? <MatchLab players={world.players.filter((p) => p.gender === gender && p.focus !== 'D')} cfg={ruleset.match} /> : <>
       <div className="controls">
         <label>{t('ruleset')}
           <select value={rulesetId} onChange={(e) => setRulesetId(e.target.value)}>
@@ -81,7 +77,7 @@ export function Lab({ onBack }: { onBack: () => void }) {
               <tr key={p.id}>
                 <td>{p.name}</td>
                 <td>{p.countryId}</td>
-                <td className="num">{ageAt(p.birth, START)}</td>
+                <td className="num">{ageAt(p.birth, start)}</td>
                 <td>{p.hand}</td>
                 <td className="num">{currentAbility(p.attrs)}</td>
                 <td className="stars">{stars(p.pa)}</td>

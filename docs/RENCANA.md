@@ -21,6 +21,7 @@ Daftar fitur yang belum dibuat. Fase 1–10 sudah selesai (lihat `git log`); asu
 - [x] **Pasangan ganda percobaan**: dibentuk tanpa membubarkan pasangan utama, ranking sendiri, hanya ikut bila didaftarkan manual, bisa dijadikan pasangan utama.
 - [x] Pop-up "Daftarkan atlet" sebelum minggu turnamen (pilihan header: Mati / Minggu turnamen besar / Tiap minggu turnamen; bawaan Mati).
 - [x] Ganda dadakan khusus beregu: slot ganda di line-up = dua atlet skuad bebas; pasangan khusus beregu tanpa ranking.
+- [x] Lab memakai dunia yang sama dengan New Game (atlet asli BWF + pelengkap fiktif dari seed); spesialis ganda tidak masuk uji laga & wizard tunggal.
 
 ## Tahap akhir — Percantik UI & perbaikan UX (setelah semua fitur selesai)
 - [x] Desain visual baru: gaya "Arena" (rapat ala game manajer) + palet hijau "Lapangan", tema terang/gelap dengan pilihan Otomatis/Terang/Gelap, huruf Barlow, bendera 47 negara, bagan bertema, papan skor Live Match ala TV. Spesifikasi: `docs/superpowers/specs/2026-10-13-percantik-ui-design.md`.
