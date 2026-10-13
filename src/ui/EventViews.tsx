@@ -2,6 +2,7 @@ import type { Candidate } from '../engine/entry';
 import type { EventRecord } from '../engine/tournament';
 import type { DrawStep, Match } from '../engine/types';
 import { t } from '../i18n';
+import { Flag } from './Flag';
 
 // Tampilan satu nomor turnamen (entry, kualifikasi, grup, undian, bagan). Dipakai Wizard (Lab) & halaman turnamen karier.
 
@@ -19,8 +20,8 @@ export function Who({ id, name, mine, onOpen, suffix = '' }: WhoProps & { id?: s
   if (!id) return <span className="muted">{t('bye')}</span>;
   const cls = mine?.(id) ? 'mine' : undefined;
   return onOpen
-    ? <a href="#" className={cls} onClick={(e) => { e.preventDefault(); onOpen(id); }}>{name(id)}{suffix}</a>
-    : <span className={cls}>{name(id)}{suffix}</span>;
+    ? <a href="#" className={cls} onClick={(e) => { e.preventDefault(); onOpen(id); }}><Flag id={id} />{name(id)}{suffix}</a>
+    : <span className={cls}><Flag id={id} />{name(id)}{suffix}</span>;
 }
 
 export function EntryView({ rec, ...who }: ViewProps) {

@@ -6,6 +6,7 @@ import { ageAt, currentAbility } from '../engine/generator';
 import { ATTRS, DISCIPLINES, type Discipline, type Player, type Ruleset, type World } from '../engine/types';
 import { dataName, numLocale, t } from '../i18n';
 import { entrantLabel, eventName as eventNameOf } from './game';
+import { Flag } from './Flag';
 
 /** Lab: dunia simulasi sendiri dengan tombol maju minggu, menampilkan SeasonViews. */
 export function Ranking({ ruleset, world, seed }: { ruleset: Ruleset; world: World; seed: number }) {
@@ -86,7 +87,7 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
             <tbody>
               {rows.slice(0, 100).map((r) => (
                 <tr key={r.entrantId} onClick={() => setSelected(r.entrantId)} className={selected === r.entrantId ? 'sel' : ''} style={{ cursor: 'pointer' }}>
-                  <td className="num">{r.rank}</td><td>{name(r.entrantId).name}</td><td>{name(r.entrantId).country}</td>
+                  <td className="num">{r.rank}</td><td>{name(r.entrantId).name}</td><td><Flag id={name(r.entrantId).country} />{name(r.entrantId).country}</td>
                   <td className="num">{r.points.toLocaleString(numLocale())}</td><td className="num">{r.tournamentsPlayed}</td>
                 </tr>
               ))}

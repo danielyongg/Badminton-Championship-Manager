@@ -6,6 +6,7 @@ import { isDoubles, type Discipline, type TeamFormat } from '../engine/types';
 import { dataName, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, useGame } from './game';
 import { LiveDraw } from './LiveDraw';
+import { Flag } from './Flag';
 
 // Beregu: jadwal, line-up negara sendiri, dan hasil Thomas/Uber/Sudirman Cup + kejuaraan kontinental.
 
@@ -47,7 +48,7 @@ export function Team() {
             <tbody>{results.filter((r) => r.confederation).map((r) => (
               <tr key={r.eventId + r.format}>
                 <td>{eventName(ruleset, r.eventId, r.year)}</td><td>{formatName(r.format)}</td>
-                <td><b>{winnerOf(r)}</b></td><td>{r.teams.length} {t('teams')}</td>
+                <td><b><Flag id={winnerOf(r)} />{winnerOf(r)}</b></td><td>{r.teams.length} {t('teams')}</td>
               </tr>
             ))}</tbody>
           </table>
@@ -275,7 +276,7 @@ export function FinalsResult({ r }: { r: TeamResult }) {
             <thead><tr><th>{t('group')} {String.fromCharCode(65 + gi)}</th><th>{t('tiesWon')}</th><th>{t('matchDiff')}</th><th>{t('gameDiff')}</th></tr></thead>
             <tbody>{s.map((row, place) => (
               <tr key={row.id} className={row.id === managed ? 'sel' : ''}>
-                <td>{place + 1}. {name(row.id)}</td><td className="num">{row.wins}</td>
+                <td>{place + 1}. <Flag id={row.id} />{name(row.id)}</td><td className="num">{row.wins}</td>
                 <td className="num">{row.gameDiff > 0 ? '+' : ''}{row.gameDiff}</td><td className="num">{row.pointDiff > 0 ? '+' : ''}{row.pointDiff}</td>
               </tr>
             ))}</tbody>
@@ -285,8 +286,8 @@ export function FinalsResult({ r }: { r: TeamResult }) {
       <h4>{t('knockout')}</h4>
       <div className="bracket">{['QF', 'SF', 'F'].map((round) => (
         <div key={round} className="round">{ko.filter((x) => x.round === round).map((x, i) => (
-          <div key={i} className="match">
-            {x.sides.map((c, k) => <div key={c} className={x.score[k] > x.score[1 - k] ? 'win' : ''}>{name(c)} <small>{x.score[k]}</small></div>)}
+          <div key={i} className={`match${managed && x.sides.includes(managed) ? ' mine' : ''}`}>
+            {x.sides.map((c, k) => <div key={c} className={x.score[k] > x.score[1 - k] ? 'win' : ''}><Flag id={c} />{name(c)} <small>{x.score[k]}</small></div>)}
           </div>
         ))}</div>
       ))}</div>

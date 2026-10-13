@@ -8,6 +8,7 @@ import { ATTRS, type Attr, type Discipline, type GameDate, type Player } from '.
 import { numLocale, t } from '../i18n';
 import { entrantLabel, eventName as eventNameOf, lookup, useGame } from './game';
 import { RankChart } from './Ranking';
+import { Flag } from './Flag';
 
 const JUNIOR_MAX_AGE = 18; // ASUMSI: junior = U19
 
@@ -101,7 +102,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
   return (
     <section>
       <p><button onClick={onBack}>← {t('back')}</button></p>
-      <h2>{p.name} <small>({p.countryId}, {p.gender}, {p.hand})</small></h2>
+      <h2>{p.name} <small>(<Flag id={p.countryId} />{p.countryId}, {p.gender}, {p.hand})</small></h2>
       <p>
         {t('age')} {ageAt(p.birth, state.date)} · {t('ability')} <b>{currentAbility(p.attrs)}</b>{arrow(p.caDelta)} ·
         {' '}{t('potential')} <span className="stars">{starText(potentialStars(p, state.date, counts.get(p.id) ?? 0))}</span> ·

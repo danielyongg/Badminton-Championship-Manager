@@ -3,6 +3,7 @@ import { bowlAt, phaseOf, replayDraw } from '../engine/drawReplay';
 import type { DrawStep } from '../engine/types';
 import { t } from '../i18n';
 import { stepText } from './EventViews';
+import { Flag } from './Flag';
 
 // Live drawing (gaya Football Manager): mangkuk pot di kiri, bagan / grup di kanan terisi langkah demi langkah.
 
@@ -39,7 +40,7 @@ export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay
   const next = steps[idx];
   const bowl = done ? [] : bowlAt(steps, idx);
   const left = done ? 0 : steps.slice(idx).filter((s) => phaseOf(s) === phaseOf(next)).length;
-  const who = (id?: string) => (id ? <span className={mine(id) ? 'mine' : undefined}>{name(id)}</span> : null);
+  const who = (id?: string) => (id ? <span className={mine(id) ? 'mine' : undefined}><Flag id={id} />{name(id)}</span> : null);
 
   const half = (from: number, to: number) => (
     <table className="drawboard">
