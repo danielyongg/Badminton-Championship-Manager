@@ -664,6 +664,8 @@ export function formPairs(state: SeasonState, rs: Ruleset, world: World, rng: Rn
   const singlesStars = new Set(['MS', 'WS'].flatMap((d) =>
     computeRanking(state.results, d as Discipline, absWeek(state.date), rs).filter((r) => r.rank <= 64).map((r) => r.entrantId)));
   const countryOf = new Map(state.players.map((p) => [p.id, p.countryId]));
+  // Dipanggil di awal karier & tiap akhir musim (tahun yang sama) → nomor urut dicari yang belum terpakai.
+  const used = new Set(state.pairs.map((p) => p.id));
   for (const c of world.countries) {
     if (c.id === state.managedCountryId) continue;
     const target = Math.round(g.min + (c.traditionStrength / 100) * (g.max - g.min));
@@ -683,8 +685,12 @@ export function formPairs(state: SeasonState, rs: Ruleset, world: World, rng: Rn
       for (; k < target; k++) {
         const [a, b] = d === 'MD' ? free('M').slice(0, 2) : d === 'WD' ? free('F').slice(0, 2) : [free('M')[0], free('F')[0]];
         if (!a || !b) break;
+        let n = k + 1;
+        while (used.has(`${c.id}-${d}${year}-${n}`)) n++;
+        const id = `${c.id}-${d}${year}-${n}`;
+        used.add(id);
         state.pairs.push({
-          id: `${c.id}-${d}${year}-${k + 1}`, discipline: d, playerIds: [a.id, b.id],
+          id, discipline: d, playerIds: [a.id, b.id],
           chemistry: 30 + Math.floor(rng() * 20), matchesTogether: 0, formed: { ...state.date },
         });
         busy.add(a.id).add(b.id);

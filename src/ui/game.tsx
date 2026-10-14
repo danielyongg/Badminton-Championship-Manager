@@ -43,6 +43,12 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
     if (!saved) blob.ruleset.team.events.push({ ...e });
     else saved.finals ??= e.finals;
   }
+  // Save dengan id pasangan ganda (bug pembentukan pasangan AI di akhir musim): pasangan yang lebih baru diberi id baru.
+  const seenPairs = new Set<string>();
+  for (const p of blob.state.pairs) {
+    if (seenPairs.has(p.id)) { let n = 2; while (seenPairs.has(`${p.id}-${n}`)) n++; p.id = `${p.id}-${n}`; }
+    seenPairs.add(p.id);
+  }
   if (!blob.state.juniorPromotion) {
     // Save sebelum promosi junior: junior yang sudah pernah main di turnamen senior langsung pelatnas utama.
     const pairIds = new Map(blob.state.pairs.map((p) => [p.id, p.playerIds]));

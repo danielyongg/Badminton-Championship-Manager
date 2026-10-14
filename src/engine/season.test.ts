@@ -3,8 +3,9 @@ import { BWF_2026 } from './presets/bwf2026';
 import { BWF_2027 } from './presets/bwf2027';
 import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
+import { presetPack, PRESETS } from './pack';
 import { makeRng } from './rng';
-import { newSeason, playWeek, wtfQualifiers } from './season';
+import { formPairs, newSeason, playWeek, wtfQualifiers } from './season';
 import { ATTRS, DISCIPLINES } from './types';
 
 describe('satu musim penuh (BWF 2026)', () => {
@@ -168,5 +169,18 @@ describe('beberapa musim (perkembangan, pensiun, regenerasi)', () => {
 
   it('CA tidak pernah melampaui PA', async () => {
     for (const p of state.players) expect(ATTRS.reduce((s, a) => s + p.attrs[a], 0) / ATTRS.length).toBeLessThanOrEqual(p.pa + 1e-9);
+  });
+});
+
+describe('pembentukan pasangan AI', () => {
+  it('id pasangan tetap unik bila dibentuk lagi di tahun yang sama (akhir musim)', () => {
+    const pack = presetPack(PRESETS[0]);
+    const state = newSeason(pack.world, pack.ruleset, 1, undefined, 'INA', pack);
+    const ai = state.pairs.filter((p) => /2026-\d+$/.test(p.id));
+    expect(ai.length).toBeGreaterThan(0);
+    for (const p of ai.filter((_, i) => i % 2 === 0)) p.dissolved = { ...state.date }; // sebagian bubar → AI membentuk lagi
+    formPairs(state, pack.ruleset, pack.world, makeRng(9));
+    const ids = state.pairs.map((p) => p.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
