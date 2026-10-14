@@ -240,7 +240,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
             onChange={() => { changed(); persistSoon(); }} toolbar={<button onClick={exportSave}>{t('export')}</button>} />
         )
         : tab === 'world' ? <SeasonViews state={state} ruleset={game.ruleset} world={world} version={version} onOpenPlayer={open} onOpenEvent={openEvent} />
-        : <Federation onChanged={() => { changed(); void persist(); }} />}
+        : <Federation onChanged={() => { changed(); void persist(); }} onOpen={open} onOpenEvent={openEvent} />}
     </main>
   );
 }
@@ -430,42 +430,98 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
   );
 }
 
-function Federation({ onChanged }: { onChanged: () => void }) {
+function Federation({ onChanged, onOpen, onOpenEvent }: { onChanged: () => void; onOpen: (id: string) => void; onOpenEvent: (id: string, year: number) => void }) {
   const { game } = useGame();
   const { state, ruleset, world } = game;
   const [next, setNext] = useState(state.career?.countryId ?? '');
   const reports = state.career?.reports ?? [];
   const country = state.career?.countryId;
   const { players } = lookup(state);
+  const { year } = state.date;
   const years = Object.keys(state.earnings).sort().reverse();
   const ofCountry = (y: string) => Object.entries(state.earnings[y]).filter(([id]) => players.get(id)?.countryId === country);
+  const countryName = (id: string) => dataName(world.countries.find((c) => c.id === id)?.name) ?? id;
+  // Gelar tahun berjalan per tier (urutan tier seperti ruleset: tertinggi dulu) + gelar beregu.
+  const tierOfEvent = new Map(ruleset.calendar.map((e) => [e.id, e.tierId]));
+  const titles = state.champions.filter((c) => c.year === year && entrantLabel(state, c.winner).country === country);
+  const byTier = groupBy(titles, (c) => tierOfEvent.get(c.tournamentId) ?? '');
+  const teamTitles = state.teamResults.filter((r) => r.year === year && country && r.reached[country] === 'W');
+  const person = (id: string) => lookup(state).pairs.get(id)?.playerIds[0] ?? id;
   return (
-    <>
+    <div className="dash">
+      {country && (
+        <section className="card">
+          <h3><Flag id={country} />{countryName(country)}</h3>
+          <p>{t('reputation')}: <b>{state.career!.reputation}</b> / 100 · {t('titlesYear', { y: year })}: <b>{titles.length + teamTitles.length}</b></p>
+        </section>
+      )}
+      {country && (
+        <section className="card">
+          <h3>{t('titlesYear', { y: year })}</h3>
+          {titles.length + teamTitles.length === 0 ? <p className="hint">{t('noTitles')}</p> : <>
+            {ruleset.tiers.filter((tier) => byTier.has(tier.id)).map((tier) => (
+              <div key={tier.id} className="dlist">
+                <h4>{dataName(tier.name)} <small className="muted-text">{byTier.get(tier.id)!.length}</small></h4>
+                {byTier.get(tier.id)!.map((c) => (
+                  <div key={c.tournamentId + c.discipline} className="drow champ">
+                    <span className="chip">{c.discipline}</span>
+                    <span className="grow">
+                      <a href="#" onClick={(e) => { e.preventDefault(); onOpen(person(c.winner)); }}>{entrantLabel(state, c.winner).name}</a>
+                      <small className="muted-text"><EventLink id={c.tournamentId} year={year} onOpen={onOpenEvent} /></small>
+                    </span>
+                    <span className="badge gold">🏆</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+            {teamTitles.length > 0 && (
+              <div className="dlist">
+                <h4>{t('teamShort')} <small className="muted-text">{teamTitles.length}</small></h4>
+                {teamTitles.map((r) => (
+                  <div key={r.eventId + r.format} className="drow champ">
+                    <span className="chip">{t('teamShort')}</span>
+                    <span className="grow">{formatName(r.format)} <small className="muted-text"><EventLink id={r.eventId} year={year} onOpen={onOpenEvent} /></small></span>
+                    <span className="badge gold">🏆</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>}
+        </section>
+      )}
       {country && years.length > 0 && (
         <section className="card">
           <h3>{t('prizeMoney')}</h3>
-          <table style={{ maxWidth: 520 }}>
+          <table>
             <tbody>{years.map((y) => <tr key={y}><td>{y}</td><td className="num"><b>{usd(ofCountry(y).reduce((s, [, v]) => s + v, 0))}</b></td></tr>)}</tbody>
           </table>
           <h4>{t('topEarners')} {years[0]}</h4>
-          <ol>{ofCountry(years[0]).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([id, v]) => <li key={id}>{players.get(id)!.name} — {usd(v)}</li>)}</ol>
+          {ofCountry(years[0]).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([id, v], i) => (
+            <div key={id} className="drow">
+              <span className="badge">{i + 1}</span>
+              <span className="grow"><a href="#" onClick={(e) => { e.preventDefault(); onOpen(id); }}>{players.get(id)!.name}</a></span>
+              <span className="num">{usd(v)}</span>
+            </div>
+          ))}
         </section>
       )}
-      <section className="card">
+      <section className="card wide">
         <h3>{t('reports')}</h3>
-        {reports.length === 0 ? <p>—</p> : (
-          <table>
-            <thead><tr><th>{t('year')}</th><th>{t('country')}</th><th>{t('grade')}</th><th>{t('goal_titles')}</th><th>{t('goal_top10')}</th><th>{t('goal_team')}</th><th>{t('violations')}</th><th>{t('reputation')}</th></tr></thead>
-            <tbody>{reports.map((r) => {
-              const g = (k: string) => r.goals.find((x) => x.kind === k);
-              return (
-                <tr key={r.year}><td>{r.year}</td><td>{r.countryId}</td><td><b>{r.grade}</b></td>
-                  <td>{g('titles')?.achieved}/{g('titles')?.target}</td><td>{g('top10')?.achieved}/{g('top10')?.target}</td>
-                  <td>{r.goals.filter((x) => x.kind === 'team').map((x) => `${formatName(x.format!)}: ${levelName(x.achieved ?? 0)} / ${levelName(x.target)}`).join(' · ')}</td>
-                  <td>{r.violations}</td><td>{r.reputationChange >= 0 ? '+' : ''}{r.reputationChange}</td></tr>
-              );
-            })}</tbody>
-          </table>
+        {reports.length === 0 ? <p className="hint">—</p> : (
+          <div className="scroll">
+            <table>
+              <thead><tr><th>{t('year')}</th><th>{t('country')}</th><th>{t('grade')}</th><th className="num">{t('goal_titles')}</th><th className="num">{t('goal_top10')}</th><th>{t('goal_team')}</th><th className="num">{t('violations')}</th><th className="num">{t('reputation')}</th></tr></thead>
+              <tbody>{[...reports].reverse().map((r) => {
+                const g = (k: string) => r.goals.find((x) => x.kind === k);
+                return (
+                  <tr key={r.year}><td>{r.year}</td><td><Flag id={r.countryId} />{r.countryId}</td><td><b>{r.grade}</b></td>
+                    <td className="num">{g('titles')?.achieved}/{g('titles')?.target}</td><td className="num">{g('top10')?.achieved}/{g('top10')?.target}</td>
+                    <td>{r.goals.filter((x) => x.kind === 'team').map((x) => `${formatName(x.format!)}: ${levelName(x.achieved ?? 0)} / ${levelName(x.target)}`).join(' · ')}</td>
+                    <td className="num">{r.violations}</td><td className={`num ${r.reputationChange >= 0 ? 'up' : 'down'}`}>{r.reputationChange >= 0 ? '+' : ''}{r.reputationChange}</td></tr>
+                );
+              })}</tbody>
+            </table>
+          </div>
         )}
       </section>
       <section className="card">
@@ -482,7 +538,7 @@ function Federation({ onChanged }: { onChanged: () => void }) {
           }}>{t('changeCountry')}</button>
         </div>
       </section>
-    </>
+    </div>
   );
 }
 

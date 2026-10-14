@@ -93,6 +93,7 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 /* Kartu panjang (hasil turnamen) membentang beberapa baris; kartu pendek mengisi celah di kolom lain. */
 .dash { grid-auto-flow: row dense; }
 .dash > .tall { grid-row: span 6; }
+.dash > .wide { grid-column: 1 / -1; }
 /* Daftar dashboard: judul kelompok (minggu/turnamen) + baris rapat dengan chip di kiri & badge di kanan. */
 .dlist + .dlist { margin-top: 10px; }
 .dlist h4 { margin: 0 0 2px; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }

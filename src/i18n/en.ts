@@ -308,6 +308,7 @@ export const en: Record<TextKey, string> = {
   prizeMoney: 'Prize money',
   thisSeason: 'this season',
   career: 'career',
+  titlesYear: 'Titles {y}', noTitles: 'No titles yet this season.',
   topEarners: 'Top earners',
   attrChart: 'Attributes by age',
   attrChartWait: 'The attributes-by-age chart appears once the player has passed a season end (history is recorded at each season end).',

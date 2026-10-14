@@ -308,6 +308,7 @@ const id = {
   prizeMoney: 'Hadiah uang',
   thisSeason: 'musim ini',
   career: 'karier',
+  titlesYear: 'Gelar juara {y}', noTitles: 'Belum ada gelar musim ini.',
   topEarners: 'Pendapatan terbesar',
   attrChart: 'Grafik atribut per usia',
   attrChartWait: 'Grafik atribut per usia muncul setelah atlet melewati akhir musim (riwayat dicatat tiap akhir musim).',
