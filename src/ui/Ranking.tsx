@@ -164,7 +164,7 @@ function Calendar({ state, ruleset, world, short, onOpenEvent }: { state: Season
             <td className="num">{e.prizeUsd ? `$${e.prizeUsd.toLocaleString(numLocale())}` : '—'}</td>
             {DISCIPLINES.map((d) => {
               const c = state.champions.find((x) => x.year === year && x.tournamentId === e.id && x.discipline === d);
-              return <td key={d}>{c ? short(c.winner) : ''}</td>;
+              return <td key={d}>{c && <><Flag id={entrantLabel(state, c.winner).country} />{short(c.winner)}</>}</td>;
             })}
           </tr>
         ))}</tbody>
