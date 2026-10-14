@@ -237,6 +237,7 @@ td.strong { font-weight: 700; }
   /* Tabel lebar (Skuad, Pairs): kolom nama tetap terlihat saat digeser. */
   .scroll table td:first-child, .scroll table th:first-child { position: sticky; left: 0; z-index: 1; background: var(--bg); box-shadow: 1px 0 var(--line); }
   .scroll table td:first-child { white-space: normal; min-width: 110px; max-width: 140px; }
+  .scroll table td.num:first-child { min-width: 0; width: 1%; white-space: nowrap; } /* kolom angka (minggu/peringkat) tetap sempit */
   .card .scroll table td:first-child, .card .scroll table th:first-child { background: var(--surface); }
   .scroll table tr.sel td:first-child { background: color-mix(in srgb, var(--accent-soft) 100%, var(--surface)); }
   /* Line-up: dua pilihan atlet ganda boleh turun baris. */
