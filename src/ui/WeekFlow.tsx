@@ -1,20 +1,38 @@
+import { useState } from 'react';
 import type { RoundShow } from '../engine/gate';
 import { DISCIPLINES, type Discipline, type TeamFormat } from '../engine/types';
 import { dataName, t } from '../i18n';
 import { Flag } from './Flag';
-import { entrantLabel, eventName, useGame } from './game';
+import { EntryTable } from './Entries';
+import { entrantLabel, eventName, saveGame, useGame } from './game';
 import { formatName } from './Team';
 
 // Alur minggu turnamen: pilih turnamen yang dimainkan → drawing → babak demi babak (laga negara sendiri live).
 
 export interface WeekAsk { week: number; events: { id: string; kind: 'individual' | 'team' }[]; played: string[] }
 
-/** Daftar turnamen minggu ini: Mainkan satu per satu, atau lewati sisanya (disimulasikan otomatis). */
+/**
+ * Daftar turnamen minggu ini: Mainkan satu per satu, atau lewati sisanya (disimulasikan otomatis).
+ * Sebelum turnamen pertama dimulai, entry tiap turnamen individu masih bisa diisi & di-submit di sini.
+ */
 export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string | null) => void }) {
-  const { game } = useGame();
+  const { game, changed } = useGame();
   const { state, ruleset, world } = game;
   const { year } = state.date;
+  const [editing, setEditing] = useState<string>();
   const city = (id: string) => dataName(world.cities.find((c) => c.id === id)?.name);
+  if (editing) return (
+    <div className="modal" role="dialog" aria-label={t('weekEvents')}>
+      <div className="live card">
+        <h3>{eventName(ruleset, editing, year)} · {t('entryStatus')}</h3>
+        <EntryTable week={ask.week} eventId={editing} />
+        <div className="controls roundbar">
+          <button className="primary" onClick={() => { (state.entriesSubmitted ??= {})[`${year}:${editing}`] = true; changed(); void saveGame(game); setEditing(undefined); }}>{t('submitEntries')}</button>
+          <button onClick={() => setEditing(undefined)}>← {t('back')}</button>
+        </div>
+      </div>
+    </div>
+  );
   return (
     <div className="modal" role="dialog" aria-label={t('weekEvents')}>
       <div className="live card">
@@ -34,6 +52,7 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
                   : kind === 'team' ? null : auto ? t('auto') : submitted ? <span className="badge good">✓ {t('entrySubmitted')}</span>
                   : <span className="badge">{t('needEntry')}</span>}</small>
               </span>
+              {!auto && !ask.played.length && <button onClick={() => setEditing(id)}>{t('fillEntry')}</button>}
               <button className="primary" disabled={done || !(auto || submitted)} onClick={() => onPick(id)}>{t('playEvent')}</button>
             </li>
           );

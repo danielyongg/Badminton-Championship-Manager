@@ -174,5 +174,6 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - Babak global: kualifikasi Q1, Q2, … → grup → R256 … F; nomor tanpa kualifikasi mulai di babak pertamanya. Nomor yang sudah selesai tidak muncul lagi.
 - Fase grup (WTF, putaran final beregu) ditampilkan sebagai **satu babak "Grup"** (belum dipecah per hari pertandingan).
 - Laga negara lain dan laga di turnamen yang tidak dimainkan disimulasikan langsung. Derbi dua atlet negara sendiri tetap live (sisi kita = sisi pertama).
+- Entry bisa diisi & di-submit langsung dari layar minggu (tombol Isi entry) hanya sebelum turnamen pertama minggu itu dimulai; setelah itu entry minggu itu terkunci.
 - Tombol Mainkan nonaktif bila entry turnamen individu belum di-submit; junior & World Tour Finals (entry otomatis) serta beregu (skuad dipilih di pop-up) selalu bisa dimainkan.
 - Urutan RNG turnamen yang dimainkan berbeda dari jalur otomatis (tetap deterministik); jalur otomatis (Maju 4 minggu / akhir musim / Lewati) tidak berubah.

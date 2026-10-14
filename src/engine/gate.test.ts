@@ -4,7 +4,7 @@ import { simulateMatch } from './match';
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
-import { newSeason, playWeek, type ChooseEvent, type WeekHooks } from './season';
+import { newSeason, playWeek, weekKey, type ChooseEvent, type WeekHooks } from './season';
 import type { LiveRequest } from './tournament';
 
 const rs = BWF_2026;
@@ -47,6 +47,19 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
     const b = await weekOf(2);
     expect(a.matches).toEqual(b.matches);
     expect(a.champions).toEqual(b.champions);
+  });
+
+  it('entry yang diubah dari layar minggu (sebelum turnamen pertama) dipakai minggu itu', async () => {
+    const auto = await weekOf(2);
+    const ina = auto.matches.find((m) => m.tournamentId === 'malaysia-open' && m.discipline === 'MS' && m.sides.some((x) => x.startsWith('INA')))!;
+    const id = ina.sides.find((x) => x.startsWith('INA'))!;
+    const state = await weekOf(2, (st) => ({
+      chooseEvent: async ({ played }) => {
+        if (!played.length) st.manualEntries[weekKey(st.date)] = { [id]: 'rest' }; // diatur saat layar minggu terbuka
+        return played.length ? null : 'malaysia-open';
+      },
+    }));
+    expect(state.matches.some((m) => m.tournamentId === 'malaysia-open' && m.sides.includes(id))).toBe(false);
   });
 
   it('live match hanya di turnamen yang dimainkan, di dalam babaknya; turnamen lain tanpa hook', async () => {

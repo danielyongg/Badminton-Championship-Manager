@@ -316,6 +316,11 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     if (p.injury && --p.injury.weeksLeft <= 0) p.injury = undefined;
   }
   const isJunior = (e: TournamentDef) => !!tierOf(rs, e).junior;
+  // Pilihan pertama diminta sebelum entry dihitung: manajer masih bisa mengisi entry dari layar minggu.
+  const all = [...events.map((e) => ({ id: e.id, kind: 'individual' as const })), ...teamEvents.map((e) => ({ id: e.id, kind: 'team' as const }))];
+  const played: string[] = [];
+  const ask = () => (hooks.chooseEvent && played.length < all.length ? hooks.chooseEvent({ week, events: all, played }) : null);
+  let pick = await ask();
   // Turnamen junior lebih dulu: atlet yang ikut tidak didaftarkan ke turnamen senior minggu ini.
   const juniorRanks = new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.juniorResults, d, cutoff, rs))]));
   const junior = juniorEntries(state, events.filter(isJunior), rs, world, juniorRanks, state.manualEntries[weekKey(state.date)] ?? {}, rng);
@@ -356,14 +361,11 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     return ev ? playEvent(ev, h, gated) : playTeamEvent(state, rs, world, rng, teamEvents.find((e) => e.id === id)!, h, gated);
   };
 
-  const all = [...events.map((e) => ({ id: e.id, kind: 'individual' as const })), ...teamEvents.map((e) => ({ id: e.id, kind: 'team' as const }))];
-  const played: string[] = [];
-  if (hooks.chooseEvent)
-    for (let id; played.length < all.length && (id = await hooks.chooseEvent({ week, events: all, played })); ) {
-      if (played.includes(id) || !all.some((e) => e.id === id)) continue;
-      played.push(id);
-      await playAny(id, hooks, true);
-    }
+  for (; pick; pick = await ask()) {
+    if (played.includes(pick) || !all.some((e) => e.id === pick)) continue;
+    played.push(pick);
+    await playAny(pick, hooks, true);
+  }
   for (const e of all) if (!played.includes(e.id)) await playAny(e.id, hooks.chooseEvent ? {} : hooks, false);
 
   // Top Committed: absen dari turnamen wajib minggu ini = pelanggaran (cedera dikecualikan mulai Fase 7).

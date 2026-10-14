@@ -63,7 +63,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
 }
 
 /** Tabel entry satu minggu; `eventId`: hanya atlet/pasangan di nomor yang dipertandingkan turnamen itu. */
-function EntryTable({ week: w, eventId }: { week: number; eventId?: string }) {
+export function EntryTable({ week: w, eventId }: { week: number; eventId?: string }) {
   const { game, version, changed } = useGame();
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
