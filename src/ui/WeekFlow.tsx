@@ -24,6 +24,7 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
   if (editing) return (
     <div className="modal" role="dialog" aria-label={t('weekEvents')}>
       <div className="live card">
+        <button className="close" aria-label={t('back')} title={t('back')} onClick={() => setEditing(undefined)}>✕</button>
         <h3>{eventName(ruleset, editing, year)} · {t('entryStatus')}</h3>
         <EntryTable week={ask.week} eventId={editing} />
         <div className="controls roundbar">

@@ -314,4 +314,8 @@ td.strong { font-weight: 700; }
   .drawlayout .groups .card { padding: 6px 8px; }
   .drawlayout .groups ol { padding-left: 1.4em; margin: 4px 0 0; }
   .drawlayout .groups li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Bagan undian: nama panjang turun baris agar tidak melewati lebar layar. */
+  .halves { grid-template-columns: minmax(0, 1fr); }
+  .drawboard { width: 100%; }
+  .drawboard td:last-child { white-space: normal; }
 }
