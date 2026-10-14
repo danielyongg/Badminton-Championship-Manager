@@ -193,6 +193,9 @@ export function RankChart({ history }: { history: { absWeek: number; rank?: numb
   );
 }
 
+const yearOfAbs = (a: number) => Math.floor((a - 1) / 52);
+const weekOfAbs = (a: number) => a - yearOfAbs(a) * 52;
+
 /** Musim yang ditampilkan: di minggu 1 (musim baru belum dimulai) tampilkan musim yang baru selesai. */
 const shownYear = (s: SeasonState) => (s.date.week === 1 ? s.date.year - 1 : s.date.year);
 
