@@ -49,13 +49,14 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   // Beregu: pop-up skuad (bila belum di-submit) & line-up sebelum tiap pertandingan (kecuali "Otomatis sisa turnamen").
   const teamHook: TeamHook = {
     squad: (req) => (!state.entriesSubmitted?.[`${state.date.year}:${req.eventId}`] ? new Promise((resolve) => setTeamAsk({ ...req, kind: 'squad', resolve })) : null),
-    lineup: (req) => (autoRest.current ? null : new Promise((resolve) => setTeamAsk({ ...req, kind: 'lineup', resolve }))),
+    lineup: (req) => (autoRest.current || skipEvent.current ? null : new Promise((resolve) => setTeamAsk({ ...req, kind: 'lineup', resolve }))),
   };
   // Pilih turnamen minggu ini; tiap turnamen dimulai tanpa "lewati".
   const [weekAsk, setWeekAsk] = useState<WeekAsk & { resolve: (id: string | null) => void }>();
   const chooseEvent: ChooseEvent = (req) => new Promise((resolve) => setWeekAsk({ ...req, resolve: (id) => {
     autoRest.current = false;
     skipDraw.current = false;
+    skipEvent.current = false;
     resolve(id);
   } }));
   // Live drawing tiap nomor turnamen yang dimainkan ("Lewati drawing" = sisa nomor turnamen itu).
@@ -68,7 +69,16 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   const roundTab = useRef<string>(undefined); // tab nomor terakhir di layar babak
   const skipRows = useRef(new Set<string>()); // baris laga atlet sendiri yang di-Skip
   const currentRow = useRef('');
+  // "Simulasikan sisa turnamen": tanpa layar babak, Live Match, line-up & drawing sampai turnamen itu selesai.
+  const skipEvent = useRef(false);
+  const skipTournament = () => {
+    skipEvent.current = skipRound.current = skipDraw.current = true;
+    const ask = roundAsk;
+    setRoundAsk(undefined);
+    if (ask && ask.show.phase !== 'playing') ask.resolve(); // babak yang menunggu klik langsung lanjut
+  };
   const roundHook: RoundHook = (show) => {
+    if (skipEvent.current) return null;
     const snap = { ...show, matches: show.matches.map((m) => ({ ...m })) }; // salinan baru → layar digambar ulang
     if (show.phase === 'pending') { skipRound.current = false; skipRows.current = new Set(); }
     if (show.phase !== 'playing') return new Promise<void>((resolve) => setRoundAsk({ show: snap, resolve }));
@@ -146,7 +156,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
         <button className="menu-btn" disabled={busy} onClick={onQuit}>{t('mainMenu')}</button>
       </header>
       {roundAsk && <RoundScreen key={`${roundAsk.show.tournamentId}-${roundAsk.show.round}`} show={roundAsk.show} skipped={skipRows.current}
-        tab={roundTab.current} onTab={(k) => { roundTab.current = k; }} onSkipRest={() => { skipRound.current = true; }}
+        tab={roundTab.current} onTab={(k) => { roundTab.current = k; }} onSkipRest={() => { skipRound.current = true; }} onSkipEvent={skipTournament}
         onNext={() => { if (roundAsk.show.phase !== 'pending') setRoundAsk(undefined); roundAsk.resolve(); }} />}
       {live && (
         <LiveMatch

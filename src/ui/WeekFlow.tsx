@@ -74,8 +74,8 @@ export const rowKey = (m: RoundMatch) => `${m.key}:${m.sides.join('-')}`;
  * kecuali barisnya di-Skip. `tab`: tab terakhir yang dipilih (disimpan pemanggil antar babak).
  * `skipped`: kunci baris yang di-Skip (diubah langsung; pemanggil membacanya saat giliran laga itu).
  */
-export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkipRest }: {
-  show: RoundShow; tab?: string; onTab: (k: string) => void; skipped: Set<string>; onNext: () => void; onSkipRest: () => void;
+export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkipRest, onSkipEvent }: {
+  show: RoundShow; tab?: string; onTab: (k: string) => void; skipped: Set<string>; onNext: () => void; onSkipRest: () => void; onSkipEvent: () => void;
 }) {
   const { game } = useGame();
   const { state, ruleset, world } = game;
@@ -99,10 +99,22 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   const final = show.round === 'F';
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => { box.current?.querySelector('tr.current')?.scrollIntoView({ block: 'nearest' }); }, [show.current]);
+  // ✕: pop-up disembunyikan (turnamen dijeda di layar ini) agar tab lain bisa dibuka; bilah bawah untuk kembali.
+  const [hidden, setHidden] = useState(false);
+  const title = `${eventName(ruleset, show.tournamentId, state.date.year)} · ${show.round === 'G' ? t('roundG') : show.round}`;
+  if (hidden)
+    return (
+      <div className="livebar card">
+        🏸 <b>{title}</b>
+        <button onClick={() => setHidden(false)}>{t('openRound')}</button>
+        <button onClick={onSkipEvent}>{t('simEvent')}</button>
+      </div>
+    );
   return (
-    <div className="modal" role="dialog" aria-label={t('weekEvents')} ref={box}>
+    <div className="modal" role="dialog" aria-label={t('weekEvents')} ref={box} onClick={(e) => e.target === e.currentTarget && setHidden(true)}>
       <div className="live card">
-        <h3>{eventName(ruleset, show.tournamentId, state.date.year)} · {show.round === 'G' ? t('roundG') : show.round}</h3>
+        <button className="close" title={t('hideRound')} aria-label={t('hideRound')} onClick={() => setHidden(true)}>✕</button>
+        <h3>{title}</h3>
         {keys.length > 1 && (
           <nav className="controls subnav">
             {keys.map((k) => (
@@ -141,6 +153,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
           {playing
             ? <button onClick={onSkipRest}>{t('simRound')}</button>
             : <button className="primary" onClick={onNext}>{!done ? t('playRound') : final ? t('doneEvent') : t('nextRound')}</button>}
+          {!(done && final) && <button onClick={onSkipEvent}>{t('simEvent')}</button>}
         </div>
       </div>
     </div>
