@@ -160,6 +160,7 @@ function Detail({ id, label, state, discipline, ruleset, eventName, junior }: {
 /** Grafik garis peringkat (peringkat 1 di atas): titik tiap snapshot (4 minggu), label tahun di sumbu bawah. */
 export function RankChart({ history }: { history: { absWeek: number; rank?: number }[] }) {
   const ranked = history.filter((h) => h.rank !== undefined);
+  const [hover, setHover] = useState<number>();
   if (ranked.length < 2) return <p className="hint">—</p>;
   const W = 360, H = 170, L = 30, R = 8, T = 10, B = 22;
   const best = Math.min(...ranked.map((h) => h.rank!)), worst = Math.max(...ranked.map((h) => h.rank!), 10);
@@ -175,7 +176,7 @@ export function RankChart({ history }: { history: { absWeek: number; rank?: numb
   const years = [...new Set(history.map((h) => yearOfAbs(h.absWeek)))];
   const last = ranked[ranked.length - 1];
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxWidth: W }} role="img" aria-label={t('rankHistory')} className="rankchart">
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxWidth: W }} role="img" aria-label={t('rankHistory')} className="rankchart" onMouseLeave={() => setHover(undefined)}>
       {[1, best, worst].filter((v, i, a) => a.indexOf(v) === i).map((r) => (
         <g key={r}><line x1={L} x2={W - R} y1={y(r)} y2={y(r)} stroke="var(--line)" /><text x={L - 4} y={y(r) + 3} fontSize="9" textAnchor="end" fill="currentColor">{r}</text></g>
       ))}
@@ -183,12 +184,27 @@ export function RankChart({ history }: { history: { absWeek: number; rank?: numb
         <g key={yr}><line x1={x(a)} x2={x(a)} y1={T} y2={H - B} stroke="var(--line)" strokeDasharray="2 3" /><text x={x(a) + 2} y={H - 8} fontSize="9" fill="currentColor">{yr}</text></g>
       ); })}
       {segs.filter((p) => p.length > 1).map((p, i) => <polyline key={i} points={p.join(' ')} fill="none" stroke="var(--accent)" strokeWidth="2" />)}
-      {ranked.map((h) => (
-        <circle key={h.absWeek} cx={x(h.absWeek)} cy={y(h.rank!)} r={h === last ? 3.5 : 2} fill="var(--accent)">
-          <title>{`${t('week')} ${weekOfAbs(h.absWeek)} ${yearOfAbs(h.absWeek)}: #${h.rank}`}</title>
-        </circle>
-      ))}
-      <text x={x(last.absWeek) - 4} y={y(last.rank!) - 6} fontSize="10" fontWeight="700" textAnchor="end" fill="var(--accent)">#{last.rank}</text>
+      {ranked.map((h, i) => <circle key={h.absWeek} cx={x(h.absWeek)} cy={y(h.rank!)} r={i === hover ? 4.5 : h === last ? 3.5 : 2} fill="var(--accent)" />)}
+      {hover === undefined && <text x={x(last.absWeek) - 4} y={y(last.rank!) - 6} fontSize="10" fontWeight="700" textAnchor="end" fill="var(--accent)">#{last.rank}</text>}
+      {hover !== undefined && (() => {
+        // Label hover: peringkat + minggu/tahun, digeser agar tetap di dalam grafik.
+        const h = ranked[hover], cx = x(h.absWeek), cy = y(h.rank!);
+        const bw = 92, bx = Math.min(W - R - bw, Math.max(L, cx - bw / 2)), by = cy - 34 < 0 ? cy + 8 : cy - 34;
+        return (
+          <g pointerEvents="none">
+            <line x1={cx} x2={cx} y1={T} y2={H - B} stroke="var(--accent)" strokeOpacity=".35" />
+            <rect x={bx} y={by} width={bw} height={26} rx={4} fill="var(--surface)" stroke="var(--accent)" />
+            <text x={bx + bw / 2} y={by + 11} fontSize="10" fontWeight="700" textAnchor="middle" fill="var(--accent)">#{h.rank}</text>
+            <text x={bx + bw / 2} y={by + 22} fontSize="8.5" textAnchor="middle" fill="currentColor">{t('week')} {weekOfAbs(h.absWeek)} · {yearOfAbs(h.absWeek)}</text>
+          </g>
+        );
+      })()}
+      {/* Area hover: kolom tak terlihat per titik (mudah disentuh juga di HP). */}
+      {ranked.map((h, i) => {
+        const prev = ranked[i - 1], next = ranked[i + 1];
+        const x1 = prev ? (x(prev.absWeek) + x(h.absWeek)) / 2 : L, x2 = next ? (x(next.absWeek) + x(h.absWeek)) / 2 : W - R;
+        return <rect key={h.absWeek} x={x1} y={0} width={Math.max(1, x2 - x1)} height={H} fill="transparent" onMouseEnter={() => setHover(i)} onClick={() => setHover(i)} />;
+      })}
     </svg>
   );
 }
