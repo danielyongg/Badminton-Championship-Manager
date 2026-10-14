@@ -18,7 +18,7 @@ import { Flag } from './Flag';
 import { LiveDraw } from './LiveDraw';
 import { LiveMatch } from './LiveMatch';
 import { advance, entrantLabel, eventName, JUNIOR_MAX_AGE, lookup, saveGame, useGame } from './game';
-import { Calendar, SeasonViews } from './Ranking';
+import { SeasonViews } from './Ranking';
 import { Profile, Squad, usd } from './Squad';
 import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
 import { TournamentView } from './TournamentView';
@@ -483,7 +483,7 @@ function Titles({ country, year, onOpen, onOpenEvent }: { country: string; year:
 /** Ringkasan satu musim (dari kartu rapor): rapor, gelar per tier, hasil beregu, juara semua turnamen. */
 function SeasonSummary({ year, country, onBack, onOpen, onOpenEvent }: { year: number; country: string; onBack: () => void; onOpen: (id: string) => void; onOpenEvent: (id: string, year: number) => void }) {
   const { game } = useGame();
-  const { state, ruleset, world } = game;
+  const { state, ruleset } = game;
   const report = state.career?.reports.find((r) => r.year === year);
   const teams = state.teamResults.filter((r) => r.year === year && r.teams.includes(country));
   const { players, pairs } = lookup(state);
@@ -552,10 +552,6 @@ function SeasonSummary({ year, country, onBack, onOpen, onOpenEvent }: { year: n
             ))}
           </section>
         )}
-        <section className="card wide">
-          <h3>{t('allChampions', { y: year })}</h3>
-          <Calendar state={state} ruleset={ruleset} world={world} year={year} short={(id) => entrantLabel(state, id).name} onOpenEvent={onOpenEvent} />
-        </section>
       </div>
     </>
   );

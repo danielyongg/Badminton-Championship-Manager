@@ -42,6 +42,8 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
   const [mode, setMode] = useState<'world' | 'race' | 'junior'>('world');
   const [selected, setSelected] = useState<string>();
   const [view, setView] = useState<'ranking' | 'calendar' | 'committed' | 'players'>('ranking');
+  const [calYear, setCalYear] = useState(shownYear(state));
+  const calYears = [...new Set([shownYear(state), ...state.champions.map((c) => c.year)])].sort((a, b) => b - a);
   const now = absWeek(state.date);
   const name = (id: string) => entrantLabel(state, id);
   const eventName = (id: string) => eventNameOf(ruleset, id) ?? t('preseason');
@@ -65,6 +67,13 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
             <option value="players">{t('viewPlayers')}</option>
           </select>
         </label>
+        {view === 'calendar' ? (
+          <label>{t('year')}
+            <select value={calYear} onChange={(e) => setCalYear(Number(e.target.value))}>
+              {calYears.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </label>
+        ) : <>
         <label>{t('discipline')}
           <select value={discipline} onChange={(e) => { setDiscipline(e.target.value as Discipline); setSelected(undefined); }}>
             {DISCIPLINES.map((d) => <option key={d}>{d}</option>)}
@@ -77,11 +86,12 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
             <option value="junior">{t('juniorRanking')}</option>
           </select>
         </label>
+        </>}
       </div>
       {lastChampions.length > 0 && (
         <p><b>{t('lastWeekChampions')}:</b> {lastChampions.map((c) => `${eventName(c.tournamentId)} ${c.discipline}: ${name(c.winner).name}`).join(' · ')}</p>
       )}
-      {view === 'calendar' && <Calendar state={state} ruleset={ruleset} world={world} short={(id) => name(id).name} onOpenEvent={onOpenEvent} />}
+      {view === 'calendar' && <Calendar state={state} ruleset={ruleset} world={world} year={calYear} short={(id) => name(id).name} onOpenEvent={onOpenEvent} />}
       {view === 'committed' && <Committed state={state} ruleset={ruleset} label={(id) => `${name(id).name} (${name(id).country})`} />}
       {view === 'players' && <Development state={state} world={world} onOpen={onOpenPlayer} />}
       {view === 'ranking' && <div className="split">
