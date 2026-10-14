@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import { dissolvePair, formPair, potentialStars, promoteJunior } from '../engine/career';
+import { dissolvePair, potentialStars, promoteJunior } from '../engine/career';
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { headToHead } from '../engine/match';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { rankFromSnapshots } from '../engine/season';
-import { ATTRS, DISCIPLINES, type Attr, type Discipline, type GameDate, type Pair, type Player } from '../engine/types';
+import { ATTRS, DISCIPLINES, type Attr, type Discipline, type GameDate, type Player } from '../engine/types';
 import { numLocale, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName as eventNameOf, JUNIOR_MAX_AGE, lookup, saveGame, useGame } from './game';
 import { Pairs } from './Pairs';
@@ -132,7 +132,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               <td><FatigueBar value={p.fatigue} /></td>
               <td>{p.injury ? `${p.injury.weeksLeft} ${t('weeks')}${p.injury.severe ? ' ⚠' : ''}` : ''}</td>
               <td className="num">{allRanks(p).map((x, i) => <span key={x.d}>{i > 0 && <span className="muted-text"> · </span>}{x.r} <small className="muted-text">{x.d}</small></span>)}{allRanks(p).length === 0 && '—'}</td>
-              <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}><SectorPicker p={p} mainPair={mainPair} onChange={commit} /></td>
+              <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}><SectorPicker p={p} onChange={commit} /></td>
             </tr>
           ))}</tbody>
         </table>
@@ -145,45 +145,27 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
 type DoublesD = 'MD' | 'WD' | 'XD';
 const doublesOf = (p: Player): DoublesD[] => [p.gender === 'M' ? 'MD' : 'WD', 'XD'];
 
-/** Atur sektor satu atlet: centang tunggal (fokus) & tiap nomor ganda (bentuk pasangan dengan memilih partner / bubarkan). */
-function SectorPicker({ p, mainPair, onChange }: { p: Player; mainPair: (id: string, d: DoublesD) => Pair | undefined; onChange: () => void }) {
+/** Atur sektor satu atlet: Single (ikut tunggal) & Pairs (boleh dipasangkan di form bentuk pasangan). Minimal satu tercentang. */
+function SectorPicker({ p, onChange }: { p: Player; onChange: () => void }) {
   const { game } = useGame();
   const { state } = game;
-  const [picking, setPicking] = useState<DoublesD>();
-  const [err, setErr] = useState('');
-  const partnerGender = (d: DoublesD) => (d === 'XD' ? (p.gender === 'M' ? 'F' : 'M') : p.gender);
-  const candidates = (d: DoublesD) => state.players
-    .filter((x) => x.countryId === p.countryId && x.id !== p.id && x.retired === undefined && x.gender === partnerGender(d) && !mainPair(x.id, d))
-    .sort((a, b) => currentAbility(b.attrs) - currentAbility(a.attrs));
-  const singles = p.gender === 'M' ? 'MS' : 'WS';
+  const single = p.focus !== 'D', pairs = p.focus !== 'S';
+  const setPairs = (on: boolean) => {
+    if (on) { delete p.focus; return onChange(); }
+    const active = state.pairs.filter((x) => !x.dissolved && !x.adHoc && x.playerIds.includes(p.id));
+    if (active.length && !confirm(t('confirmDissolve'))) return;
+    for (const x of active) dissolvePair(state, x.id);
+    p.focus = 'S';
+    onChange();
+  };
   return (
     <span className="sectors">
       <label title={t('singlesHint')}>
-        <input type="checkbox" checked={p.focus !== 'D'} onChange={(e) => { if (e.target.checked) delete p.focus; else p.focus = 'D'; onChange(); }} />{singles}
+        <input type="checkbox" checked={single} disabled={single && !pairs} onChange={(e) => { if (e.target.checked) delete p.focus; else p.focus = 'D'; onChange(); }} />{t('sector_singles')}
       </label>
-      {doublesOf(p).map((d) => {
-        const pair = mainPair(p.id, d);
-        return (
-          <label key={d}>
-            <input type="checkbox" checked={!!pair || picking === d} onChange={(e) => {
-              setErr('');
-              if (e.target.checked) setPicking(d);
-              else if (pair) { if (confirm(t('confirmDissolve'))) { dissolvePair(state, pair.id); onChange(); } }
-              else setPicking(undefined);
-            }} />{d}
-            {picking === d && !pair && (candidates(d).length ? (
-              <select autoFocus value="" onChange={(e) => {
-                const r = formPair(state, d, p.id, e.target.value, game.rng);
-                if (typeof r === 'string') setErr(r); else { setPicking(undefined); onChange(); }
-              }}>
-                <option value="">{t('choosePartner')}</option>
-                {candidates(d).map((x) => <option key={x.id} value={x.id}>{x.name} ({currentAbility(x.attrs)})</option>)}
-              </select>
-            ) : <small className="muted-text"> {t('noPartner')}</small>)}
-          </label>
-        );
-      })}
-      {err && <small className="down"> {err}</small>}
+      <label title={t('pairsHint')}>
+        <input type="checkbox" checked={pairs} disabled={pairs && !single} onChange={(e) => setPairs(e.target.checked)} />{t('sector_pairs')}
+      </label>
     </span>
   );
 }

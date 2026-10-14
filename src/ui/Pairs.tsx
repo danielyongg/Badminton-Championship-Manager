@@ -32,7 +32,7 @@ export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => voi
   const isJunior = (id: string) => ageAt(players.get(id)!.birth, state.date) <= JUNIOR_MAX_AGE;
   const mine = state.pairs.filter((p) => !p.dissolved && !p.adHoc && players.get(p.playerIds[0])?.countryId === country && p.playerIds.every(isJunior) === juniors);
   const athletes = (gender: 'M' | 'F') => state.players
-    .filter((p) => p.countryId === country && p.retired === undefined && p.gender === gender && isJunior(p.id) === juniors)
+    .filter((p) => p.countryId === country && p.retired === undefined && p.gender === gender && p.focus !== 'S' && isJunior(p.id) === juniors)
     .sort((x, y) => currentAbility(y.attrs) - currentAbility(x.attrs));
   const genders: Record<Pair['discipline'], ['M' | 'F', 'M' | 'F']> = { MD: ['M', 'M'], WD: ['F', 'F'], XD: ['M', 'F'] };
   const option = (id: string) => {

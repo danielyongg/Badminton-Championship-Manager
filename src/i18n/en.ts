@@ -146,7 +146,7 @@ export const en: Record<TextKey, string> = {
   bwfRank: 'BWF rank',
   bwfRankNow: 'Current BWF ranking',
   pair: 'Pair',
-  sector: 'Sector', manageSectors: 'Set sectors', choosePartner: 'Choose partner…', noPartner: 'No partner available (everyone already has a main pair in this event).', singlesHint: 'Plays singles (unchecked = doubles specialist, not entered in singles automatically)',
+  sector: 'Sector', manageSectors: 'Set sectors', singlesHint: 'Plays singles (unchecked = doubles specialist, not entered in singles automatically)', pairsHint: 'Plays doubles (unchecked = not listed in the form-pair form; their pairs are split)',
   mainPair: 'Main',
   pratama: 'Development', utama: 'First team', promote: 'Promote', squadLevel: 'Squad level', pratamaHint: 'Development juniors are not entered in senior tournaments automatically (manual entry still works). Promote them to the first team to join the senior circuit; at 19 they become seniors automatically.',
   juniorRanking: 'World junior ranking', juniorShort: 'Junior',

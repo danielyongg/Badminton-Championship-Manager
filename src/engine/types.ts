@@ -250,7 +250,7 @@ export interface Player {
   injury?: { weeksLeft: number; severe: boolean };
   trait?: 'late' | 'stagnant';
   /** Spesialis ganda: tidak diberi ranking tunggal awal & tidak didaftarkan AI di nomor tunggal (manajer tetap boleh). */
-  focus?: 'D';
+  focus?: 'D' | 'S'; // 'S' = hanya tunggal: tidak muncul di form bentuk pasangan
   /** Junior (U19) yang sudah dipromosikan ke pelatnas utama: ikut didaftarkan otomatis ke turnamen senior. */
   promoted?: boolean;
   retired?: number; // tahun pensiun
