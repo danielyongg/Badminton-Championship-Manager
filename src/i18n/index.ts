@@ -312,6 +312,7 @@ const id = {
   winnerOne: '{n} juara', winnerMany: '{n} juara',
   seasonSummary: 'Ringkasan musim {y}', allChampions: 'Juara semua turnamen {y}',
   seasonStats: 'Statistik musim', statFinals: 'Final dicapai', statChampions: 'Pemain juara',
+  rankAsOf: 'Per minggu', rankCurrent: 'Saat ini', seasonEnd: 'akhir musim',
   titlesYear: 'Gelar juara {y}', noTitles: 'Belum ada gelar musim ini.',
   topEarners: 'Pendapatan terbesar',
   attrChart: 'Grafik atribut per usia',

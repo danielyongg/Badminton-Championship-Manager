@@ -45,15 +45,22 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
   const [calYear, setCalYear] = useState(shownYear(state));
   const calYears = [...new Set([shownYear(state), ...state.champions.map((c) => c.year)])].sort((a, b) => b - a);
   const now = absWeek(state.date);
+  // Riwayat: ranking per minggu lampau (musim ini & musim lalu), dihitung ulang dari hasil yang sudah ada saat itu.
+  const [asOf, setAsOf] = useState<number>();
+  const at = asOf ?? now;
+  const start = Math.max((state.date.year - 1) * 52 + 1, state.rankSnapshots.length ? state.rankSnapshots[0].absWeek - 3 : state.date.year * 52 + 1); // sejak awal karier, maks musim lalu
+  const histWeeks = Array.from({ length: Math.max(0, now - start) }, (_, i) => now - 1 - i);
+  const byYear = new Map<number, number[]>();
+  for (const a of histWeeks) { const y = yearOfAbs(a); byYear.set(y, [...(byYear.get(y) ?? []), a]); }
   const name = (id: string) => entrantLabel(state, id);
   const eventName = (id: string) => eventNameOf(ruleset, id) ?? t('preseason');
 
-  const rows = useMemo(
-    () => (mode === 'world' ? computeRanking(state.results, discipline, now, ruleset)
-      : mode === 'junior' ? computeRanking(state.juniorResults ?? [], discipline, now, ruleset)
-      : computeRace(state.results, discipline, state.date.year, ruleset)),
-    [version, discipline, mode, now, ruleset],
-  );
+  const rows = useMemo(() => {
+    const upTo = (rs: typeof state.results) => (asOf === undefined ? rs : rs.filter((e) => absWeek(e) <= at));
+    return mode === 'world' ? computeRanking(upTo(state.results), discipline, at, ruleset)
+      : mode === 'junior' ? computeRanking(upTo(state.juniorResults ?? []), discipline, at, ruleset)
+      : computeRace(upTo(state.results), discipline, yearOfAbs(at), ruleset);
+  }, [version, discipline, mode, at, ruleset]);
   const lastChampions = state.champions.filter((c) => c.year === state.date.year && ruleset.calendar.find((e) => e.id === c.tournamentId)?.week === state.date.week - 1);
 
   return (
@@ -86,6 +93,18 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
             <option value="junior">{t('juniorRanking')}</option>
           </select>
         </label>
+        {view === 'ranking' && (
+          <label>{t('rankAsOf')}
+            <select value={asOf ?? ''} onChange={(e) => setAsOf(e.target.value ? Number(e.target.value) : undefined)}>
+              <option value="">{t('rankCurrent')}</option>
+              {[...byYear].map(([y, list]) => (
+                <optgroup key={y} label={String(y)}>
+                  {list.map((a) => <option key={a} value={a}>{t('week')} {weekOfAbs(a)}{weekOfAbs(a) === 52 ? ` (${t('seasonEnd')})` : ''} · {y}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+        )}
         </>}
       </div>
       {lastChampions.length > 0 && (
@@ -138,20 +157,38 @@ function Detail({ id, label, state, discipline, ruleset, eventName, junior }: {
   );
 }
 
-/** Grafik garis peringkat (peringkat 1 di atas). */
+/** Grafik garis peringkat (peringkat 1 di atas): titik tiap snapshot (4 minggu), label tahun di sumbu bawah. */
 export function RankChart({ history }: { history: { absWeek: number; rank?: number }[] }) {
   const ranked = history.filter((h) => h.rank !== undefined);
-  if (ranked.length < 2) return <p>—</p>;
-  const W = 300, H = 120;
-  const maxRank = Math.max(...ranked.map((h) => h.rank!), 10);
-  const x = (i: number) => (i / (history.length - 1)) * (W - 30) + 25;
-  const y = (r: number) => ((r - 1) / (maxRank - 1)) * (H - 20) + 10;
-  const pts = history.map((h, i) => (h.rank === undefined ? null : `${x(i)},${y(h.rank)}`)).filter(Boolean).join(' ');
+  if (ranked.length < 2) return <p className="hint">—</p>;
+  const W = 360, H = 170, L = 30, R = 8, T = 10, B = 22;
+  const best = Math.min(...ranked.map((h) => h.rank!)), worst = Math.max(...ranked.map((h) => h.rank!), 10);
+  const x0 = history[0].absWeek, x1 = history[history.length - 1].absWeek;
+  const x = (a: number) => L + ((a - x0) / Math.max(1, x1 - x0)) * (W - L - R);
+  const y = (r: number) => T + ((r - 1) / Math.max(1, worst - 1)) * (H - T - B);
+  // Garis putus bila atlet keluar dari top 300 (tanpa peringkat).
+  const segs: string[][] = [[]];
+  for (const h of history) {
+    if (h.rank === undefined) segs.push([]);
+    else segs[segs.length - 1].push(`${x(h.absWeek)},${y(h.rank)}`);
+  }
+  const years = [...new Set(history.map((h) => yearOfAbs(h.absWeek)))];
+  const last = ranked[ranked.length - 1];
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxWidth: W }} role="img" aria-label="Grafik peringkat">
-      <text x="0" y="14" fontSize="10" fill="currentColor">1</text>
-      <text x="0" y={H - 6} fontSize="10" fill="currentColor">{maxRank}</text>
-      <polyline points={pts} fill="none" stroke="var(--accent)" strokeWidth="2" />
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxWidth: W }} role="img" aria-label={t('rankHistory')} className="rankchart">
+      {[1, best, worst].filter((v, i, a) => a.indexOf(v) === i).map((r) => (
+        <g key={r}><line x1={L} x2={W - R} y1={y(r)} y2={y(r)} stroke="var(--line)" /><text x={L - 4} y={y(r) + 3} fontSize="9" textAnchor="end" fill="currentColor">{r}</text></g>
+      ))}
+      {years.map((yr) => { const a = Math.max(x0, yr * 52 + 1); return (
+        <g key={yr}><line x1={x(a)} x2={x(a)} y1={T} y2={H - B} stroke="var(--line)" strokeDasharray="2 3" /><text x={x(a) + 2} y={H - 8} fontSize="9" fill="currentColor">{yr}</text></g>
+      ); })}
+      {segs.filter((p) => p.length > 1).map((p, i) => <polyline key={i} points={p.join(' ')} fill="none" stroke="var(--accent)" strokeWidth="2" />)}
+      {ranked.map((h) => (
+        <circle key={h.absWeek} cx={x(h.absWeek)} cy={y(h.rank!)} r={h === last ? 3.5 : 2} fill="var(--accent)">
+          <title>{`${t('week')} ${weekOfAbs(h.absWeek)} ${yearOfAbs(h.absWeek)}: #${h.rank}`}</title>
+        </circle>
+      ))}
+      <text x={x(last.absWeek) - 4} y={y(last.rank!) - 6} fontSize="10" fontWeight="700" textAnchor="end" fill="var(--accent)">#{last.rank}</text>
     </svg>
   );
 }
