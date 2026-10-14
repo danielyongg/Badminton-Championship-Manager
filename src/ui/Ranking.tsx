@@ -149,8 +149,7 @@ export function RankChart({ history }: { history: { absWeek: number; rank?: numb
 /** Musim yang ditampilkan: di minggu 1 (musim baru belum dimulai) tampilkan musim yang baru selesai. */
 const shownYear = (s: SeasonState) => (s.date.week === 1 ? s.date.year - 1 : s.date.year);
 
-function Calendar({ state, ruleset, world, short, onOpenEvent }: { state: SeasonState; ruleset: Ruleset; world: World; short: (id: string) => string; onOpenEvent?: (id: string, year: number) => void }) {
-  const year = shownYear(state);
+export function Calendar({ state, ruleset, world, short, onOpenEvent, year = shownYear(state) }: { state: SeasonState; ruleset: Ruleset; world: World; short: (id: string) => string; onOpenEvent?: (id: string, year: number) => void; year?: number }) {
   const events = ruleset.calendar.filter((e) => isHeld(e, year)).sort((a, b) => a.week - b.week);
   const city = new Map(world.cities.map((c) => [c.id, c]));
   return (

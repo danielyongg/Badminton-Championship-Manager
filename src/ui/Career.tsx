@@ -3,12 +3,12 @@ import type { MatchResult } from '../engine/match';
 import type { DrawHook, DrawShow, LiveHook, LiveRequest } from '../engine/tournament';
 import { goalProgress } from '../engine/career';
 import { ageAt } from '../engine/generator';
-import { isHeld, switchCountry, type EntryHook, type TeamHook } from '../engine/season';
+import { isHeld, switchCountry, type EntryHook, type SeasonState, type TeamHook } from '../engine/season';
 import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
 import { DISCIPLINES, ROUNDS, type Discipline, type Match, type TeamFormat } from '../engine/types';
 import { absWeek, computeRanking } from '../engine/ranking';
-import type { FederationGoal } from '../engine/types';
+import type { FederationGoal, Ruleset, SeasonReport } from '../engine/types';
 import { dataName, numLocale, t, type TextKey } from '../i18n';
 import { downloadPack, Editor, useDebounced } from './Editor';
 import { Entries } from './Entries';
@@ -18,7 +18,7 @@ import { Flag } from './Flag';
 import { LiveDraw } from './LiveDraw';
 import { LiveMatch } from './LiveMatch';
 import { advance, entrantLabel, eventName, JUNIOR_MAX_AGE, lookup, saveGame, useGame } from './game';
-import { SeasonViews } from './Ranking';
+import { Calendar, SeasonViews } from './Ranking';
 import { Profile, Squad, usd } from './Squad';
 import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
 import { TournamentView } from './TournamentView';
@@ -431,6 +431,117 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
   );
 }
 
+/** Gelar negara di satu tahun: per tier (urutan ruleset: tertinggi dulu) + gelar beregu. */
+function titlesOf(state: SeasonState, ruleset: Ruleset, country: string, year: number) {
+  const tierOfEvent = new Map(ruleset.calendar.map((e) => [e.id, e.tierId]));
+  const titles = state.champions.filter((c) => c.year === year && entrantLabel(state, c.winner).country === country);
+  return { titles, byTier: groupBy(titles, (c) => tierOfEvent.get(c.tournamentId) ?? ''), teamTitles: state.teamResults.filter((r) => r.year === year && r.reached[country] === 'W') };
+}
+
+function Titles({ country, year, onOpen, onOpenEvent }: { country: string; year: number; onOpen: (id: string) => void; onOpenEvent: (id: string, year: number) => void }) {
+  const { game } = useGame();
+  const { state, ruleset } = game;
+  const { titles, byTier, teamTitles } = titlesOf(state, ruleset, country, year);
+  const person = (id: string) => lookup(state).pairs.get(id)?.playerIds[0] ?? id;
+  const winners = (n: number) => t(n === 1 ? 'winnerOne' : 'winnerMany', { n });
+  return (
+    <section className="card titles">
+      <h3>{t('titlesYear', { y: year })}</h3>
+      {titles.length + teamTitles.length === 0 ? <p className="hint">{t('noTitles')}</p> : <>
+        {ruleset.tiers.filter((tier) => byTier.has(tier.id)).map((tier) => (
+          <div key={tier.id} className="dlist">
+            <h4>{dataName(tier.name)} <small className="muted-text">{winners(byTier.get(tier.id)!.length)}</small></h4>
+            {byTier.get(tier.id)!.map((c) => (
+              <div key={c.tournamentId + c.discipline} className="drow champ">
+                <span className="chip">{c.discipline}</span>
+                <span className="grow">
+                  <a href="#" onClick={(e) => { e.preventDefault(); onOpen(person(c.winner)); }}>{entrantLabel(state, c.winner).name}</a>
+                  <small className="muted-text"><EventLink id={c.tournamentId} year={year} onOpen={onOpenEvent} /></small>
+                </span>
+                <span className="badge gold">🏆</span>
+              </div>
+            ))}
+          </div>
+        ))}
+        {teamTitles.length > 0 && (
+          <div className="dlist">
+            <h4>{t('teamShort')} <small className="muted-text">{winners(teamTitles.length)}</small></h4>
+            {teamTitles.map((r) => (
+              <div key={r.eventId + r.format} className="drow champ">
+                <span className="chip">{t('teamShort')}</span>
+                <span className="grow">{formatName(r.format)} <small className="muted-text"><EventLink id={r.eventId} year={year} onOpen={onOpenEvent} /></small></span>
+                <span className="badge gold">🏆</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </>}
+    </section>
+  );
+}
+
+/** Ringkasan satu musim (dari kartu rapor): rapor, gelar per tier, hasil beregu, juara semua turnamen. */
+function SeasonSummary({ year, country, onBack, onOpen, onOpenEvent }: { year: number; country: string; onBack: () => void; onOpen: (id: string) => void; onOpenEvent: (id: string, year: number) => void }) {
+  const { game } = useGame();
+  const { state, ruleset, world } = game;
+  const report = state.career?.reports.find((r) => r.year === year);
+  const teams = state.teamResults.filter((r) => r.year === year && r.teams.includes(country));
+  return (
+    <>
+      <p><button onClick={onBack}>← {t('back')}</button></p>
+      <h2>{t('seasonSummary', { y: year })}</h2>
+      <div className="dash">
+        {report && <section className="card"><ReportCard r={report} /></section>}
+        <Titles country={country} year={year} onOpen={onOpen} onOpenEvent={onOpenEvent} />
+        <section className="card">
+          <h3>{t('teamResults')} {year}</h3>
+          {teams.length === 0 ? <p className="hint">—</p> : teams.map((r) => {
+            const reached = r.reached[country];
+            return (
+              <div key={r.eventId + r.format} className={`drow${reached === 'W' ? ' champ' : ''}`}>
+                <span className="chip">{t('teamShort')}</span>
+                <span className="grow"><b><EventLink id={r.eventId} year={year} onOpen={onOpenEvent} /> · {formatName(r.format)}</b></span>
+                <span className={`badge${reached === 'W' ? ' gold' : reached === 'F' || reached === 'SF' ? ' good' : ''}`}>{reached === 'W' ? `🏆 ${t('champion')}` : reached ?? t('group')}</span>
+              </div>
+            );
+          })}
+        </section>
+        <section className="card wide">
+          <h3>{t('allChampions', { y: year })}</h3>
+          <Calendar state={state} ruleset={ruleset} world={world} year={year} short={(id) => entrantLabel(state, id).name} onOpenEvent={onOpenEvent} />
+        </section>
+      </div>
+    </>
+  );
+}
+
+function ReportCard({ r, onClick }: { r: SeasonReport; onClick?: () => void }) {
+  const { game } = useGame();
+  const countryName = dataName(game.world.countries.find((c) => c.id === r.countryId)?.name) ?? r.countryId;
+  return (
+    <div className={`report grade-${r.grade}${onClick ? ' clickable' : ''}`} role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined}
+      onClick={onClick} onKeyDown={(e) => onClick && e.key === 'Enter' && onClick()}>
+      <div className="report-head">
+        <span className="grade">{r.grade}</span>
+        <span className="grow"><b>{r.year}</b> <small className="muted-text"><Flag id={r.countryId} />{countryName}</small></span>
+        <span className={`badge ${r.reputationChange > 0 ? 'good' : r.reputationChange < 0 ? 'danger' : ''}`}>{r.reputationChange >= 0 ? '+' : ''}{r.reputationChange} {t('reputation')}</span>
+      </div>
+      {r.goals.map((g) => {
+        const done = g.achieved ?? 0;
+        const show = (n: number) => (g.kind === 'team' ? levelName(n) : n);
+        return (
+          <div key={g.kind + (g.format ?? '')} className="goalbar">
+            <span>{g.format ? formatName(g.format) : t(`goal_${g.kind}` as TextKey)}</span>
+            <small className={done >= g.target ? 'up' : 'muted-text'}>{show(done)} / {show(g.target)}</small>
+            <span className="bar"><span style={{ width: `${Math.min(100, (done / Math.max(1, g.target)) * 100)}%`, background: done >= g.target ? 'var(--accent)' : 'var(--gold)' }} /></span>
+          </div>
+        );
+      })}
+      <small className={r.violations ? 'down' : 'muted-text'}>{t('violations')}: {r.violations}</small>
+    </div>
+  );
+}
+
 function Federation({ onChanged, onOpen, onOpenEvent }: { onChanged: () => void; onOpen: (id: string) => void; onOpenEvent: (id: string, year: number) => void }) {
   const { game } = useGame();
   const { state, ruleset, world } = game;
@@ -442,13 +553,9 @@ function Federation({ onChanged, onOpen, onOpenEvent }: { onChanged: () => void;
   const years = Object.keys(state.earnings).sort().reverse();
   const ofCountry = (y: string) => Object.entries(state.earnings[y]).filter(([id]) => players.get(id)?.countryId === country);
   const countryName = (id: string) => dataName(world.countries.find((c) => c.id === id)?.name) ?? id;
-  // Gelar tahun berjalan per tier (urutan tier seperti ruleset: tertinggi dulu) + gelar beregu.
-  const tierOfEvent = new Map(ruleset.calendar.map((e) => [e.id, e.tierId]));
-  const titles = state.champions.filter((c) => c.year === year && entrantLabel(state, c.winner).country === country);
-  const byTier = groupBy(titles, (c) => tierOfEvent.get(c.tournamentId) ?? '');
-  const teamTitles = state.teamResults.filter((r) => r.year === year && country && r.reached[country] === 'W');
-  const person = (id: string) => lookup(state).pairs.get(id)?.playerIds[0] ?? id;
-  const winners = (n: number) => t(n === 1 ? 'winnerOne' : 'winnerMany', { n });
+  const [summary, setSummary] = useState<number>();
+  const { titles, teamTitles } = titlesOf(state, ruleset, country ?? '', year);
+  if (summary !== undefined && country) return <SeasonSummary year={summary} country={country} onBack={() => setSummary(undefined)} onOpen={onOpen} onOpenEvent={onOpenEvent} />;
   // Ringkasan: atlet aktif, turnamen diikuti & rekor laga tahun ini (individu + beregu).
   const squad = state.players.filter((p) => p.countryId === country && p.retired === undefined);
   const juniorCount = squad.filter((p) => ageAt(p.birth, state.date) <= JUNIOR_MAX_AGE).length;
@@ -476,40 +583,7 @@ function Federation({ onChanged, onOpen, onOpenEvent }: { onChanged: () => void;
           </div>
         </section>
       )}
-      {country && (
-        <section className="card titles">
-          <h3>{t('titlesYear', { y: year })}</h3>
-          {titles.length + teamTitles.length === 0 ? <p className="hint">{t('noTitles')}</p> : <>
-            {ruleset.tiers.filter((tier) => byTier.has(tier.id)).map((tier) => (
-              <div key={tier.id} className="dlist">
-                <h4>{dataName(tier.name)} <small className="muted-text">{winners(byTier.get(tier.id)!.length)}</small></h4>
-                {byTier.get(tier.id)!.map((c) => (
-                  <div key={c.tournamentId + c.discipline} className="drow champ">
-                    <span className="chip">{c.discipline}</span>
-                    <span className="grow">
-                      <a href="#" onClick={(e) => { e.preventDefault(); onOpen(person(c.winner)); }}>{entrantLabel(state, c.winner).name}</a>
-                      <small className="muted-text"><EventLink id={c.tournamentId} year={year} onOpen={onOpenEvent} /></small>
-                    </span>
-                    <span className="badge gold">🏆</span>
-                  </div>
-                ))}
-              </div>
-            ))}
-            {teamTitles.length > 0 && (
-              <div className="dlist">
-                <h4>{t('teamShort')} <small className="muted-text">{winners(teamTitles.length)}</small></h4>
-                {teamTitles.map((r) => (
-                  <div key={r.eventId + r.format} className="drow champ">
-                    <span className="chip">{t('teamShort')}</span>
-                    <span className="grow">{formatName(r.format)} <small className="muted-text"><EventLink id={r.eventId} year={year} onOpen={onOpenEvent} /></small></span>
-                    <span className="badge gold">🏆</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>}
-        </section>
-      )}
+      {country && <Titles country={country} year={year} onOpen={onOpen} onOpenEvent={onOpenEvent} />}
       {country && years.length > 0 && (
         <section className="card">
           <h3>{t('prizeMoney')}</h3>
@@ -530,25 +604,7 @@ function Federation({ onChanged, onOpen, onOpenEvent }: { onChanged: () => void;
         <h3>{t('reports')}</h3>
         {reports.length === 0 ? <p className="hint">—</p> : (
           <div className="reports">{[...reports].reverse().map((r) => (
-            <div key={r.year} className={`report grade-${r.grade}`}>
-              <div className="report-head">
-                <span className="grade">{r.grade}</span>
-                <span className="grow"><b>{r.year}</b> <small className="muted-text"><Flag id={r.countryId} />{countryName(r.countryId)}</small></span>
-                <span className={`badge ${r.reputationChange > 0 ? 'good' : r.reputationChange < 0 ? 'danger' : ''}`}>{r.reputationChange >= 0 ? '+' : ''}{r.reputationChange} {t('reputation')}</span>
-              </div>
-              {r.goals.map((g) => {
-                const done = g.achieved ?? 0;
-                const show = (n: number) => (g.kind === 'team' ? levelName(n) : n);
-                return (
-                  <div key={g.kind + (g.format ?? '')} className="goalbar">
-                    <span>{g.format ? formatName(g.format) : t(`goal_${g.kind}` as TextKey)}</span>
-                    <small className={done >= g.target ? 'up' : 'muted-text'}>{show(done)} / {show(g.target)}</small>
-                    <span className="bar"><span style={{ width: `${Math.min(100, (done / Math.max(1, g.target)) * 100)}%`, background: done >= g.target ? 'var(--accent)' : 'var(--gold)' }} /></span>
-                  </div>
-                );
-              })}
-              <small className={r.violations ? 'down' : 'muted-text'}>{t('violations')}: {r.violations}</small>
-            </div>
+            <ReportCard key={r.year} r={r} onClick={() => setSummary(r.year)} />
           ))}</div>
         )}
       </section>

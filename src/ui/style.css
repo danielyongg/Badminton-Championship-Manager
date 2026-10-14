@@ -166,6 +166,8 @@ main > nav.controls { gap: 2px; border-bottom: 1px solid var(--line); }
 .match small { color: var(--muted); }
 .match.clickable { cursor: pointer; }
 .match.clickable:hover { border-color: var(--accent); }
+.report.clickable { cursor: pointer; }
+.report.clickable:hover { border-color: var(--accent); }
 .tiegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; margin-top: 6px; }
 .tiehead { display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 1.1rem; margin: 4px 0 10px; }
 .tiehead b { font-size: 1.5rem; font-weight: 800; }
