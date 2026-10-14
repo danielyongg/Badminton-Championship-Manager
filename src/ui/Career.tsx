@@ -448,6 +448,7 @@ function Federation({ onChanged, onOpen, onOpenEvent }: { onChanged: () => void;
   const byTier = groupBy(titles, (c) => tierOfEvent.get(c.tournamentId) ?? '');
   const teamTitles = state.teamResults.filter((r) => r.year === year && country && r.reached[country] === 'W');
   const person = (id: string) => lookup(state).pairs.get(id)?.playerIds[0] ?? id;
+  const winners = (n: number) => t(n === 1 ? 'winnerOne' : 'winnerMany', { n });
   // Ringkasan: atlet aktif, turnamen diikuti & rekor laga tahun ini (individu + beregu).
   const squad = state.players.filter((p) => p.countryId === country && p.retired === undefined);
   const juniorCount = squad.filter((p) => ageAt(p.birth, state.date) <= JUNIOR_MAX_AGE).length;
@@ -476,12 +477,12 @@ function Federation({ onChanged, onOpen, onOpenEvent }: { onChanged: () => void;
         </section>
       )}
       {country && (
-        <section className="card">
+        <section className="card titles">
           <h3>{t('titlesYear', { y: year })}</h3>
           {titles.length + teamTitles.length === 0 ? <p className="hint">{t('noTitles')}</p> : <>
             {ruleset.tiers.filter((tier) => byTier.has(tier.id)).map((tier) => (
               <div key={tier.id} className="dlist">
-                <h4>{dataName(tier.name)} <small className="muted-text">{byTier.get(tier.id)!.length}</small></h4>
+                <h4>{dataName(tier.name)} <small className="muted-text">{winners(byTier.get(tier.id)!.length)}</small></h4>
                 {byTier.get(tier.id)!.map((c) => (
                   <div key={c.tournamentId + c.discipline} className="drow champ">
                     <span className="chip">{c.discipline}</span>
@@ -496,7 +497,7 @@ function Federation({ onChanged, onOpen, onOpenEvent }: { onChanged: () => void;
             ))}
             {teamTitles.length > 0 && (
               <div className="dlist">
-                <h4>{t('teamShort')} <small className="muted-text">{teamTitles.length}</small></h4>
+                <h4>{t('teamShort')} <small className="muted-text">{winners(teamTitles.length)}</small></h4>
                 {teamTitles.map((r) => (
                   <div key={r.eventId + r.format} className="drow champ">
                     <span className="chip">{t('teamShort')}</span>

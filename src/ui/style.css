@@ -94,6 +94,9 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .dash { grid-auto-flow: row dense; }
 .dash > .tall { grid-row: span 6; }
 .dash > .wide { grid-column: 1 / -1; }
+/* Gelar juara (Federasi): nama lebih kecil agar tidak tertukar dengan judul tier. */
+.titles h4 small { text-transform: none; font-weight: 400; margin-left: 4px; }
+.titles .drow.champ .grow > a { font-size: .9rem; font-weight: 700; }
 /* Kotak angka ringkas (Federasi). */
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .stats > div { background: var(--line); border-radius: 4px; padding: 6px 8px; display: flex; flex-direction: column; }

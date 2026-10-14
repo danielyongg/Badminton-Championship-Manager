@@ -309,6 +309,7 @@ const id = {
   thisSeason: 'musim ini',
   career: 'karier',
   statPlayers: 'Atlet', statEvents: 'Turnamen {y}', statRecord: 'Menang–kalah {y}',
+  winnerOne: '{n} juara', winnerMany: '{n} juara',
   titlesYear: 'Gelar juara {y}', noTitles: 'Belum ada gelar musim ini.',
   topEarners: 'Pendapatan terbesar',
   attrChart: 'Grafik atribut per usia',
