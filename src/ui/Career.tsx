@@ -529,20 +529,27 @@ function Federation({ onChanged, onOpen, onOpenEvent }: { onChanged: () => void;
       <section className="card wide">
         <h3>{t('reports')}</h3>
         {reports.length === 0 ? <p className="hint">—</p> : (
-          <div className="scroll">
-            <table>
-              <thead><tr><th>{t('year')}</th><th>{t('country')}</th><th>{t('grade')}</th><th className="num">{t('goal_titles')}</th><th className="num">{t('goal_top10')}</th><th>{t('goal_team')}</th><th className="num">{t('violations')}</th><th className="num">{t('reputation')}</th></tr></thead>
-              <tbody>{[...reports].reverse().map((r) => {
-                const g = (k: string) => r.goals.find((x) => x.kind === k);
+          <div className="reports">{[...reports].reverse().map((r) => (
+            <div key={r.year} className={`report grade-${r.grade}`}>
+              <div className="report-head">
+                <span className="grade">{r.grade}</span>
+                <span className="grow"><b>{r.year}</b> <small className="muted-text"><Flag id={r.countryId} />{countryName(r.countryId)}</small></span>
+                <span className={`badge ${r.reputationChange > 0 ? 'good' : r.reputationChange < 0 ? 'danger' : ''}`}>{r.reputationChange >= 0 ? '+' : ''}{r.reputationChange} {t('reputation')}</span>
+              </div>
+              {r.goals.map((g) => {
+                const done = g.achieved ?? 0;
+                const show = (n: number) => (g.kind === 'team' ? levelName(n) : n);
                 return (
-                  <tr key={r.year}><td>{r.year}</td><td><Flag id={r.countryId} />{r.countryId}</td><td><b>{r.grade}</b></td>
-                    <td className="num">{g('titles')?.achieved}/{g('titles')?.target}</td><td className="num">{g('top10')?.achieved}/{g('top10')?.target}</td>
-                    <td>{r.goals.filter((x) => x.kind === 'team').map((x) => `${formatName(x.format!)}: ${levelName(x.achieved ?? 0)} / ${levelName(x.target)}`).join(' · ')}</td>
-                    <td className="num">{r.violations}</td><td className={`num ${r.reputationChange >= 0 ? 'up' : 'down'}`}>{r.reputationChange >= 0 ? '+' : ''}{r.reputationChange}</td></tr>
+                  <div key={g.kind + (g.format ?? '')} className="goalbar">
+                    <span>{g.format ? formatName(g.format) : t(`goal_${g.kind}` as TextKey)}</span>
+                    <small className={done >= g.target ? 'up' : 'muted-text'}>{show(done)} / {show(g.target)}</small>
+                    <span className="bar"><span style={{ width: `${Math.min(100, (done / Math.max(1, g.target)) * 100)}%`, background: done >= g.target ? 'var(--accent)' : 'var(--gold)' }} /></span>
+                  </div>
                 );
-              })}</tbody>
-            </table>
-          </div>
+              })}
+              <small className={r.violations ? 'down' : 'muted-text'}>{t('violations')}: {r.violations}</small>
+            </div>
+          ))}</div>
         )}
       </section>
       <section className="card">
