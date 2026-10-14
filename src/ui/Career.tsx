@@ -3,7 +3,8 @@ import type { MatchResult } from '../engine/match';
 import type { DrawHook, DrawShow, LiveHook, LiveRequest } from '../engine/tournament';
 import { goalProgress } from '../engine/career';
 import { ageAt } from '../engine/generator';
-import { isHeld, switchCountry, type EntryHook, type SeasonState, type TeamHook } from '../engine/season';
+import { isHeld, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
+import type { RoundHook, RoundShow } from '../engine/gate';
 import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
 import { DISCIPLINES, ROUNDS, type Discipline, type Match, type TeamFormat } from '../engine/types';
@@ -23,9 +24,7 @@ import { Profile, Squad, usd } from './Squad';
 import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
 import { TournamentView } from './TournamentView';
 import { MatchLink } from './MatchDetail';
-
-/** Tier "turnamen besar" untuk live drawing (plus putaran final beregu). */
-const BIG_TIERS = new Set(['S1000', 'S750', 'WC', 'OG', 'WTF']);
+import { RoundScreen, WeekScreen, type WeekAsk } from './WeekFlow';
 
 type Tab = 'dashboard' | 'squad' | 'entries' | 'team' | 'world' | 'federation' | 'editor' | 'settings';
 
@@ -39,7 +38,6 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   const [busy, setBusy] = useState(false);
   const [simWeek, setSimWeek] = useState<number>(); // minggu yang sedang disimulasikan (lanjut beberapa minggu)
   const stop = useRef(false);
-  const [liveMode, setLiveMode] = useState<'off' | 'finals' | 'all'>('finals');
   const [live, setLive] = useState<{ req: LiveRequest; mySide: 0 | 1; resolve: (r: MatchResult) => void }>();
   const autoRest = useRef(false);
   type TeamAsk = { eventId: string; format: TeamFormat; pool: Record<string, TeamEntrant[]> } & (
@@ -47,39 +45,36 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
     | { kind: 'lineup'; round: MatchRound; opponent: string; squad: string[]; suggested: Lineup; resolve: (v: Lineup) => void });
   const [teamAsk, setTeamAsk] = useState<TeamAsk>();
 
-  // Beregu: pop-up skuad sebelum turnamen & line-up sebelum tiap pertandingan (kecuali mode Otomatis / "Auto sisa minggu").
-  const askTeam = () => !!managed && !state.teamAuto && !autoRest.current;
+  // Hook di bawah hanya dipakai untuk turnamen yang dipilih manajer di layar "Turnamen minggu ini".
+  // Beregu: pop-up skuad (bila belum di-submit) & line-up sebelum tiap pertandingan (kecuali "Otomatis sisa turnamen").
   const teamHook: TeamHook = {
-    squad: (req) => (askTeam() && !state.entriesSubmitted?.[`${state.date.year}:${req.eventId}`] ? new Promise((resolve) => setTeamAsk({ ...req, kind: 'squad', resolve })) : null),
-    lineup: (req) => (askTeam() ? new Promise((resolve) => setTeamAsk({ ...req, kind: 'lineup', resolve })) : null),
+    squad: (req) => (!state.entriesSubmitted?.[`${state.date.year}:${req.eventId}`] ? new Promise((resolve) => setTeamAsk({ ...req, kind: 'squad', resolve })) : null),
+    lineup: (req) => (autoRest.current ? null : new Promise((resolve) => setTeamAsk({ ...req, kind: 'lineup', resolve }))),
   };
-  // Pop-up entry: sebelum minggu turnamen (besar saja / semua), manajer memeriksa & mengubah entry minggu itu.
-  const [entryMode, setEntryMode] = useState<'off' | 'big' | 'all'>('off');
-  const [entryAsk, setEntryAsk] = useState<{ week: number; resolve: () => void }>();
-  const skipEntry = useRef(false);
-  const entryHook: EntryHook = ({ week, events }) => {
-    if (!managed || entryMode === 'off' || skipEntry.current) return null;
-    if (entryMode === 'big' && !events.some((e) => BIG_TIERS.has(e.tierId))) return null;
-    return new Promise<void>((resolve) => setEntryAsk({ week, resolve }));
-  };
-  // Live drawing: undian turnamen yang diikuti atlet sendiri (semua, atau turnamen besar + final beregu saja).
-  const [drawMode, setDrawMode] = useState<'off' | 'big' | 'mine'>('big');
+  // Pilih turnamen minggu ini; tiap turnamen dimulai tanpa "lewati".
+  const [weekAsk, setWeekAsk] = useState<WeekAsk & { resolve: (id: string | null) => void }>();
+  const chooseEvent: ChooseEvent = (req) => new Promise((resolve) => setWeekAsk({ ...req, resolve: (id) => {
+    autoRest.current = false;
+    skipDraw.current = false;
+    resolve(id);
+  } }));
+  // Live drawing tiap nomor turnamen yang dimainkan ("Lewati drawing" = sisa nomor turnamen itu).
   const [drawAsk, setDrawAsk] = useState<{ d: DrawShow; resolve: () => void }>();
-  const skipDraw = useRef<string>(undefined);
-  const drawHook: DrawHook = (d) => {
-    if (!managed || drawMode === 'off' || autoRest.current || skipDraw.current === d.tournamentId) return null;
-    const tier = game.ruleset.calendar.find((e) => e.id === d.tournamentId)?.tierId ?? '';
-    if (drawMode === 'big' && d.discipline && !BIG_TIERS.has(tier)) return null; // tanpa nomor = final beregu
-    const mine = d.entrants.some((id) => (d.discipline ? entrantLabel(state, id).country === managed : id === managed));
-    return mine ? new Promise<void>((resolve) => setDrawAsk({ d, resolve })) : null;
+  const skipDraw = useRef(false);
+  const drawHook: DrawHook = (d) => (skipDraw.current ? null : new Promise<void>((resolve) => setDrawAsk({ d, resolve })));
+  // Layar babak: sebelum (pasangan laga) & sesudah (skor). "Simulasikan sisa babak" berlaku sampai babak berikutnya.
+  const [roundAsk, setRoundAsk] = useState<{ show: RoundShow; resolve: () => void }>();
+  const skipRound = useRef(false);
+  const roundHook: RoundHook = (show) => {
+    skipRound.current = false;
+    return new Promise<void>((resolve) => setRoundAsk({ show, resolve }));
   };
   const nameOfCountry = (id: string) => dataName(world.countries.find((c) => c.id === id)?.name) ?? id;
   const teamTitle = (eventId: string) => eventName(game.ruleset, eventId, state.date.year) ?? eventId;
 
-  // Laga atlet negara sendiri dimainkan Live sesuai pengaturan; sisanya Auto.
+  // Tiap laga atlet negara sendiri di turnamen yang dimainkan tampil Live; sisanya langsung disimulasikan.
   const hook: LiveHook = (req) => {
-    if (!managed || liveMode === 'off' || autoRest.current) return null;
-    if (liveMode === 'finals' && req.round !== 'SF' && req.round !== 'F') return null;
+    if (skipRound.current) return null;
     const mine = req.entrants.map((id) => entrantLabel(state, id).country === managed);
     if (!mine[0] && !mine[1]) return null;
     return new Promise((resolve) => setLive({ req, mySide: mine[0] ? 0 : 1, resolve }));
@@ -100,14 +95,10 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   const go = async (weeks: number) => {
     setBusy(true);
     stop.current = false;
-    skipDraw.current = undefined;
-    skipEntry.current = false;
-    autoRest.current = false;
     for (let i = 0; i < weeks && !stop.current; i++) {
       if (weeks > 1) setSimWeek(state.date.week);
-      // Maju beberapa minggu = serba otomatis: tanpa pop-up entry, Live Match, skuad/line-up beregu & live drawing.
-      await advance(game, 1, weeks > 1 ? {} : { entry: entryHook, live: hook, team: teamHook, draw: drawHook });
-      autoRest.current = false;
+      // Maju beberapa minggu = serba otomatis; 1 minggu = pilih turnamen yang dimainkan per babak.
+      await advance(game, 1, weeks > 1 || !managed ? {} : { chooseEvent, round: roundHook, live: hook, team: teamHook, draw: drawHook });
       // Beri kesempatan browser menggambar ulang & menerima klik (Berhenti) di antara minggu → UI tidak membeku.
       await new Promise((r) => setTimeout(r, 0));
     }
@@ -155,28 +146,18 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
           rng={game.rng}
           title={`${eventName(game.ruleset, live.req.tournamentId, state.date.year)} · ${live.req.discipline} ${live.req.round}`}
           onDone={(r) => { setLive(undefined); live.resolve(r); }}
-          onAutoRest={() => { autoRest.current = true; }}
+          onSkipRound={() => { skipRound.current = true; }}
         />
       )}
-      {entryAsk && (
-        <div className="modal" role="dialog" aria-label={t('entryPopupTitle')}>
-          <div className="live card">
-            <h3>{t('entryPopupTitle')} · {t('week')} {entryAsk.week}</h3>
-            <Entries fixedWeek={entryAsk.week} />
-            <div className="controls">
-              <button className="primary" onClick={() => { setEntryAsk(undefined); entryAsk.resolve(); }}>{t('entryConfirm')}</button>
-              <button onClick={() => { skipEntry.current = true; setEntryAsk(undefined); entryAsk.resolve(); }}>{t('entrySkipRun')}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {weekAsk && <WeekScreen ask={weekAsk} onPick={(id) => { setWeekAsk(undefined); weekAsk.resolve(id); }} />}
+      {roundAsk && <RoundScreen key={`${roundAsk.show.round}-${roundAsk.show.phase}`} show={roundAsk.show} onNext={() => { setRoundAsk(undefined); roundAsk.resolve(); }} />}
       {drawAsk && (
         <LiveDraw key={`${drawAsk.d.tournamentId}-${drawAsk.d.discipline}`} show={drawAsk.d}
           title={`${eventName(game.ruleset, drawAsk.d.tournamentId, state.date.year)}${drawAsk.d.discipline ? ` · ${drawAsk.d.discipline}` : ''}`}
           name={(id) => (drawAsk.d.discipline ? `${entrantLabel(state, id).name} (${entrantLabel(state, id).country})` : nameOfCountry(id))}
           mine={(id) => (drawAsk.d.discipline ? entrantLabel(state, id).country === managed : id === managed)}
           onClose={() => { setDrawAsk(undefined); drawAsk.resolve(); }}
-          onSkipEvent={() => { skipDraw.current = drawAsk.d.tournamentId; }} />
+          onSkipEvent={() => { skipDraw.current = true; }} />
       )}
       {teamAsk?.kind === 'squad' && (
         <SquadModal key={`${teamAsk.eventId}-${teamAsk.format}`} title={teamTitle(teamAsk.eventId)} format={teamAsk.format} pool={teamAsk.pool}
@@ -196,41 +177,6 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
           <section className="card">
             <h3>{t('settings')}</h3>
             <div className="settings-form">
-              {managed && (
-                <label>{t('liveMode')}
-                  <select value={liveMode} onChange={(e) => setLiveMode(e.target.value as typeof liveMode)}>
-                    <option value="off">{t('live_off')}</option>
-                    <option value="finals">{t('live_finals')}</option>
-                    <option value="all">{t('live_all')}</option>
-                  </select>
-                </label>
-              )}
-              {managed && (
-                <label>{t('entryPopup')}
-                  <select value={entryMode} onChange={(e) => setEntryMode(e.target.value as typeof entryMode)}>
-                    <option value="off">{t('liveDraw_off')}</option>
-                    <option value="big">{t('entryPopup_big')}</option>
-                    <option value="all">{t('entryPopup_all')}</option>
-                  </select>
-                </label>
-              )}
-              {managed && (
-                <label>{t('liveDraw')}
-                  <select value={drawMode} onChange={(e) => setDrawMode(e.target.value as typeof drawMode)}>
-                    <option value="off">{t('liveDraw_off')}</option>
-                    <option value="big">{t('liveDraw_big')}</option>
-                    <option value="mine">{t('liveDraw_mine')}</option>
-                  </select>
-                </label>
-              )}
-              {managed && (
-                <label>{t('teamMode')}
-                  <select value={state.teamAuto ? 'auto' : 'manual'} onChange={(e) => { state.teamAuto = e.target.value === 'auto'; changed(); void persist(); }}>
-                    <option value="manual">{t('teamMode_manual')}</option>
-                    <option value="auto">{t('teamMode_auto')}</option>
-                  </select>
-                </label>
-              )}
               <LangSelect onChange={onLang} />
               <ThemeSelect />
             </div>

@@ -140,21 +140,6 @@ describe('pasangan percobaan', () => {
     expect(state.matches.some((m) => weekEvents.has(m.tournamentId) && m.year === week.year && m.sides.includes(main.id))).toBe(false);
   });
 
-  it('pop-up entry: dipanggil sebelum entry minggu turnamen; pilihan yang diatur di dalamnya dipakai', async () => {
-    const { state, main, rng } = setup();
-    const calls: number[] = [];
-    let entered = '';
-    const entry = ({ week, events }: { week: number; events: { id: string; tierId: string }[] }) => {
-      calls.push(week);
-      const ev = events.find((e) => e.tierId === 'S1000' || e.tierId === 'S750' || e.tierId === 'S500' || e.tierId === 'S300');
-      if (ev && !entered) { entered = ev.id; state.manualEntries[weekKey(state.date)] = { [main.id]: 'rest' }; }
-      return Promise.resolve();
-    };
-    for (let i = 0; i < 4; i++) await playWeek(state, rs, WORLD, rng, { entry });
-    expect(calls).toEqual(rs.calendar.filter((e) => e.week <= 4 && e.tierId !== 'WTF').map((e) => e.week).filter((w, i, a) => a.indexOf(w) === i).sort((x, y) => x - y));
-    expect(state.matches.some((m) => m.tournamentId === entered && m.sides.includes(main.id))).toBe(false); // diistirahatkan di pop-up
-  });
-
   it('jadikan pasangan utama: pasangan utama lama dibubarkan', () => {
     const { state, main, other, rng } = setup();
     const trial = formPair(state, 'MD', main.playerIds[0], other.id, rng, true) as Pair;

@@ -5,13 +5,14 @@ import { ageAt, currentAbility, generateWorld, isJuniorAge, isPratama } from './
 import { absWeek, computeRace, computeRanking, knockoutResults, rankMap } from './ranking';
 import { makeRng, shuffle, type Rng } from './rng';
 import type { Standing } from './groups';
-import type { MatchRound, PlayFn } from './knockout';
+import { each, type MatchRound, type PlayFn } from './knockout';
 import { juniorEntries, juniorTeamEntrants } from './junior';
 import { AD_HOC, adHocEntrants, autoLineup, autoSquad, lineupError, playTie, runTeamEvent, squadError, squadPool, type Lineup, type TeamEntrant } from './team';
 import { runEvent, simPlay, toRecord, type DrawHook, type EventRecord, type LiveHook } from './tournament';
+import { roundGate, type RoundHook } from './gate';
 import {
   DISCIPLINES, isDoubles, isJuniorFormat, ROUNDS, type Career, type City, type Confederation, type Discipline, type DrawStep, type EntrantId, type GameDate, type Match, type Pair,
-  type Player, type RankingEntry, type Round, type Ruleset, type Tier, type TeamFormat, type TournamentDef, type World,
+  type Player, type RankingEntry, type Round, type Ruleset, type Tier, type TeamEventDef, type TeamFormat, type TournamentDef, type World,
 } from './types';
 
 // Loop musim: tiap minggu AI tiap negara memilih turnamen, turnamen dimainkan, ranking & kelelahan diperbarui.
@@ -62,8 +63,6 @@ export interface SeasonState {
   teamLineups: Partial<Record<TeamFormat, Lineup>>;
   /** Skuad beregu pilihan manajer per format (dipakai bila manajer tidak memilih saat turnamen dimulai). */
   teamSquads: Partial<Record<TeamFormat, string[]>>;
-  /** Manajer memilih "Otomatis" untuk beregu (tanpa pop-up skuad & line-up). */
-  teamAuto?: boolean;
   /** Hadiah uang (USD) per tahun per atlet; ganda dibagi dua per atlet. */
   earnings: Record<string, Record<string, number>>;
   /** Catatan turnamen (entry, kualifikasi, undian, bagan) 2 musim terakhir, untuk halaman turnamen. */
@@ -290,18 +289,22 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
   return entries;
 }
 
-/** Entry manajer minggu ini: Promise selesai setelah manajer mengatur `state.manualEntries`, atau null = langsung lanjut. */
-export type EntryHook = (req: { week: number; events: TournamentDef[] }) => Promise<void> | null;
+/** Pilihan turnamen minggu ini: id turnamen yang dimainkan manajer, atau null = simulasikan sisanya. */
+export type ChooseEvent = (req: { week: number; events: { id: string; kind: 'individual' | 'team' }[]; played: string[] }) => Promise<string | null>;
 
-/** Titik keputusan UI selama satu minggu (semua opsional): entry, live match, beregu, live drawing. */
-export interface WeekHooks { entry?: EntryHook; live?: LiveHook; team?: TeamHook; draw?: DrawHook }
+/**
+ * Titik keputusan UI selama satu minggu (semua opsional). Dengan `chooseEvent`: turnamen yang dipilih dimainkan
+ * interaktif per babak (gerbang babak; `draw`, `round`, `live`, `team` aktif), sisanya otomatis tanpa hook.
+ * Tanpa `chooseEvent`: semua turnamen berurutan dengan hook yang diberikan.
+ */
+export interface WeekHooks { live?: LiveHook; team?: TeamHook; draw?: DrawHook; round?: RoundHook; chooseEvent?: ChooseEvent }
 
 /** Satu minggu kalender. Hook yang mengembalikan Promise membuat simulasi menunggu keputusan di UI. */
 export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rng: Rng, hooks: WeekHooks = {}) {
-  const { live, team, draw } = hooks;
   const { year, week } = state.date;
   if (state.commitmentsYear !== year) startYear(state, rs, rng);
   const events = rs.calendar.filter((e) => e.week === week && isHeld(e, year)).sort((a, b) => tierOf(rs, b).points[0] - tierOf(rs, a).points[0]);
+  const teamEvents = rs.team.events.filter((e) => e.week === week && isHeld(e, year));
   const players = new Map(state.players.map((p) => [p.id, p]));
   const pairs = new Map(state.pairs.map((p) => [p.id, p]));
   const cities = new Map(world.cities.map((c) => [c.id, c]));
@@ -313,36 +316,55 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     if (p.injury && --p.injury.weeksLeft <= 0) p.injury = undefined;
   }
   const isJunior = (e: TournamentDef) => !!tierOf(rs, e).junior;
-  if (events.some((e) => e.tierId !== 'WTF' && !isJunior(e))) await hooks.entry?.({ week, events: events.filter((e) => !isJunior(e)) });
   // Turnamen junior lebih dulu: atlet yang ikut tidak didaftarkan ke turnamen senior minggu ini.
   const juniorRanks = new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.juniorResults, d, cutoff, rs))]));
   const junior = juniorEntries(state, events.filter(isJunior), rs, world, juniorRanks, state.manualEntries[weekKey(state.date)] ?? {}, rng);
   state.pairs.push(...junior.created);
   for (const p of junior.created) pairs.set(p.id, p);
   // Minggu beregu junior (Suhandinata Cup): semua junior disiapkan untuk timnya, tidak didaftarkan otomatis ke turnamen senior.
-  if (rs.team.events.some((e) => e.week === week && isHeld(e, year) && e.formats?.some(isJuniorFormat)))
+  if (teamEvents.some((e) => e.formats?.some(isJuniorFormat)))
     for (const p of state.players) if (isJuniorAge(p, state.date)) junior.busy.add(p.id);
   const entries = chooseEntries(state, events.filter((e) => !isJunior(e)), rs, rng, ranks, junior.busy);
   for (const [id, byD] of junior.entries) entries.set(id, byD);
 
-  for (const event of events) {
+  /** Satu turnamen individu; `gated` = kelima nomor bersamaan lewat gerbang babak. */
+  const playEvent = async (event: TournamentDef, h: WeekHooks, gated: boolean) => {
     const tier = tierOf(rs, event);
     const city = cities.get(event.cityId)!;
     const firstMatch = state.matches.length;
-    for (const d of DISCIPLINES) {
+    const gate = gated ? roundGate(event.id, DISCIPLINES, h.round) : undefined;
+    const draw: DrawHook | undefined = gate && h.draw ? (d) => gate.serial(async () => { await h.draw!(d); }) : h.draw;
+    const ds = DISCIPLINES.filter((d) => tier.drawSize[d] > 0 && entries.get(event.id)!.get(d)!.length >= 2);
+    const runs = await each(gated, ds, (d) => {
       let candidates = entries.get(event.id)!.get(d)!;
-      if (tier.drawSize[d] === 0 || candidates.length < 2) continue;
       if (tier.countryQuota) candidates = applyCountryQuota(candidates, tier.countryQuota);
-      const play = simPlay({ players, pairs, cfg: rs.match, rng, tournamentId: event.id, year, discipline: d, matches: state.matches, live });
-      const run = await runEvent({ tournament: event, discipline: d, year, hostCountryId: city.countryId, candidates, ruleset: rs, rng, play, onDraw: draw });
+      const sim = simPlay({ players, pairs, cfg: rs.match, rng, tournamentId: event.id, year, discipline: d, matches: state.matches, live: h.live });
+      const play = gate ? gate.wrap(d, sim) : sim;
+      return runEvent({ tournament: event, discipline: d, year, hostCountryId: city.countryId, candidates, ruleset: rs, rng, play, onDraw: draw, parallel: gated });
+    });
+    ds.forEach((d, i) => {
+      const run = runs[i];
       (tier.junior ? state.juniorResults : state.results).push(...knockoutResults(run.main, run.slots, event, tier, d, state.date, rs));
       state.eventRecords.push(toRecord(event.id, year, d, run));
       awardPrizes(state, event, tier, d, run.main.reached, pairs);
       state.champions.push({ tournamentId: event.id, year, discipline: d, winner: run.main.rounds.at(-1)![0]! });
-    }
+    });
     applyEventLoad(state, rs, rng, firstMatch, city, tier.grade === 1 || tier.points[0] >= 9000, cities);
-  }
-  await playTeamWeek(state, rs, world, rng, live, team, draw);
+  };
+  const playAny = (id: string, h: WeekHooks, gated: boolean) => {
+    const ev = events.find((e) => e.id === id);
+    return ev ? playEvent(ev, h, gated) : playTeamEvent(state, rs, world, rng, teamEvents.find((e) => e.id === id)!, h, gated);
+  };
+
+  const all = [...events.map((e) => ({ id: e.id, kind: 'individual' as const })), ...teamEvents.map((e) => ({ id: e.id, kind: 'team' as const }))];
+  const played: string[] = [];
+  if (hooks.chooseEvent)
+    for (let id; played.length < all.length && (id = await hooks.chooseEvent({ week, events: all, played })); ) {
+      if (played.includes(id) || !all.some((e) => e.id === id)) continue;
+      played.push(id);
+      await playAny(id, hooks, true);
+    }
+  for (const e of all) if (!played.includes(e.id)) await playAny(e.id, hooks.chooseEvent ? {} : hooks, false);
 
   // Top Committed: absen dari turnamen wajib minggu ini = pelanggaran (cedera dikecualikan mulai Fase 7).
   for (const event of events)
@@ -494,105 +516,108 @@ export function finalsTeams(state: SeasonState, rs: Ruleset, format: TeamFormat,
 }
 
 /**
- * Kejuaraan beregu minggu ini (kontinental lalu final). Partai dicatat sebagai laga biasa (H2H, Live, kelelahan).
+ * Satu kejuaraan beregu (kontinental atau final). Partai dicatat sebagai laga biasa (H2H, Live, kelelahan).
  * Tiap tim mendaftarkan skuad sebelum turnamen; line-up tiap pertandingan diambil dari skuad itu.
  * Manajer memilih lewat `team` (hook UI); tanpa hook / pilihan tidak sah → pilihan tersimpan, lalu otomatis.
  */
-async function playTeamWeek(state: SeasonState, rs: Ruleset, world: World, rng: Rng, live?: LiveHook, team?: TeamHook, draw?: DrawHook) {
-  const { year, week } = state.date;
+async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng: Rng, ev: TeamEventDef, h: WeekHooks, gated: boolean) {
+  const { year } = state.date;
+  const { live, team } = h;
   const cities = new Map(world.cities.map((c) => [c.id, c]));
   const confederation = new Map(world.countries.map((c) => [c.id, c.confederation]));
   const players = new Map(state.players.map((p) => [p.id, p]));
   const pairs = new Map(state.pairs.map((p) => [p.id, p]));
   const max = rs.team.maxMatchesPerPlayer;
-  for (const ev of rs.team.events.filter((e) => e.week === week && isHeld(e, year))) {
-    const city = cities.get(ev.cityId)!;
-    const firstMatch = state.matches.length;
-    const finals = ev.finals ?? rs.team.finals;
-    for (const format of ev.formats ?? teamFormatsIn(rs, year)) {
-      const order = rs.team.order[format];
-      const all = teamStrengths(state, rs, format);
-      const teams = ev.confederation
-        ? all.filter((t) => confederation.get(t.countryId) === ev.confederation).slice(0, rs.team.continentalTeams).map((t) => t.countryId)
-        : finalsTeams(state, rs, format, city.countryId, all, finals.teams);
-      if (teams.length < 2) {
-        // Satu-satunya tim di konfederasinya menjadi juara kontinental tanpa bertanding (tetap lolos ke final).
-        if (ev.confederation && teams.length === 1)
-          state.teamResults.push({ eventId: ev.id, year, format, confederation: ev.confederation, teams, reached: { [teams[0]]: 'W' }, ties: [], squads: {} });
-        continue;
-      }
-      const byCountry = new Map(all.map((t) => [t.countryId, t]));
-      const size = rs.team.squadSize[format];
-      const valid = (s: string[] | undefined, pool: Record<string, TeamEntrant[]>) => s && !squadError(s, order, pool, max, size) ? s : undefined;
-      // Pendaftaran skuad (sebelum pertandingan pertama).
-      const squads: Record<string, string[]> = {};
-      const pools = new Map<string, Record<string, TeamEntrant[]>>();
-      for (const c of teams) {
-        const { pool } = byCountry.get(c)!;
-        const suggested = autoSquad(order, pool, max, size.max);
-        let squad = suggested;
-        if (c === state.managedCountryId) {
-          const asked = team?.squad({ eventId: ev.id, format, pool, suggested: valid(state.teamSquads[format], pool) ?? suggested });
-          squad = valid(asked ? await asked : state.teamSquads[format], pool) ?? suggested;
-          state.teamSquads[format] = squad;
-        }
-        squads[c] = squad;
-        pools.set(c, squadPool(pool, squad));
-      }
-      const lineupOf = async (c: string, opponent: string, round: MatchRound): Promise<Lineup> => {
-        const pool = pools.get(c)!;
-        const real = (l: Lineup) => l.map((id, i) => (id?.startsWith(AD_HOC) ? adHocPair(c, order[i], id) : id)); // ganda dadakan → pasangan
-        const auto = autoLineup(order, pool, max);
-        if (c !== state.managedCountryId) return real(auto);
-        // Line-up manajer boleh memakai ganda dadakan (adhoc:a+b) dari atlet skuad.
-        const squad = new Set(squads[c]);
-        const ok = (l: Lineup | undefined) => {
-          if (!l) return undefined;
-          const byId = new Map([...Object.values(pool).flat(), ...adHocEntrants(l, order, squad, (id) => players.get(id)?.gender)].map((e) => [e.id, e]));
-          return lineupError(l, order, byId, max) ? undefined : l;
-        };
-        const asked = team?.lineup({ eventId: ev.id, format, round, opponent, pool, squad: squads[c], suggested: ok(state.teamLineups[format]) ?? auto });
-        const chosen = ok(asked ? await asked : state.teamLineups[format]);
-        if (chosen && asked) state.teamLineups[format] = chosen; // jadi saran untuk pertandingan berikutnya
-        return real(chosen ?? auto);
-      };
-      /** Pasangan nyata untuk ganda dadakan: pakai pasangan aktif dengan atlet yang sama, atau buat pasangan khusus beregu. */
-      const adHocPair = (c: string, d: Discipline, token: string) => {
-        const ids = token.slice(AD_HOC.length).split('+');
-        const same = (p: Pair) => p.discipline === d && !p.dissolved && ids.every((x) => p.playerIds.includes(x));
-        let pair = state.pairs.find(same);
-        if (!pair) {
-          pair = {
-            id: `${c}-${d}-T${year}-${state.pairs.length}`, discipline: d as Pair['discipline'], playerIds: [ids[0], ids[1]],
-            chemistry: 25, matchesTogether: 0, formed: { ...state.date }, adHoc: true, ...(isJuniorFormat(format) && { junior: true }), // ASUMSI: chemistry awal rendah
-          };
-          state.pairs.push(pair);
-          pairs.set(pair.id, pair);
-        }
-        return pair.id;
-      };
-      const plays = new Map<Discipline, PlayFn>();
-      const playOf = (d: Discipline) => plays.get(d) ?? plays.set(d, simPlay({
-        players, pairs, cfg: rs.match, rng, tournamentId: ev.id, year, discipline: d, matches: state.matches, live,
-      })).get(d)!;
-      const ties: TeamTie[] = [];
-      const tie: PlayFn = async (a, b, round) => {
-        const lineups: [Lineup, Lineup] = [await lineupOf(a, b, round), await lineupOf(b, a, round)];
-        const from = state.matches.length;
-        const r = await playTie(lineups, order, round, playOf, round === 'G');
-        const won = r.scores.filter(([x, y]) => x > y).length;
-        ties.push({ round, sides: [a, b], score: [won, r.scores.length - won], matchIds: state.matches.slice(from).map((m) => m.id) });
-        return r;
-      };
-      const run = await runTeamEvent(teams, ev.confederation ? undefined : finals.groups, tie, rng,
-        (steps) => draw?.({ tournamentId: ev.id, entrants: teams, steps, groups: finals.groups.groups }) ?? null);
-      state.teamResults.push({
-        eventId: ev.id, year, format, confederation: ev.confederation, teams,
-        groups: run.groups, standings: run.standings, reached: Object.fromEntries(run.reached), ties, squads, drawSteps: run.steps,
-      });
+  const city = cities.get(ev.cityId)!;
+  const firstMatch = state.matches.length;
+  const finals = ev.finals ?? rs.team.finals;
+  const formats = ev.formats ?? teamFormatsIn(rs, year);
+  const gate = gated ? roundGate(ev.id, formats, h.round) : undefined;
+  const draw: DrawHook | undefined = gate && h.draw ? (d) => gate.serial(async () => { await h.draw!(d); }) : h.draw;
+  await each(gated, formats, async (format) => {
+    const order = rs.team.order[format];
+    const all = teamStrengths(state, rs, format);
+    const teams = ev.confederation
+      ? all.filter((t) => confederation.get(t.countryId) === ev.confederation).slice(0, rs.team.continentalTeams).map((t) => t.countryId)
+      : finalsTeams(state, rs, format, city.countryId, all, finals.teams);
+    if (teams.length < 2) {
+      // Satu-satunya tim di konfederasinya menjadi juara kontinental tanpa bertanding (tetap lolos ke final).
+      if (ev.confederation && teams.length === 1)
+        state.teamResults.push({ eventId: ev.id, year, format, confederation: ev.confederation, teams, reached: { [teams[0]]: 'W' }, ties: [], squads: {} });
+      return;
     }
-    applyEventLoad(state, rs, rng, firstMatch, city, true, cities);
-  }
+    const byCountry = new Map(all.map((t) => [t.countryId, t]));
+    const size = rs.team.squadSize[format];
+    const valid = (s: string[] | undefined, pool: Record<string, TeamEntrant[]>) => s && !squadError(s, order, pool, max, size) ? s : undefined;
+    // Pendaftaran skuad (sebelum pertandingan pertama).
+    const squads: Record<string, string[]> = {};
+    const pools = new Map<string, Record<string, TeamEntrant[]>>();
+    for (const c of teams) {
+      const { pool } = byCountry.get(c)!;
+      const suggested = autoSquad(order, pool, max, size.max);
+      let squad = suggested;
+      if (c === state.managedCountryId) {
+        const ask = () => team?.squad({ eventId: ev.id, format, pool, suggested: valid(state.teamSquads[format], pool) ?? suggested });
+        const asked = await (gate ? gate.serial(ask) : ask()); // pop-up skuad satu per satu (Thomas & Uber bersamaan)
+        squad = valid(asked ?? state.teamSquads[format], pool) ?? suggested;
+        state.teamSquads[format] = squad;
+      }
+      squads[c] = squad;
+      pools.set(c, squadPool(pool, squad));
+    }
+    const lineupOf = async (c: string, opponent: string, round: MatchRound): Promise<Lineup> => {
+      const pool = pools.get(c)!;
+      const real = (l: Lineup) => l.map((id, i) => (id?.startsWith(AD_HOC) ? adHocPair(c, order[i], id) : id)); // ganda dadakan → pasangan
+      const auto = autoLineup(order, pool, max);
+      if (c !== state.managedCountryId) return real(auto);
+      // Line-up manajer boleh memakai ganda dadakan (adhoc:a+b) dari atlet skuad.
+      const squad = new Set(squads[c]);
+      const ok = (l: Lineup | undefined) => {
+        if (!l) return undefined;
+        const byId = new Map([...Object.values(pool).flat(), ...adHocEntrants(l, order, squad, (id) => players.get(id)?.gender)].map((e) => [e.id, e]));
+        return lineupError(l, order, byId, max) ? undefined : l;
+      };
+      const asked = team?.lineup({ eventId: ev.id, format, round, opponent, pool, squad: squads[c], suggested: ok(state.teamLineups[format]) ?? auto });
+      const chosen = ok(asked ? await asked : state.teamLineups[format]);
+      if (chosen && asked) state.teamLineups[format] = chosen; // jadi saran untuk pertandingan berikutnya
+      return real(chosen ?? auto);
+    };
+    /** Pasangan nyata untuk ganda dadakan: pakai pasangan aktif dengan atlet yang sama, atau buat pasangan khusus beregu. */
+    const adHocPair = (c: string, d: Discipline, token: string) => {
+      const ids = token.slice(AD_HOC.length).split('+');
+      const same = (p: Pair) => p.discipline === d && !p.dissolved && ids.every((x) => p.playerIds.includes(x));
+      let pair = state.pairs.find(same);
+      if (!pair) {
+        pair = {
+          id: `${c}-${d}-T${year}-${state.pairs.length}`, discipline: d as Pair['discipline'], playerIds: [ids[0], ids[1]],
+          chemistry: 25, matchesTogether: 0, formed: { ...state.date }, adHoc: true, ...(isJuniorFormat(format) && { junior: true }), // ASUMSI: chemistry awal rendah
+        };
+        state.pairs.push(pair);
+        pairs.set(pair.id, pair);
+      }
+      return pair.id;
+    };
+    const plays = new Map<Discipline, PlayFn>();
+    const playOf = (d: Discipline) => plays.get(d) ?? plays.set(d, simPlay({
+      players, pairs, cfg: rs.match, rng, tournamentId: ev.id, year, discipline: d, matches: state.matches, live,
+    })).get(d)!;
+    const ties: TeamTie[] = [];
+    const tie: PlayFn = async (a, b, round) => {
+      const lineups: [Lineup, Lineup] = [await lineupOf(a, b, round), await lineupOf(b, a, round)];
+      const from = state.matches.length;
+      const r = await playTie(lineups, order, round, playOf, round === 'G');
+      const won = r.scores.filter(([x, y]) => x > y).length;
+      ties.push({ round, sides: [a, b], score: [won, r.scores.length - won], matchIds: state.matches.slice(from).map((m) => m.id) });
+      return r;
+    };
+    const run = await runTeamEvent(teams, ev.confederation ? undefined : finals.groups, gate ? gate.wrap(format, tie) : tie, rng,
+      (steps) => draw?.({ tournamentId: ev.id, entrants: teams, steps, groups: finals.groups.groups }) ?? null, gated);
+    state.teamResults.push({
+      eventId: ev.id, year, format, confederation: ev.confederation, teams,
+      groups: run.groups, standings: run.standings, reached: Object.fromEntries(run.reached), ties, squads, drawSteps: run.steps,
+    });
+  });
+  applyEventLoad(state, rs, rng, firstMatch, city, true, cities);
 }
 
 /** Riwayat peringkat dari snapshot (tiap 4 minggu). */

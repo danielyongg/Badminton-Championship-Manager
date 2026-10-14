@@ -12,9 +12,9 @@ const TYPES: PointType[] = ['smash', 'net', 'clear', 'drop', 'error', 'service']
  * Live Match: rally demi rally. Strategi dipilih sebelum laga, saat interval 11 poin, dan antar game.
  * Lawan (AI) memakai strategi 'balanced'.
  */
-export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, onDone, onAutoRest }: {
+export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, onDone, onSkipRound }: {
   sides: [SideInput, SideInput]; names: [string, string]; ids?: [string, string]; mySide: 0 | 1; cfg: MatchConfig; rng: Rng; title: string;
-  onDone: (r: MatchResult) => void; onAutoRest?: () => void;
+  onDone: (r: MatchResult) => void; onSkipRound?: () => void;
 }) {
   const st = useRef<MatchState>(null);
   if (!st.current) st.current = createMatch(sides, cfg, rng);
@@ -111,6 +111,7 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, onDone, 
               : <button className="primary" onClick={() => setRunning(true)}>{m.rallies === 0 ? t('startMatch') : t('resume')}</button>}
             <button disabled={running} onClick={() => step()}>{t('oneRally')}</button>
             <button onClick={finish}>{t('autoFinish')}</button>
+            {onSkipRound && <button onClick={() => { finish(); onDone(matchResult(m)); onSkipRound(); }}>{t('simRound')}</button>}
           </div>
         )}
         {!running && !done && m.rallies > 0 && <p className="hint">{t('strategyHint')}</p>}
@@ -131,7 +132,7 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, onDone, 
           <div className="controls">
             <b>{names[m.winner!]} {t('wins')}!</b>
             <button className="primary" onClick={() => onDone(matchResult(m))}>{t('continue')}</button>
-            {onAutoRest && <button onClick={() => { onDone(matchResult(m)); onAutoRest(); }}>{t('autoRestOfWeek')}</button>}
+            {onSkipRound && <button onClick={() => { onDone(matchResult(m)); onSkipRound(); }}>{t('simRound')}</button>}
           </div>
         )}
       </div>

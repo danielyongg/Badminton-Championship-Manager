@@ -1,5 +1,5 @@
 import { groupDraw, knockoutFromGroups, playGroup, type Standing } from './groups';
-import { playKnockout, type MatchRound, type PlayFn, type PlayResult } from './knockout';
+import { each, playKnockout, type MatchRound, type PlayFn, type PlayResult } from './knockout';
 import type { Rng } from './rng';
 import type { Discipline, DrawStep, EntrantId, GroupStage } from './types';
 import { t } from '../i18n';
@@ -132,21 +132,19 @@ export interface TeamEventRun {
  * `tie` = PlayFn tingkat negara (memainkan 5 partai); id peserta = id negara.
  */
 export async function runTeamEvent(
-  teams: string[], groups: GroupStage | undefined, tie: PlayFn, rng: Rng, onDraw?: (steps: DrawStep[]) => Promise<void> | null,
+  teams: string[], groups: GroupStage | undefined, tie: PlayFn, rng: Rng, onDraw?: (steps: DrawStep[]) => Promise<void> | null, parallel = false,
 ): Promise<TeamEventRun> {
   const standing = (id: string): Standing => ({ id, wins: 0, gameDiff: 0, pointDiff: 0 });
   if (groups && teams.length > groups.groups * groups.advance) {
     const drawn = groupDraw(teams.map((id, i) => ({ id, countryId: id, rank: i + 1 })), groups, rng);
     const ids = drawn.groups.map((g) => g.map((e) => e.id));
     await onDraw?.(drawn.steps);
-    const standings: Standing[][] = [];
-    for (const g of ids) standings.push(await playGroup(g, tie));
-    const ko = await playKnockout(knockoutFromGroups(standings, groups.advance, rng), tie);
+    const standings = await each(parallel, ids, (g) => playGroup(g, tie, parallel));
+    const ko = await playKnockout(knockoutFromGroups(standings, groups.advance, rng), tie, undefined, parallel);
     return { groups: ids, standings, steps: drawn.steps, ...ko };
   }
   // ponytail: unggulan sebagai "juara grup" berisi 1 tim → posisi unggulan & bye dari knockoutFromGroups.
-  const ko = await playKnockout(knockoutFromGroups(teams.map((id) => [standing(id)]), 1, rng), tie);
-  return ko;
+  return playKnockout(knockoutFromGroups(teams.map((id) => [standing(id)]), 1, rng), tie, undefined, parallel);
 }
 
 /** Tingkat hasil beregu untuk target federasi: 0 tidak lolos, 1 fase grup, 2 QF, 3 SF, 4 final, 5 juara. */

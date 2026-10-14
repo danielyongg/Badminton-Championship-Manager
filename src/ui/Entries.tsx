@@ -10,13 +10,11 @@ import { isPratama } from '../engine/generator';
 import { formatName, SquadPicker } from './Team';
 
 /** Kalender & entry: daftar jadwal turnamen musim ini + status entry; klik turnamen → isi entry-nya. */
-/** `fixedWeek`: langsung tabel entry minggu itu (dipakai pop-up entry mingguan). */
-export function Entries({ fixedWeek, onOpenEvent }: { fixedWeek?: number; onOpenEvent?: (id: string, year: number) => void }) {
+export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: number) => void }) {
   const { game, changed } = useGame();
   const { state, ruleset } = game;
   const { year, week } = state.date;
   const [open, setOpen] = useState<string>();
-  if (fixedWeek !== undefined) return <EntryTable week={fixedWeek} />;
   const submit = (id: string) => { (state.entriesSubmitted ??= {})[`${year}:${id}`] = true; changed(); void saveGame(game); setOpen(undefined); };
   const teamEv = open && ruleset.team.events.find((e) => e.id === open);
   if (teamEv) return (

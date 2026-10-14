@@ -18,6 +18,7 @@ Daftar fitur yang belum dibuat. Fase 1–10 sudah selesai (lihat `git log`); asu
 
 ## Fitur tambahan dari diskusi
 - [x] **Live drawing** (gaya Football Manager): pilihan header *Mati / Turnamen besar saja / Semua yang diikuti atlet saya*; mangkuk pot + bagan/grup terisi, pengumuman tiap langkah, pemisahan negara menyala; putar ulang dari halaman turnamen & hasil beregu. Undian babak kualifikasi tidak ditampilkan (hanya pembagian seksi acak).
+- [x] **Alur turnamen per babak** (spesifikasi `docs/superpowers/specs/2026-10-14-alur-turnamen-per-babak-design.md`): Maju 1 minggu → layar *Turnamen minggu ini* (Mainkan / Lewati semua) → drawing → babak demi babak untuk kelima nomor sekaligus, tiap laga atlet sendiri live (Simulasikan laga ini / sisa babak); beregu: skuad → line-up → partai live. Pengaturan Live, Live drawing, pop-up entry & mode beregu dihapus.
 - [x] **Pasangan ganda percobaan**: dibentuk tanpa membubarkan pasangan utama, ranking sendiri, hanya ikut bila didaftarkan manual, bisa dijadikan pasangan utama.
 - [x] Pop-up "Daftarkan atlet" sebelum minggu turnamen (pilihan header: Mati / Minggu turnamen besar / Tiap minggu turnamen; bawaan Mati).
 - [x] Ganda dadakan khusus beregu: slot ganda di line-up = dua atlet skuad bebas; pasangan khusus beregu tanpa ranking.

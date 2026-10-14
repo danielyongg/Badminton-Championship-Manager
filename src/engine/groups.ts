@@ -1,5 +1,5 @@
 import { nextPow2, seedPositionGroups, type DrawEntrant } from './draw';
-import { mainRoundName, type MatchRound, type PlayFn } from './knockout';
+import { mainRoundName, type MatchRound, type PlayFn, type PlayResult } from './knockout';
 import { shuffle, type Rng } from './rng';
 import { ROUNDS, type DrawStep, type EntrantId, type GroupStage, type Round } from './types';
 
@@ -54,21 +54,26 @@ export function groupDraw(entrants: DrawEntrant[], g: GroupStage, rng: Rng): { g
  * Round-robin satu grup. Urutan: jumlah menang; 2 seri → head-to-head;
  * ≥ 3 seri → selisih game, lalu selisih poin, lalu urutan unggulan. (ASUMSI: disederhanakan dari GCR)
  */
-export async function playGroup(ids: EntrantId[], play: PlayFn): Promise<Standing[]> {
+export async function playGroup(ids: EntrantId[], play: PlayFn, parallel = false): Promise<Standing[]> {
   const st = new Map(ids.map((id) => [id, { id, wins: 0, gameDiff: 0, pointDiff: 0 }]));
   const beat = new Set<string>();
+  const pending: Promise<void>[] = [];
   for (let i = 0; i < ids.length; i++)
     for (let j = i + 1; j < ids.length; j++) {
-      const r = await play(ids[i], ids[j], 'G');
-      const [w, l] = r.winner === 0 ? [ids[i], ids[j]] : [ids[j], ids[i]];
-      st.get(w)!.wins++;
-      beat.add(`${w}>${l}`);
-      for (const [x, y] of r.scores) {
-        const sa = st.get(ids[i])!, sb = st.get(ids[j])!;
-        sa.gameDiff += x > y ? 1 : -1; sb.gameDiff += x > y ? -1 : 1;
-        sa.pointDiff += x - y; sb.pointDiff += y - x;
-      }
+      const settle = (r: PlayResult) => {
+        const [w, l] = r.winner === 0 ? [ids[i], ids[j]] : [ids[j], ids[i]];
+        st.get(w)!.wins++;
+        beat.add(`${w}>${l}`);
+        for (const [x, y] of r.scores) {
+          const sa = st.get(ids[i])!, sb = st.get(ids[j])!;
+          sa.gameDiff += x > y ? 1 : -1; sb.gameDiff += x > y ? -1 : 1;
+          sa.pointDiff += x - y; sb.pointDiff += y - x;
+        }
+      };
+      const r = play(ids[i], ids[j], 'G');
+      if (parallel) pending.push(Promise.resolve(r).then(settle)); else settle(await r);
     }
+  await Promise.all(pending);
   const seedOrder = new Map(ids.map((id, i) => [id, i]));
   const list = [...st.values()];
   return list.sort((a, b) => {

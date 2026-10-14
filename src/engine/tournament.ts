@@ -1,7 +1,7 @@
 import { makeDraw, type DrawResult } from './draw';
 import { acceptEntries, qualifyingSections, type Candidate, type EntryList } from './entry';
 import { groupDraw, groupEliminatedRound, knockoutFromGroups, playGroup, type GroupStageResult } from './groups';
-import { fillQualifiers, playKnockout, qualRoundName, slotField, type KnockoutResult, type PlayFn } from './knockout';
+import { each, fillQualifiers, playKnockout, qualRoundName, slotField, type KnockoutResult, type PlayFn } from './knockout';
 import { simulateMatch, type MatchResult, type SideInput } from './match';
 import type { Rng } from './rng';
 import type { Discipline, DrawSlot, DrawStep, EntrantId, Match, MatchConfig, Pair, Player, Ruleset, TournamentDef } from './types';
@@ -35,8 +35,10 @@ export type DrawHook = (d: DrawShow) => Promise<void> | null;
 export async function runEvent(opts: {
   tournament: TournamentDef; discipline: Discipline; year: number; hostCountryId: string;
   candidates: Candidate[]; ruleset: Ruleset; rng: Rng; play: PlayFn; onDraw?: DrawHook;
+  /** Laga satu babak dimulai bersamaan (untuk gerbang babak). */
+  parallel?: boolean;
 }): Promise<EventRun> {
-  const { tournament, discipline, ruleset, rng, candidates } = opts;
+  const { tournament, discipline, ruleset, rng, candidates, parallel } = opts;
   const tier = ruleset.tiers.find((t) => t.id === tournament.tierId)!;
   const size = tier.drawSize[discipline];
 
@@ -58,10 +60,9 @@ export async function runEvent(opts: {
     const drawn = groupDraw(all, gs, rng);
     const groups = drawn.groups.map((g) => g.map((e) => e.id));
     await opts.onDraw?.({ tournamentId: tournament.id, discipline, entrants: all.map((e) => e.id), steps: drawn.steps, groups: gs.groups });
-    const standings: Awaited<ReturnType<typeof playGroup>>[] = [];
-    for (const g of groups) standings.push(await playGroup(g, opts.play));
+    const standings = await each(parallel, groups, (g) => playGroup(g, opts.play, parallel));
     const field = knockoutFromGroups(standings, gs.advance, rng);
-    const main = await playKnockout(field, opts.play);
+    const main = await playKnockout(field, opts.play, undefined, parallel);
     standings.forEach((s) => s.forEach((row, place) => {
       if (place >= gs.advance) main.reached.set(row.id, groupEliminatedRound(field.length, place + 1, gs.advance));
     }));
@@ -75,10 +76,9 @@ export async function runEvent(opts: {
   const draw = makeDraw(drawEntrants, entry.qualifierSlots, tier.grade, ruleset, rng);
   await opts.onDraw?.({ tournamentId: tournament.id, discipline, entrants: drawEntrants.map((e) => e.id), steps: draw.steps, size: draw.slots.length });
 
-  const qualResults: KnockoutResult[] = [];
-  for (const sec of qualSections) qualResults.push(await playKnockout(sec.map((c) => c?.id ?? null), opts.play, qualRoundName));
+  const qualResults = await each(parallel, qualSections, (sec) => playKnockout(sec.map((c) => c?.id ?? null), opts.play, qualRoundName, parallel));
   const slots = fillQualifiers(draw.slots, qualResults.map((r) => r.rounds.at(-1)![0]), rng);
-  const main = await playKnockout(slotField(slots), opts.play);
+  const main = await playKnockout(slotField(slots), opts.play, undefined, parallel);
   return { entry, qualSections, qualResults, draw, slots, main };
 }
 

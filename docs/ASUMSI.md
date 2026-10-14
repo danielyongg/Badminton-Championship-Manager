@@ -169,3 +169,10 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Atlet**: hanya U19. Kekuatan tim & urutan pool memakai **ranking junior** (lalu kemampuan). Ganda: pasangan aktif yang kedua atletnya U19; sisanya ganda dadakan junior (juga untuk tim AI). Pasangan dadakan yang terbentuk ditandai `junior` sehingga dipakai ulang di Kejuaraan Dunia Junior.
 - Di minggu Suhandinata, semua junior tidak didaftarkan otomatis ke turnamen senior (entry manual tetap bisa).
 - Tidak masuk target musim federasi dan tidak dimainkan di kejuaraan beregu kontinental. Skuad & line-up negara manajer lewat pop-up yang sama dengan Thomas/Uber/Sudirman.
+
+## Alur turnamen per babak (gerbang babak)
+- Babak global: kualifikasi Q1, Q2, … → grup → R256 … F; nomor tanpa kualifikasi mulai di babak pertamanya. Nomor yang sudah selesai tidak muncul lagi.
+- Fase grup (WTF, putaran final beregu) ditampilkan sebagai **satu babak "Grup"** (belum dipecah per hari pertandingan).
+- Laga negara lain dan laga di turnamen yang tidak dimainkan disimulasikan langsung. Derbi dua atlet negara sendiri tetap live (sisi kita = sisi pertama).
+- Tombol Mainkan nonaktif bila entry turnamen individu belum di-submit; junior & World Tour Finals (entry otomatis) serta beregu (skuad dipilih di pop-up) selalu bisa dimainkan.
+- Urutan RNG turnamen yang dimainkan berbeda dari jalur otomatis (tetap deterministik); jalur otomatis (Maju 4 minggu / akhir musim / Lewati) tidak berubah.
