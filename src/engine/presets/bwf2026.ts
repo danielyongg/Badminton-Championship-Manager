@@ -162,7 +162,7 @@ export const CALENDAR_2026: TournamentDef[] = [
   t('south-africa-is', 'South Africa International', 'johannesburg', 31, 'IS', 8000),
   t('vietnam-open', 'Vietnam Open', 'ho-chi-minh', 32, 'S100', 110000),
   t('indonesia-masters-100', 'Indonesia Masters Super 100', 'surabaya', 33, 'S100', 110000),
-  t('world-championships', 'Kejuaraan Dunia', 'new-delhi', 34, 'WC', 0, { everyYears: { interval: 4, offset: 0, invert: true } }),
+  t('world-championships', 'Kejuaraan Dunia BWF', 'new-delhi', 34, 'WC', 0, { everyYears: { interval: 4, offset: 0, invert: true } }),
   t('olympics', 'Olimpiade', 'los-angeles', 31, 'OG', 0, { everyYears: { interval: 4, offset: 0 } }),
   t('bulgarian-ic', 'Bulgarian Open', 'sofia', 35, 'IC', 20000),
   t('hong-kong-open', 'Hong Kong Open', 'hong-kong', 36, 'S500', 475000),
