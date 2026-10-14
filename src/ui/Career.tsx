@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import type { MatchResult } from '../engine/match';
 import type { DrawHook, DrawShow, LiveHook, LiveRequest } from '../engine/tournament';
 import { goalProgress } from '../engine/career';
+import { ageAt } from '../engine/generator';
 import { isHeld, switchCountry, type EntryHook, type TeamHook } from '../engine/season';
 import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
@@ -16,7 +17,7 @@ import { ThemeSelect } from './ThemeSelect';
 import { Flag } from './Flag';
 import { LiveDraw } from './LiveDraw';
 import { LiveMatch } from './LiveMatch';
-import { advance, entrantLabel, eventName, lookup, saveGame, useGame } from './game';
+import { advance, entrantLabel, eventName, JUNIOR_MAX_AGE, lookup, saveGame, useGame } from './game';
 import { SeasonViews } from './Ranking';
 import { Profile, Squad, usd } from './Squad';
 import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
@@ -447,12 +448,31 @@ function Federation({ onChanged, onOpen, onOpenEvent }: { onChanged: () => void;
   const byTier = groupBy(titles, (c) => tierOfEvent.get(c.tournamentId) ?? '');
   const teamTitles = state.teamResults.filter((r) => r.year === year && country && r.reached[country] === 'W');
   const person = (id: string) => lookup(state).pairs.get(id)?.playerIds[0] ?? id;
+  // Ringkasan: atlet aktif, turnamen diikuti & rekor laga tahun ini (individu + beregu).
+  const squad = state.players.filter((p) => p.countryId === country && p.retired === undefined);
+  const juniorCount = squad.filter((p) => ageAt(p.birth, state.date) <= JUNIOR_MAX_AGE).length;
+  const mineIds = new Set([...squad.map((p) => p.id), ...state.pairs.filter((x) => players.get(x.playerIds[0])?.countryId === country).map((x) => x.id)]);
+  const played = new Set<string>();
+  let won = 0, lost = 0;
+  for (const m of state.matches) {
+    if (m.year !== year) continue;
+    const i = mineIds.has(m.sides[0]) ? 0 : mineIds.has(m.sides[1]) ? 1 : -1;
+    if (i < 0) continue;
+    played.add(m.tournamentId);
+    if (m.winner === i) won++; else lost++;
+  }
   return (
     <div className="dash">
       {country && (
         <section className="card">
           <h3><Flag id={country} />{countryName(country)}</h3>
-          <p>{t('reputation')}: <b>{state.career!.reputation}</b> / 100 · {t('titlesYear', { y: year })}: <b>{titles.length + teamTitles.length}</b></p>
+          <div className="stats">
+            {[
+              [t('statPlayers'), squad.length], [t('men'), squad.filter((p) => p.gender === 'M').length], [t('women'), squad.filter((p) => p.gender === 'F').length],
+              [t('seniors'), squad.length - juniorCount], [t('juniors'), juniorCount], [t('reputation'), `${state.career!.reputation}/100`],
+              [t('statEvents', { y: year }), played.size], [t('statRecord', { y: year }), `${won}–${lost}`], [t('titlesYear', { y: year }), titles.length + teamTitles.length],
+            ].map(([label, value]) => <div key={String(label)}><b>{value}</b><small>{label}</small></div>)}
+          </div>
         </section>
       )}
       {country && (
