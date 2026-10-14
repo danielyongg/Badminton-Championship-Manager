@@ -20,6 +20,7 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
   const { state, ruleset, world } = game;
   const { year } = state.date;
   const [editing, setEditing] = useState<string>();
+  const [hidden, setHidden] = useState(false); // ✕: pop-up disembunyikan agar tab lain (Entry, Skuad) bisa dibuka
   const city = (id: string) => dataName(world.cities.find((c) => c.id === id)?.name);
   if (editing) return (
     <div className="modal" role="dialog" aria-label={t('weekEvents')}>
@@ -34,9 +35,16 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
       </div>
     </div>
   );
+  if (hidden) return (
+    <div className="livebar card">
+      🏸 <b>{t('weekEvents')} · {t('week')} {ask.week}</b>
+      <button onClick={() => setHidden(false)}>{t('openRound')}</button>
+    </div>
+  );
   return (
     <div className="modal" role="dialog" aria-label={t('weekEvents')}>
       <div className="live card">
+        <button className="close" title={t('hideRound')} aria-label={t('hideRound')} onClick={() => setHidden(true)}>✕</button>
         <h3>{t('weekEvents')} · {t('week')} {ask.week}</h3>
         <ul className="weeklist">{ask.events.map(({ id, kind }) => {
           const ev = kind === 'team' ? ruleset.team.events.find((e) => e.id === id)! : ruleset.calendar.find((e) => e.id === id)!;
