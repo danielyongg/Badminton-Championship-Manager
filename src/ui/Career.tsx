@@ -49,7 +49,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   // Beregu: pop-up skuad sebelum turnamen & line-up sebelum tiap pertandingan (kecuali mode Otomatis / "Auto sisa minggu").
   const askTeam = () => !!managed && !state.teamAuto && !autoRest.current;
   const teamHook: TeamHook = {
-    squad: (req) => (askTeam() ? new Promise((resolve) => setTeamAsk({ ...req, kind: 'squad', resolve })) : null),
+    squad: (req) => (askTeam() && !state.entriesSubmitted?.[`${state.date.year}:${req.eventId}`] ? new Promise((resolve) => setTeamAsk({ ...req, kind: 'squad', resolve })) : null),
     lineup: (req) => (askTeam() ? new Promise((resolve) => setTeamAsk({ ...req, kind: 'lineup', resolve })) : null),
   };
   // Pop-up entry: sebelum minggu turnamen (besar saja / semua), manajer memeriksa & mengubah entry minggu itu.
@@ -117,7 +117,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   };
   const weeksToSeasonEnd = 52 - state.date.week + 1;
   const countryName = managed ? dataName(world.countries.find((c) => c.id === managed)?.name) : t('observer');
-  const tabs: Tab[] = managed ? ['dashboard', 'squad', 'entries', 'team', 'world', 'federation', 'editor', 'settings'] : ['dashboard', 'team', 'world', 'federation', 'editor', 'settings'];
+  const tabs: Tab[] = managed ? ['dashboard', 'squad', 'entries', 'world', 'federation', 'editor', 'settings'] : ['dashboard', 'team', 'world', 'federation', 'editor', 'settings'];
   const tabLabel: Record<Tab, TextKey> = {
     dashboard: 'tabDashboard', settings: 'settings', squad: 'tabSquad', entries: 'tabEntries', team: 'tabTeam', world: 'tabWorld', federation: 'tabFederation', editor: 'tabEditor',
   };

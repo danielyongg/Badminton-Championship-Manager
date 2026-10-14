@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
-import { entrantsFor, isHeld, weekKey } from '../engine/season';
-import { DISCIPLINES } from '../engine/types';
+import { entrantsFor, isHeld, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
+import { autoSquad, squadError } from '../engine/team';
+import { DISCIPLINES, type TeamFormat } from '../engine/types';
 import { dataName, t } from '../i18n';
-import { entrantLabel, lookup, saveGame, useGame } from './game';
+import { entrantLabel, eventName, lookup, saveGame, useGame } from './game';
 import { FatigueBar } from './Squad';
 import { isPratama } from '../engine/generator';
+import { formatName, SquadPicker } from './Team';
 
 /** Kalender & entry: daftar jadwal turnamen musim ini + status entry; klik turnamen → isi entry-nya. */
 /** `fixedWeek`: langsung tabel entry minggu itu (dipakai pop-up entry mingguan). */
@@ -15,33 +17,42 @@ export function Entries({ fixedWeek, onOpenEvent }: { fixedWeek?: number; onOpen
   const { year, week } = state.date;
   const [open, setOpen] = useState<string>();
   if (fixedWeek !== undefined) return <EntryTable week={fixedWeek} />;
+  const submit = (id: string) => { (state.entriesSubmitted ??= {})[`${year}:${id}`] = true; changed(); void saveGame(game); setOpen(undefined); };
+  const teamEv = open && ruleset.team.events.find((e) => e.id === open);
+  if (teamEv) return (
+    <>
+      <p><button onClick={() => setOpen(undefined)}>← {t('back')}</button></p>
+      <h3>{t('week')} {teamEv.week} · {eventName(ruleset, teamEv.id, year)} <small className="muted-text">{t('teamShort')}</small></h3>
+      <TeamSquads formats={teamEv.formats ?? teamFormatsIn(ruleset, year)} onSubmit={() => submit(teamEv.id)} />
+    </>
+  );
   const ev = open && ruleset.calendar.find((e) => e.id === open);
   if (ev) return (
     <>
       <p><button onClick={() => setOpen(undefined)}>← {t('back')}</button></p>
       <h3>{t('week')} {ev.week} · {dataName(ev.name)} <small className="muted-text">{ev.tierId}</small></h3>
       <EntryTable week={ev.week} eventId={ev.id} />
-      <p><button className="primary" onClick={() => {
-        (state.entriesSubmitted ??= {})[`${year}:${ev.id}`] = true;
-        changed(); void saveGame(game); setOpen(undefined);
-      }}>{t('submitEntries')}</button></p>
+      <p><button className="primary" onClick={() => submit(ev.id)}>{t('submitEntries')}</button></p>
     </>
   );
   const city = (id: string) => dataName(game.world.cities.find((c) => c.id === id)?.name);
   const submitted = (id: string) => state.entriesSubmitted?.[`${year}:${id}`];
-  const list = ruleset.calendar.filter((e) => isHeld(e, year)).sort((a, b) => a.week - b.week);
+  const teamIds = new Set(ruleset.team.events.map((e) => e.id));
+  const list = [...ruleset.calendar, ...ruleset.team.events].filter((e) => isHeld(e, year)).sort((a, b) => a.week - b.week);
   return (
     <div className="scroll">
       <table>
         <thead><tr><th className="num">{t('week')}</th><th>{t('tournament')}</th><th>{t('tier')}</th><th>{t('city')}</th><th>{t('entryStatus')}</th></tr></thead>
         <tbody>{list.map((e) => {
           const past = e.week < week;
-          const auto = e.tierId === 'WTF' || ruleset.tiers.find((x) => x.id === e.tierId)?.junior; // junior & Finals: otomatis
+          const team = teamIds.has(e.id);
+          const tier = 'tierId' in e ? e.tierId : '';
+          const auto = !team && (tier === 'WTF' || ruleset.tiers.find((x) => x.id === tier)?.junior); // junior & Finals: otomatis
           return (
             <tr key={e.id} className={past ? 'muted-text' : undefined}>
               <td className="num">{e.week}</td>
-              <td><a href="#" onClick={(x) => { x.preventDefault(); if (past || auto) onOpenEvent?.(e.id, year); else setOpen(e.id); }}>{dataName(e.name)}</a></td>
-              <td><span className="chip">{ruleset.tiers.find((x) => x.id === e.tierId)?.junior ? t('juniorShort') : e.tierId}</span></td>
+              <td><a href="#" onClick={(x) => { x.preventDefault(); if (past || auto) onOpenEvent?.(e.id, year); else setOpen(e.id); }}>{team ? eventName(ruleset, e.id, year) : dataName(e.name)}</a></td>
+              <td><span className="chip">{team ? t('teamShort') : ruleset.tiers.find((x) => x.id === tier)?.junior ? t('juniorShort') : tier}</span></td>
               <td>{city(e.cityId)}</td>
               <td>{past ? t('finished') : auto ? t('auto')
                 : submitted(e.id) ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>}</td>
@@ -117,6 +128,41 @@ function EntryTable({ week: w, eventId }: { week: number; eventId?: string }) {
           </div>
         </>
       )}
+    </>
+  );
+}
+
+/** Skuad beregu per format turnamen (line-up dipilih di pop-up sebelum tiap pertandingan). */
+function TeamSquads({ formats, onSubmit }: { formats: TeamFormat[]; onSubmit: () => void }) {
+  const { game } = useGame();
+  const { state, ruleset } = game;
+  const country = state.career!.countryId!;
+  const max = ruleset.team.maxMatchesPerPlayer;
+  const pools = formats.map((f) => {
+    const all = teamStrengths(state, ruleset, f);
+    const rank = all.findIndex((x) => x.countryId === country);
+    return { f, rank, total: all.length, pool: all[rank]?.pool };
+  });
+  const [squads, setSquads] = useState(() => Object.fromEntries(pools.map(({ f, pool }) =>
+    [f, state.teamSquads[f] ?? (pool ? autoSquad(ruleset.team.order[f], pool, max, ruleset.team.squadSize[f].max) : [])])) as Record<TeamFormat, string[]>);
+  const errs = pools.map(({ f, pool }) => pool && squadError(squads[f], ruleset.team.order[f], pool, max, ruleset.team.squadSize[f]));
+  return (
+    <>
+      <p className="hint">{t('squadHint')}</p>
+      {pools.map(({ f, rank, total, pool }, i) => (
+        <section key={f} className="card">
+          <h4>{formatName(f)}</h4>
+          {!pool ? <p>{t('teamNotEligible')}</p> : <>
+            <p>{t('teamStrengthRank')}: <b>#{rank + 1}</b> / {total}</p>
+            <SquadPicker pool={pool} value={squads[f]} size={ruleset.team.squadSize[f]} onChange={(v) => setSquads({ ...squads, [f]: v })} />
+            {errs[i] && <small className="down">{errs[i]}</small>}
+          </>}
+        </section>
+      ))}
+      <p><button className="primary" disabled={errs.some(Boolean)} onClick={() => {
+        for (const { f, pool } of pools) if (pool) state.teamSquads[f] = squads[f];
+        onSubmit();
+      }}>{t('submitEntries')}</button></p>
     </>
   );
 }
