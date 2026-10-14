@@ -306,3 +306,5 @@ td.strong { font-weight: 700; }
 .roundlist td.win { font-weight: 700; }
 @media (max-width: 600px) { .roundlist td { white-space: normal; } }
 .roundbar { position: sticky; bottom: 0; background: var(--surface); padding: 10px 0; border-top: 1px solid var(--line); }
+.roundlist tr.current td { background: var(--gold-soft); }
+.roundlist .rowtoggle { font-size: .75rem; padding: 1px 8px; min-height: 0; }

@@ -24,7 +24,7 @@ import { Profile, Squad, usd } from './Squad';
 import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
 import { TournamentView } from './TournamentView';
 import { MatchLink } from './MatchDetail';
-import { RoundScreen, WeekScreen, type WeekAsk } from './WeekFlow';
+import { RoundScreen, rowKey, WeekScreen, type WeekAsk } from './WeekFlow';
 
 type Tab = 'dashboard' | 'squad' | 'entries' | 'team' | 'world' | 'federation' | 'editor' | 'settings';
 
@@ -66,16 +66,25 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   const [roundAsk, setRoundAsk] = useState<{ show: RoundShow; resolve: () => void }>();
   const skipRound = useRef(false);
   const roundTab = useRef<string>(undefined); // tab nomor terakhir di layar babak
+  const skipRows = useRef(new Set<string>()); // baris laga atlet sendiri yang di-Skip
+  const currentRow = useRef('');
   const roundHook: RoundHook = (show) => {
-    skipRound.current = false;
-    return new Promise<void>((resolve) => setRoundAsk({ show, resolve }));
+    const snap = { ...show, matches: show.matches.map((m) => ({ ...m })) }; // salinan baru → layar digambar ulang
+    if (show.phase === 'pending') { skipRound.current = false; skipRows.current = new Set(); }
+    if (show.phase !== 'playing') return new Promise<void>((resolve) => setRoundAsk({ show: snap, resolve }));
+    // Laga demi laga: jeda singkat agar skor terlihat terisi satu per satu; laga Live langsung membuka pop-up.
+    const m = show.matches[show.current!];
+    currentRow.current = rowKey(m);
+    setRoundAsk({ show: snap, resolve: () => {} });
+    const mine = m.sides.some((id) => id === managed || entrantLabel(state, id).country === managed);
+    return skipRound.current || (mine && !skipRows.current.has(currentRow.current)) ? null : new Promise<void>((r) => setTimeout(r, 100));
   };
   const nameOfCountry = (id: string) => dataName(world.countries.find((c) => c.id === id)?.name) ?? id;
   const teamTitle = (eventId: string) => eventName(game.ruleset, eventId, state.date.year) ?? eventId;
 
   // Tiap laga atlet negara sendiri di turnamen yang dimainkan tampil Live; sisanya langsung disimulasikan.
   const hook: LiveHook = (req) => {
-    if (skipRound.current) return null;
+    if (skipRound.current || skipRows.current.has(currentRow.current)) return null;
     const mine = req.entrants.map((id) => entrantLabel(state, id).country === managed);
     if (!mine[0] && !mine[1]) return null;
     return new Promise((resolve) => setLive({ req, mySide: mine[0] ? 0 : 1, resolve }));
@@ -136,6 +145,9 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
         </div>
         <button className="menu-btn" disabled={busy} onClick={onQuit}>{t('mainMenu')}</button>
       </header>
+      {roundAsk && <RoundScreen key={`${roundAsk.show.tournamentId}-${roundAsk.show.round}`} show={roundAsk.show} skipped={skipRows.current}
+        tab={roundTab.current} onTab={(k) => { roundTab.current = k; }} onSkipRest={() => { skipRound.current = true; }}
+        onNext={() => { if (roundAsk.show.phase !== 'pending') setRoundAsk(undefined); roundAsk.resolve(); }} />}
       {live && (
         <LiveMatch
           key={`${live.req.tournamentId}-${live.req.entrants.join('-')}-${live.req.round}`}
@@ -151,7 +163,6 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
         />
       )}
       {weekAsk && <WeekScreen ask={weekAsk} onPick={(id) => { setWeekAsk(undefined); weekAsk.resolve(id); }} />}
-      {roundAsk && <RoundScreen key={`${roundAsk.show.round}-${roundAsk.show.phase}`} show={roundAsk.show} tab={roundTab.current} onTab={(k) => { roundTab.current = k; }} onNext={() => { setRoundAsk(undefined); roundAsk.resolve(); }} />}
       {drawAsk && (
         <LiveDraw key={`${drawAsk.d.tournamentId}-${drawAsk.d.discipline}`} show={drawAsk.d}
           title={`${eventName(game.ruleset, drawAsk.d.tournamentId, state.date.year)}${drawAsk.d.discipline ? ` · ${drawAsk.d.discipline}` : ''}`}

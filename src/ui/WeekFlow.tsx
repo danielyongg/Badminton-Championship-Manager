@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import type { RoundShow } from '../engine/gate';
+import { useEffect, useRef, useState } from 'react';
+import type { RoundMatch, RoundShow } from '../engine/gate';
 import { DISCIPLINES, type Discipline, type TeamFormat } from '../engine/types';
 import { dataName, t } from '../i18n';
 import { Flag } from './Flag';
@@ -66,8 +66,17 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
 }
 
 /** Satu babak turnamen yang dimainkan: tab per nomor, laga (pasangan laga → skor). */
-/** `tab`: tab terakhir yang dipilih (disimpan pemanggil, karena layar ditutup selama laga live). */
-export function RoundScreen({ show, tab: lastTab, onTab, onNext }: { show: RoundShow; tab?: string; onTab: (k: string) => void; onNext: () => void }) {
+/** Kunci baris laga (untuk pilihan Live/Skip per laga). */
+export const rowKey = (m: RoundMatch) => `${m.key}:${m.sides.join('-')}`;
+
+/**
+ * Layar babak: laga dimainkan satu per satu (baris giliran disorot). Laga atlet sendiri tampil Live,
+ * kecuali barisnya di-Skip. `tab`: tab terakhir yang dipilih (disimpan pemanggil antar babak).
+ * `skipped`: kunci baris yang di-Skip (diubah langsung; pemanggil membacanya saat giliran laga itu).
+ */
+export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkipRest }: {
+  show: RoundShow; tab?: string; onTab: (k: string) => void; skipped: Set<string>; onNext: () => void; onSkipRest: () => void;
+}) {
   const { game } = useGame();
   const { state, ruleset, world } = game;
   const managed = state.career?.countryId;
@@ -78,53 +87,60 @@ export function RoundScreen({ show, tab: lastTab, onTab, onNext }: { show: Round
   const keys = [...new Set(show.matches.map((m) => m.key))];
   const isMine = (id: string) => label(id).country === managed;
   const mineKeys = new Set(show.matches.filter((m) => m.sides.some(isMine)).map((m) => m.key));
-  // Tab awal: tab terakhir yang dipilih, atau nomor pertama yang berisi atlet sendiri.
   const [picked, pick] = useState(lastTab);
   const setTab = (k: string) => { pick(k); onTab(k); };
-  const tab = picked && keys.includes(picked) ? picked : keys.find((k) => mineKeys.has(k)) ?? keys[0];
+  const [, render] = useState(0);
+  const toggle = (k: string) => { if (!skipped.delete(k)) skipped.add(k); render((x) => x + 1); };
+  const playing = show.phase === 'playing';
+  const current = playing ? show.matches[show.current!] : undefined;
+  // Saat dimainkan, tab mengikuti laga yang sedang giliran; selain itu tab terakhir / nomor pertama berisi atlet sendiri.
+  const tab = current?.key ?? (picked && keys.includes(picked) ? picked : keys.find((k) => mineKeys.has(k)) ?? keys[0]);
   const done = show.phase === 'done';
   const final = show.round === 'F';
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => { box.current?.querySelector('tr.current')?.scrollIntoView({ block: 'nearest' }); }, [show.current]);
   return (
-    <div className="modal" role="dialog" aria-label={t('weekEvents')}>
+    <div className="modal" role="dialog" aria-label={t('weekEvents')} ref={box}>
       <div className="live card">
         <h3>{eventName(ruleset, show.tournamentId, state.date.year)} · {show.round === 'G' ? t('roundG') : show.round}</h3>
         {keys.length > 1 && (
           <nav className="controls subnav">
             {keys.map((k) => (
-              <button key={k} aria-pressed={k === tab} onClick={() => setTab(k)}>
+              <button key={k} aria-pressed={k === tab} disabled={playing && k !== tab} onClick={() => setTab(k)}>
                 {team ? formatName(k as TeamFormat) : k}{mineKeys.has(k) && <span className="mine"> ●</span>}
               </button>
             ))}
           </nav>
         )}
-        {[tab].map((k) => (
-          <section key={k}>
-            <table className="roundlist">
-              <colgroup><col className="side" /><col className="vs" /><col className="side" /><col className="score" /></colgroup>
-              <tbody>{show.matches.filter((m) => m.key === k).map((m, i) => {
-              const sides = m.sides.map(label);
-              const mine = m.sides.some(isMine);
-              const w = m.result?.winner;
-              // Beregu: jumlah partai dimenangkan; individu: skor per game.
-              const score = !m.result ? '' : team
-                ? `${m.result.scores.filter(([x, y]) => x > y).length}–${m.result.scores.filter(([x, y]) => x < y).length}`
-                : m.result.scores.map(([x, y]) => `${x}-${y}`).join(' ');
-              return (
-                <tr key={i} className={mine ? 'mine-row' : undefined}>
-                  <td className={w === 0 ? 'win' : undefined}><Flag id={sides[0].country} />{sides[0].name}</td>
-                  <td className="muted-text">vs</td>
-                  <td className={w === 1 ? 'win' : undefined}><Flag id={sides[1].country} />{sides[1].name}</td>
-                  <td className="num">{score}</td>
-                </tr>
-              );
-            })}</tbody></table>
-            {done && final && show.matches.filter((m) => m.key === k).map((m, i) => (
-              <p key={i}>🏆 {t('champion')}: <b>{label(m.sides[m.result!.winner]).name}</b></p>
-            ))}
-          </section>
+        <table className="roundlist">
+          <colgroup><col className="side" /><col className="vs" /><col className="side" /><col className="score" /></colgroup>
+          <tbody>{show.matches.filter((m) => m.key === tab).map((m) => {
+            const sides = m.sides.map(label);
+            const mine = m.sides.some(isMine);
+            const w = m.result?.winner;
+            // Beregu: jumlah partai dimenangkan; individu: skor per game.
+            const score = !m.result ? '' : team
+              ? `${m.result.scores.filter(([x, y]) => x > y).length}–${m.result.scores.filter(([x, y]) => x < y).length}`
+              : m.result.scores.map(([x, y]) => `${x}-${y}`).join(' ');
+            const k = rowKey(m);
+            return (
+              <tr key={k} className={[mine && 'mine-row', m === current && 'current'].filter(Boolean).join(' ') || undefined}>
+                <td className={w === 0 ? 'win' : undefined}><Flag id={sides[0].country} />{sides[0].name}</td>
+                <td className="muted-text">vs</td>
+                <td className={w === 1 ? 'win' : undefined}><Flag id={sides[1].country} />{sides[1].name}</td>
+                <td className="num">{score || (m === current ? '…'
+                  : mine && !done && <button className="rowtoggle" title={t('rowToggleHint')} onClick={() => toggle(k)}>{skipped.has(k) ? `⏭ ${t('rowSkip')}` : `▶ ${t('rowLive')}`}</button>)}</td>
+              </tr>
+            );
+          })}</tbody>
+        </table>
+        {done && final && show.matches.filter((m) => m.key === tab).map((m, i) => (
+          <p key={i}>🏆 {t('champion')}: <b>{label(m.sides[m.result!.winner]).name}</b></p>
         ))}
         <div className="controls roundbar">
-          <button className="primary" onClick={onNext}>{!done ? t('playRound') : final ? t('doneEvent') : t('nextRound')}</button>
+          {playing
+            ? <button onClick={onSkipRest}>{t('simRound')}</button>
+            : <button className="primary" onClick={onNext}>{!done ? t('playRound') : final ? t('doneEvent') : t('nextRound')}</button>}
         </div>
       </div>
     </div>

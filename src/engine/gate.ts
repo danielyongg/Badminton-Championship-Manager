@@ -6,8 +6,11 @@ import { ROUNDS, type EntrantId, type Round } from './types';
 // bergerak, babak paling awal dimainkan berurutan (urut nomor) dan hook `round` dipanggil sebelum & sesudahnya.
 
 export interface RoundMatch { key: string; sides: [EntrantId, EntrantId]; result?: PlayResult }
-/** Satu babak turnamen yang sedang dimainkan manajer. `key` = nomor (MS…) atau format beregu. */
-export interface RoundShow { tournamentId: string; round: MatchRound; phase: 'pending' | 'done'; matches: RoundMatch[] }
+/**
+ * Satu babak turnamen yang sedang dimainkan manajer. `key` = nomor (MS…) atau format beregu.
+ * Fase: `pending` (pasangan laga) → `playing` sebelum tiap laga (`current` = indeks laga itu) → `done` (skor).
+ */
+export interface RoundShow { tournamentId: string; round: MatchRound; phase: 'pending' | 'playing' | 'done'; matches: RoundMatch[]; current?: number }
 export type RoundHook = (r: RoundShow) => Promise<void> | null;
 
 /** Urutan babak global: kualifikasi → grup → R256 … F. */
@@ -30,7 +33,10 @@ export function roundGate(tournamentId: string, keys: readonly string[], hook?: 
     waiting = waiting.filter((w) => w.round !== round);
     const matches: RoundMatch[] = now.map(({ key, sides }) => ({ key, sides }));
     await hook?.({ tournamentId, round, phase: 'pending', matches });
-    for (const [i, w] of now.entries()) matches[i].result = await w.play();
+    for (const [i, w] of now.entries()) {
+      await hook?.({ tournamentId, round, phase: 'playing', matches, current: i });
+      matches[i].result = await w.play();
+    }
     await hook?.({ tournamentId, round, phase: 'done', matches });
     flushing = false;
     now.forEach((w, i) => w.resolve(matches[i].result!));

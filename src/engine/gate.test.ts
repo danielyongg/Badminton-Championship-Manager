@@ -70,7 +70,7 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
       log.push(`live:${req.tournamentId}:${req.round}`);
       return Promise.resolve(simulateMatch(req.sides, rs.match, makeRng(1)));
     };
-    const state = await weekOf(2, () => ({ chooseEvent: choose([id]), live, round: (r) => { log.push(`${r.phase}:${r.round}`); return null; } }));
+    const state = await weekOf(2, () => ({ chooseEvent: choose([id]), live, round: (r) => { if (r.phase !== 'playing') log.push(`${r.phase}:${r.round}`); return null; } }));
     const lives = log.filter((x) => x.startsWith('live'));
     expect(lives.length).toBe(state.matches.filter((m) => m.tournamentId === id && m.sides.some((s) => s.startsWith('INA'))).length);
     expect(lives.every((x) => x.startsWith(`live:${id}:`))).toBe(true);
