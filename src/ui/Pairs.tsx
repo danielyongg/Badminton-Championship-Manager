@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { dissolvePair, formPair, promoteTrial } from '../engine/career';
-import { ageAt, currentAbility } from '../engine/generator';
+import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import type { Pair } from '../engine/types';
 import { t, type TextKey } from '../i18n';
 import { FatigueBar } from './Squad';
-import { JUNIOR_MAX_AGE, lookup, saveGame, useGame } from './game';
+import { lookup, saveGame, useGame } from './game';
 
 const DOUBLES: Pair['discipline'][] = ['MD', 'WD', 'XD'];
 
@@ -29,7 +29,7 @@ export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => voi
   const [sort, setSort] = useState({ key: 'sector', desc: false });
 
   const commit = () => { changed(); void saveGame(game); };
-  const isJunior = (id: string) => ageAt(players.get(id)!.birth, state.date) <= JUNIOR_MAX_AGE;
+  const isJunior = (id: string) => isPratama(players.get(id)!, state.date); // junior yang sudah promosi masuk Senior
   const mine = state.pairs.filter((p) => !p.dissolved && !p.adHoc && players.get(p.playerIds[0])?.countryId === country && p.playerIds.every(isJunior) === juniors);
   const athletes = (gender: 'M' | 'F') => state.players
     .filter((p) => p.countryId === country && p.retired === undefined && p.gender === gender && p.focus !== 'S' && isJunior(p.id) === juniors)
@@ -44,7 +44,7 @@ export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => voi
   const avg = (p: Pair, f: (x: NonNullable<ReturnType<typeof players.get>>) => number) => p.playerIds.reduce((t, id) => t + f(players.get(id)!), 0) / p.playerIds.length;
   const rankList = (p: Pair) => [
     { d: p.discipline as string, r: ranks.senior[p.discipline].get(p.id) },
-    ...(juniors ? [{ d: `${p.discipline} ${t('juniorShort')}`, r: ranks.junior[p.discipline].get(p.id) }] : []),
+    { d: `${p.discipline} ${t('juniorShort')}`, r: ranks.junior[p.discipline].get(p.id) },
   ].filter((x) => x.r !== undefined).sort((a, b) => a.r! - b.r!);
   const COLS: { key: string; label: TextKey; num?: boolean; value: (p: Pair) => string | number; desc?: boolean }[] = [
     { key: 'pair', label: 'pair', value: (p) => p.playerIds.map((id) => players.get(id)!.name).join(' / ') },

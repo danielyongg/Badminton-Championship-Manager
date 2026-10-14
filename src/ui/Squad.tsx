@@ -6,7 +6,7 @@ import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { rankFromSnapshots } from '../engine/season';
 import { ATTRS, DISCIPLINES, type Attr, type Discipline, type GameDate, type Player } from '../engine/types';
 import { numLocale, t, type TextKey } from '../i18n';
-import { entrantLabel, eventName as eventNameOf, JUNIOR_MAX_AGE, lookup, saveGame, useGame } from './game';
+import { entrantLabel, eventName as eventNameOf, lookup, saveGame, useGame } from './game';
 import { Pairs } from './Pairs';
 import { RankChart } from './Ranking';
 import { Flag } from './Flag';
@@ -62,7 +62,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   const allRanks = (p: Player) => {
     const s = p.gender === 'M' ? 'MS' : 'WS';
     const senior = [{ d: s, r: ranks.senior[s].get(p.id) }, ...doublesOf(p).map((d) => ({ d, r: ranks.senior[d].get(mainPair(p.id, d)?.id ?? '') }))];
-    const junior = !juniors ? [] : [{ d: `${s} ${t('juniorShort')}`, r: ranks.junior[s].get(p.id) },
+    const junior = [{ d: `${s} ${t('juniorShort')}`, r: ranks.junior[s].get(p.id) },
       ...doublesOf(p).map((d) => ({ d: `${d} ${t('juniorShort')}`, r: ranks.junior[d].get((mainPair(p.id, d) ?? juniorPair(p.id, d))?.id ?? '') }))];
     return [...senior, ...junior].filter((x) => x.r !== undefined).sort((a, b) => a.r! - b.r!);
   };
@@ -89,7 +89,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
     return sort.desc ? -r : r;
   };
   const list = state.players
-    .filter((p) => p.countryId === country && p.retired === undefined && (ageAt(p.birth, state.date) <= JUNIOR_MAX_AGE) === juniors)
+    .filter((p) => p.countryId === country && p.retired === undefined && isPratama(p, state.date) === juniors) // junior yang sudah promosi masuk Senior
     .filter((p) => view !== 'singles' || p.focus !== 'D')
     .sort((a, b) => cmp(a, b) || currentAbility(b.attrs) - currentAbility(a.attrs));
 
