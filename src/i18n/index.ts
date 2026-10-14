@@ -307,6 +307,7 @@ const id = {
   topEarners: 'Pendapatan terbesar',
   attrChart: 'Grafik atribut per usia',
   attrChartWait: 'Grafik atribut per usia muncul setelah atlet melewati akhir musim (riwayat dicatat tiap akhir musim).',
+  playAll: 'Main semua', restAll: 'Istirahat semua', autoAll: 'Semua otomatis',
   trialPair: 'percobaan',
   trialCheckbox: 'Pasangan percobaan (pasangan utama tetap ada)',
   trialHint: 'Pasangan percobaan punya ranking sendiri (mulai 0) dan hanya ikut turnamen bila Anda daftarkan di Kalender & Entry. Satu atlet tetap hanya satu turnamen per minggu dan satu pasangan per nomor, jadi bila pasangan percobaan didaftarkan, pasangan utamanya tidak ikut nomor itu minggu tersebut.',

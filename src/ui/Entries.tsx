@@ -96,12 +96,32 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
       .map((e) => ({ ...e, d, rank: ranks.get(d)!.get(e.id) }))
       .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9)));
 
+  const offeredFor = (d: (typeof rows)[number]['d']) => events.filter((ev) => ruleset.tiers.find((tt) => tt.id === ev.tierId)!.drawSize[d] > 0);
+  // Semua baris sekaligus: Main = turnamen ini (atau turnamen pertama yang membuka nomornya; pasangan trial tidak diubah
+  // agar pasangan utama tidak tergeser), Istirahat, atau kembali Otomatis.
+  const setAll = (pick: (e: (typeof rows)[number]) => string | undefined) => {
+    const next = { ...decisions };
+    for (const e of rows) {
+      if (e.playerIds.some((id) => players.get(id)?.injury)) continue;
+      const v = pick(e);
+      if (!v || v === 'auto') delete next[e.id]; else next[e.id] = v;
+    }
+    state.manualEntries[key] = next;
+    changed();
+    void saveGame(game);
+  };
+
   return (
     <>
       <p>{t('entryHelp')}</p>
       {events.length === 0 ? <p>{t('noEvents')}</p> : (
         <>
           {!eventId && <p>{events.map((e) => `${dataName(e.name)} (${e.tierId})`).join(' · ')}</p>}
+          <p className="controls">
+            <button onClick={() => setAll((e) => e.trial ? decisions[e.id] : (eventId && offeredFor(e.d).some((ev) => ev.id === eventId) ? eventId : offeredFor(e.d)[0]?.id))}>{t('playAll')}</button>
+            <button onClick={() => setAll(() => 'rest')}>{t('restAll')}</button>
+            <button onClick={() => setAll(() => 'auto')}>{t('autoAll')}</button>
+          </p>
           <div className="scroll">
             <table>
               <thead><tr><th>{t('name')}</th><th className="num">{t('rank')}</th><th className="hide-sm">{t('fatigue')}</th><th>{t('tournament')}</th></tr></thead>
@@ -109,7 +129,7 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
                 const required = events.find((ev) => state.commitments[e.id]?.includes(ev.id));
                 const injured = e.playerIds.some((id) => players.get(id)?.injury);
                 const tired = Math.max(...e.playerIds.map((id) => players.get(id)?.fatigue ?? 0));
-                const offered = events.filter((ev) => ruleset.tiers.find((tt) => tt.id === ev.tierId)!.drawSize[e.d] > 0);
+                const offered = offeredFor(e.d);
                 return (
                   <tr key={e.id}>
                     {/* Nomor sebagai label di depan nama: kolom nama yang menempel saat tabel digeser di HP. */}

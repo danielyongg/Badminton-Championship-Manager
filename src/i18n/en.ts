@@ -307,6 +307,7 @@ export const en: Record<TextKey, string> = {
   topEarners: 'Top earners',
   attrChart: 'Attributes by age',
   attrChartWait: 'The attributes-by-age chart appears once the player has passed a season end (history is recorded at each season end).',
+  playAll: 'Play all', restAll: 'Rest all', autoAll: 'All automatic',
   trialPair: 'trial',
   trialCheckbox: 'Trial pair (main pair stays)',
   trialHint: 'A trial pair has its own ranking (starting at 0) and only enters tournaments you register it for in Calendar & Entries. A player still plays one tournament per week and one pair per event, so when the trial pair is entered, the main pair skips that event that week.',
