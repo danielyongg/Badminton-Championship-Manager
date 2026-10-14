@@ -65,6 +65,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   // Layar babak: sebelum (pasangan laga) & sesudah (skor). "Simulasikan sisa babak" berlaku sampai babak berikutnya.
   const [roundAsk, setRoundAsk] = useState<{ show: RoundShow; resolve: () => void }>();
   const skipRound = useRef(false);
+  const roundTab = useRef<string>(undefined); // tab nomor terakhir di layar babak
   const roundHook: RoundHook = (show) => {
     skipRound.current = false;
     return new Promise<void>((resolve) => setRoundAsk({ show, resolve }));
@@ -150,7 +151,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
         />
       )}
       {weekAsk && <WeekScreen ask={weekAsk} onPick={(id) => { setWeekAsk(undefined); weekAsk.resolve(id); }} />}
-      {roundAsk && <RoundScreen key={`${roundAsk.show.round}-${roundAsk.show.phase}`} show={roundAsk.show} onNext={() => { setRoundAsk(undefined); roundAsk.resolve(); }} />}
+      {roundAsk && <RoundScreen key={`${roundAsk.show.round}-${roundAsk.show.phase}`} show={roundAsk.show} tab={roundTab.current} onTab={(k) => { roundTab.current = k; }} onNext={() => { setRoundAsk(undefined); roundAsk.resolve(); }} />}
       {drawAsk && (
         <LiveDraw key={`${drawAsk.d.tournamentId}-${drawAsk.d.discipline}`} show={drawAsk.d}
           title={`${eventName(game.ruleset, drawAsk.d.tournamentId, state.date.year)}${drawAsk.d.discipline ? ` · ${drawAsk.d.discipline}` : ''}`}

@@ -299,7 +299,9 @@ td.strong { font-weight: 700; }
 .weeklist li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .weeklist .grow { flex: 1; min-width: 0; }
 .weeklist button { min-height: 36px; }
-.roundlist { width: 100%; margin-bottom: 10px; }
+.roundlist { width: 100%; margin-bottom: 10px; table-layout: fixed; }
+.roundlist col.side { width: 40%; } .roundlist col.vs { width: 2.5em; } .roundlist col.score { width: 20%; }
+.roundlist td { overflow: hidden; text-overflow: ellipsis; }
 .roundlist tr.mine-row td { background: var(--accent-soft); }
 .roundlist td.win { font-weight: 700; }
 @media (max-width: 600px) { .roundlist td { white-space: normal; } }

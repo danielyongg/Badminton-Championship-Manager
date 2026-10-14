@@ -65,8 +65,9 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
   );
 }
 
-/** Satu babak turnamen yang dimainkan: laga per nomor (pasangan laga → skor). */
-export function RoundScreen({ show, onNext }: { show: RoundShow; onNext: () => void }) {
+/** Satu babak turnamen yang dimainkan: tab per nomor, laga (pasangan laga → skor). */
+/** `tab`: tab terakhir yang dipilih (disimpan pemanggil, karena layar ditutup selama laga live). */
+export function RoundScreen({ show, tab: lastTab, onTab, onNext }: { show: RoundShow; tab?: string; onTab: (k: string) => void; onNext: () => void }) {
   const { game } = useGame();
   const { state, ruleset, world } = game;
   const managed = state.career?.countryId;
@@ -75,18 +76,34 @@ export function RoundScreen({ show, onNext }: { show: RoundShow; onNext: () => v
     ? { name: dataName(world.countries.find((c) => c.id === id)?.name) ?? id, country: id }
     : entrantLabel(state, id);
   const keys = [...new Set(show.matches.map((m) => m.key))];
+  const isMine = (id: string) => label(id).country === managed;
+  const mineKeys = new Set(show.matches.filter((m) => m.sides.some(isMine)).map((m) => m.key));
+  // Tab awal: tab terakhir yang dipilih, atau nomor pertama yang berisi atlet sendiri.
+  const [picked, pick] = useState(lastTab);
+  const setTab = (k: string) => { pick(k); onTab(k); };
+  const tab = picked && keys.includes(picked) ? picked : keys.find((k) => mineKeys.has(k)) ?? keys[0];
   const done = show.phase === 'done';
   const final = show.round === 'F';
   return (
     <div className="modal" role="dialog" aria-label={t('weekEvents')}>
       <div className="live card">
         <h3>{eventName(ruleset, show.tournamentId, state.date.year)} · {show.round === 'G' ? t('roundG') : show.round}</h3>
-        {keys.map((k) => (
+        {keys.length > 1 && (
+          <nav className="controls subnav">
+            {keys.map((k) => (
+              <button key={k} aria-pressed={k === tab} onClick={() => setTab(k)}>
+                {team ? formatName(k as TeamFormat) : k}{mineKeys.has(k) && <span className="mine"> ●</span>}
+              </button>
+            ))}
+          </nav>
+        )}
+        {[tab].map((k) => (
           <section key={k}>
-            <h4>{team ? formatName(k as TeamFormat) : k}</h4>
-            <table className="roundlist"><tbody>{show.matches.filter((m) => m.key === k).map((m, i) => {
+            <table className="roundlist">
+              <colgroup><col className="side" /><col className="vs" /><col className="side" /><col className="score" /></colgroup>
+              <tbody>{show.matches.filter((m) => m.key === k).map((m, i) => {
               const sides = m.sides.map(label);
-              const mine = sides.some((s) => s.country === managed);
+              const mine = m.sides.some(isMine);
               const w = m.result?.winner;
               // Beregu: jumlah partai dimenangkan; individu: skor per game.
               const score = !m.result ? '' : team
