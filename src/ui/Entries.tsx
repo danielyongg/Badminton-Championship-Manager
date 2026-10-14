@@ -7,16 +7,66 @@ import { entrantLabel, lookup, saveGame, useGame } from './game';
 import { FatigueBar } from './Squad';
 import { isPratama } from '../engine/generator';
 
-/** Kalender & entry: pilih turnamen (atau istirahat) per atlet/pasangan untuk minggu-minggu mendatang. */
-/** `fixedWeek`: hanya minggu itu, tanpa tombol pilih minggu (dipakai pop-up entry mingguan). */
-export function Entries({ fixedWeek }: { fixedWeek?: number }) {
+/** Kalender & entry: daftar jadwal turnamen musim ini + status entry; klik turnamen → isi entry-nya. */
+/** `fixedWeek`: langsung tabel entry minggu itu (dipakai pop-up entry mingguan). */
+export function Entries({ fixedWeek, onOpenEvent }: { fixedWeek?: number; onOpenEvent?: (id: string, year: number) => void }) {
+  const { game } = useGame();
+  const { state, ruleset } = game;
+  const { year, week } = state.date;
+  const [open, setOpen] = useState<string>();
+  if (fixedWeek !== undefined) return <EntryTable week={fixedWeek} />;
+  const ev = open && ruleset.calendar.find((e) => e.id === open);
+  if (ev) return (
+    <>
+      <p><button onClick={() => setOpen(undefined)}>← {t('back')}</button></p>
+      <h3>{t('week')} {ev.week} · {dataName(ev.name)} <small className="muted-text">{ev.tierId}</small></h3>
+      <EntryTable week={ev.week} eventId={ev.id} />
+    </>
+  );
+  const country = state.career!.countryId!;
+  const { players } = lookup(state);
+  const city = (id: string) => dataName(game.world.cities.find((c) => c.id === id)?.name);
+  // Status: berapa atlet/pasangan (tidak cedera) di nomor yang dipertandingkan sudah punya keputusan manual.
+  const status = (e: (typeof ruleset.calendar)[number]) => {
+    const tier = ruleset.tiers.find((x) => x.id === e.tierId)!;
+    const decisions = state.manualEntries[weekKey({ year, week: e.week })] ?? {};
+    const ids = DISCIPLINES.filter((d) => tier.drawSize[d] > 0)
+      .flatMap((d) => entrantsFor(state, d).filter((x) => x.countryId === country && !x.playerIds.some((id) => players.get(id)?.injury)).map((x) => x.id));
+    const set = ids.filter((id) => decisions[id]).length;
+    return { set, total: ids.length, entered: ids.filter((id) => decisions[id] === e.id).length };
+  };
+  const list = ruleset.calendar.filter((e) => isHeld(e, year)).sort((a, b) => a.week - b.week);
+  return (
+    <div className="scroll">
+      <table>
+        <thead><tr><th className="num">{t('week')}</th><th>{t('tournament')}</th><th>{t('tier')}</th><th>{t('city')}</th><th>{t('entryStatus')}</th></tr></thead>
+        <tbody>{list.map((e) => {
+          const past = e.week < week;
+          const auto = e.tierId === 'WTF' || ruleset.tiers.find((x) => x.id === e.tierId)?.junior; // junior & Finals: otomatis
+          const st = !past && !auto ? status(e) : undefined;
+          return (
+            <tr key={e.id} className={past ? 'muted-text' : undefined}>
+              <td className="num">{e.week}</td>
+              <td><a href="#" onClick={(x) => { x.preventDefault(); if (past || auto) onOpenEvent?.(e.id, year); else setOpen(e.id); }}>{dataName(e.name)}</a></td>
+              <td><span className="chip">{ruleset.tiers.find((x) => x.id === e.tierId)?.junior ? t('juniorShort') : e.tierId}</span></td>
+              <td>{city(e.cityId)}</td>
+              <td>{past ? t('finished') : auto ? t('auto')
+                : <span className={`badge${st!.set === st!.total ? ' good' : ''}`}>{st!.set === st!.total ? `✓ ${t('entryComplete')}` : `${t('entryIncomplete')} · ${st!.set}/${st!.total}`}</span>}
+                {st && st.entered > 0 && <small className="muted-text"> {t('entryEntered', { n: st.entered })}</small>}</td>
+            </tr>
+          );
+        })}</tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Tabel entry satu minggu; `eventId`: hanya atlet/pasangan di nomor yang dipertandingkan turnamen itu. */
+function EntryTable({ week: w, eventId }: { week: number; eventId?: string }) {
   const { game, version, changed } = useGame();
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
-  const { year, week } = state.date;
-  const weeks = [...new Set(ruleset.calendar.filter((e) => isHeld(e, year) && e.week >= week).map((e) => e.week))].sort((a, b) => a - b).slice(0, 8);
-  const [chosen, setW] = useState(weeks[0] ?? week);
-  const w = fixedWeek ?? chosen;
+  const { year } = state.date;
   const events = ruleset.calendar.filter((e) => e.week === w && isHeld(e, year) && e.tierId !== 'WTF' && !ruleset.tiers.find((x) => x.id === e.tierId)?.junior); // junior: otomatis
   const key = weekKey({ year, week: w });
   const decisions = state.manualEntries[key] ?? {};
@@ -35,7 +85,8 @@ export function Entries({ fixedWeek }: { fixedWeek?: number }) {
     void saveGame(game);
   };
 
-  const rows = DISCIPLINES.flatMap((d) =>
+  const drawOf = (id: string) => ruleset.tiers.find((tt) => tt.id === events.find((e) => e.id === id)?.tierId)?.drawSize;
+  const rows = DISCIPLINES.filter((d) => !eventId || (drawOf(eventId)?.[d] ?? 0) > 0).flatMap((d) =>
     entrantsFor(state, d).filter((e) => e.countryId === country)
       .map((e) => ({ ...e, d, rank: ranks.get(d)!.get(e.id) }))
       .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9)));
@@ -43,12 +94,9 @@ export function Entries({ fixedWeek }: { fixedWeek?: number }) {
   return (
     <>
       <p>{t('entryHelp')}</p>
-      {fixedWeek === undefined && <nav className="controls">
-        {weeks.map((x) => <button key={x} aria-pressed={x === w} onClick={() => setW(x)}>{t('entryWeek')} {x}</button>)}
-      </nav>}
       {events.length === 0 ? <p>{t('noEvents')}</p> : (
         <>
-          <p>{events.map((e) => `${dataName(e.name)} (${e.tierId})`).join(' · ')}</p>
+          {!eventId && <p>{events.map((e) => `${dataName(e.name)} (${e.tierId})`).join(' · ')}</p>}
           <div className="scroll">
             <table>
               <thead><tr><th>{t('discipline')}</th><th>{t('name')}</th><th>{t('rank')}</th><th>{t('fatigue')}</th><th>{t('tournament')}</th></tr></thead>

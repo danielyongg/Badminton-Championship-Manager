@@ -161,6 +161,7 @@ const id = {
   required: 'wajib',
   entryHelp: 'Pilih turnamen tiap atlet/pasangan. "Otomatis" = asisten AI memilih (mematuhi Top Committed). Istirahat dari turnamen wajib tanpa cedera = pelanggaran & reputasi turun.',
   noEvents: 'Tidak ada turnamen minggu ini.',
+  entryStatus: 'Status entry', entryComplete: 'Lengkap', entryIncomplete: 'Belum lengkap', entryEntered: '{n} ikut', finished: 'Selesai',
   back: 'Kembali',
   born: 'Lahir',
   attributes: 'Atribut',

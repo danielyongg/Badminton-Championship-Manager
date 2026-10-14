@@ -233,7 +233,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
         )
         : tab === 'dashboard' ? <Dashboard onOpen={open} onOpenEvent={openEvent} />
         : tab === 'squad' ? <Squad onOpen={open} />
-        : tab === 'entries' ? <Entries />
+        : tab === 'entries' ? <Entries onOpenEvent={openEvent} />
         : tab === 'team' ? <Team />
         : tab === 'editor' ? (
           <Editor data={{ ruleset: game.ruleset, world, players: state.players, pairs: state.pairs }} mode="save" date={state.date} country={managed ?? undefined}
