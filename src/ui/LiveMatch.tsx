@@ -115,6 +115,14 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, onDone, 
           </div>
         )}
         {!running && !done && m.rallies > 0 && <p className="hint">{t('strategyHint')}</p>}
+        {/* Hasil & Lanjut tepat di bawah papan skor: langsung terjangkau di HP tanpa menggulir. */}
+        {done && (
+          <div className="controls">
+            <b>{names[m.winner!]} {t('wins')}!</b>
+            <button className="primary" onClick={() => onDone(matchResult(m))}>{t('continue')}</button>
+            {onSkipRound && <button onClick={() => { onDone(matchResult(m)); onSkipRound(); }}>{t('simRound')}</button>}
+          </div>
+        )}
 
         <div className="split">
           <ol className="log">
@@ -128,13 +136,6 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, onDone, 
           </table>
         </div>
 
-        {done && (
-          <div className="controls">
-            <b>{names[m.winner!]} {t('wins')}!</b>
-            <button className="primary" onClick={() => onDone(matchResult(m))}>{t('continue')}</button>
-            {onSkipRound && <button onClick={() => { onDone(matchResult(m)); onSkipRound(); }}>{t('simRound')}</button>}
-          </div>
-        )}
       </div>
     </div>
   );

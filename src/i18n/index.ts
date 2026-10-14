@@ -337,6 +337,8 @@ const id = {
   hideRound: 'Sembunyikan (turnamen dijeda)',
   openRound: 'Kembali ke turnamen',
   simEvent: 'Simulasikan sisa turnamen',
+  showPast: 'Tampilkan yang sudah selesai ({n})',
+  hidePast: 'Sembunyikan yang sudah selesai',
   playRound: 'Mainkan babak',
   nextRound: 'Babak berikutnya',
   doneEvent: 'Selesai',

@@ -337,6 +337,8 @@ export const en: Record<TextKey, string> = {
   hideRound: 'Hide (tournament paused)',
   openRound: 'Back to tournament',
   simEvent: 'Simulate rest of tournament',
+  showPast: 'Show finished ({n})',
+  hidePast: 'Hide finished',
   playRound: 'Play round',
   nextRound: 'Next round',
   doneEvent: 'Done',

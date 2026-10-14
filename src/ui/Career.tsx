@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import type { MatchResult } from '../engine/match';
+import { simulateMatch, type MatchResult } from '../engine/match';
 import type { DrawHook, DrawShow, LiveHook, LiveRequest } from '../engine/tournament';
 import { goalProgress } from '../engine/career';
 import { ageAt } from '../engine/generator';
@@ -76,6 +76,9 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
     const ask = roundAsk;
     setRoundAsk(undefined);
     if (ask && ask.show.phase !== 'playing') ask.resolve(); // babak yang menunggu klik langsung lanjut
+    // Pop-up yang sedang terbuka ikut diselesaikan otomatis (laga disimulasikan, line-up saran dipakai).
+    if (live) { setLive(undefined); live.resolve(simulateMatch(live.req.sides, game.ruleset.match, game.rng)); }
+    if (teamAsk?.kind === 'lineup') { setTeamAsk(undefined); teamAsk.resolve(teamAsk.suggested); }
   };
   const roundHook: RoundHook = (show) => {
     if (skipEvent.current) return null;

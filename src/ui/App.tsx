@@ -97,8 +97,8 @@ function MainMenu({ onStart, onLab, onEditor, onLang }: { onStart: (g: Game) => 
             <tbody>{saves.map((s) => (
               <tr key={s.id}>
                 <td><b>{s.name}</b></td>
-                <td>{countryName(s.countryId)}</td>
-                <td>{s.rulesetName}</td>
+                <td className="hide-sm">{countryName(s.countryId)}</td>
+                <td className="hide-sm">{s.rulesetName}</td>
                 <td>{s.date.year} · {t('week')} {s.date.week}</td>
                 <td><button onClick={() => load(s)}>{t('load')}</button></td>
                 <td><button onClick={() => confirm(t('confirmDelete')) && deleteSave(s.id)}>{t('delete')}</button></td>

@@ -15,6 +15,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   const { state, ruleset } = game;
   const { year, week } = state.date;
   const [open, setOpen] = useState<string>();
+  const [showPast, setShowPast] = useState(false); // turnamen yang sudah selesai disembunyikan dulu (minggu ini langsung terlihat)
   const submit = (id: string) => { (state.entriesSubmitted ??= {})[`${year}:${id}`] = true; changed(); void saveGame(game); setOpen(undefined); };
   const teamEv = open && ruleset.team.events.find((e) => e.id === open);
   if (teamEv) return (
@@ -36,9 +37,12 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   const city = (id: string) => dataName(game.world.cities.find((c) => c.id === id)?.name);
   const submitted = (id: string) => state.entriesSubmitted?.[`${year}:${id}`];
   const teamIds = new Set(ruleset.team.events.map((e) => e.id));
-  const list = [...ruleset.calendar, ...ruleset.team.events].filter((e) => isHeld(e, year)).sort((a, b) => a.week - b.week);
+  const all = [...ruleset.calendar, ...ruleset.team.events].filter((e) => isHeld(e, year)).sort((a, b) => a.week - b.week);
+  const pastCount = all.filter((e) => e.week < week).length;
+  const list = showPast ? all : all.filter((e) => e.week >= week);
   return (
     <div className="scroll">
+      {pastCount > 0 && <p><button onClick={() => setShowPast(!showPast)}>{showPast ? t('hidePast') : t('showPast', { n: pastCount })}</button></p>}
       <table className="callist">
         <thead><tr><th className="num">{t('week')}</th><th>{t('tournament')}</th><th>{t('tier')}</th><th className="hide-sm">{t('city')}</th><th>{t('entryStatus')}</th></tr></thead>
         <tbody>{list.map((e) => {
@@ -100,7 +104,7 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
           {!eventId && <p>{events.map((e) => `${dataName(e.name)} (${e.tierId})`).join(' · ')}</p>}
           <div className="scroll">
             <table>
-              <thead><tr><th>{t('discipline')}</th><th>{t('name')}</th><th>{t('rank')}</th><th>{t('fatigue')}</th><th>{t('tournament')}</th></tr></thead>
+              <thead><tr><th>{t('name')}</th><th className="num">{t('rank')}</th><th className="hide-sm">{t('fatigue')}</th><th>{t('tournament')}</th></tr></thead>
               <tbody>{rows.map((e) => {
                 const required = events.find((ev) => state.commitments[e.id]?.includes(ev.id));
                 const injured = e.playerIds.some((id) => players.get(id)?.injury);
@@ -108,10 +112,10 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
                 const offered = events.filter((ev) => ruleset.tiers.find((tt) => tt.id === ev.tierId)!.drawSize[e.d] > 0);
                 return (
                   <tr key={e.id}>
-                    <td>{e.d}</td>
-                    <td>{entrantLabel(state, e.id).name}{required ? ` ⭐ ${t('required')}` : ''}{e.trial && <> <span className="tag">{t('trialPair')}</span></>}{e.playerIds.some((id) => { const x = players.get(id); return x && isPratama(x, state.date); }) && <> <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span></>}</td>
+                    {/* Nomor sebagai label di depan nama: kolom nama yang menempel saat tabel digeser di HP. */}
+                    <td><span className="chip">{e.d}</span> {entrantLabel(state, e.id).name}{required ? ` ⭐ ${t('required')}` : ''}{e.trial && <> <span className="tag">{t('trialPair')}</span></>}{e.playerIds.some((id) => { const x = players.get(id); return x && isPratama(x, state.date); }) && <> <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span></>}</td>
                     <td className="num">{e.rank ?? '—'}</td>
-                    <td><FatigueBar value={tired} /></td>
+                    <td className="hide-sm"><FatigueBar value={tired} /></td>
                     <td>{injured ? `🩹 ${t('injury')}` : (
                       <select value={decisions[e.id] ?? 'auto'} onChange={(ev) => set(e.id, ev.target.value)}>
                         <option value="auto">{e.trial ? t('notEntered') : t('auto')}</option>

@@ -219,7 +219,7 @@ export function SquadModal({ title, format, pool, suggested, onDone }: {
         <h3>{title} · {formatName(format)}: {t('registerSquad')}</h3>
         <p className="hint">{t('squadHint')}</p>
         <SquadPicker pool={pool} value={squad} onChange={setSquad} size={rs.team.squadSize[format]} />
-        <div className="controls" style={{ marginTop: 8 }}>
+        <div className="controls roundbar">
           <button className="primary" disabled={!!err} onClick={() => onDone(squad)}>{t('registerSquad')}</button>
           <button onClick={() => setSquad(suggested)}>{t('resetSuggestion')}</button>
           <small className="down">{err}</small>
@@ -246,7 +246,7 @@ export function TieLineupModal({ title, format, round, opponent, pool, squad, su
         <h3>{title} · {formatName(format)} {round === 'G' ? t('group') : round} — vs {name}</h3>
         <p className="hint">{t('tieLineupHint')}</p>
         <LineupPicker order={order} pool={pool} squad={squad} value={lineup} onChange={setLineup} />
-        <div className="controls" style={{ marginTop: 8 }}>
+        <div className="controls roundbar">
           <button className="primary" disabled={!!err} onClick={() => onDone(lineup)}>{t('confirmLineup')}</button>
           <button onClick={() => setLineup(suggested)}>{t('resetSuggestion')}</button>
           <button onClick={() => { onAuto(); onDone(suggested); }}>{t('autoRestOfWeek')}</button>
