@@ -10,7 +10,7 @@ import { isPratama } from '../engine/generator';
 /** Kalender & entry: daftar jadwal turnamen musim ini + status entry; klik turnamen → isi entry-nya. */
 /** `fixedWeek`: langsung tabel entry minggu itu (dipakai pop-up entry mingguan). */
 export function Entries({ fixedWeek, onOpenEvent }: { fixedWeek?: number; onOpenEvent?: (id: string, year: number) => void }) {
-  const { game } = useGame();
+  const { game, changed } = useGame();
   const { state, ruleset } = game;
   const { year, week } = state.date;
   const [open, setOpen] = useState<string>();
@@ -21,20 +21,14 @@ export function Entries({ fixedWeek, onOpenEvent }: { fixedWeek?: number; onOpen
       <p><button onClick={() => setOpen(undefined)}>← {t('back')}</button></p>
       <h3>{t('week')} {ev.week} · {dataName(ev.name)} <small className="muted-text">{ev.tierId}</small></h3>
       <EntryTable week={ev.week} eventId={ev.id} />
+      <p><button className="primary" onClick={() => {
+        (state.entriesSubmitted ??= {})[`${year}:${ev.id}`] = true;
+        changed(); void saveGame(game); setOpen(undefined);
+      }}>{t('submitEntries')}</button></p>
     </>
   );
-  const country = state.career!.countryId!;
-  const { players } = lookup(state);
   const city = (id: string) => dataName(game.world.cities.find((c) => c.id === id)?.name);
-  // Status: berapa atlet/pasangan (tidak cedera) di nomor yang dipertandingkan sudah punya keputusan manual.
-  const status = (e: (typeof ruleset.calendar)[number]) => {
-    const tier = ruleset.tiers.find((x) => x.id === e.tierId)!;
-    const decisions = state.manualEntries[weekKey({ year, week: e.week })] ?? {};
-    const ids = DISCIPLINES.filter((d) => tier.drawSize[d] > 0)
-      .flatMap((d) => entrantsFor(state, d).filter((x) => x.countryId === country && !x.playerIds.some((id) => players.get(id)?.injury)).map((x) => x.id));
-    const set = ids.filter((id) => decisions[id]).length;
-    return { set, total: ids.length, entered: ids.filter((id) => decisions[id] === e.id).length };
-  };
+  const submitted = (id: string) => state.entriesSubmitted?.[`${year}:${id}`];
   const list = ruleset.calendar.filter((e) => isHeld(e, year)).sort((a, b) => a.week - b.week);
   return (
     <div className="scroll">
@@ -43,7 +37,6 @@ export function Entries({ fixedWeek, onOpenEvent }: { fixedWeek?: number; onOpen
         <tbody>{list.map((e) => {
           const past = e.week < week;
           const auto = e.tierId === 'WTF' || ruleset.tiers.find((x) => x.id === e.tierId)?.junior; // junior & Finals: otomatis
-          const st = !past && !auto ? status(e) : undefined;
           return (
             <tr key={e.id} className={past ? 'muted-text' : undefined}>
               <td className="num">{e.week}</td>
@@ -51,8 +44,7 @@ export function Entries({ fixedWeek, onOpenEvent }: { fixedWeek?: number; onOpen
               <td><span className="chip">{ruleset.tiers.find((x) => x.id === e.tierId)?.junior ? t('juniorShort') : e.tierId}</span></td>
               <td>{city(e.cityId)}</td>
               <td>{past ? t('finished') : auto ? t('auto')
-                : <span className={`badge${st!.set === st!.total ? ' good' : ''}`}>{st!.set === st!.total ? `✓ ${t('entryComplete')}` : `${t('entryIncomplete')} · ${st!.set}/${st!.total}`}</span>}
-                {st && st.entered > 0 && <small className="muted-text"> {t('entryEntered', { n: st.entered })}</small>}</td>
+                : submitted(e.id) ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>}</td>
             </tr>
           );
         })}</tbody>

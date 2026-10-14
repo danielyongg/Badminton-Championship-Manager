@@ -52,6 +52,8 @@ export interface SeasonState {
   career?: Career;
   /** Keputusan entry manajer: "tahun-minggu" → entrantId → eventId atau 'rest'. Tanpa keputusan = saran AI. */
   manualEntries: Record<string, Record<string, string>>;
+  /** Turnamen yang entry-nya sudah di-submit manajer: "tahun:eventId" (hanya status di Kalender). */
+  entriesSubmitted?: Record<string, true>;
   /** Snapshot ranking tiap 4 minggu (top 300 per nomor) untuk grafik riwayat peringkat. */
   rankSnapshots: { absWeek: number; discipline: Discipline; ids: string[] }[];
   /** Hasil kejuaraan beregu (kontinental & final). */

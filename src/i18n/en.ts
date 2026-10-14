@@ -161,7 +161,7 @@ export const en: Record<TextKey, string> = {
   required: 'mandatory',
   entryHelp: 'Choose a tournament for each player/pair. "Automatic" = the AI assistant chooses (respecting Top Committed rules). Resting from a mandatory tournament without injury = violation & reputation loss.',
   noEvents: 'No tournaments this week.',
-  entryStatus: 'Entry status', entryComplete: 'Complete', entryIncomplete: 'Incomplete', entryEntered: '{n} entered', finished: 'Finished',
+  entryStatus: 'Entry status', entrySubmitted: 'Entries submitted', entryIncomplete: 'Incomplete', submitEntries: 'Submit entries', finished: 'Finished',
   back: 'Back',
   born: 'Born',
   attributes: 'Attributes',
