@@ -287,5 +287,9 @@ td.strong { font-weight: 700; }
   .show-sm { display: inline; }
   .callist td:nth-child(2) { white-space: normal; }
   .squadlist { max-height: none; } /* tanpa gulir bersarang di HP */
+  /* Sub-tab (turnamen: Turnamen/Juara, nomor, Entry/Kualifikasi/Drawing/Bagan, Skuad Senior/Junior…): satu baris ringkas, geser bila perlu. */
+  nav.controls:not(main > nav) { flex-wrap: nowrap; overflow-x: auto; gap: 0; margin-bottom: 8px; scrollbar-width: none; }
+  nav.controls:not(main > nav) button { flex: none; min-height: 34px; font-size: 14px; padding: 2px 10px; }
+  nav.controls:not(main > nav) > .count { flex: none; padding-left: 6px; }
   .recent td:nth-child(2), .recent td:nth-child(4) { white-space: normal; } /* laga terakhir: turnamen & lawan turun baris, skor tetap terlihat */
 }
