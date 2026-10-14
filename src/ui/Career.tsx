@@ -521,17 +521,6 @@ function SeasonSummary({ year, country, onBack, onOpen, onOpenEvent }: { year: n
           </div>
         </section>
         <section className="card">
-          <h3>{t('statChampions')} {year}</h3>
-          {perPlayer.size === 0 ? <p className="hint">{t('noTitles')}</p> : [...perPlayer].sort((a, b) => b[1] - a[1]).map(([id, n]) => (
-            <div key={id} className="drow">
-              <span className="chip">{players.get(id)?.gender}</span>
-              <span className="grow">{link(id)}</span>
-              <span className="badge gold">🏆 {n}</span>
-            </div>
-          ))}
-        </section>
-        <Titles country={country} year={year} onOpen={onOpen} onOpenEvent={onOpenEvent} />
-        <section className="card">
           <h3>{t('teamResults')} {year}</h3>
           {teams.length === 0 ? <p className="hint">—</p> : teams.map((r) => {
             const reached = r.reached[country];
@@ -543,6 +532,17 @@ function SeasonSummary({ year, country, onBack, onOpen, onOpenEvent }: { year: n
               </div>
             );
           })}
+        </section>
+        <Titles country={country} year={year} onOpen={onOpen} onOpenEvent={onOpenEvent} />
+        <section className="card">
+          <h3>{t('statChampions')} {year}</h3>
+          {perPlayer.size === 0 ? <p className="hint">{t('noTitles')}</p> : [...perPlayer].sort((a, b) => b[1] - a[1]).map(([id, n]) => (
+            <div key={id} className="drow">
+              <span className="chip">{players.get(id)?.gender}</span>
+              <span className="grow">{link(id)}</span>
+              <span className="badge gold">🏆 {n}</span>
+            </div>
+          ))}
         </section>
         {earnings.length > 0 && (
           <section className="card">
