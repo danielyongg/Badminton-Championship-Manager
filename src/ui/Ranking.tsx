@@ -5,7 +5,7 @@ import { makeRng } from '../engine/rng';
 import { isHeld, newSeason, playWeek, rankFromSnapshots, type SeasonState } from '../engine/season';
 import { ageAt, currentAbility } from '../engine/generator';
 import { ATTRS, DISCIPLINES, type Discipline, type Player, type Ruleset, type World } from '../engine/types';
-import { dataName, numLocale, t } from '../i18n';
+import { dataName, numLocale, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName as eventNameOf } from './game';
 import { Flag } from './Flag';
 
@@ -111,7 +111,7 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
         <p><b>{t('lastWeekChampions')}:</b> {lastChampions.map((c) => `${eventName(c.tournamentId)} ${c.discipline}: ${name(c.winner).name}`).join(' · ')}</p>
       )}
       {view === 'calendar' && <Calendar state={state} ruleset={ruleset} world={world} year={calYear} short={(id) => name(id).name} onOpenEvent={onOpenEvent} />}
-      {view === 'committed' && <Committed state={state} ruleset={ruleset} label={(id) => `${name(id).name} (${name(id).country})`} />}
+      {view === 'committed' && <Committed state={state} ruleset={ruleset} label={(id) => name(id).name} />}
       {view === 'players' && <Development state={state} world={world} onOpen={onOpenPlayer} />}
       {view === 'ranking' && <div className="split">
         <div className="scroll">
@@ -238,23 +238,83 @@ export function Calendar({ state, ruleset, world, short, onOpenEvent, year = sho
   );
 }
 
+/** Status tiap turnamen wajib Top Committed satu peserta (atlet tunggal / pasangan). */
+export function commitmentStatus(state: SeasonState, ruleset: Ruleset, entrantId: string) {
+  const year = state.commitmentsYear ?? state.date.year;
+  const week = state.date.year > year ? 53 : state.date.week;
+  const played = new Set(state.matches.filter((m) => m.year === year && m.sides.includes(entrantId)).map((m) => m.tournamentId));
+  const missed = new Set(state.violations.filter((v) => v.year === year && v.entrantId === entrantId).map((v) => v.tournamentId));
+  return (state.commitments[entrantId] ?? []).map((id) => {
+    const ev = ruleset.calendar.find((e) => e.id === id);
+    const w = ev?.week ?? 0;
+    const status = played.has(id) ? 'done' : missed.has(id) ? 'missed' : w < week ? 'excused' : 'upcoming';
+    return { id, week: w, tierId: ev?.tierId ?? '', status } as const;
+  }).sort((a, b) => a.week - b.week);
+}
+
+/** Chip turnamen wajib: ✓ diikuti · ✗ absen (pelanggaran) · cedera (dikecualikan) · mendatang (minggu). */
+export function CommitmentChips({ state, ruleset, entrantId }: { state: SeasonState; ruleset: Ruleset; entrantId: string }) {
+  return (
+    <span className="tc-chips">{commitmentStatus(state, ruleset, entrantId).map((c) => (
+      <span key={c.id} className={`tc ${c.status}`} title={`${eventNameOf(ruleset, c.id) ?? c.id} · ${c.tierId} · ${t('week')} ${c.week} — ${t(`tc_${c.status}` as TextKey)}`}>
+        {c.status === 'done' ? '✓ ' : c.status === 'missed' ? '✗ ' : ''}{eventNameOf(ruleset, c.id) ?? c.id}{c.status === 'upcoming' && <small> · {t('weekShort')}{c.week}</small>}
+      </span>
+    ))}</span>
+  );
+}
+
 function Committed({ state, ruleset, label }: { state: SeasonState; ruleset: Ruleset; label: (id: string) => string }) {
+  const managed = state.career?.countryId ?? null;
+  const [onlyMine, setOnlyMine] = useState(!!managed);
+  const tc = ruleset.topCommitted;
   const name = (id: string) => eventNameOf(ruleset, id) ?? id;
-  const played = (entrant: string) => new Set(state.matches.filter((m) => m.year === shownYear(state) && m.sides.includes(entrant)).map((m) => m.tournamentId));
+  const country = (id: string) => entrantLabel(state, id).country;
+  const disciplineOf = (id: string): Discipline => state.pairs.find((p) => p.id === id)?.discipline
+    ?? (state.players.find((p) => p.id === id)?.gender === 'F' ? 'WS' : 'MS');
+  const entrants = Object.keys(state.commitments).filter((id) => !onlyMine || country(id) === managed);
+  const rule = Object.entries(tc.mustPlay).map(([tier, n]) => `${tier}: ${n === 'all' ? t('tc_all') : n}`).join(' · ');
+  const violations = state.violations.filter((v) => !onlyMine || v.countryId === managed);
   return (
     <>
-      <div className="scroll">
-        <table>
-          <thead><tr><th>{t('name')}</th><th>{t('requiredEvents')}</th></tr></thead>
-          <tbody>{Object.entries(state.commitments).map(([id, events]) => {
-            const p = played(id);
-            return <tr key={id}><td>{label(id)}</td><td>{events.map((e) => (p.has(e) ? '✅ ' : '◻️ ') + name(e)).join(' · ')}</td></tr>;
-          })}</tbody>
-        </table>
+      <p className="hint">{t('tcHelp', { s: tc.singles, d: tc.doubles, rule, y: state.commitmentsYear ?? state.date.year })}</p>
+      <div className="controls">
+        {managed && <label style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} /> {t('tcOnlyMine')}</label>}
+        <span className="tc-legend"><span className="tc done">✓ {t('tc_done')}</span> <span className="tc missed">✗ {t('tc_missed')}</span> <span className="tc excused">{t('tc_excused')}</span> <span className="tc upcoming">{t('tc_upcoming')}</span></span>
       </div>
-      <h3>{t('violations')}</h3>
-      {state.violations.length === 0 ? <p>{t('none')}</p>
-        : <ul>{state.violations.map((v, i) => <li key={i}>{label(v.entrantId)} — {name(v.tournamentId)} {v.year}</li>)}</ul>}
+      {DISCIPLINES.map((d) => {
+        const list = entrants.filter((id) => disciplineOf(id) === d);
+        if (list.length === 0) return null;
+        return (
+          <div key={d} className="scroll">
+            <h4>{d}</h4>
+            <table>
+              <thead><tr><th>{t('name')}</th><th className="num">{t('progress')}</th><th>{t('requiredEvents')}</th></tr></thead>
+              <tbody>{list.map((id) => {
+                const st = commitmentStatus(state, ruleset, id);
+                const done = st.filter((c) => c.status === 'done').length;
+                const missed = st.filter((c) => c.status === 'missed').length;
+                return (
+                  <tr key={id} className={country(id) === managed ? 'sel' : ''}>
+                    <td><Flag id={country(id)} />{label(id)}</td>
+                    <td className="num">{done}/{st.length}{missed > 0 && <span className="down"> · ✗{missed}</span>}</td>
+                    <td><CommitmentChips state={state} ruleset={ruleset} entrantId={id} /></td>
+                  </tr>
+                );
+              })}</tbody>
+            </table>
+          </div>
+        );
+      })}
+      <h3>{t('violations')} <small className="muted-text">({violations.length})</small></h3>
+      {violations.length === 0 ? <p className="hint">{t('none')}</p> : (
+        <div className="scroll">
+          <table>
+            <tbody>{violations.map((v, i) => (
+              <tr key={i}><td>{v.year}</td><td><Flag id={v.countryId} />{label(v.entrantId)}</td><td>{name(v.tournamentId)}</td></tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
     </>
   );
 }

@@ -108,6 +108,13 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .grade-C .grade { background: var(--gold-soft); color: var(--gold); }
 .goalbar { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: .85rem; }
 .goalbar .bar { grid-column: 1 / -1; width: 100%; }
+/* Top Committed: chip status tiap turnamen wajib. */
+.tc-chips { display: flex; flex-wrap: wrap; gap: 3px; }
+.tc { font-size: .75rem; padding: 1px 6px; border-radius: 3px; white-space: nowrap; background: var(--line); }
+.tc.done { background: var(--accent-soft); color: var(--accent-strong); }
+.tc.missed { background: var(--danger-soft); color: var(--danger); font-weight: 700; }
+.tc.excused { color: var(--muted); text-decoration: line-through; }
+.tc-legend { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 /* Kotak angka ringkas (Federasi). */
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .stats > div { background: var(--line); border-radius: 4px; padding: 6px 8px; display: flex; flex-direction: column; }

@@ -8,7 +8,7 @@ import { ATTRS, DISCIPLINES, type Attr, type Discipline, type GameDate, type Pla
 import { numLocale, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName as eventNameOf, lookup, saveGame, useGame } from './game';
 import { Pairs } from './Pairs';
-import { RankChart } from './Ranking';
+import { CommitmentChips, RankChart } from './Ranking';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
 
@@ -216,6 +216,13 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           </table>
         </div>
         <aside>
+          <h3>{t('viewCommitted')} {state.commitmentsYear ?? state.date.year}</h3>
+          {(() => {
+            const tc = [id, ...pairs.filter((x) => !x.dissolved).map((x) => x.id)].filter((e) => state.commitments[e]?.length);
+            return tc.length === 0 ? <p className="hint">{t('tcNone')}</p> : tc.map((e) => (
+              <p key={e}><b>{e === id ? singles : pairs.find((x) => x.id === e)!.discipline}</b> <CommitmentChips state={state} ruleset={ruleset} entrantId={e} /></p>
+            ));
+          })()}
           <h3>{t('rankHistory')} ({singles})</h3>
           <RankChart history={rankFromSnapshots(state, id, singles)} />
           {pairs.filter((x) => !x.dissolved).map((x) => (
