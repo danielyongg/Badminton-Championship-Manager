@@ -130,9 +130,11 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   return (
     <main>
       <header className="controls shell">
-        <b>{countryName}</b>
-        <span className="date">{state.date.year} · {t('week')} {state.date.week}</span>
-        {managed && <span>{t('reputation')}: {state.career!.reputation}</span>}
+        <span className="title"><b>{countryName}</b> <span className="date">{state.date.year} · {t('week')} {state.date.week}</span></span>
+        <span className="meta">
+          {managed && <span>{t('reputation')}: {state.career!.reputation}</span>}
+          <small>{status === 'saving' ? t('saving') : status === 'saved' ? t('saved') : ''}</small>
+        </span>
         {/* Tombol maju: di HP jadi bilah tetap di bawah layar (mudah dijangkau jempol). */}
         <div className="advbar">
           {simWeek !== undefined && <span className="simulating">{t('simulating', { w: simWeek })} <button onClick={() => { stop.current = true; }}>{t('stop')}</button></span>}
@@ -140,7 +142,6 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
           <button disabled={busy} onClick={() => go(4)}>{t('advance4')}</button>
           <button disabled={busy} onClick={() => go(weeksToSeasonEnd)}>{t('advanceSeason')}</button>
         </div>
-        <small>{status === 'saving' ? t('saving') : status === 'saved' ? t('saved') : ''}</small>
         <button className="menu-btn" disabled={busy} onClick={onQuit}>{t('mainMenu')}</button>
       </header>
       {live && (
