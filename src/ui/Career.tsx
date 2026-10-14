@@ -486,12 +486,50 @@ function SeasonSummary({ year, country, onBack, onOpen, onOpenEvent }: { year: n
   const { state, ruleset, world } = game;
   const report = state.career?.reports.find((r) => r.year === year);
   const teams = state.teamResults.filter((r) => r.year === year && r.teams.includes(country));
+  const { players, pairs } = lookup(state);
+  const membersOf = (id: string) => pairs.get(id)?.playerIds ?? [id];
+  // Statistik musim itu: turnamen diikuti, rekor, final, hadiah; pemain juara (gelar per atlet, ganda dihitung untuk kedua atlet).
+  const mine = (id: string) => players.get(membersOf(id)[0])?.countryId === country;
+  const played = new Set<string>();
+  let won = 0, lost = 0, finals = 0;
+  for (const m of state.matches) {
+    if (m.year !== year) continue;
+    const i = mine(m.sides[0]) ? 0 : mine(m.sides[1]) ? 1 : -1;
+    if (i < 0) continue;
+    played.add(m.tournamentId);
+    if (m.winner === i) won++; else lost++;
+    if (m.round === 'F') finals++;
+  }
+  const { titles, teamTitles } = titlesOf(state, ruleset, country, year);
+  const perPlayer = new Map<string, number>();
+  for (const c of titles) for (const id of membersOf(c.winner)) perPlayer.set(id, (perPlayer.get(id) ?? 0) + 1);
+  const earnings = Object.entries(state.earnings[year] ?? {}).filter(([id]) => players.get(id)?.countryId === country).sort((a, b) => b[1] - a[1]);
+  const link = (id: string) => <a href="#" onClick={(e) => { e.preventDefault(); onOpen(id); }}>{players.get(id)?.name ?? id}</a>;
   return (
     <>
       <p><button onClick={onBack}>← {t('back')}</button></p>
-      <h2>{t('seasonSummary', { y: year })}</h2>
+      <h2><Flag id={country} />{t('seasonSummary', { y: year })}</h2>
       <div className="dash">
         {report && <section className="card"><ReportCard r={report} /></section>}
+        <section className="card">
+          <h3>{t('seasonStats')}</h3>
+          <div className="stats">
+            {[
+              [t('statEvents', { y: year }), played.size], [t('statRecord', { y: year }), `${won}–${lost}`], [t('statFinals'), finals],
+              [t('titlesYear', { y: year }), titles.length + teamTitles.length], [t('statChampions'), perPlayer.size], [t('prizeMoney'), usd(earnings.reduce((s, [, v]) => s + v, 0))],
+            ].map(([label, value]) => <div key={String(label)}><b>{value}</b><small>{label}</small></div>)}
+          </div>
+        </section>
+        <section className="card">
+          <h3>{t('statChampions')} {year}</h3>
+          {perPlayer.size === 0 ? <p className="hint">{t('noTitles')}</p> : [...perPlayer].sort((a, b) => b[1] - a[1]).map(([id, n]) => (
+            <div key={id} className="drow">
+              <span className="chip">{players.get(id)?.gender}</span>
+              <span className="grow">{link(id)}</span>
+              <span className="badge gold">🏆 {n}</span>
+            </div>
+          ))}
+        </section>
         <Titles country={country} year={year} onOpen={onOpen} onOpenEvent={onOpenEvent} />
         <section className="card">
           <h3>{t('teamResults')} {year}</h3>
@@ -506,6 +544,14 @@ function SeasonSummary({ year, country, onBack, onOpen, onOpenEvent }: { year: n
             );
           })}
         </section>
+        {earnings.length > 0 && (
+          <section className="card">
+            <h3>{t('topEarners')} {year}</h3>
+            {earnings.slice(0, 10).map(([id, v], i) => (
+              <div key={id} className="drow"><span className="badge">{i + 1}</span><span className="grow">{link(id)}</span><span className="num">{usd(v)}</span></div>
+            ))}
+          </section>
+        )}
         <section className="card wide">
           <h3>{t('allChampions', { y: year })}</h3>
           <Calendar state={state} ruleset={ruleset} world={world} year={year} short={(id) => entrantLabel(state, id).name} onOpenEvent={onOpenEvent} />

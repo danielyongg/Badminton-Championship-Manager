@@ -311,6 +311,7 @@ const id = {
   statPlayers: 'Atlet', statEvents: 'Turnamen {y}', statRecord: 'Menang–kalah {y}',
   winnerOne: '{n} juara', winnerMany: '{n} juara',
   seasonSummary: 'Ringkasan musim {y}', allChampions: 'Juara semua turnamen {y}',
+  seasonStats: 'Statistik musim', statFinals: 'Final dicapai', statChampions: 'Pemain juara',
   titlesYear: 'Gelar juara {y}', noTitles: 'Belum ada gelar musim ini.',
   topEarners: 'Pendapatan terbesar',
   attrChart: 'Grafik atribut per usia',

@@ -311,6 +311,7 @@ export const en: Record<TextKey, string> = {
   statPlayers: 'Players', statEvents: 'Events {y}', statRecord: 'Won–lost {y}',
   winnerOne: '{n} winner', winnerMany: '{n} winners',
   seasonSummary: 'Season summary {y}', allChampions: 'All champions {y}',
+  seasonStats: 'Season stats', statFinals: 'Finals reached', statChampions: 'Title winners',
   titlesYear: 'Titles {y}', noTitles: 'No titles yet this season.',
   topEarners: 'Top earners',
   attrChart: 'Attributes by age',
