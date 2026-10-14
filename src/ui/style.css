@@ -87,8 +87,8 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .card h4 { margin: 8px 0 4px; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 @media (min-width: 900px) { .split { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
-.groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
-.dash { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; align-items: start; }
+.groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 12px; }
+.dash { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 12px; align-items: start; }
 .dash > * { overflow-x: auto; }
 /* Kartu panjang (hasil turnamen) membentang beberapa baris; kartu pendek mengisi celah di kolom lain. */
 .dash { grid-auto-flow: row dense; }
@@ -98,7 +98,7 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .titles h4 small { text-transform: none; font-weight: 400; margin-left: 4px; }
 .titles .drow.champ .grow > a { font-size: .9rem; font-weight: 700; }
 /* Rapor musim: kartu per musim, nilai besar + progress bar per target. */
-.reports { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.reports { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: 10px; }
 .report { border: 1px solid var(--line); border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
 .report-head { display: flex; align-items: center; gap: 10px; }
 .report-head .grow { flex: 1; min-width: 0; }
@@ -157,6 +157,7 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .shell .date { color: var(--accent-strong); font-weight: 800; }
 .shell { align-items: center; }
 .shell small { color: var(--muted); }
+.advbar { display: contents; }
 /* Halaman Pengaturan: satu pengaturan per baris, label kiri & pilihan kanan (bertumpuk di HP). */
 .settings-form { display: grid; gap: 10px; max-width: 560px; }
 .settings-form label { display: grid; grid-template-columns: 200px minmax(0, 1fr); align-items: center; gap: 12px; }
@@ -262,4 +263,16 @@ td.strong { font-weight: 700; }
   table { display: block; overflow-x: auto; }
   .modal { padding: 0; }
   .livebar { left: 12px; right: 12px; transform: none; flex-wrap: wrap; }
+  /* Bilah maju tetap di bawah layar: 3 tombol sama lebar; isi halaman diberi ruang di bawah. */
+  body { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+  .advbar { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 6px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+    background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -2px 10px #0002; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); }
+  .shell .advbar button { min-height: 44px; font-size: 14px; line-height: 1.15; white-space: normal; padding: 4px 6px; }
+  .advbar .simulating { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .85rem; }
+  .shell .menu-btn { margin-left: auto; }
+  /* Baris tabel & daftar sedikit lebih tinggi: tautan nama mudah diketuk. */
+  td { padding-top: 6px; padding-bottom: 6px; }
+  .drow { padding: 7px 0; }
+  .card { padding: 8px 10px; }
+  h2 { font-size: 1.2rem; }
 }

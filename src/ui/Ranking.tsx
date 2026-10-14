@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { absWeek, computeRace, computeRanking, expiringPoints } from '../engine/ranking';
 import { presetPack } from '../engine/pack';
 import { makeRng } from '../engine/rng';
@@ -139,8 +139,11 @@ function Detail({ id, label, state, discipline, ruleset, eventName, junior }: {
   const now = absWeek(state.date);
   const history = rankFromSnapshots(state, id, discipline);
   const expiring = expiringPoints(junior ? state.juniorResults ?? [] : state.results, id, discipline, now, 12, ruleset);
+  // HP: panel ada di bawah tabel → gulir ke panel saat atlet dipilih.
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => { if (window.innerWidth < 900) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [id]);
   return (
-    <aside>
+    <aside ref={ref}>
       <h3>{label}</h3>
       <h4>{t('rankHistory')}</h4>
       <RankChart history={history} />
