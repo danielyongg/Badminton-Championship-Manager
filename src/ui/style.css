@@ -150,6 +150,8 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .goals .up { font-size: inherit; font-weight: 700; }
 .bar { display: inline-block; width: 60px; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; vertical-align: middle; }
 .bar span { display: block; height: 100%; }
+.squadlist { max-height: 300px; }
+.show-sm { display: none; }
 
 /* Header karier */
 .shell { position: sticky; top: 0; background: var(--surface); margin: -16px -16px 12px; padding: 8px 16px; z-index: 2; border-bottom: 1px solid var(--line); }
@@ -275,4 +277,10 @@ td.strong { font-weight: 700; }
   .drow { padding: 7px 0; }
   .card { padding: 8px 10px; }
   h2 { font-size: 1.2rem; }
+  /* Kolom sekunder disembunyikan di HP agar kolom penting (status, poin) tidak terpotong. */
+  .hide-sm { display: none; }
+  .show-sm { display: inline; }
+  .callist td:nth-child(2) { white-space: normal; }
+  .squadlist { max-height: none; } /* tanpa gulir bersarang di HP */
+  .recent td:nth-child(2), .recent td:nth-child(4) { white-space: normal; } /* laga terakhir: turnamen & lawan turun baris, skor tetap terlihat */
 }

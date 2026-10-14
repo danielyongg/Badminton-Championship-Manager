@@ -41,8 +41,8 @@ export function Entries({ fixedWeek, onOpenEvent }: { fixedWeek?: number; onOpen
   const list = [...ruleset.calendar, ...ruleset.team.events].filter((e) => isHeld(e, year)).sort((a, b) => a.week - b.week);
   return (
     <div className="scroll">
-      <table>
-        <thead><tr><th className="num">{t('week')}</th><th>{t('tournament')}</th><th>{t('tier')}</th><th>{t('city')}</th><th>{t('entryStatus')}</th></tr></thead>
+      <table className="callist">
+        <thead><tr><th className="num">{t('week')}</th><th>{t('tournament')}</th><th>{t('tier')}</th><th className="hide-sm">{t('city')}</th><th>{t('entryStatus')}</th></tr></thead>
         <tbody>{list.map((e) => {
           const past = e.week < week;
           const team = teamIds.has(e.id);
@@ -53,7 +53,7 @@ export function Entries({ fixedWeek, onOpenEvent }: { fixedWeek?: number; onOpen
               <td className="num">{e.week}</td>
               <td><a href="#" onClick={(x) => { x.preventDefault(); if (past || auto) onOpenEvent?.(e.id, year); else setOpen(e.id); }}>{team ? eventName(ruleset, e.id, year) : dataName(e.name)}</a></td>
               <td><span className="chip">{team ? t('teamShort') : ruleset.tiers.find((x) => x.id === tier)?.junior ? t('juniorShort') : tier}</span></td>
-              <td>{city(e.cityId)}</td>
+              <td className="hide-sm">{city(e.cityId)}</td>
               <td>{past ? t('finished') : auto ? t('auto')
                 : submitted(e.id) ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>}</td>
             </tr>

@@ -235,13 +235,13 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
       </div>
       <h3>{t('recentMatches')}</h3>
       <div className="scroll">
-        <table>
+        <table className="recent">
           <tbody>{recent.map((m) => {
             const i = sides.has(m.sides[0]) ? 0 : 1;
             const opp = m.sides[1 - i];
             return (
               <tr key={m.id}>
-                <td>{m.year}</td><td>{onOpenEvent ? <a href="#" onClick={(e) => { e.preventDefault(); onOpenEvent(m.tournamentId, m.year); }}>{eventName(m.tournamentId, m.year)}</a> : eventName(m.tournamentId, m.year)}</td><td>{m.discipline} {m.round}</td>
+                <td className="num">{m.year}</td><td>{onOpenEvent ? <a href="#" onClick={(e) => { e.preventDefault(); onOpenEvent(m.tournamentId, m.year); }}>{eventName(m.tournamentId, m.year)}</a> : eventName(m.tournamentId, m.year)}</td><td>{m.discipline} {m.round}</td>
                 <td><a href="#" onClick={(e) => { e.preventDefault(); onOpen(lookup(state).pairs.get(opp)?.playerIds[0] ?? opp); }}>{entrantLabel(state, opp).name} ({entrantLabel(state, opp).country})</a></td>
                 <td><MatchLink m={m} name={(x) => entrantLabel(state, x).name} title={eventName(m.tournamentId, m.year)}>{m.scores.map(([a, b]) => (i === 0 ? `${a}-${b}` : `${b}-${a}`)).join(', ')}</MatchLink></td>
                 <td className={m.winner === i ? 'up' : 'down'}>{m.winner === i ? t('won') : t('lost')}</td>

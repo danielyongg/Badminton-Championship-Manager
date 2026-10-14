@@ -75,7 +75,7 @@ export function SquadPicker({ pool, value, onChange, size }: {
   return (
     <div>
       <p>{t('squadCount')}: <b>{value.length}</b> ({size.min}–{size.max})</p>
-      <div className="scroll" style={{ maxHeight: 300 }}>
+      <div className="scroll squadlist">
         <table>
           <tbody>{poolPlayers(pool).map((id) => {
             const p = players.get(id)!;

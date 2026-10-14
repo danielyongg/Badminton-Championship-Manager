@@ -116,12 +116,12 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
       {view === 'ranking' && <div className="split">
         <div className="scroll">
           <table>
-            <thead><tr><th>#</th><th>{t('name')}</th><th>{t('country')}</th><th>{t('points')}</th><th>{t('tournaments')}</th></tr></thead>
+            <thead><tr><th className="num">#</th><th>{t('name')}</th><th className="hide-sm">{t('country')}</th><th className="num">{t('points')}</th><th className="num hide-sm">{t('tournaments')}</th></tr></thead>
             <tbody>
               {rows.slice(0, 100).map((r) => (
                 <tr key={r.entrantId} onClick={() => setSelected(r.entrantId)} className={selected === r.entrantId ? 'sel' : ''} style={{ cursor: 'pointer' }}>
-                  <td className="num">{r.rank}</td><td>{name(r.entrantId).name}</td><td><Flag id={name(r.entrantId).country} />{name(r.entrantId).country}</td>
-                  <td className="num">{r.points.toLocaleString(numLocale())}</td><td className="num">{r.tournamentsPlayed}</td>
+                  <td className="num">{r.rank}</td><td><span className="show-sm"><Flag id={name(r.entrantId).country} /></span>{name(r.entrantId).name}</td><td className="hide-sm"><Flag id={name(r.entrantId).country} />{name(r.entrantId).country}</td>
+                  <td className="num">{r.points.toLocaleString(numLocale())}</td><td className="num hide-sm">{r.tournamentsPlayed}</td>
                 </tr>
               ))}
             </tbody>
@@ -224,12 +224,12 @@ export function Calendar({ state, ruleset, world, short, onOpenEvent, year = sho
   return (
     <div className="scroll">
       <table>
-        <thead><tr><th>{t('week')}</th><th>{t('tournament')}</th><th>{t('tier')}</th><th>{t('city')}</th><th>{t('prize')}</th>{DISCIPLINES.map((d) => <th key={d}>{d}</th>)}</tr></thead>
+        <thead><tr><th className="num">{t('week')}</th><th>{t('tournament')}</th><th>{t('tier')}</th><th className="hide-sm">{t('city')}</th><th className="num hide-sm">{t('prize')}</th>{DISCIPLINES.map((d) => <th key={d}>{d}</th>)}</tr></thead>
         <tbody>{events.map((e) => (
           <tr key={e.id} className={year === state.date.year && e.week === state.date.week ? 'sel' : ''}>
             <td className="num">{e.week}</td><td>{onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, year); }}>{dataName(e.name)}</a> : dataName(e.name)}</td><td>{e.tierId}</td>
-            <td>{dataName(city.get(e.cityId)?.name)} ({city.get(e.cityId)?.countryId})</td>
-            <td className="num">{e.prizeUsd ? `$${e.prizeUsd.toLocaleString(numLocale())}` : '—'}</td>
+            <td className="hide-sm">{dataName(city.get(e.cityId)?.name)} ({city.get(e.cityId)?.countryId})</td>
+            <td className="num hide-sm">{e.prizeUsd ? `$${e.prizeUsd.toLocaleString(numLocale())}` : '—'}</td>
             {DISCIPLINES.map((d) => {
               const c = state.champions.find((x) => x.year === year && x.tournamentId === e.id && x.discipline === d);
               return <td key={d}>{c && <><Flag id={entrantLabel(state, c.winner).country} />{short(c.winner)}</>}</td>;
