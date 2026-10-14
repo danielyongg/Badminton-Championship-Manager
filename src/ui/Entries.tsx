@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { entrantsFor, isHeld, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
 import { autoSquad, squadError } from '../engine/team';
-import { DISCIPLINES, type TeamFormat } from '../engine/types';
+import { DISCIPLINES, isDoubles, type TeamFormat } from '../engine/types';
 import { dataName, t } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, useGame } from './game';
 import { FatigueBar } from './Squad';
@@ -92,7 +92,7 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
 
   const drawOf = (id: string) => ruleset.tiers.find((tt) => tt.id === events.find((e) => e.id === id)?.tierId)?.drawSize;
   const rows = DISCIPLINES.filter((d) => !eventId || (drawOf(eventId)?.[d] ?? 0) > 0).flatMap((d) =>
-    entrantsFor(state, d).filter((e) => e.countryId === country)
+    entrantsFor(state, d).filter((e) => e.countryId === country && (isDoubles(d) || players.get(e.id)?.focus !== 'D')) // spesialis ganda: tidak di nomor tunggal
       .map((e) => ({ ...e, d, rank: ranks.get(d)!.get(e.id) }))
       .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9)));
 
