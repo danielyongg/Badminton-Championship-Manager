@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { dissolvePair, formPair, promoteTrial } from '../engine/career';
+import { dissolvePair, formPair, promoteJunior, promoteTrial } from '../engine/career';
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import type { Pair } from '../engine/types';
@@ -30,6 +30,8 @@ export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => voi
 
   const commit = () => { changed(); void saveGame(game); };
   const isJunior = (id: string) => isPratama(players.get(id)!, state.date); // junior yang sudah promosi masuk Senior
+  // Pasangan berisi atlet Development (pratama): tidak masuk turnamen senior otomatis sampai dipromosikan.
+  const pratama = (p: Pair) => p.playerIds.some((id) => isPratama(players.get(id)!, state.date));
   const mine = state.pairs.filter((p) => !p.dissolved && !p.adHoc && players.get(p.playerIds[0])?.countryId === country && p.playerIds.every(isJunior) === juniors);
   const athletes = (gender: 'M' | 'F') => state.players
     .filter((p) => p.countryId === country && p.retired === undefined && p.gender === gender && p.focus !== 'S' && isJunior(p.id) === juniors)
@@ -49,7 +51,7 @@ export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => voi
   const COLS: { key: string; label: TextKey; num?: boolean; value: (p: Pair) => string | number; desc?: boolean }[] = [
     { key: 'pair', label: 'pair', value: (p) => p.playerIds.map((id) => players.get(id)!.name).join(' / ') },
     { key: 'sector', label: 'sector', value: (p) => DOUBLES.indexOf(p.discipline) },
-    { key: 'status', label: 'status', value: (p) => (p.trial ? 1 : 0) },
+    { key: 'status', label: 'status', value: (p) => (p.trial ? 2 : pratama(p) ? 1 : 0) },
     { key: 'age', label: 'age', num: true, value: (p) => avg(p, (x) => ageAt(x.birth, state.date)) },
     { key: 'ability', label: 'ability', num: true, value: (p) => avg(p, (x) => currentAbility(x.attrs)), desc: true },
     { key: 'chem', label: 'chemistry', num: true, value: (p) => p.chemistry, desc: true },
@@ -82,7 +84,9 @@ export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => voi
                   <span key={id}>{i > 0 && ' / '}<a href="#" onClick={(e) => { e.preventDefault(); onOpen(id); }}>{players.get(id)!.name}</a></span>
                 ))}</td>
                 <td><span className="chip sector">{p.discipline}</span></td>
-                <td>{p.trial ? <span className="tag muted-tag">{t('trialPair')}</span> : <span className="tag">{t('mainPair')}</span>}</td>
+                <td>{p.trial ? <span className="tag muted-tag">{t('trialPair')}</span>
+                  : pratama(p) ? <><span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span> <button className="mini" onClick={() => { p.playerIds.forEach((id) => promoteJunior(state, id)); commit(); }}>{t('promote')}</button></>
+                  : <span className="tag">{t('mainPair')}</span>}</td>
                 <td className="num">{Math.round(avg(p, (x) => ageAt(x.birth, state.date)))}</td>
                 <td className="num">{Math.round(avg(p, (x) => currentAbility(x.attrs)))}</td>
                 <td className="num">{Math.round(p.chemistry)}</td>
