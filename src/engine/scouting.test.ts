@@ -7,7 +7,7 @@ import { autoPick, recruit } from './scouting';
 import { newSeason, playWeek } from './season';
 
 describe('pencarian bakat junior', () => {
-  it('akhir musim: kandidat 2× kursi hanya untuk negara manajer; jumlah rekrut bebas', async () => {
+  it('akhir musim: kandidat max(5, 2× kursi) hanya untuk negara manajer; jumlah rekrut bebas', async () => {
     const rs = BWF_2026;
     const state = newSeason(WORLD, rs, 11, { year: 2026, week: 50 }, 'INA');
     const rng = makeRng(11);
@@ -16,7 +16,7 @@ describe('pencarian bakat junior', () => {
     expect(s.year).toBe(2027);
     for (const g of ['M', 'F'] as const) {
       const n = s.candidates.filter((p) => p.gender === g).length;
-      expect(n).toBe(s.slots[g] && Math.max(2, s.slots[g] * 2));
+      expect(n).toBe(Math.max(5, s.slots[g] * 2));
     }
     expect(s.candidates.every((p) => p.countryId === 'INA')).toBe(true);
     expect(state.players.some((p) => s.candidates.includes(p))).toBe(false); // belum masuk skuad

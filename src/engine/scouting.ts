@@ -13,6 +13,9 @@ export interface Scouting {
   starRange: Record<string, [number, number]>;
 }
 
+/** Kandidat minimal per gender (selain 2× kursi). */
+export const MIN_CANDIDATES = 5;
+
 /** Batas minggu memilih: setelah minggu ini lewat, kursi diisi otomatis. */
 export const SCOUTING_DEADLINE_WEEK = 4;
 
@@ -22,7 +25,7 @@ export function makeScouting(base: Player[], country: Country, gen: GeneratorCon
   const candidates: Player[] = [];
   const starRange: Scouting['starRange'] = {};
   for (const g of ['M', 'F'] as const) {
-    const n = slots[g] && Math.max(2, slots[g] * 2);
+    const n = Math.max(MIN_CANDIDATES, slots[g] * 2);
     for (let i = 0; i < n; i++) {
       const age = gen.juniorAge.min + Math.floor(rng() * (gen.juniorAge.max - gen.juniorAge.min + 1));
       const p = generatePlayer(rng, gen, country, g, age, date, `${country.id}-${g}${date.year}-s${i + 1}`);

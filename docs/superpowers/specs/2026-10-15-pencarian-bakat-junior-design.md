@@ -8,7 +8,7 @@ Disetujui user 2026-10-15. Prinsip: tetap ringan — satu keputusan per musim, b
    junior otomatis seperti sekarang. Negara manajer **tidak** langsung menerima junior; sebagai gantinya dibuat
    daftar kandidat.
 2. Kursi per gender = jumlah yang biasanya dihasilkan `newJuniors` untuk negara itu (tradisi). Kandidat per gender =
-   2 × kursi (minimal 2 bila kursi 1). Kandidat dibuat dengan `generatePlayer` yang sama (usia 15–17).
+   2 × kursi, minimal 5 (revisi 2026-10-15). Kandidat dibuat dengan `generatePlayer` yang sama (usia 15–17).
 3. Minggu 1–4 musim baru: kartu **Pencarian bakat** di Dashboard (di sebelah laporan akhir musim) — status
    "Belum dipilih (Putra 0/3 · Putri 0/3)" → membuka layar kandidat.
 4. Layar kandidat: dua daftar (Putra, Putri). Kolom: nama, usia, kemampuan, potensi (rentang bintang).
