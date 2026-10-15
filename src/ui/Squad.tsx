@@ -182,10 +182,12 @@ export function TierPrefs({ id }: { id: string }) {
     changed(); void saveGame(game);
   };
   const tiers = ruleset.tiers.filter((x) => !x.junior && !['WC', 'OG', 'WTF'].includes(x.id)); // ponytail: turnamen kualifikasi & junior tidak dipilih manajer
+  const on = tiers.map((x) => x.id).filter((x) => prefs.includes(x)); // urut tier tertinggi dulu
   return (
-    <span className="tier-prefs" title={t('tierPrefsHint')}>
-      {tiers.map((x) => <button key={x.id} className="mini" aria-pressed={prefs.includes(x.id)} onClick={() => toggle(x.id)}>{x.id}</button>)}
-    </span>
+    <details className="tier-prefs" title={t('tierPrefsHint')}>
+      <summary>{prefs.length ? (prefs.length > 3 ? `${on[0]} +${on.length - 1}` : on.join('·')) : t('tierPrefsFree')}</summary>
+      <span>{tiers.map((x) => <button key={x.id} className="mini" aria-pressed={prefs.includes(x.id)} onClick={() => toggle(x.id)}>{x.id}</button>)}</span>
+    </details>
   );
 }
 
