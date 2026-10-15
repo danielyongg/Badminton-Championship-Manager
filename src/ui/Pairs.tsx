@@ -97,7 +97,7 @@ export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => voi
                 <td className="num"><RankCell ranks={rankList(p)} /></td>
                 <td onClick={(e) => e.stopPropagation()}>{p.trial ? '—' : <TierPrefs id={p.id} />}</td>
                 <td>
-                  {pratama(p) && <button className="mini" onClick={() => { p.playerIds.forEach((id) => promoteJunior(state, id)); commit(); }}>{t('promote')}</button>}
+                  {pratama(p) && <button className="mini btn-go" onClick={() => { p.playerIds.forEach((id) => promoteJunior(state, id)); commit(); }}>{t('promote')}</button>}
                   {p.trial && <button className="mini" onClick={() => { if (confirm(t('confirmPromote'))) { promoteTrial(state, p.id); commit(); } }}>{t('promoteTrial')}</button>}
                   {' '}<button className="mini" onClick={() => { if (p.trial || confirm(t('confirmDissolve'))) { dissolvePair(state, p.id); commit(); } }}>{t('dissolve')}</button>
                 </td>

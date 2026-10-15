@@ -126,8 +126,8 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
           <tbody>{list.map((p) => (
             <tr key={p.id} onClick={() => onOpen(p.id)} style={{ cursor: 'pointer' }}>
               <td>{p.name}</td><td>{p.gender}</td>
-              {juniorCols && <td onClick={(e) => e.stopPropagation()}>{isPratama(p, state.date)
-                ? <><span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span> <button className="mini" onClick={() => { promoteJunior(state, p.id); commit(); }}>{t('promote')}</button></>
+              {juniorCols && <td>{isPratama(p, state.date)
+                ? <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>
                 : <span className="tag">{t('utama')}</span>}</td>}
               <td>{sectorsOf(p).map((d) => {
                 const pair = d.length === 2 && d[1] === 'D' ? mainPair(p.id, d as DoublesD) : undefined;
@@ -147,7 +147,8 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
                 ? <button className="mini" onClick={() => { recallPlayer(state, p.id); commit(); }}>{t('recall')}</button>
                 : view === 'singles' ? <TierPrefs id={p.id} /> : <>
                   <SectorPicker p={p} onChange={commit} />
-                  {' '}<button className="mini" onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id); commit(); } }}>{t('releaseShort')}</button>
+                  {isPratama(p, state.date) && <>{' '}<button className="mini btn-go" onClick={() => { promoteJunior(state, p.id); commit(); }}>{t('promote')}</button></>}
+                  {' '}<button className="mini btn-danger" onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id); commit(); } }}>{t('releaseShort')}</button>
                 </>}</td>
             </tr>
           ))}</tbody>
@@ -254,7 +255,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
       </p>
       {p.countryId === state.career?.countryId && p.retired === undefined && (
         <p>{p.released === undefined
-          ? <button onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id); changed(); void saveGame(game); } }}>{t('release')}</button>
+          ? <button className="btn-danger" onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id); changed(); void saveGame(game); } }}>{t('release')}</button>
           : <button onClick={() => { recallPlayer(state, p.id); changed(); void saveGame(game); }}>{t('recall')}</button>}</p>
       )}
       <AttrChart p={p} date={state.date} />
