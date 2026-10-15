@@ -7,7 +7,7 @@ import { makeRng, shuffle, type Rng } from './rng';
 import type { Standing } from './groups';
 import { each, type MatchRound, type PlayFn } from './knockout';
 import { juniorEntries, juniorTeamEntrants } from './junior';
-import { AD_HOC, adHocEntrants, autoLineup, autoSquad, lineupError, playTie, runTeamEvent, squadError, squadPool, type Lineup, type TeamEntrant } from './team';
+import { AD_HOC, adHocEntrants, autoLineup, rankOrder, autoSquad, lineupError, playTie, runTeamEvent, squadError, squadPool, type Lineup, type TeamEntrant } from './team';
 import { runEvent, simPlay, toRecord, type DrawHook, type EventRecord, type LiveHook } from './tournament';
 import { roundGate, type RoundHook } from './gate';
 import { makeScouting, recruit, SCOUTING_DEADLINE_WEEK, type Scouting } from './scouting';
@@ -599,10 +599,23 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
       squads[c] = squad;
       pools.set(c, squadPool(pool, squad));
     }
+    // Posisi ranking per nomor. Atlet di ganda = posisi pasangan terbaiknya; ganda dadakan = rata-rata posisi kedua atlet.
+    const points = rankingPoints(state, rs, isJuniorFormat(format) ? state.juniorResults ?? [] : state.results);
+    const position = new Map([...points].map(([d, m]) => [d, new Map([...m].sort((a, b) => b[1] - a[1]).map(([id], i) => [id, i + 1]))]));
+    const playerPos = (d: Discipline, id: string) => Math.min(Infinity, ...state.pairs
+      .filter((p) => p.discipline === d && !p.adHoc && p.playerIds.includes(id)).map((p) => position.get(d)!.get(p.id) ?? Infinity));
+    const rank = (id: string, d: Discipline) => {
+      if (d === 'MS' || d === 'WS') return position.get(d)!.get(id) ?? Infinity;
+      const pair = id.startsWith(AD_HOC) ? undefined : pairs.get(id);
+      if (pair && !pair.adHoc) return position.get(d)!.get(id) ?? Infinity;
+      const ids = pair?.playerIds ?? id.slice(AD_HOC.length).split('+');
+      return ids.reduce((s, x) => s + playerPos(d, x), 0) / ids.length;
+    };
+    const ranked = (l: Lineup) => rankOrder(l, order, rank);
     const lineupOf = async (c: string, opponent: string, round: MatchRound): Promise<Lineup> => {
       const pool = pools.get(c)!;
       const real = (l: Lineup) => l.map((id, i) => (id?.startsWith(AD_HOC) ? adHocPair(c, order[i], id) : id)); // ganda dadakan → pasangan
-      const auto = autoLineup(order, pool, max);
+      const auto = ranked(autoLineup(order, pool, max));
       if (c !== state.managedCountryId) return real(auto);
       // Line-up manajer boleh memakai ganda dadakan (adhoc:a+b) dari atlet skuad.
       const squad = new Set(squads[c]);
@@ -611,8 +624,9 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
         const byId = new Map([...Object.values(pool).flat(), ...adHocEntrants(l, order, squad, (id) => players.get(id)?.gender)].map((e) => [e.id, e]));
         return lineupError(l, order, byId, max) ? undefined : l;
       };
-      const asked = team?.lineup({ eventId: ev.id, format, round, opponent, pool, squad: squads[c], suggested: ok(state.teamLineups[format]) ?? auto });
-      const chosen = ok(asked ? await asked : state.teamLineups[format]);
+      const asked = team?.lineup({ eventId: ev.id, format, round, opponent, pool, squad: squads[c], suggested: ranked(ok(state.teamLineups[format]) ?? auto) });
+      const picked = ok(asked ? await asked : state.teamLineups[format]);
+      const chosen = picked && ranked(picked);
       if (chosen && asked) state.teamLineups[format] = chosen; // jadi saran untuk pertandingan berikutnya
       return real(chosen ?? auto);
     };

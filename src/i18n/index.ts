@@ -257,7 +257,7 @@ const id = {
   registerSquad: 'Daftarkan skuad',
   squadHint: 'Pilih atlet yang dibawa ke turnamen ini. Line-up setiap pertandingan hanya bisa diambil dari skuad ini, jadi sertakan cadangan untuk tunggal & pasangan ganda.',
   resetSuggestion: 'Kembalikan saran',
-  tieLineupHint: 'Pilih atlet tiap partai dari skuad terdaftar. Tiap atlet maksimal 2 partai dan tidak dua kali di nomor yang sama. Lawan menyusun line-up bersamaan (tidak terlihat).',
+  tieLineupHint: 'Pilih atlet tiap partai dari skuad terdaftar. Tiap atlet maksimal 2 partai dan tidak dua kali di nomor yang sama. Sesuai aturan BWF, tunggal 1/2/3 dan ganda 1/2 otomatis diurutkan menurut ranking (ganda dadakan: rata-rata ranking kedua atlet). Lawan menyusun line-up bersamaan (tidak terlihat).',
   confirmLineup: 'Konfirmasi line-up',
   hideLive: 'Sembunyikan (laga dijeda)',
   openLive: 'Kembali ke laga',

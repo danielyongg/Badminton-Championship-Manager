@@ -16,7 +16,7 @@ export interface TeamEntrant { id: EntrantId; playerIds: string[] }
 /**
  * Aturan line-up: tiap atlet maksimal `max` partai dan tidak boleh dua kali di nomor yang sama
  * (Thomas/Uber: satu tunggal + satu ganda; Sudirman: dua nomor berbeda).
- * ASUMSI: kewajiban urutan tunggal 1–3 menurut ranking tidak diperiksa untuk line-up manajer.
+ * Urutan tunggal 1–3 / ganda 1–2 menurut ranking diatur `rankOrder` (bukan error).
  */
 export function lineupError(lineup: Lineup, order: Discipline[], pool: Map<EntrantId, TeamEntrant>, max: number): string | null {
   const count = new Map<string, number>();
@@ -76,6 +76,21 @@ export function adHocEntrants(lineup: Lineup, order: Discipline[], squad: Set<st
     const ok = ids.length === 2 && ids[0] !== ids[1] && ids.every((x) => squad.has(x)) && ids.map(gender).sort().join('') === GENDERS[order[i]];
     return ok ? [{ id, playerIds: ids }] : [];
   });
+}
+
+/**
+ * Aturan BWF: di nomor yang sama, posisi lebih awal (tunggal 1, ganda 1) diisi peserta berperingkat lebih tinggi.
+ * Peserta yang dipilih tetap; hanya urutannya di antara partai nomor yang sama yang diatur ulang.
+ * `rank` = posisi ranking (kecil = lebih baik; tanpa ranking = Infinity, urutan pilihan dipertahankan).
+ */
+export function rankOrder(lineup: Lineup, order: Discipline[], rank: (id: EntrantId, d: Discipline) => number): Lineup {
+  const out = [...lineup];
+  for (const d of new Set(order)) {
+    const slots = order.flatMap((x, i) => (x === d && lineup[i] ? [i] : []));
+    const sorted = slots.map((i) => lineup[i]!).sort((a, b) => { const x = rank(a, d), y = rank(b, d); return x === y ? 0 : x - y; });
+    slots.forEach((i, k) => { out[i] = sorted[k]; });
+  }
+  return out;
 }
 
 /** Line-up otomatis: tiap partai diisi peserta terbaik (urutan `pool`) yang masih memenuhi aturan. */

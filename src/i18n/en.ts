@@ -257,7 +257,7 @@ export const en: Record<TextKey, string> = {
   registerSquad: 'Register squad',
   squadHint: 'Choose the players you bring to this tournament. Every tie’s line-up can only use this squad, so include backups for singles & doubles pairs.',
   resetSuggestion: 'Restore suggestion',
-  tieLineupHint: 'Pick a player for each match from the registered squad. A player may play at most 2 matches and not twice in the same event. The opponent submits its line-up at the same time (hidden).',
+  tieLineupHint: 'Pick a player for each match from the registered squad. A player may play at most 2 matches and not twice in the same event. Per BWF rules, 1st/2nd/3rd singles and 1st/2nd doubles are ordered by ranking automatically (ad-hoc pairs: average of both players’ rankings). The opponent submits its line-up at the same time (hidden).',
   confirmLineup: 'Confirm line-up',
   hideLive: 'Hide (match paused)',
   openLive: 'Back to match',

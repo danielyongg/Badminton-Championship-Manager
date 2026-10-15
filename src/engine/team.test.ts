@@ -6,7 +6,7 @@ import { WORLD } from './presets/world';
 import { makeRng } from './rng';
 import { entrantsFor, finalsTeams, newSeason, playWeek, teamStrengths, type SeasonState, type TeamHook, type WeekHooks } from './season';
 import { isJuniorAge } from './generator';
-import { adHocId, autoLineup, autoSquad, lineupError, playTie, squadError, type Lineup, type TeamEntrant } from './team';
+import { adHocId, autoLineup, rankOrder, autoSquad, lineupError, playTie, squadError, type Lineup, type TeamEntrant } from './team';
 import type { DrawShow } from './tournament';
 import type { Ruleset } from './types';
 
@@ -34,6 +34,12 @@ describe('line-up beregu', () => {
     expect(lineupError(['a', 'ad', 'b', 'ef', 'c'], order, all, 2)).toBeNull();
     expect(lineupError(['a', 'ad', 'a', 'ef', 'c'], order, all, 2)).toMatch(/dua kali/);
     expect(lineupError(['a', 'ad', 'b', null, 'c'], order, all, 2)).toMatch(/Partai 4/);
+  });
+
+  it('Thomas: tunggal 1–3 & ganda 1–2 diurutkan menurut ranking; tanpa ranking di belakang', () => {
+    const order = BWF_2026.team.order.thomas; // MS MD MS MD MS
+    const pos: Record<string, number> = { a: 3, b: 1, c: 2, ad: 9, ef: 4 };
+    expect(rankOrder(['a', 'ad', 'x', 'ef', 'b'], order, (id) => pos[id] ?? Infinity)).toEqual(['b', 'ef', 'a', 'ad', 'x']);
   });
 
   it('babak gugur berhenti di 3–0; fase grup memainkan kelima partai', async () => {
@@ -281,9 +287,9 @@ describe('Thomas, Uber & Sudirman Cup', () => {
     const finalsCalls = lineupCalls.filter((c) => c.eventId === 'thomas-uber-cup');
     expect(finalsCalls.filter((c) => c.round === 'G').length).toBeGreaterThanOrEqual(6); // 3 Thomas + 3 Uber
     expect(finalsCalls.every((c) => c.opponent && c.opponent !== 'INA')).toBe(true);
-    // Partai 1 pertandingan Thomas pertama INA = pilihan manajer.
+    // Tunggal 1 & 3 ditukar manajer → dikembalikan menurut ranking: partai 1 = tunggal berperingkat tertinggi (saran semula).
     const first = state.matches.find((m) => m.tournamentId === 'asia-team' && m.discipline === 'MS' && m.sides.some((s) => s.startsWith('INA')))!;
-    expect(first.sides).toContain(firstLineup![0]);
+    expect(first.sides).toContain(firstLineup![4]);
     // Uber: skuad tidak sah diganti otomatis.
     expect(state.teamResults.find((r) => r.eventId === 'thomas-uber-cup' && r.format === 'uber')!.squads.INA).not.toContain('bukan-atlet');
   });
