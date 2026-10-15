@@ -73,7 +73,7 @@ function MainMenu({ onStart, onLab, onEditor, onLang }: { onStart: (g: Game) => 
       <div className="controls"><LangSelect onChange={onLang} /><ThemeSelect /></div>
       <section className="card">
         <h2>{t('newGame')}</h2>
-        <div className="controls">
+        <div className="controls newgame">
           <label>{t('saveName')}<input value={name} onChange={(e) => setName(e.target.value)} /></label>
           <label>{t('country')}
             <select value={countryId} onChange={(e) => setCountryId(e.target.value)}>
@@ -86,7 +86,7 @@ function MainMenu({ onStart, onLab, onEditor, onLang }: { onStart: (g: Game) => 
               {packs.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </label>
-          <label>{t('seed')}<input type="number" value={seed} onChange={(e) => setSeed(Number(e.target.value))} style={{ width: 100 }} /></label>
+          <label>{t('seed')}<input type="number" inputMode="numeric" value={seed} onChange={(e) => setSeed(Number(e.target.value))} /></label>
           <button className="primary" disabled={busy || !name.trim()} onClick={start}>{busy ? '…' : t('start')}</button>
         </div>
       </section>
