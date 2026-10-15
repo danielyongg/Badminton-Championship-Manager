@@ -146,7 +146,7 @@ const id = {
   bwfRank: 'BWF rank',
   bwfRankNow: 'Ranking BWF saat ini',
   pair: 'Pasangan',
-  tierPrefsFree: 'Bebas', tierPrefs: 'Prioritas tier', tierPrefsHint: 'Tier yang diikuti saat entry otomatis: tier tertinggi yang menyala selalu didaftarkan (kecuali lelah/cedera). Tidak ada yang menyala = AI bebas memilih.', sector: 'Sektor', manageSectors: 'Atur sektor', singlesHint: 'Ikut nomor tunggal (tanpa centang = spesialis ganda, tidak didaftarkan otomatis di tunggal)', pairsHint: 'Ikut nomor ganda (tanpa centang = tidak muncul di form bentuk pasangan; pasangannya dibubarkan)',
+  tierPrefsFree: 'Otomatis', tierPrefs: 'Prioritas tier', tierPrefsHint: 'Tier yang diikuti saat entry otomatis: tier tertinggi yang menyala selalu didaftarkan (kecuali lelah/cedera). Otomatis (tidak ada yang menyala) = AI memilih menurut ranking & peluang seperti biasa.', sector: 'Sektor', manageSectors: 'Atur sektor', singlesHint: 'Ikut nomor tunggal (tanpa centang = spesialis ganda, tidak didaftarkan otomatis di tunggal)', pairsHint: 'Ikut nomor ganda (tanpa centang = tidak muncul di form bentuk pasangan; pasangannya dibubarkan)',
   mainPair: 'Utama',
   pratama: 'Pratama', utama: 'Utama', promote: 'Promosikan', squadLevel: 'Pelatnas', pratamaHint: 'Junior pratama tidak didaftarkan otomatis ke turnamen senior (entry manual tetap bisa). Promosikan ke pelatnas utama agar ikut sirkuit senior; di usia 19 otomatis menjadi senior.',
   juniorRanking: 'Ranking junior dunia', juniorShort: 'Junior',
