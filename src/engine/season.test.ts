@@ -5,7 +5,7 @@ import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
 import { presetPack, PRESETS } from './pack';
 import { makeRng } from './rng';
-import { formPairs, newSeason, playWeek, wtfQualifiers } from './season';
+import { formPairs, isHeld, newSeason, playWeek, wtfQualifiers } from './season';
 import { ATTRS, DISCIPLINES } from './types';
 
 describe('satu musim penuh (BWF 2026)', () => {
@@ -182,5 +182,27 @@ describe('pembentukan pasangan AI', () => {
     formPairs(state, pack.ruleset, pack.world, makeRng(9));
     const ids = state.pairs.map((p) => p.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe('prioritas tier entry otomatis', () => {
+  it('atlet dengan prioritas S1000/S750/S500 tidak pernah ke S300/S100 dan selalu ikut bila tier itu ada', async () => {
+    const rs = { ...BWF_2026, ai: { ...BWF_2026.ai, restAbove: 999 } }; // tanpa istirahat karena lelah
+    const state = newSeason(WORLD, rs, 5, undefined, 'INA');
+    const ms = state.players.filter((p) => p.countryId === 'INA' && p.gender === 'M' && p.focus !== 'D')[0];
+    const prefs = ['S1000', 'S750', 'S500'];
+    state.tierPrefs = { [ms.id]: prefs };
+    const tierOf = new Map(rs.calendar.map((e) => [e.id, e.tierId]));
+    const rng = makeRng(5);
+    while (state.date.week < 30) {
+      const { year, week } = state.date;
+      ms.injury = undefined;
+      const prefWeek = rs.calendar.some((e) => e.week === week && prefs.includes(e.tierId) && (!e.everyYears || isHeld(e, year)));
+      const before = state.matches.length;
+      await playWeek(state, rs, WORLD, rng);
+      const played = state.matches.slice(before).filter((m) => m.discipline === 'MS' && m.sides.includes(ms.id)).map((m) => tierOf.get(m.tournamentId));
+      expect(played.filter((x) => x === 'S300' || x === 'S100')).toEqual([]);
+      if (prefWeek) expect(played.length, `minggu ${week}`).toBeGreaterThan(0);
+    }
   });
 });

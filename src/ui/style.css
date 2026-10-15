@@ -56,6 +56,9 @@ button[aria-pressed]:hover:not(:disabled) { border-color: transparent; color: va
 th.sortable { cursor: pointer; user-select: none; }
 th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .chip.sector { margin-right: 3px; }
+.tier-prefs { display: inline-flex; gap: 3px; flex-wrap: nowrap; }
+.tier-prefs button[aria-pressed] { border-radius: 4px; padding: 1px 5px; font-size: .75rem; border: 1px solid var(--line); }
+.tier-prefs button[aria-pressed=true] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); box-shadow: none; }
 .sectors { display: inline-flex; flex-wrap: nowrap; align-items: center; gap: 4px 12px; }
 .sectors label { display: inline-flex; align-items: center; gap: 3px; font-size: .8rem; cursor: pointer; }
 .sectors select { font-size: .8rem; padding: 2px 28px 2px 6px; margin-left: 4px; }

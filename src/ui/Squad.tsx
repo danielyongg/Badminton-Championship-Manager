@@ -114,7 +114,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               onClick={() => setSort(sort.key === c.key ? { key: c.key, desc: !sort.desc } : { key: c.key, desc: !!c.desc })}>
               {t(c.label)}{sort.key === c.key ? (sort.desc ? ' ▼' : ' ▲') : ''}
             </th>
-          ))}<th>{t('manageSectors')}</th></tr></thead>
+          ))}<th title={t('tierPrefsHint')}>{t(view === 'singles' ? 'tierPrefs' : 'manageSectors')}</th></tr></thead>
           <tbody>{list.map((p) => (
             <tr key={p.id} onClick={() => onOpen(p.id)} style={{ cursor: 'pointer' }}>
               <td>{p.name}</td><td>{p.gender}</td>
@@ -132,7 +132,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               <td><FatigueBar value={p.fatigue} /></td>
               <td>{p.injury ? `${p.injury.weeksLeft} ${t('weeks')}${p.injury.severe ? ' ⚠' : ''}` : ''}</td>
               <td className="num">{allRanks(p).map((x, i) => <span key={x.d}>{i > 0 && <span className="muted-text"> · </span>}{x.r} <small className="muted-text">{x.d}</small></span>)}{allRanks(p).length === 0 && '—'}</td>
-              <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}><SectorPicker p={p} onChange={commit} /></td>
+              <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>{view === 'singles' ? <TierPrefs id={p.id} /> : <SectorPicker p={p} onChange={commit} />}</td>
             </tr>
           ))}</tbody>
         </table>
@@ -166,6 +166,25 @@ function SectorPicker({ p, onChange }: { p: Player; onChange: () => void }) {
       <label title={t('pairsHint')}>
         <input type="checkbox" checked={pairs} disabled={pairs && !single} onChange={(e) => setPairs(e.target.checked)} />{t('sector_pairs')}
       </label>
+    </span>
+  );
+}
+
+/** Prioritas tier entry otomatis untuk satu atlet tunggal / pasangan. Tidak ada yang menyala = AI bebas memilih. */
+export function TierPrefs({ id }: { id: string }) {
+  const { game, changed } = useGame();
+  const { state, ruleset } = game;
+  const prefs = state.tierPrefs?.[id] ?? [];
+  const toggle = (tier: string) => {
+    const next = prefs.includes(tier) ? prefs.filter((x) => x !== tier) : [...prefs, tier];
+    state.tierPrefs ??= {};
+    if (next.length) state.tierPrefs[id] = next; else delete state.tierPrefs[id];
+    changed(); void saveGame(game);
+  };
+  const tiers = ruleset.tiers.filter((x) => !x.junior && !['WC', 'OG', 'WTF'].includes(x.id)); // ponytail: turnamen kualifikasi & junior tidak dipilih manajer
+  return (
+    <span className="tier-prefs" title={t('tierPrefsHint')}>
+      {tiers.map((x) => <button key={x.id} className="mini" aria-pressed={prefs.includes(x.id)} onClick={() => toggle(x.id)}>{x.id}</button>)}
     </span>
   );
 }

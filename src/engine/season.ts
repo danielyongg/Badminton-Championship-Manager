@@ -12,7 +12,7 @@ import { runEvent, simPlay, toRecord, type DrawHook, type EventRecord, type Live
 import { roundGate, type RoundHook } from './gate';
 import {
   DISCIPLINES, isDoubles, isJuniorFormat, ROUNDS, type Career, type City, type Confederation, type Discipline, type DrawStep, type EntrantId, type GameDate, type Match, type Pair,
-  type Player, type RankingEntry, type Round, type Ruleset, type Tier, type TeamEventDef, type TeamFormat, type TournamentDef, type World,
+  type Player, type RankingEntry, type Round, type Ruleset, type Tier, type TeamEventDef, type TeamFormat, type TierId, type TournamentDef, type World,
 } from './types';
 
 // Loop musim: tiap minggu AI tiap negara memilih turnamen, turnamen dimainkan, ranking & kelelahan diperbarui.
@@ -53,6 +53,8 @@ export interface SeasonState {
   career?: Career;
   /** Keputusan entry manajer: "tahun-minggu" → entrantId → eventId atau 'rest'. Tanpa keputusan = saran AI. */
   manualEntries: Record<string, Record<string, string>>;
+  /** Prioritas tier entry otomatis negara manajer: entrantId (atlet tunggal / pasangan) → tier yang diikuti. Kosong = AI bebas. */
+  tierPrefs?: Record<string, TierId[]>;
   /** Turnamen yang entry-nya sudah di-submit manajer: "tahun:eventId" (hanya status di Kalender). */
   entriesSubmitted?: Record<string, true>;
   /** Snapshot ranking tiap 4 minggu (top 300 per nomor) untuk grafik riwayat peringkat. */
@@ -274,10 +276,15 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
     if (!decision && e.playerIds.some((id) => pratama.has(id) || busy.has(id))) continue;
     let choice = decision ? options.find((ev) => ev.id === decision) : options.find((ev) => state.commitments[e.id]?.includes(ev.id));
     if (!choice && !decision && !e.trial) { // pasangan percobaan tidak pernah didaftarkan AI
-      const r = rank ?? 9999;
-      const ev = options.find((x) => { const [lo, hi] = rs.ai.rankRange[x.tierId] ?? [1, 9999]; return r >= lo && r <= hi; });
       const tired = Math.max(...e.playerIds.map((id) => fatigue.get(id)!));
-      if (ev && tired <= rs.ai.restAbove && rng() < (rs.ai.playProb[ev.tierId] ?? 0.5) * (1 - tired / 150)) choice = ev;
+      const prefs = e.countryId === state.managedCountryId ? state.tierPrefs?.[e.id] : undefined;
+      if (prefs?.length) { // prioritas manajer: tier tertinggi yang dicentang selalu diikuti (kecuali lelah)
+        if (tired <= rs.ai.restAbove) choice = options.find((x) => prefs.includes(x.tierId));
+      } else {
+        const r = rank ?? 9999;
+        const ev = options.find((x) => { const [lo, hi] = rs.ai.rankRange[x.tierId] ?? [1, 9999]; return r >= lo && r <= hi; });
+        if (ev && tired <= rs.ai.restAbove && rng() < (rs.ai.playProb[ev.tierId] ?? 0.5) * (1 - tired / 150)) choice = ev;
+      }
     }
     if (!choice) continue;
     entries.get(choice.id)!.get(d)!.push({ id: e.id, countryId: e.countryId, rank });

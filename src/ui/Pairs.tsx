@@ -4,7 +4,7 @@ import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import type { Pair } from '../engine/types';
 import { t, type TextKey } from '../i18n';
-import { FatigueBar } from './Squad';
+import { FatigueBar, TierPrefs } from './Squad';
 import { lookup, saveGame, useGame } from './game';
 
 const DOUBLES: Pair['discipline'][] = ['MD', 'WD', 'XD'];
@@ -77,7 +77,7 @@ export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => voi
                 onClick={() => setSort(sort.key === c.key ? { key: c.key, desc: !sort.desc } : { key: c.key, desc: !!c.desc })}>
                 {t(c.label)}{sort.key === c.key ? (sort.desc ? ' ▼' : ' ▲') : ''}
               </th>
-            ))}<th></th></tr></thead>
+            ))}<th title={t('tierPrefsHint')}>{t('tierPrefs')}</th><th></th></tr></thead>
             <tbody>{list.map((p) => (
               <tr key={p.id}>
                 <td>{p.playerIds.map((id, i) => (
@@ -93,6 +93,7 @@ export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => voi
                 <td className="num">{p.matchesTogether}</td>
                 <td><FatigueBar value={Math.max(...p.playerIds.map((id) => players.get(id)!.fatigue))} />{p.playerIds.some((id) => players.get(id)!.injury) ? ' 🩹' : ''}</td>
                 <td className="num">{rankList(p).map((x, i) => <span key={x.d}>{i > 0 && <span className="muted-text"> · </span>}{x.r} <small className="muted-text">{x.d}</small></span>)}{rankList(p).length === 0 && '—'}</td>
+                <td onClick={(e) => e.stopPropagation()}>{p.trial ? '—' : <TierPrefs id={p.id} />}</td>
                 <td>
                   {p.trial && <button className="mini" onClick={() => { if (confirm(t('confirmPromote'))) { promoteTrial(state, p.id); commit(); } }}>{t('promoteTrial')}</button>}
                   {' '}<button className="mini" onClick={() => { if (p.trial || confirm(t('confirmDissolve'))) { dissolvePair(state, p.id); commit(); } }}>{t('dissolve')}</button>
