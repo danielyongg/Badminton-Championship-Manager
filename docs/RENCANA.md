@@ -29,7 +29,7 @@ Daftar fitur yang belum dibuat. Fase 1–10 sudah selesai (lihat `git log`); asu
 
 ## Fitur berikutnya (disetujui & dirancang 2026-10-15)
 Prinsip: game tetap ringan — tanpa latihan, anggaran, atau pelatih.
-- [ ] **Pencarian bakat junior**: manajer ikut memilih junior baru yang masuk pelatnas pratama. Spesifikasi: `docs/superpowers/specs/2026-10-15-pencarian-bakat-junior-design.md`.
+- [x] **Pencarian bakat junior**: manajer ikut memilih junior baru yang masuk pelatnas pratama. Spesifikasi: `docs/superpowers/specs/2026-10-15-pencarian-bakat-junior-design.md`.
 - [x] **Ringkasan rencana musim**: satu layar yang memperlihatkan siapa main di turnamen mana untuk beberapa minggu ke depan. Spesifikasi: `docs/superpowers/specs/2026-10-15-ringkasan-rencana-musim-design.md`.
 
 ## Tahap akhir — Percantik UI & perbaikan UX (setelah semua fitur selesai)

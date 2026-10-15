@@ -21,6 +21,8 @@ import { LiveMatch } from './LiveMatch';
 import { advance, entrantLabel, eventName, JUNIOR_MAX_AGE, lookup, saveGame, useGame } from './game';
 import { SeasonViews } from './Ranking';
 import { Profile, Squad, usd } from './Squad';
+import { autoPick, pickError, recruit, SCOUTING_DEADLINE_WEEK } from '../engine/scouting';
+import { currentAbility } from '../engine/generator';
 import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
 import { TournamentView } from './TournamentView';
 import { MatchLink } from './MatchDetail';
@@ -237,6 +239,57 @@ function GoalTable({ goals, current }: { goals: FederationGoal[]; current?: (g: 
   );
 }
 
+/** Pencarian bakat junior: pilih kandidat untuk kursi putra/putri sebelum batas minggu (sisa kursi diisi otomatis). */
+function ScoutingCard() {
+  const { game, changed } = useGame();
+  const { state } = game;
+  const s = state.scouting!;
+  const [open, setOpen] = useState(false);
+  const [picked, setPicked] = useState<string[]>([]);
+  const count = (g: 'M' | 'F') => s.candidates.filter((p) => p.gender === g && picked.includes(p.id)).length;
+  const toggle = (id: string) => {
+    const next = picked.includes(id) ? picked.filter((x) => x !== id) : [...picked, id];
+    if (!pickError(s, next)) setPicked(next);
+  };
+  const done = () => { recruit(state, picked); changed(); void saveGame(game); };
+  const half = (n: number) => `${Math.floor(n) || ''}${n % 1 ? '½' : ''}`; // 2.5 → "2½"
+  const status = t('scoutingStatus', { m: `${count('M')}/${s.slots.M}`, f: `${count('F')}/${s.slots.F}`, week: SCOUTING_DEADLINE_WEEK });
+  return (
+    <section className="card" style={open ? { gridColumn: '1 / -1' } : undefined}>
+      <h3>{t('scouting')} {s.year}</h3>
+      <p>{status}</p>
+      {!open ? <button className="primary" onClick={() => setOpen(true)}>{t('scoutingOpen')}</button> : (
+        <>
+          <p className="hint">{t('scoutingHint')}</p>
+          {(['M', 'F'] as const).filter((g) => s.slots[g] > 0).map((g) => (
+            <div key={g} className="scroll">
+              <h4>{t(g === 'M' ? 'men' : 'women')} · {count(g)}/{s.slots[g]}</h4>
+              <table>
+                <thead><tr><th>{t('name')}</th><th className="num">{t('age')}</th><th className="num">{t('ability')}</th><th>{t('potential')}</th></tr></thead>
+                <tbody>{s.candidates.filter((p) => p.gender === g).map((p) => {
+                  const [lo, hi] = s.starRange[p.id];
+                  return (
+                    <tr key={p.id} className={picked.includes(p.id) ? 'sel' : undefined} onClick={() => toggle(p.id)} style={{ cursor: 'pointer' }}>
+                      <td><input type="checkbox" checked={picked.includes(p.id)} readOnly /> {p.name}</td>
+                      <td className="num">{ageAt(p.birth, state.date)}</td>
+                      <td className="num">{currentAbility(p.attrs)}</td>
+                      <td className="stars">{half(lo)}–{half(hi)} ★</td>
+                    </tr>
+                  );
+                })}</tbody>
+              </table>
+            </div>
+          ))}
+          <p className="controls">
+            <button onClick={() => setPicked(autoPick(s, picked))}>{t('autoPick')}</button>
+            <button className="primary" onClick={done}>{t('recruit')}</button>
+          </p>
+        </>
+      )}
+    </section>
+  );
+}
+
 function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOpenEvent: (id: string, year: number) => void }) {
   const { game } = useGame();
   const { state, ruleset, world } = game;
@@ -293,6 +346,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
   return (
     <div className="dash">
       {!managed && <p>{t('observerNote')}</p>}
+      {managed && state.scouting && <ScoutingCard />}
       {managed && (
         <section className="card">
           <h3>{t('goals')} {year}</h3>

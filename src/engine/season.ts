@@ -10,6 +10,7 @@ import { juniorEntries, juniorTeamEntrants } from './junior';
 import { AD_HOC, adHocEntrants, autoLineup, autoSquad, lineupError, playTie, runTeamEvent, squadError, squadPool, type Lineup, type TeamEntrant } from './team';
 import { runEvent, simPlay, toRecord, type DrawHook, type EventRecord, type LiveHook } from './tournament';
 import { roundGate, type RoundHook } from './gate';
+import { makeScouting, recruit, SCOUTING_DEADLINE_WEEK, type Scouting } from './scouting';
 import {
   DISCIPLINES, isDoubles, isJuniorFormat, ROUNDS, type Career, type City, type Confederation, type Discipline, type DrawStep, type EntrantId, type GameDate, type Match, type Pair,
   type Player, type RankingEntry, type Round, type Ruleset, type Tier, type TeamEventDef, type TeamFormat, type TierId, type TournamentDef, type World,
@@ -55,6 +56,8 @@ export interface SeasonState {
   manualEntries: Record<string, Record<string, string>>;
   /** Prioritas tier entry otomatis negara manajer: entrantId (atlet tunggal / pasangan) → tier yang diikuti. Kosong = AI bebas. */
   tierPrefs?: Record<string, TierId[]>;
+  /** Pencarian bakat junior negara manajer yang belum diputuskan (kandidat akhir musim). */
+  scouting?: Scouting;
   /** Turnamen yang entry-nya sudah di-submit manajer: "tahun:eventId" (hanya status di Kalender). */
   entriesSubmitted?: Record<string, true>;
   /** Snapshot ranking tiap 4 minggu (top 300 per nomor) untuk grafik riwayat peringkat. */
@@ -313,6 +316,7 @@ export interface WeekHooks { live?: LiveHook; team?: TeamHook; draw?: DrawHook; 
 export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rng: Rng, hooks: WeekHooks = {}) {
   const { year, week } = state.date;
   if (state.commitmentsYear !== year) startYear(state, rs, rng);
+  if (state.scouting && week > SCOUTING_DEADLINE_WEEK) recruit(state, []); // batas memilih lewat: isi otomatis
   const events = rs.calendar.filter((e) => e.week === week && isHeld(e, year)).sort((a, b) => tierOf(rs, b).points[0] - tierOf(rs, a).points[0]);
   const teamEvents = rs.team.events.filter((e) => e.week === week && isHeld(e, year));
   const players = new Map(state.players.map((p) => [p.id, p]));
@@ -686,7 +690,13 @@ function endYear(state: SeasonState, rs: Ruleset, world: World, rng: Rng) {
   for (const pair of state.pairs)
     if (!pair.dissolved && pair.playerIds.some((id) => retired.has(id))) pair.dissolved = { ...state.date };
   const next = { year: year + 1, week: 1 };
-  for (const c of world.countries) state.players.push(...newJuniors(c, rs.development, rs.generator, next, rng));
+  if (state.scouting) recruit(state, []); // pencarian musim lalu belum diputuskan: isi otomatis
+  for (const c of world.countries) {
+    const juniors = newJuniors(c, rs.development, rs.generator, next, rng);
+    // Negara manajer: junior baru dipilih dari kandidat (pencarian bakat), bukan langsung masuk.
+    if (c.id === state.managedCountryId) state.scouting = makeScouting(juniors, c, rs.generator, next, rng);
+    else state.players.push(...juniors);
+  }
   formPairs(state, rs, world, rng);
 }
 
