@@ -27,6 +27,8 @@
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2387998f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
+/* iOS Safari memperbesar teks sendiri di sel tabel lebar (text autosizing) → ukuran teks tetap sesuai CSS. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg); }
 /* Web app layar penuh (iOS): konten mulai di bawah bilah status / poni. */
 body { padding-top: calc(16px + env(safe-area-inset-top)); padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
