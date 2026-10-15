@@ -600,18 +600,22 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
       pools.set(c, squadPool(pool, squad));
     }
     // Posisi ranking per nomor. Atlet di ganda = posisi pasangan terbaiknya; ganda dadakan = rata-rata posisi kedua atlet.
-    const points = rankingPoints(state, rs, isJuniorFormat(format) ? state.juniorResults ?? [] : state.results);
-    const position = new Map([...points].map(([d, m]) => [d, new Map([...m].sort((a, b) => b[1] - a[1]).map(([id], i) => [id, i + 1]))]));
-    const playerPos = (d: Discipline, id: string) => Math.min(Infinity, ...state.pairs
-      .filter((p) => p.discipline === d && !p.adHoc && p.playerIds.includes(id)).map((p) => position.get(d)!.get(p.id) ?? Infinity));
-    const rank = (id: string, d: Discipline) => {
-      if (d === 'MS' || d === 'WS') return position.get(d)!.get(id) ?? Infinity;
-      const pair = id.startsWith(AD_HOC) ? undefined : pairs.get(id);
-      if (pair && !pair.adHoc) return position.get(d)!.get(id) ?? Infinity;
-      const ids = pair?.playerIds ?? id.slice(AD_HOC.length).split('+');
-      return ids.reduce((s, x) => s + playerPos(d, x), 0) / ids.length;
+    // Urutan kekuatan BWF (Statuta 5.2.1 kl. 13; GCR 11.6): tunggal = poin World Ranking tunggal; pasangan berperingkat =
+    // poin pasangan (main < 8 turnamen → adjusted: ×10/5, ×10/6, ×10/7); pasangan tanpa ranking (mis. ganda dadakan) =
+    // notional: rata-rata poin-per-turnamen terbaik tiap atlet bersama pasangan lain × 10 × 80%.
+    const now = absWeek(state.date);
+    const rows = new Map(DISCIPLINES.map((d) => [d, new Map(computeRanking(isJuniorFormat(format) ? state.juniorResults ?? [] : state.results, d, now, rs)
+      .map((r) => [r.entrantId, r]))]));
+    const perEvent = (d: Discipline, pairId: string) => { const r = rows.get(d)!.get(pairId); return r ? r.points / Math.min(r.tournamentsPlayed, rs.ranking.bestOf) : 0; };
+    const strength = (id: string, d: Discipline) => {
+      const row = rows.get(d)!.get(id);
+      if (d === 'MS' || d === 'WS') return row?.points ?? 0;
+      if (row) return row.tournamentsPlayed < 8 ? row.points * 10 / Math.max(5, row.tournamentsPlayed) : row.points;
+      const ids = pairs.get(id)?.playerIds ?? id.slice(AD_HOC.length).split('+');
+      const best = ids.map((x) => Math.max(0, ...state.pairs.filter((p) => p.discipline === d && p.id !== id && p.playerIds.includes(x)).map((p) => perEvent(d, p.id))));
+      return (best.reduce((s, x) => s + x, 0) / ids.length) * 10 * 0.8;
     };
-    const ranked = (l: Lineup) => rankOrder(l, order, rank);
+    const ranked = (l: Lineup) => rankOrder(l, order, strength);
     const lineupOf = async (c: string, opponent: string, round: MatchRound): Promise<Lineup> => {
       const pool = pools.get(c)!;
       const real = (l: Lineup) => l.map((id, i) => (id?.startsWith(AD_HOC) ? adHocPair(c, order[i], id) : id)); // ganda dadakan → pasangan

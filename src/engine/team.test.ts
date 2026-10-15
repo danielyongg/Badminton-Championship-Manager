@@ -38,8 +38,8 @@ describe('line-up beregu', () => {
 
   it('Thomas: tunggal 1–3 & ganda 1–2 diurutkan menurut ranking; tanpa ranking di belakang', () => {
     const order = BWF_2026.team.order.thomas; // MS MD MS MD MS
-    const pos: Record<string, number> = { a: 3, b: 1, c: 2, ad: 9, ef: 4 };
-    expect(rankOrder(['a', 'ad', 'x', 'ef', 'b'], order, (id) => pos[id] ?? Infinity)).toEqual(['b', 'ef', 'a', 'ad', 'x']);
+    const pts: Record<string, number> = { a: 500, b: 900, ad: 100, ef: 700 };
+    expect(rankOrder(['a', 'ad', 'x', 'ef', 'b'], order, (id) => pts[id] ?? 0)).toEqual(['b', 'ef', 'a', 'ad', 'x']);
   });
 
   it('babak gugur berhenti di 3–0; fase grup memainkan kelima partai', async () => {

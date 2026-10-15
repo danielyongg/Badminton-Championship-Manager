@@ -79,15 +79,16 @@ export function adHocEntrants(lineup: Lineup, order: Discipline[], squad: Set<st
 }
 
 /**
- * Aturan BWF: di nomor yang sama, posisi lebih awal (tunggal 1, ganda 1) diisi peserta berperingkat lebih tinggi.
- * Peserta yang dipilih tetap; hanya urutannya di antara partai nomor yang sama yang diatur ulang.
- * `rank` = posisi ranking (kecil = lebih baik; tanpa ranking = Infinity, urutan pilihan dipertahankan).
+ * Aturan BWF (Statuta 5.2.1 kl. 13): di nomor yang sama, posisi lebih awal (tunggal 1, ganda 1) diisi peserta lebih kuat
+ * menurut World Ranking. Peserta yang dipilih tetap; hanya urutannya di antara partai nomor yang sama yang diatur ulang.
+ * `strength` = poin ranking (besar = lebih kuat). Poin sama / tanpa ranking: urutan pilihan manajer dipertahankan
+ * (aturan BWF: wewenang federasi).
  */
-export function rankOrder(lineup: Lineup, order: Discipline[], rank: (id: EntrantId, d: Discipline) => number): Lineup {
+export function rankOrder(lineup: Lineup, order: Discipline[], strength: (id: EntrantId, d: Discipline) => number): Lineup {
   const out = [...lineup];
   for (const d of new Set(order)) {
     const slots = order.flatMap((x, i) => (x === d && lineup[i] ? [i] : []));
-    const sorted = slots.map((i) => lineup[i]!).sort((a, b) => { const x = rank(a, d), y = rank(b, d); return x === y ? 0 : x - y; });
+    const sorted = slots.map((i) => lineup[i]!).sort((a, b) => strength(b, d) - strength(a, d));
     slots.forEach((i, k) => { out[i] = sorted[k]; });
   }
   return out;
