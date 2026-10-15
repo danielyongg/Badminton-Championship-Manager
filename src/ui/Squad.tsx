@@ -141,7 +141,10 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               <td className="num">{allRanks(p).map((x, i) => <span key={x.d}>{i > 0 && <span className="muted-text"> · </span>}{x.r} <small className="muted-text">{x.d}</small></span>)}{allRanks(p).length === 0 && '—'}</td>
               <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>{released
                 ? <button className="mini" onClick={() => { recallPlayer(state, p.id); commit(); }}>{t('recall')}</button>
-                : view === 'singles' ? <TierPrefs id={p.id} /> : <SectorPicker p={p} onChange={commit} />}</td>
+                : view === 'singles' ? <TierPrefs id={p.id} /> : <>
+                  <SectorPicker p={p} onChange={commit} />
+                  {' '}<button className="mini" onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id); commit(); } }}>{t('releaseShort')}</button>
+                </>}</td>
             </tr>
           ))}</tbody>
         </table>
