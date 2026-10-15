@@ -1,3 +1,4 @@
+import { WORLD } from '../engine/presets/world';
 import { createContext, useContext } from 'react';
 import { INJURY_TYPES } from '../engine/development';
 import { writeSave } from '../db/saves';
@@ -45,6 +46,12 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
     if (p && e.qualifiers === undefined && p.qualifiers) e.qualifiers = p.qualifiers; // kuota kontinental (Asia & Eropa 4)
   }
   for (const r of blob.state.teamResults) r.squads ??= {};
+  // Save sebelum tuan rumah per tahun: tambah kota baru & salin `hosts`/`rotation` dari preset (kecuali kota event diubah di Editor).
+  for (const c of WORLD.cities) if (!blob.world.cities.some((x) => x.id === c.id)) blob.world.cities.push({ ...c });
+  for (const e of [...blob.ruleset.calendar, ...(blob.ruleset.team?.events ?? [])]) {
+    const p = [...preset.calendar, ...preset.team.events].find((x) => x.id === e.id);
+    if (p?.hosts && !e.hosts && e.cityId === p.cityId) Object.assign(e, { hosts: { ...p.hosts }, rotation: p.rotation && [...p.rotation] });
+  }
   // Save sebelum Suhandinata Cup: tambahkan event beregu junior dari preset.
   for (const e of preset.team.events.filter((x) => x.formats?.some(isJuniorFormat))) {
     const saved = blob.ruleset.team.events.find((y) => y.id === e.id);

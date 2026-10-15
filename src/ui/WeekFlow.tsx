@@ -1,3 +1,4 @@
+import { hostCityId } from '../engine/season';
 import { useEffect, useRef, useState } from 'react';
 import type { RoundMatch, RoundShow } from '../engine/gate';
 import { DISCIPLINES, type Discipline, type TeamFormat } from '../engine/types';
@@ -56,7 +57,7 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
           return (
             <li key={id}>
               <span className="chip">{kind === 'team' ? t('teamShort') : tier?.junior ? t('juniorShort') : tier?.id}</span>
-              <span className="grow"><b>{eventName(ruleset, id, year)}</b> <small className="muted-text">{city(ev.cityId)}</small><br />
+              <span className="grow"><b>{eventName(ruleset, id, year)}</b> <small className="muted-text">{city(hostCityId(ev, year))}</small><br />
                 <small>{done ? <span className="badge good">✓ {t('played')}</span>
                   : kind === 'team' ? null : auto ? t('auto') : submitted ? <span className="badge good">✓ {t('entrySubmitted')}</span>
                   : <span className="badge">{t('needEntry')}</span>}</small>

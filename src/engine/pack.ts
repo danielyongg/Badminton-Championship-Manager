@@ -2,7 +2,7 @@ import { BWF_2026 } from './presets/bwf2026';
 import { BWF_2027 } from './presets/bwf2027';
 import { realRoster } from './presets/realPlayers';
 import { WORLD } from './presets/world';
-import { ATTRS, DISCIPLINES, ROUNDS, type Confederation, type Pair, type Player, type Ruleset, type World } from './types';
+import { ATTRS, DISCIPLINES, ROUNDS, type Confederation, type Pair, type Player, type Ruleset, type TournamentDef, type World } from './types';
 import { t } from '../i18n';
 
 // Paket data = semua yang bisa diedit di Editor & diimpor/ekspor sebagai satu file JSON:
@@ -59,6 +59,8 @@ const PAIR_GENDERS: Record<Pair['discipline'], string> = { MD: 'MM', WD: 'FF', X
 const inRange = (n: unknown, lo: number, hi: number) => typeof n === 'number' && n >= lo && n <= hi;
 
 /** Pemeriksaan isi & rujukan antar-data. Kosong = sah. */
+const venues = (e: Pick<TournamentDef, 'cityId' | 'hosts' | 'rotation'>) => [e.cityId, ...Object.values(e.hosts ?? {}), ...(e.rotation ?? [])];
+
 export function validatePack(p: Pick<DataPack, 'ruleset' | 'world' | 'players' | 'pairs'>): string[] {
   const errs: string[] = [];
   const unique = (what: string, ids: string[]) => {
@@ -90,12 +92,12 @@ export function validatePack(p: Pick<DataPack, 'ruleset' | 'world' | 'players' |
     for (const d of DISCIPLINES) if (!inRange(x.drawSize[d], 0, 256)) errs.push(`${t('tier')} ${x.id}: ${t('v_drawSize', { d })}`);
   }
   for (const e of rs.calendar) {
-    if (!cities.has(e.cityId)) errs.push(`${t('tournament')} ${e.id}: ${t('v_city', { c: e.cityId })}`);
+    for (const c of venues(e)) if (!cities.has(c)) errs.push(`${t('tournament')} ${e.id}: ${t('v_city', { c })}`);
     if (!tiers.has(e.tierId)) errs.push(`${t('tournament')} ${e.id}: ${t('v_tierRef', { tier: e.tierId })}`);
     if (!inRange(e.week, 1, 52)) errs.push(`${t('tournament')} ${e.id}: ${t('v_week')}`);
   }
   for (const e of rs.team.events) {
-    if (!cities.has(e.cityId)) errs.push(`${t('tabTeam')} ${e.id}: ${t('v_city', { c: e.cityId })}`);
+    for (const c of venues(e)) if (!cities.has(c)) errs.push(`${t('tabTeam')} ${e.id}: ${t('v_city', { c })}`);
     if (!inRange(e.week, 1, 52)) errs.push(`${t('tabTeam')} ${e.id}: ${t('v_week')}`);
   }
 

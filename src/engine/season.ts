@@ -102,6 +102,10 @@ export const weekKey = (d: GameDate) => `${d.year}-${d.week}`;
 export const isHeld = (e: { everyYears?: TournamentDef['everyYears'] }, year: number) =>
   !e.everyYears || (year % e.everyYears.interval === e.everyYears.offset) !== !!e.everyYears.invert;
 
+/** Kota tuan rumah event di tahun tertentu: `hosts` (asli) → `rotation` (bergilir) → `cityId`. */
+export const hostCityId = (e: Pick<TournamentDef, 'cityId' | 'hosts' | 'rotation'>, year: number) =>
+  e.hosts?.[year] ?? (e.rotation?.length ? e.rotation[year % e.rotation.length] : e.cityId);
+
 export interface Entrant { id: EntrantId; countryId: string; playerIds: string[]; trial?: boolean }
 
 /** Atlet yang sudah keluar pelatnas negara manajer (tetap aktif, diatur AI). */
@@ -358,7 +362,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   /** Satu turnamen individu; `gated` = kelima nomor bersamaan lewat gerbang babak. */
   const playEvent = async (event: TournamentDef, h: WeekHooks, gated: boolean) => {
     const tier = tierOf(rs, event);
-    const city = cities.get(event.cityId)!;
+    const city = cities.get(hostCityId(event, year))!;
     const firstMatch = state.matches.length;
     const gate = gated ? roundGate(event.id, DISCIPLINES, h.round) : undefined;
     const draw: DrawHook | undefined = gate && h.draw ? (d) => gate.serial(async () => { await h.draw!(d); }) : h.draw;
@@ -558,7 +562,7 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
   const players = new Map(state.players.map((p) => [p.id, p]));
   const pairs = new Map(state.pairs.map((p) => [p.id, p]));
   const max = rs.team.maxMatchesPerPlayer;
-  const city = cities.get(ev.cityId)!;
+  const city = cities.get(hostCityId(ev, year))!;
   const firstMatch = state.matches.length;
   const finals = ev.finals ?? rs.team.finals;
   const formats = ev.formats ?? teamFormatsIn(rs, year);

@@ -8,6 +8,7 @@ import { AddById, Num, removeAt, Sel, Txt, type SectionProps } from './Editor';
 
 const NAME_POOLS: NamePool[] = ['id', 'cn', 'jp', 'kr', 'th', 'my', 'in', 'vn', 'nordic', 'en', 'fr', 'de', 'es', 'generic'];
 
+// Mengubah kota di Editor = tuan rumah tetap tiap tahun (tuan rumah per tahun bawaan preset dihapus).
 export function Calendar({ data, mode, ch }: SectionProps) {
   const rs = data.ruleset;
   const cities = data.world.cities.map((c): [string, string] => [c.id, `${c.name} (${c.countryId})`]);
@@ -21,7 +22,7 @@ export function Calendar({ data, mode, ch }: SectionProps) {
           <thead><tr><th>id</th><th>{t('name')}</th><th>{t('city')}</th><th>{t('week')}</th><th>{t('tier')}</th><th>{t('prize')} (USD)</th><th></th><th></th></tr></thead>
           <tbody>{rs.calendar.map((e) => (
             <tr key={e.id}>
-              <td><small>{e.id}</small></td><td><Txt o={e} k="name" ch={ch} w={200} /></td><td><Sel o={e} k="cityId" ch={ch} options={cities} /></td>
+              <td><small>{e.id}</small></td><td><Txt o={e} k="name" ch={ch} w={200} /></td><td><Sel o={e} k="cityId" ch={() => { delete e.hosts; delete e.rotation; ch(); }} options={cities} /></td>
               <td><Num o={e} k="week" ch={ch} w={50} /></td><td><Sel o={e} k="tierId" ch={ch} options={tiers} /></td>
               <td><Num o={e} k="prizeUsd" ch={ch} w={100} /></td><td><small>{every(e)}</small></td>
               <td>{mode === 'pack' && <button onClick={() => { removeAt(rs.calendar, e); ch(); }}>✕</button>}</td>
@@ -41,7 +42,7 @@ export function Calendar({ data, mode, ch }: SectionProps) {
           <tbody>{rs.team.events.map((e) => (
             <tr key={e.id}>
               <td><small>{e.id}</small></td><td><Txt o={e} k="name" ch={ch} w={240} /></td>
-              <td>{e.confederation && <Txt o={e} k="nameMixed" ch={ch} w={240} />}</td><td><Sel o={e} k="cityId" ch={ch} options={cities} /></td>
+              <td>{e.confederation && <Txt o={e} k="nameMixed" ch={ch} w={240} />}</td><td><Sel o={e} k="cityId" ch={() => { delete e.hosts; delete e.rotation; ch(); }} options={cities} /></td>
               <td><Num o={e} k="week" ch={ch} w={50} /></td><td><small>{e.confederation ?? e.formats?.join(', ')} {every(e)}</small></td>
             </tr>
           ))}</tbody>

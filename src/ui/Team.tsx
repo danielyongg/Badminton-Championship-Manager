@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { isHeld, teamFormatsIn, teamStrengths, type TeamResult, type TeamStrength, type TeamTie } from '../engine/season';
+import { hostCityId, isHeld, teamFormatsIn, teamStrengths, type TeamResult, type TeamStrength, type TeamTie } from '../engine/season';
 import { ageAt, currentAbility } from '../engine/generator';
 import { AD_HOC, adHocEntrants, adHocId, autoLineup, autoSquad, lineupError, squadError, squadPool, type Lineup, type TeamEntrant } from '../engine/team';
 import { isDoubles, isJuniorFormat, type Discipline, type TeamFormat } from '../engine/types';
@@ -36,7 +36,7 @@ export function Team() {
       <section className="card">
         <h3>{t('teamSchedule')} {year}</h3>
         <ul>{ruleset.team.events.filter((e) => isHeld(e, year)).sort((a, b) => a.week - b.week).map((e) => (
-          <li key={e.id}>{t('week')} {e.week}: <b>{eventName(ruleset, e.id, year)}</b> ({(e.formats ?? teamFormatsIn(ruleset, year)).map(formatName).join(', ')}, {city(e.cityId)}){e.week < week ? ' ✓' : ''}</li>
+          <li key={e.id}>{t('week')} {e.week}: <b>{eventName(ruleset, e.id, year)}</b> ({(e.formats ?? teamFormatsIn(ruleset, year)).map(formatName).join(', ')}, {city(hostCityId(e, year))}){e.week < week ? ' ✓' : ''}</li>
         ))}</ul>
         <p className="hint">{t('teamHelp')}</p>
       </section>

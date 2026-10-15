@@ -111,6 +111,9 @@ export const WORLD: World = {
     { id: 'johannesburg', countryId: 'RSA', name: 'Johannesburg', venue: 'Johannesburg Indoor Arena', lat: -26.2, lon: 28.05 },
     { id: 'sao-paulo', countryId: 'BRA', name: 'São Paulo', venue: 'Ginásio São Paulo', lat: -23.55, lon: -46.63 },
     { id: 'guatemala-city', countryId: 'GUA', name: 'Guatemala City', venue: 'Domo Polideportivo', lat: 14.63, lon: -90.51 },
+    // ASUMSI: venue Beijing (Sudirman Cup 2027) belum diumumkan.
+    { id: 'beijing', countryId: 'CHN', name: 'Beijing', venue: 'National Indoor Stadium', lat: 39.99, lon: 116.39 },
+    { id: 'brisbane', countryId: 'AUS', name: 'Brisbane', venue: 'Brisbane Convention & Exhibition Centre', lat: -27.48, lon: 153.02 },
     { id: 'rose-hill', countryId: 'MRI', name: 'Rose Hill', venue: 'Badminton Hall Rose Hill', lat: -20.24, lon: 57.47 },
   ],
 };

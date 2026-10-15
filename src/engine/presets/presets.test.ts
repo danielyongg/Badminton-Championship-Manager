@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ROUNDS } from '../types';
 import { BWF_2026 } from './bwf2026';
 import { BWF_2027 } from './bwf2027';
+import { hostCityId } from '../season';
 import { realRoster } from './realPlayers';
 import { WORLD } from './world';
 
@@ -56,4 +57,16 @@ it('atlet asli: tunggal tanpa pasangan asli hanya sektor Single; yang punya pasa
   const paired = new Set(pairs.flatMap((x) => x.playerIds));
   expect(players.find((p) => p.name === 'Alwi Farhan')!.focus).toBe('S');
   expect(players.filter((p) => p.focus === 'S' && paired.has(p.id))).toHaveLength(0);
+});
+
+it('tuan rumah per tahun: asli bila sudah diumumkan, bergilir bila belum; semua kota ada', () => {
+  const ev = (id: string) => [...BWF_2027.calendar, ...BWF_2027.team.events].find((e) => e.id === id)!;
+  expect(hostCityId(ev('world-championships'), 2026)).toBe('new-delhi');
+  expect(hostCityId(ev('olympics'), 2032)).toBe('brisbane');
+  expect(hostCityId(ev('sudirman-cup'), 2027)).toBe('beijing');
+  expect(hostCityId(ev('suhandinata-cup'), 2026)).toBe('cairo');
+  expect(hostCityId(ev('world-championships'), 2027)).not.toBe(hostCityId(ev('world-championships'), 2029));
+  const cities = new Set(WORLD.cities.map((c) => c.id));
+  for (const e of [...BWF_2027.calendar, ...BWF_2027.team.events])
+    for (const c of [...Object.values(e.hosts ?? {}), ...(e.rotation ?? [])]) expect(cities, `${e.id} → ${c}`).toContain(c);
 });

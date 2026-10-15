@@ -3,7 +3,7 @@ import { simulateMatch, type MatchResult } from '../engine/match';
 import type { DrawHook, DrawShow, LiveHook, LiveRequest } from '../engine/tournament';
 import { goalProgress } from '../engine/career';
 import { ageAt } from '../engine/generator';
-import { isHeld, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
+import { hostCityId, isHeld, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
 import type { RoundHook, RoundShow } from '../engine/gate';
 import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
@@ -364,7 +364,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
             {list.map((e) => (
               <div key={e.id} className="drow">
                 <span className="chip">{ruleset.tiers.find((x) => x.id === e.tierId)?.junior ? t('juniorShort') : e.tierId}</span>
-                <span className="grow"><b>{eventName(ruleset, e.id, year)}</b> <small className="muted-text">{city(e.cityId)}</small></span>
+                <span className="grow"><b>{eventName(ruleset, e.id, year)}</b> <small className="muted-text">{city(hostCityId(e, year))}</small></span>
               </div>
             ))}
           </div>

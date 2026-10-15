@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
-import { entrantsFor, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
+import { entrantsFor, hostCityId, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
 import { autoSquad, squadError } from '../engine/team';
 import { DISCIPLINES, type TeamFormat } from '../engine/types';
 import { dataName, t } from '../i18n';
@@ -65,7 +65,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
               <td className="num">{e.week}</td>
               <td><a href="#" onClick={(x) => { x.preventDefault(); if (past || auto) onOpenEvent?.(e.id, year); else setOpen(e.id); }}>{team ? eventName(ruleset, e.id, year) : dataName(e.name)}</a></td>
               <td><span className="chip">{team ? t('teamShort') : ruleset.tiers.find((x) => x.id === tier)?.junior ? t('juniorShort') : tier}</span></td>
-              <td className="hide-sm">{city(e.cityId)}</td>
+              <td className="hide-sm">{city(hostCityId(e, year))}</td>
               <td>{past ? t('finished') : auto ? t('auto')
                 : submitted(e.id) ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>}</td>
             </tr>

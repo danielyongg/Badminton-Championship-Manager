@@ -1,3 +1,4 @@
+import { hostCityId } from '../engine/season';
 import { useEffect, useMemo, useState } from 'react';
 import type { Candidate } from '../engine/entry';
 import { BracketView, DrawStepsView, EntryView, GroupView, QualView, SeedsView } from './EventViews';
@@ -48,7 +49,7 @@ export function Wizard({ players, pairs, ruleset, world }: { players: Player[]; 
       .map((c, i) => ({ ...c, rank: i + 1 }));
     const rng = makeRng(seed);
     const matches: Match[] = [];
-    const host = world.cities.find((c) => c.id === event.cityId)!.countryId;
+    const host = world.cities.find((c) => c.id === hostCityId(event, ruleset.startYear))!.countryId;
     const play = simPlay({ players: playerById, pairs: pairById, cfg: ruleset.match, rng, tournamentId: event.id, year: ruleset.startYear, discipline, matches });
     void runEvent({ tournament: event, discipline, year: ruleset.startYear, hostCountryId: host, candidates, ruleset, rng, play })
       .then((run) => { if (!cancelled) setResult({ rec: toRecord(event.id, ruleset.startYear, discipline, run), matches }); });

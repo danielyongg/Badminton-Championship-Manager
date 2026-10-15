@@ -1,3 +1,4 @@
+import { hostCityId } from '../engine/season';
 import { useState } from 'react';
 import { DISCIPLINES, type Discipline } from '../engine/types';
 import { dataName, numLocale, t } from '../i18n';
@@ -19,7 +20,7 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
   const { state, ruleset, world } = game;
   const managed = state.career?.countryId;
   const def = ruleset.calendar.find((e) => e.id === id) ?? ruleset.team.events.find((e) => e.id === id);
-  const city = world.cities.find((c) => c.id === def?.cityId);
+  const city = world.cities.find((c) => def && c.id === hostCityId(def, year));
   const records = state.eventRecords.filter((r) => r.tournamentId === id && r.year === year);
   const played = DISCIPLINES.filter((d) => records.some((r) => r.discipline === d) || state.matches.some((m) => m.tournamentId === id && m.year === year && m.discipline === d));
   const [d, setD] = useState<Discipline | undefined>(played.find((x) => x === 'MS') ?? played[0]);

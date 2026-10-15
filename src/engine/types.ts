@@ -50,6 +50,10 @@ export interface TournamentDef {
   prizeUsd: number;
   /** Hanya digelar bila tahun % interval === offset (invert: kebalikannya). Olimpiade: {4,0}; Kejuaraan Dunia: {4,0,invert}. */
   everyYears?: { interval: number; offset: number; invert?: boolean };
+  /** Tuan rumah per tahun (tahun → cityId), mengganti `cityId` di tahun itu. */
+  hosts?: Record<string, string>;
+  /** Tahun tanpa `hosts`: tuan rumah bergilir dari daftar ini (indeks = tahun % panjang); kosong → `cityId`. */
+  rotation?: string[];
   /** Turnamen khusus atlet satu konfederasi (kejuaraan junior kontinental). */
   confederation?: Confederation;
 }
@@ -103,6 +107,8 @@ export interface TeamEventDef {
   /** Kejuaraan kontinental: jumlah tim teratas yang lolos ke putaran final (bawaan 1 = juara). */
   qualifiers?: number;
   everyYears?: TournamentDef['everyYears'];
+  hosts?: TournamentDef['hosts'];
+  rotation?: TournamentDef['rotation'];
   /** Ukuran putaran final event ini (bawaan `team.finals`). */
   finals?: { teams: number; groups: GroupStage };
 }

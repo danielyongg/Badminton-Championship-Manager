@@ -162,8 +162,11 @@ export const CALENDAR_2026: TournamentDef[] = [
   t('south-africa-is', 'South Africa International', 'johannesburg', 31, 'IS', 8000),
   t('vietnam-open', 'Vietnam Open', 'ho-chi-minh', 32, 'S100', 110000),
   t('indonesia-masters-100', 'Indonesia Masters Super 100', 'surabaya', 33, 'S100', 110000),
-  t('world-championships', 'Kejuaraan Dunia BWF', 'new-delhi', 34, 'WC', 0, { everyYears: { interval: 4, offset: 0, invert: true } }),
-  t('olympics', 'Olimpiade', 'los-angeles', 31, 'OG', 0, { everyYears: { interval: 4, offset: 0 } }),
+  // Tuan rumah asli per tahun (`hosts`); tahun yang belum diumumkan → ASUMSI: bergilir di antara tuan rumah terdahulu (`rotation`).
+  t('world-championships', 'Kejuaraan Dunia BWF', 'new-delhi', 34, 'WC', 0, { everyYears: { interval: 4, offset: 0, invert: true },
+    hosts: { 2025: 'paris', 2026: 'new-delhi' }, rotation: ['tokyo', 'jakarta', 'glasgow', 'basel', 'paris'] }),
+  t('olympics', 'Olimpiade', 'los-angeles', 31, 'OG', 0, { everyYears: { interval: 4, offset: 0 },
+    hosts: { 2028: 'los-angeles', 2032: 'brisbane' }, rotation: ['paris', 'tokyo', 'sydney'] }),
   t('bulgarian-ic', 'Bulgarian Open', 'sofia', 35, 'IC', 20000),
   t('hong-kong-open', 'Hong Kong Open', 'hong-kong', 36, 'S500', 475000),
   t('brazil-is', 'Brazil International', 'sao-paulo', 36, 'IS', 8000),
@@ -312,22 +315,32 @@ export const BWF_2026: Ruleset = {
     violationPenalty: 3,
     gradeReputation: { A: 10, B: 5, C: 0, D: -5, E: -10 },
   },
-  // ASUMSI: tuan rumah tetap tiap edisi — final Horsens (Thomas & Uber 2026) & Xiamen (Sudirman 2025), kontinental
-  // = tuan rumah 2026 (Qingdao, Istanbul, Guatemala City, Gaborone, Auckland); koreksi lewat Editor.
+  // Tuan rumah asli per tahun (`hosts`): Thomas & Uber 2026 Horsens, Sudirman 2025 Xiamen & 2027 Beijing, Suhandinata
+  // 2025 Guwahati & 2026 Kairo, kontinental 2026 (Qingdao, Istanbul, Guatemala City, Gaborone, Auckland), Asia 2027 Qingdao.
+  // ASUMSI: tahun yang belum diumumkan bergilir di antara tuan rumah terdahulu (`rotation`). Eropa 2027 aslinya Tallinn
+  // (Estonia belum ada di daftar negara).
   // Final 16 tim: tuan rumah, juara bertahan, 4 teratas Asia & Eropa (semifinalis), juara Pan Am/Afrika/Oseania,
   // sisanya menurut kekuatan tim (poin ranking line-up terbaik).
   team: {
     events: [
-      { id: 'asia-team', name: 'Badminton Asia Team Championships', nameMixed: 'Badminton Asia Mixed Team Championships', cityId: 'qingdao', week: 7, confederation: 'BA', qualifiers: 4 },
-      { id: 'europe-team', name: 'European Team Championships', nameMixed: 'European Mixed Team Championships', cityId: 'istanbul', week: 7, confederation: 'BE', qualifiers: 4 },
-      { id: 'panam-team', name: 'Pan Am Male & Female Cup', nameMixed: 'Pan Am Cup', cityId: 'guatemala-city', week: 7, confederation: 'BAM' },
-      { id: 'africa-team', name: 'All Africa Senior Championships', cityId: 'gaborone', week: 7, confederation: 'BCA' },
-      { id: 'oceania-team', name: 'Oceania Team Championships', nameMixed: 'Oceania Mixed Team Championships', cityId: 'auckland', week: 7, confederation: 'BO' },
-      { id: 'thomas-uber-cup', name: 'Thomas & Uber Cup', cityId: 'horsens', week: 18, formats: ['thomas', 'uber'], everyYears: { interval: 2, offset: 0 } },
-      { id: 'sudirman-cup', name: 'Sudirman Cup', cityId: 'xiamen', week: 18, formats: ['sudirman'], everyYears: { interval: 2, offset: 1 } },
+      { id: 'asia-team', name: 'Badminton Asia Team Championships', nameMixed: 'Badminton Asia Mixed Team Championships', cityId: 'qingdao', week: 7, confederation: 'BA', qualifiers: 4,
+        hosts: { 2026: 'qingdao', 2027: 'qingdao' }, rotation: ['kuala-lumpur', 'hong-kong', 'qingdao'] },
+      { id: 'europe-team', name: 'European Team Championships', nameMixed: 'European Mixed Team Championships', cityId: 'istanbul', week: 7, confederation: 'BE', qualifiers: 4,
+        hosts: { 2026: 'istanbul' }, rotation: ['vantaa', 'almere', 'sofia', 'horsens'] },
+      { id: 'panam-team', name: 'Pan Am Male & Female Cup', nameMixed: 'Pan Am Cup', cityId: 'guatemala-city', week: 7, confederation: 'BAM',
+        hosts: { 2026: 'guatemala-city' }, rotation: ['lima', 'calgary', 'guatemala-city', 'sao-paulo'] },
+      { id: 'africa-team', name: 'All Africa Senior Championships', cityId: 'gaborone', week: 7, confederation: 'BCA',
+        hosts: { 2026: 'gaborone' }, rotation: ['cairo', 'lagos', 'johannesburg', 'rose-hill'] },
+      { id: 'oceania-team', name: 'Oceania Team Championships', nameMixed: 'Oceania Mixed Team Championships', cityId: 'auckland', week: 7, confederation: 'BO',
+        hosts: { 2026: 'auckland' }, rotation: ['sydney', 'auckland'] },
+      { id: 'thomas-uber-cup', name: 'Thomas & Uber Cup', cityId: 'horsens', week: 18, formats: ['thomas', 'uber'], everyYears: { interval: 2, offset: 0 },
+        hosts: { 2026: 'horsens' }, rotation: ['bangkok', 'jakarta', 'kuala-lumpur'] },
+      { id: 'sudirman-cup', name: 'Sudirman Cup', cityId: 'xiamen', week: 18, formats: ['sudirman'], everyYears: { interval: 2, offset: 1 },
+        hosts: { 2025: 'xiamen', 2027: 'beijing' }, rotation: ['kuala-lumpur', 'vantaa', 'glasgow'] },
       // Kejuaraan Dunia Beregu Campuran Junior (U19), setiap tahun seminggu sebelum Kejuaraan Dunia Junior. ASUMSI: tuan rumah.
       // ASUMSI: 32 tim (8 grup × 4, 2 teratas ke babak 16 besar); kenyataannya ±38 tim dengan grup bervariasi.
       { id: 'suhandinata-cup', name: 'BWF World Junior Mixed Team Championships', cityId: 'guwahati', week: 40, formats: ['suhandinata'],
+        hosts: { 2025: 'guwahati', 2026: 'cairo' }, rotation: ['surabaya', 'bangkok', 'calgary', 'kuala-lumpur'],
         finals: { teams: 32, groups: { groups: 8, perGroup: 4, advance: 2 } } },
     ],
     // ASUMSI: urutan partai Sudirman Cup tetap XD–WS–MS–WD–MD (aslinya bisa berubah per edisi).

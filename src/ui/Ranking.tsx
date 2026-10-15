@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { absWeek, computeRace, computeRanking, expiringPoints } from '../engine/ranking';
 import { presetPack } from '../engine/pack';
 import { makeRng } from '../engine/rng';
-import { isHeld, newSeason, playWeek, rankFromSnapshots, type SeasonState } from '../engine/season';
+import { hostCityId, isHeld, newSeason, playWeek, rankFromSnapshots, type SeasonState } from '../engine/season';
 import { ageAt, currentAbility } from '../engine/generator';
 import { ATTRS, DISCIPLINES, type Discipline, type Player, type Ruleset, type World } from '../engine/types';
 import { dataName, numLocale, t, type TextKey } from '../i18n';
@@ -228,7 +228,7 @@ export function Calendar({ state, ruleset, world, short, onOpenEvent, year = sho
         <tbody>{events.map((e) => (
           <tr key={e.id} className={year === state.date.year && e.week === state.date.week ? 'sel' : ''}>
             <td className="num">{e.week}</td><td>{onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, year); }}>{dataName(e.name)}</a> : dataName(e.name)}</td><td>{e.tierId}</td>
-            <td className="hide-sm">{dataName(city.get(e.cityId)?.name)} ({city.get(e.cityId)?.countryId})</td>
+            <td className="hide-sm">{dataName(city.get(hostCityId(e, year))?.name)} ({city.get(hostCityId(e, year))?.countryId})</td>
             <td className="num hide-sm">{e.prizeUsd ? `$${e.prizeUsd.toLocaleString(numLocale())}` : '—'}</td>
             {DISCIPLINES.map((d) => {
               const c = state.champions.find((x) => x.year === year && x.tournamentId === e.id && x.discipline === d);
