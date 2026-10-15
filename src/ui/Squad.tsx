@@ -321,10 +321,10 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           <table style={{ maxWidth: 640 }}>
             <tbody>{[...p.injuryHistory].reverse().map((h, i) => (
               <tr key={i}>
-                <td className="num">{t('weekShort')}{h.week} {h.year}</td>
+                <td>{t('weekShort')}{h.week} {h.year}</td>
                 <td><span className={`badge danger${h.level === 'severe' || h.level === 'critical' ? ' strong' : ''}`}>{t(`injLevel_${h.level}` as TextKey)}</span></td>
                 <td>{t(`inj_${h.type}` as TextKey)}</td>
-                <td className="num">{t('weeksShort', { n: h.weeks })}</td>
+                <td className="num">{h.weeks} {h.weeks === 1 ? t('week').toLowerCase() : t('weeks')}</td>
               </tr>
             ))}</tbody>
           </table>
