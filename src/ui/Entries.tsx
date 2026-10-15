@@ -122,15 +122,18 @@ function SeasonPlan() {
                 if (injured) return <td key={w} title={t('injury')}>🩹</td>;
                 const c = plan.get(w)!.get(e.id) ?? { eventId: null, kind: 'guess' as const };
                 const offered = plannableEvents(ruleset, year, w).filter((ev) => ruleset.tiers.find((x) => x.id === ev.tierId)!.drawSize[e.d] > 0);
-                const auto = c.kind === 'manual' ? t('auto') : c.kind === 'required' ? `⭐ ${label(c)}` : c.eventId ? `~${label(c)}` : '—';
+                const shown = c.kind === 'manual' ? label(c) : c.kind === 'required' ? `⭐ ${label(c)}` : c.eventId ? `~${label(c)}` : '—';
+                // Sel menampilkan rencana/perkiraan; pilihan (select transparan di atasnya) bertuliskan "Otomatis".
                 return (
                   <td key={w}>
-                    <select className={`plan-cell ${c.kind}${c.conflict ? ' conflict' : ''}`} title={c.conflict ? t('planConflict') : undefined}
-                      value={c.kind === 'manual' ? c.eventId! : 'auto'} onChange={(ev) => set(w, e.id, ev.target.value)}>
-                      <option value="auto">{auto}</option>
-                      {offered.map((ev) => <option key={ev.id} value={ev.id}>{short(ev.id)}</option>)}
-                      <option value="rest">{t('rest')}</option>
-                    </select>
+                    <label className={`plan-cell ${c.kind}${c.conflict ? ' conflict' : ''}`} title={c.conflict ? t('planConflict') : undefined}>
+                      {shown}
+                      <select value={c.kind === 'manual' ? c.eventId! : 'auto'} onChange={(ev) => set(w, e.id, ev.target.value)}>
+                        <option value="auto">{t('tierPrefsFree')}</option>
+                        {offered.map((ev) => <option key={ev.id} value={ev.id}>{short(ev.id)}</option>)}
+                        <option value="rest">{t('rest')}</option>
+                      </select>
+                    </label>
                   </td>
                 );
               })}

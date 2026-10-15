@@ -57,7 +57,9 @@ th.sortable { cursor: pointer; user-select: none; }
 th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .chip.sector { margin-right: 3px; }
 .plan th { white-space: nowrap; }
-.plan-cell { font-size: .8rem; padding: 1px 4px; min-width: 7.5em; border: 1px solid transparent; background: transparent; }
+.plan-cell { position: relative; display: inline-block; font-size: .8rem; padding: 3px 6px; min-width: 7.5em; border: 1px solid transparent; border-radius: 4px; white-space: nowrap; cursor: pointer; }
+.plan-cell:hover, .plan-cell:focus-within { border-color: var(--accent); }
+.plan-cell select { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; opacity: 0; cursor: pointer; }
 .plan-cell.guess { color: var(--muted); }
 .plan-cell.manual { font-weight: 700; border-color: var(--line); }
 .plan-cell.conflict { border-color: var(--danger); background: var(--danger-soft); }
