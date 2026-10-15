@@ -112,7 +112,7 @@ export function juniorTeamEntrants(state: JuniorState, d: Discipline, perCountry
   const junior = (p: Player) => p.retired === undefined && isJuniorAge(p, state.date);
   const players = new Map(state.players.map((p) => [p.id, p]));
   if (!isDoubles(d))
-    return state.players.filter((p) => junior(p) && p.gender === (d === 'MS' ? 'M' : 'F')).map((p) => ({ id: p.id, countryId: p.countryId, playerIds: [p.id] }));
+    return state.players.filter((p) => junior(p) && p.gender === (d === 'MS' ? 'M' : 'F') && p.focus !== 'D').map((p) => ({ id: p.id, countryId: p.countryId, playerIds: [p.id] }));
   const ok = (id: string) => { const p = players.get(id); return !!p && junior(p); };
   const out = state.pairs.filter((p) => p.discipline === d && !p.dissolved && !p.trial && p.playerIds.every(ok))
     .map((p) => ({ id: p.id, countryId: players.get(p.playerIds[0])!.countryId, playerIds: [...p.playerIds] }));

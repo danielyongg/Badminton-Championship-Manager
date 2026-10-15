@@ -65,3 +65,16 @@ describe('turnamen junior', () => {
     expect(auto.every((p) => p.playerIds.every((id) => isJuniorAge(players.get(id)!, { year: 2026, week: 28 })))).toBe(true);
   }, 60000);
 });
+
+describe('spesialis ganda', () => {
+  it('tidak masuk nomor tunggal (individu, beregu, junior)', async () => {
+    const { juniorTeamEntrants } = await import('./junior');
+    const { teamStrengths } = await import('./season');
+    const state = newSeason(WORLD, rs, 3, undefined, 'INA');
+    state.players.filter((p) => p.gender === 'M').forEach((p, i) => { if (i % 2) p.focus = 'D'; });
+    const d = new Set(state.players.filter((p) => p.focus === 'D').map((p) => p.id));
+    expect(entrantsFor(state, 'MS').some((e) => d.has(e.id))).toBe(false);
+    expect(juniorTeamEntrants(state, 'MS').some((e) => d.has(e.id))).toBe(false);
+    expect(teamStrengths(state, rs, 'thomas').some((s) => s.pool.MS?.some((e) => d.has(e.id)))).toBe(false);
+  });
+});
