@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { dissolvePair, potentialStars, promoteJunior } from '../engine/career';
+import { dissolvePair, potentialStars, promoteJunior, releasePlayer } from '../engine/career';
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { headToHead } from '../engine/match';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
@@ -89,7 +89,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
     return sort.desc ? -r : r;
   };
   const list = state.players
-    .filter((p) => p.countryId === country && p.retired === undefined && isPratama(p, state.date) === juniors) // junior yang sudah promosi masuk Senior
+    .filter((p) => p.countryId === country && p.retired === undefined && p.released === undefined && isPratama(p, state.date) === juniors) // junior yang sudah promosi masuk Senior
     .filter((p) => view !== 'singles' || p.focus !== 'D')
     .sort((a, b) => cmp(a, b) || currentAbility(b.attrs) - currentAbility(a.attrs));
 
@@ -192,7 +192,7 @@ export function TierPrefs({ id }: { id: string }) {
 }
 
 export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBack: () => void; onOpen: (id: string) => void; onOpenEvent?: (id: string, year: number) => void }) {
-  const { game } = useGame();
+  const { game, changed } = useGame();
   const { state, ruleset } = game;
   const p: Player | undefined = lookup(state).players.get(id);
   const counts = useMatchCounts();
@@ -220,8 +220,12 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         {' '}{t('fatigue')} <FatigueBar value={p.fatigue} />
         {p.injury && <> · {t('injury')}: {p.injury.weeksLeft} {t('weeks')}{p.injury.severe ? ` (${t('injurySevere')})` : ''}</>}
         {p.retired !== undefined && <> · {t('retired')} {p.retired}</>}
+        {p.released !== undefined && <> · <span className="tag muted-tag">{t('releasedTag', { year: p.released })}</span></>}
         {' · '}{t('prizeMoney')}: {usd(state.earnings[state.date.year]?.[p.id] ?? 0)} {t('thisSeason')} / {usd(Object.values(state.earnings).reduce((s, y) => s + (y[p.id] ?? 0), 0))} {t('career')}
       </p>
+      {p.countryId === state.career?.countryId && p.retired === undefined && p.released === undefined && (
+        <p><button onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id); changed(); void saveGame(game); } }}>{t('release')}</button></p>
+      )}
       <AttrChart p={p} date={state.date} />
       <div className="split">
         <div className="scroll">

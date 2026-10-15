@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
-import { entrantsFor, isHeld, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
+import { entrantsFor, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
 import { autoSquad, squadError } from '../engine/team';
 import { DISCIPLINES, type TeamFormat } from '../engine/types';
 import { dataName, t } from '../i18n';
@@ -89,7 +89,8 @@ function SeasonPlan() {
   const ranks = useMemo(() => new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.results, d, absWeek(state.date), ruleset))])), [version, state, ruleset]);
   const weeks = [...new Set(ruleset.calendar.map((e) => e.week))].filter((w) => w >= week && plannableEvents(ruleset, year, w).length).sort((a, b) => a - b);
   const plan = useMemo(() => new Map(weeks.map((w) => [w, planWeek(state, ruleset, w)])), [version]);
-  const rows = DISCIPLINES.flatMap((d) => entrantsFor(state, d).filter((e) => e.countryId === state.managedCountryId)
+  const released = releasedIds(state);
+  const rows = DISCIPLINES.flatMap((d) => entrantsFor(state, d).filter((e) => isManaged(state, released, e))
     .map((e) => ({ ...e, d, rank: ranks.get(d)!.get(e.id) }))
     .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9)));
   const set = (w: number, id: string, value: string) => {
@@ -171,7 +172,7 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
 
   const drawOf = (id: string) => ruleset.tiers.find((tt) => tt.id === events.find((e) => e.id === id)?.tierId)?.drawSize;
   const rows = DISCIPLINES.filter((d) => !eventId || (drawOf(eventId)?.[d] ?? 0) > 0).flatMap((d) =>
-    entrantsFor(state, d).filter((e) => e.countryId === country)
+    entrantsFor(state, d).filter((e) => e.countryId === country && !e.playerIds.some((id) => players.get(id)?.released !== undefined))
       .map((e) => ({ ...e, d, rank: ranks.get(d)!.get(e.id) }))
       .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9)));
 

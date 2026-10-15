@@ -254,6 +254,8 @@ export interface Player {
   /** Junior (U19) yang sudah dipromosikan ke pelatnas utama: ikut didaftarkan otomatis ke turnamen senior. */
   promoted?: boolean;
   retired?: number; // tahun pensiun
+  /** Tahun keluar pelatnas (negara manajer): tetap bertanding sebagai pemain independen yang diatur AI. */
+  released?: number;
   location?: string; // cityId terakhir (untuk jarak perjalanan)
   caDelta?: number; // perubahan CA pada pemrosesan kuartal terakhir (panah naik/turun)
   attrHistory: { year: number; attrs: Attrs }[];

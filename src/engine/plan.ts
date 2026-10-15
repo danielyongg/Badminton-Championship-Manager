@@ -1,4 +1,4 @@
-import { entrantsFor, isHeld, weekKey, type SeasonState } from './season';
+import { entrantsFor, isHeld, isManaged, releasedIds, weekKey, type SeasonState } from './season';
 import { DISCIPLINES, type Ruleset } from './types';
 
 // Ringkasan rencana musim: entry negara manajer yang sudah pasti untuk satu minggu ke depan.
@@ -27,7 +27,8 @@ export function planWeek(state: SeasonState, rs: Ruleset, week: number) {
   const events = plannableEvents(rs, year, week);
   const tier = (id: string) => rs.tiers.find((t) => t.id === id)!;
   const manual = state.manualEntries[weekKey({ year, week })] ?? {};
-  const all = DISCIPLINES.flatMap((d) => entrantsFor(state, d).filter((e) => e.countryId === state.managedCountryId).map((e) => ({ e, d })));
+  const released = releasedIds(state);
+  const all = DISCIPLINES.flatMap((d) => entrantsFor(state, d).filter((e) => isManaged(state, released, e)).map((e) => ({ e, d })));
   const isManual = (x: (typeof all)[number]) => manual[x.e.id] !== undefined;
   const playerEvent = new Map<string, string>();
   const out = new Map<string, PlanCell>();

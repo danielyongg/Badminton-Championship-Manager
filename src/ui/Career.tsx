@@ -337,7 +337,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
   const byWeek = groupBy(upcoming, (e) => e.week);
   // Beregu minggu terpilih: babak terakhir negara ini per format.
   const lastTeam = myTeams.filter((r) => r.year === selYear && weekOf.get(r.eventId) === selWeek);
-  const injured = state.players.filter((p) => p.countryId === managed && p.injury && p.retired === undefined);
+  const injured = state.players.filter((p) => p.countryId === managed && p.injury && p.retired === undefined && p.released === undefined);
   const lastReport = state.career?.reports.at(-1);
 
   return (
@@ -625,7 +625,7 @@ function Federation({ onChanged, onOpen, onOpenEvent }: { onChanged: () => void;
   const { titles, teamTitles } = titlesOf(state, ruleset, country ?? '', year);
   if (summary !== undefined && country) return <SeasonSummary year={summary} country={country} onBack={() => setSummary(undefined)} onOpen={onOpen} onOpenEvent={onOpenEvent} />;
   // Ringkasan: atlet aktif, turnamen diikuti & rekor laga tahun ini (individu + beregu).
-  const squad = state.players.filter((p) => p.countryId === country && p.retired === undefined);
+  const squad = state.players.filter((p) => p.countryId === country && p.retired === undefined && p.released === undefined);
   const juniorCount = squad.filter((p) => ageAt(p.birth, state.date) <= JUNIOR_MAX_AGE).length;
   const mineIds = new Set([...squad.map((p) => p.id), ...state.pairs.filter((x) => players.get(x.playerIds[0])?.countryId === country).map((x) => x.id)]);
   const played = new Set<string>();

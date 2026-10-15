@@ -32,9 +32,9 @@ export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => voi
   const isJunior = (id: string) => isPratama(players.get(id)!, state.date); // junior yang sudah promosi masuk Senior
   // Pasangan berisi atlet Development (pratama): tidak masuk turnamen senior otomatis sampai dipromosikan.
   const pratama = (p: Pair) => p.playerIds.some((id) => isPratama(players.get(id)!, state.date));
-  const mine = state.pairs.filter((p) => !p.dissolved && !p.adHoc && players.get(p.playerIds[0])?.countryId === country && p.playerIds.every(isJunior) === juniors);
+  const mine = state.pairs.filter((p) => !p.dissolved && !p.adHoc && players.get(p.playerIds[0])?.countryId === country && p.playerIds.every((id) => players.get(id)!.released === undefined) && p.playerIds.every(isJunior) === juniors);
   const athletes = (gender: 'M' | 'F') => state.players
-    .filter((p) => p.countryId === country && p.retired === undefined && p.gender === gender && p.focus !== 'S' && isJunior(p.id) === juniors)
+    .filter((p) => p.countryId === country && p.retired === undefined && p.released === undefined && p.gender === gender && p.focus !== 'S' && isJunior(p.id) === juniors)
     .sort((x, y) => currentAbility(y.attrs) - currentAbility(x.attrs));
   const genders: Record<Pair['discipline'], ['M' | 'F', 'M' | 'F']> = { MD: ['M', 'M'], WD: ['F', 'F'], XD: ['M', 'F'] };
   const option = (id: string) => {

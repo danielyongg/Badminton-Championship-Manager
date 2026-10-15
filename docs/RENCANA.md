@@ -47,6 +47,7 @@ Prinsip: game tetap ringan — tanpa latihan, anggaran, atau pelatih.
   - [x] Prioritas tier entry otomatis per atlet tunggal & pasangan (Skuad → Single/Pairs; tombol ringkas yang membuka panel tier). Spesifikasi: `docs/superpowers/specs/2026-10-15-prioritas-tier-entry-otomatis-design.md`.
   - [x] Favicon (kok putih di kotak hijau).
   - [x] Tabel Pairs di HP: sektor & status pindah ke sel nama, tombol Promote ke kolom aksi.
+  - [x] Lepas dari pelatnas (tombol di profil atlet): atlet tetap bertanding diatur AI, keluar dari tim manajer. Spesifikasi: `docs/superpowers/specs/2026-10-15-lepas-dari-pelatnas-design.md`.
   - (tambahkan temuan di sini)
 - Catatan urutan: tampilan responsif dari Fase 11 sebaiknya dikerjakan bersama tahap ini; deploy GitHub Pages sudah otomatis.
 

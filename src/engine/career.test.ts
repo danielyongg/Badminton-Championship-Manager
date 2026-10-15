@@ -185,3 +185,34 @@ describe('promosi junior (pelatnas pratama → utama)', () => {
     expect(isPratama(j, state.date)).toBe(false);
   });
 });
+
+describe('lepas dari pelatnas', () => {
+  it('tetap bertanding diatur AI, keluar dari tim manajer; AI hanya memasangkan sesama yang dilepas', async () => {
+    const { releasePlayer } = await import('./career');
+    const { planWeek } = await import('./plan');
+    const { formPairs, teamStrengths } = await import('./season');
+    const state = newSeason(WORLD, rs, 21, undefined, 'INA');
+    const md = state.pairs.find((p) => p.discipline === 'MD' && !p.dissolved && !p.trial && state.players.find((x) => x.id === p.playerIds[0])!.countryId === 'INA')!;
+    const [a, partner] = md.playerIds;
+    releasePlayer(state, a);
+    expect(md.dissolved).toBeDefined(); // pasangan dengan anggota pelatnas bubar
+    expect(state.players.find((x) => x.id === partner)!.released).toBeUndefined();
+    // keluar dari rencana & tim beregu manajer
+    const week = rs.calendar.find((e) => e.tierId === 'S500')!.week;
+    expect(planWeek(state, rs, week).has(a)).toBe(false);
+    const ina = teamStrengths(state, rs, 'thomas').find((s) => s.countryId === 'INA')!;
+    expect(Object.values(ina.pool).flat().some((e) => e.playerIds.includes(a))).toBe(false);
+    // AI memasangkan dua atlet putra yang dilepas, tidak dengan anggota pelatnas
+    const other = state.players.find((x) => x.countryId === 'INA' && x.gender === 'M' && x.id !== a && x.retired === undefined && x.focus !== 'S' && x.birth.year <= 2007)!;
+    releasePlayer(state, other.id);
+    formPairs(state, rs, WORLD, makeRng(1));
+    const fresh = state.pairs.filter((p) => !p.dissolved && p.playerIds.some((id) => id === a || id === other.id));
+    expect(fresh.some((p) => p.discipline === 'MD' && p.playerIds.includes(a) && p.playerIds.includes(other.id))).toBe(true);
+    expect(fresh.every((p) => p.playerIds.every((id) => state.players.find((x) => x.id === id)!.released !== undefined))).toBe(true);
+    // tetap bertanding: AI mendaftarkan pasangan barunya ke turnamen
+    const sides = new Set([a, other.id, ...fresh.map((p) => p.id)]);
+    const rng = makeRng(2);
+    while (state.date.week <= 20 && !state.matches.some((m) => m.sides.some((x) => sides.has(x)))) await playWeek(state, rs, WORLD, rng);
+    expect(state.matches.some((m) => m.sides.some((x) => sides.has(x)))).toBe(true);
+  });
+});

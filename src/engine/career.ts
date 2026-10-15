@@ -8,9 +8,10 @@ import { t } from '../i18n';
 
 // Mode karier: target federasi, rapor akhir musim, perkiraan potensi, kelola pasangan.
 
+// Untuk target federasi: atlet yang keluar pelatnas bukan lagi tim negara itu.
 const countryOfEntrant = (state: SeasonState) => {
-  const player = new Map(state.players.map((p) => [p.id, p.countryId]));
-  const pair = new Map(state.pairs.map((p) => [p.id, player.get(p.playerIds[0])!]));
+  const player = new Map(state.players.filter((p) => p.released === undefined).map((p) => [p.id, p.countryId]));
+  const pair = new Map(state.pairs.map((p) => [p.id, p.playerIds.every((id) => player.has(id)) ? player.get(p.playerIds[0]) : undefined]));
   return (id: string) => pair.get(id) ?? player.get(id);
 };
 
@@ -136,6 +137,21 @@ export function promoteTrial(state: SeasonState, pairId: string) {
 export function promoteJunior(state: Pick<SeasonState, 'players'>, playerId: string) {
   const p = state.players.find((x) => x.id === playerId);
   if (p) p.promoted = true;
+}
+
+/**
+ * Lepas atlet dari pelatnas: tetap bertanding (diatur AI) tapi tidak lagi dikelola manajer.
+ * Pasangan dengan anggota pelatnas dibubarkan; atlet dikeluarkan dari skuad beregu & prioritas tier.
+ */
+export function releasePlayer(state: SeasonState, playerId: string) {
+  const p = state.players.find((x) => x.id === playerId);
+  if (!p || p.released !== undefined) return;
+  p.released = state.date.year;
+  const released = new Set(state.players.filter((x) => x.released !== undefined).map((x) => x.id));
+  for (const pair of state.pairs)
+    if (!pair.dissolved && pair.playerIds.includes(playerId) && !pair.playerIds.every((id) => released.has(id))) dissolvePair(state, pair.id);
+  for (const f of Object.keys(state.teamSquads) as TeamFormat[]) state.teamSquads[f] = state.teamSquads[f]!.filter((id) => id !== playerId);
+  if (state.tierPrefs) delete state.tierPrefs[playerId];
 }
 
 export function dissolvePair(state: SeasonState, pairId: string) {

@@ -104,6 +104,13 @@ export const isHeld = (e: { everyYears?: TournamentDef['everyYears'] }, year: nu
 
 export interface Entrant { id: EntrantId; countryId: string; playerIds: string[]; trial?: boolean }
 
+/** Atlet yang sudah keluar pelatnas negara manajer (tetap aktif, diatur AI). */
+export const releasedIds = (state: Pick<SeasonState, 'players'>) => new Set(state.players.filter((p) => p.released !== undefined).map((p) => p.id));
+
+/** Peserta yang dikelola manajer: negara manajer & tidak ada atletnya yang keluar pelatnas. */
+export const isManaged = (state: Pick<SeasonState, 'managedCountryId'>, released: Set<string>, e: { countryId: string; playerIds: string[] }) =>
+  !!state.managedCountryId && e.countryId === state.managedCountryId && !e.playerIds.some((id) => released.has(id));
+
 /** Semua peserta potensial suatu nomor: atlet (tunggal) atau pasangan aktif (ganda). */
 export function entrantsFor(state: SeasonState, d: Discipline): Entrant[] {
   const country = new Map(state.players.map((p) => [p.id, p.countryId]));
@@ -250,7 +257,9 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
   const injured = new Set(state.players.filter((p) => p.injury).map((p) => p.id));
   const manual = state.manualEntries[weekKey(state.date)] ?? {};
   // Junior pratama negara manajer: tidak didaftarkan otomatis (manual tetap bisa).
-  const pratama = new Set(state.players.filter((p) => p.countryId === state.managedCountryId && isPratama(p, state.date)).map((p) => p.id));
+  const pratama = new Set(state.players.filter((p) => p.countryId === state.managedCountryId && p.released === undefined && isPratama(p, state.date)).map((p) => p.id));
+  const released = releasedIds(state);
+  const mine = (e: Entrant) => isManaged(state, released, e);
 
   const wtf = events.find((e) => e.tierId === 'WTF');
   if (wtf)
@@ -268,19 +277,19 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
   // Satu atlet: satu turnamen per minggu, dan satu pasangan per nomor (pasangan utama ATAU percobaan).
   const playerDisc = new Set<string>();
   const all = DISCIPLINES.flatMap((d) => entrantsFor(state, d).map((e) => ({ e, d })));
-  const isManual = (x: { e: Entrant }) => x.e.countryId === state.managedCountryId && manual[x.e.id] !== undefined;
+  const isManual = (x: { e: Entrant }) => mine(x.e) && manual[x.e.id] !== undefined;
   for (const { e, d } of [...all.filter(isManual), ...all.filter((x) => !isManual(x))]) {
     const taken = wtf ? entries.get(wtf.id)!.get(d)!.some((c) => c.id === e.id) : false;
     if (taken || e.playerIds.some((id) => injured.has(id) || playerDisc.has(`${id}:${d}`))) continue;
     const rank = ranks.get(d)!.get(e.id);
     const fixed = e.playerIds.map((id) => playerEvent.get(id)).find(Boolean);
     const options = events.filter((ev) => ev.tierId !== 'WTF' && tierOf(rs, ev).drawSize[d] > 0 && (!fixed || ev.id === fixed));
-    const decision = e.countryId === state.managedCountryId ? manual[e.id] : undefined;
+    const decision = mine(e) ? manual[e.id] : undefined;
     if (!decision && e.playerIds.some((id) => pratama.has(id) || busy.has(id))) continue;
     let choice = decision ? options.find((ev) => ev.id === decision) : options.find((ev) => state.commitments[e.id]?.includes(ev.id));
     if (!choice && !decision && !e.trial) { // pasangan percobaan tidak pernah didaftarkan AI
       const tired = Math.max(...e.playerIds.map((id) => fatigue.get(id)!));
-      const prefs = e.countryId === state.managedCountryId ? state.tierPrefs?.[e.id] : undefined;
+      const prefs = mine(e) ? state.tierPrefs?.[e.id] : undefined;
       const ev = aiEventChoice(options, rs, rank, prefs);
       // prioritas manajer: selalu diikuti (kecuali lelah); tanpa prioritas: peluang ikut per tier & kelelahan
       if (ev && tired <= rs.ai.restAbove && (prefs?.length || rng() < (rs.ai.playProb[ev.tierId] ?? 0.5) * (1 - tired / 150))) choice = ev;
@@ -389,7 +398,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
       for (const e of entrantsFor(state, d))
         if (state.commitments[e.id]?.includes(event.id) && !inEvent.has(e.id) && !e.playerIds.some((id) => players.get(id)!.injury)) {
           state.violations.push({ entrantId: e.id, countryId: e.countryId, tournamentId: event.id, year });
-          if (state.career && e.countryId === state.career.countryId)
+          if (state.career && e.countryId === state.career.countryId && !e.playerIds.some((id) => players.get(id)!.released !== undefined))
             state.career.reputation = Math.max(0, state.career.reputation - rs.career.violationPenalty);
         }
     }
@@ -475,7 +484,8 @@ export function teamStrengths(state: SeasonState, rs: Ruleset, format: TeamForma
   // Format junior (Suhandinata): atlet U19 & ranking junior; ganda boleh ganda dadakan junior.
   const junior = isJuniorFormat(format);
   const points = rankingPoints(state, rs, junior ? state.juniorResults ?? [] : state.results);
-  const injured = new Set(state.players.filter((p) => p.injury).map((p) => p.id));
+  // Atlet cedera & yang keluar pelatnas tidak bisa dipilih untuk tim nasional.
+  const injured = new Set(state.players.filter((p) => p.injury || p.released !== undefined).map((p) => p.id));
   const ca = new Map(state.players.map((p) => [p.id, currentAbility(p.attrs)]));
   const pools = new Map<string, Record<string, TeamEntrant[]>>();
   for (const d of new Set(order)) {
@@ -710,20 +720,22 @@ export function formPairs(state: SeasonState, rs: Ruleset, world: World, rng: Rn
   // Spesialis tunggal (top 64 dunia) tidak dipasangkan oleh AI.
   const singlesStars = new Set(['MS', 'WS'].flatMap((d) =>
     computeRanking(state.results, d as Discipline, absWeek(state.date), rs).filter((r) => r.rank <= 64).map((r) => r.entrantId)));
-  const countryOf = new Map(state.players.map((p) => [p.id, p.countryId]));
+  const byId = new Map(state.players.map((p) => [p.id, p]));
   // Dipanggil di awal karier & tiap akhir musim (tahun yang sama) → nomor urut dicari yang belum terpakai.
   const used = new Set(state.pairs.map((p) => p.id));
   for (const c of world.countries) {
-    if (c.id === state.managedCountryId) continue;
+    // Negara manajer: pasangan pelatnas dibentuk manajer; AI hanya memasangkan sesama atlet yang keluar pelatnas.
+    const managed = c.id === state.managedCountryId;
+    const member = (p: Player) => p.countryId === c.id && (!managed || p.released !== undefined);
     const target = Math.round(g.min + (c.traditionStrength / 100) * (g.max - g.min));
     const all = state.players
-      .filter((p) => p.countryId === c.id && p.retired === undefined && ageAt(p.birth, state.date) >= 17)
+      .filter((p) => member(p) && p.retired === undefined && ageAt(p.birth, state.date) >= 17)
       .sort((a, b) => currentAbility(b.attrs) - currentAbility(a.attrs));
     const pool = all.filter((p) => !singlesStars.has(p.id));
     const stars = all.filter((p) => singlesStars.has(p.id));
     for (const d of ['MD', 'WD', 'XD'] as const) {
       // Pasangan negara ini dikenali dari negara atletnya, bukan dari `pool` (yang tidak memuat spesialis tunggal).
-      const active = state.pairs.filter((p) => p.discipline === d && !p.dissolved && !p.trial && !p.adHoc && countryOf.get(p.playerIds[0]) === c.id);
+      const active = state.pairs.filter((p) => p.discipline === d && !p.dissolved && !p.trial && !p.adHoc && p.playerIds.every((id) => member(byId.get(id)!)));
       const busy = new Set(active.flatMap((p) => p.playerIds));
       // Spesialis tunggal hanya dipakai bila perlu untuk minimum tim beregu (2 pasangan MD/WD, 1 XD).
       const minPairs = d === 'XD' ? 1 : 2;
