@@ -56,6 +56,8 @@ button[aria-pressed]:hover:not(:disabled) { border-color: transparent; color: va
 th.sortable { cursor: pointer; user-select: none; }
 th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .chip.sector { margin-right: 3px; }
+.m-only { display: none; }
+@media (max-width: 700px) { .m-only { display: inline; } .m-hide { display: none; } }
 .tier-prefs summary { cursor: pointer; white-space: nowrap; font-size: .8rem; padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; display: inline-block; }
 .tier-prefs[open] summary { border-color: var(--accent); }
 .tier-prefs > span { display: grid; grid-template-columns: repeat(4, auto); gap: 3px; margin-top: 4px; width: max-content; }

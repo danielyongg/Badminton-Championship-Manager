@@ -66,6 +66,10 @@ export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => voi
     return (sort.desc ? -r : r) || DOUBLES.indexOf(a.discipline) - DOUBLES.indexOf(b.discipline) || (rankList(a)[0]?.r ?? Infinity) - (rankList(b)[0]?.r ?? Infinity);
   };
   const list = [...mine].sort(cmp);
+  // Status pasangan; di HP (compact) tag "Main" tidak ditampilkan karena itu status biasa.
+  const status = (p: Pair, compact: boolean) => p.trial ? <span className="tag muted-tag">{t('trialPair')}</span>
+    : pratama(p) ? <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>
+    : compact ? null : <span className="tag">{t('mainPair')}</span>;
 
   return (
     <>
@@ -73,7 +77,7 @@ export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => voi
         <div className="scroll">
           <table>
             <thead><tr>{COLS.map((c) => (
-              <th key={c.key} className={`sortable${c.num ? ' num' : ''}`} aria-sort={sort.key === c.key ? (sort.desc ? 'descending' : 'ascending') : undefined}
+              <th key={c.key} className={`sortable${c.num ? ' num' : ''}${c.key === 'sector' || c.key === 'status' ? ' m-hide' : ''}`} aria-sort={sort.key === c.key ? (sort.desc ? 'descending' : 'ascending') : undefined}
                 onClick={() => setSort(sort.key === c.key ? { key: c.key, desc: !sort.desc } : { key: c.key, desc: !!c.desc })}>
                 {t(c.label)}{sort.key === c.key ? (sort.desc ? ' ▼' : ' ▲') : ''}
               </th>
@@ -82,11 +86,9 @@ export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => voi
               <tr key={p.id}>
                 <td>{p.playerIds.map((id, i) => (
                   <span key={id}>{i > 0 && ' / '}<a href="#" onClick={(e) => { e.preventDefault(); onOpen(id); }}>{players.get(id)!.name}</a></span>
-                ))}</td>
-                <td><span className="chip sector">{p.discipline}</span></td>
-                <td>{p.trial ? <span className="tag muted-tag">{t('trialPair')}</span>
-                  : pratama(p) ? <><span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span> <button className="mini" onClick={() => { p.playerIds.forEach((id) => promoteJunior(state, id)); commit(); }}>{t('promote')}</button></>
-                  : <span className="tag">{t('mainPair')}</span>}</td>
+                ))}<span className="m-only"> <span className="chip sector">{p.discipline}</span>{status(p, true)}</span></td>
+                <td className="m-hide"><span className="chip sector">{p.discipline}</span></td>
+                <td className="m-hide">{status(p, false)}</td>
                 <td className="num">{Math.round(avg(p, (x) => ageAt(x.birth, state.date)))}</td>
                 <td className="num">{Math.round(avg(p, (x) => currentAbility(x.attrs)))}</td>
                 <td className="num">{Math.round(p.chemistry)}</td>
@@ -95,6 +97,7 @@ export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => voi
                 <td className="num">{rankList(p).map((x, i) => <span key={x.d}>{i > 0 && <span className="muted-text"> · </span>}{x.r} <small className="muted-text">{x.d}</small></span>)}{rankList(p).length === 0 && '—'}</td>
                 <td onClick={(e) => e.stopPropagation()}>{p.trial ? '—' : <TierPrefs id={p.id} />}</td>
                 <td>
+                  {pratama(p) && <button className="mini" onClick={() => { p.playerIds.forEach((id) => promoteJunior(state, id)); commit(); }}>{t('promote')}</button>}
                   {p.trial && <button className="mini" onClick={() => { if (confirm(t('confirmPromote'))) { promoteTrial(state, p.id); commit(); } }}>{t('promoteTrial')}</button>}
                   {' '}<button className="mini" onClick={() => { if (p.trial || confirm(t('confirmDissolve'))) { dissolvePair(state, p.id); commit(); } }}>{t('dissolve')}</button>
                 </td>

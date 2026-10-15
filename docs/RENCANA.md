@@ -27,6 +27,11 @@ Daftar fitur yang belum dibuat. Fase 1–10 sudah selesai (lihat `git log`); asu
 - [x] Junior tahap 2 — turnamen junior individu (Kejuaraan Junior Kontinental ±minggu 28, Kejuaraan Dunia Junior ±minggu 41), ranking junior dunia, pasangan junior otomatis.
 - [x] Junior tahap 3 — Suhandinata Cup (beregu campuran U19, ±minggu 40).
 
+## Fitur berikutnya (disetujui & dirancang 2026-10-15)
+Prinsip: game tetap ringan — tanpa latihan, anggaran, atau pelatih.
+- [ ] **Pencarian bakat junior**: manajer ikut memilih junior baru yang masuk pelatnas pratama. Spesifikasi: `docs/superpowers/specs/2026-10-15-pencarian-bakat-junior-design.md`.
+- [ ] **Ringkasan rencana musim**: satu layar yang memperlihatkan siapa main di turnamen mana untuk beberapa minggu ke depan. Spesifikasi: `docs/superpowers/specs/2026-10-15-ringkasan-rencana-musim-design.md`.
+
 ## Tahap akhir — Percantik UI & perbaikan UX (setelah semua fitur selesai)
 - [x] Desain visual baru: gaya "Arena" (rapat ala game manajer) + palet hijau "Lapangan", tema terang/gelap dengan pilihan Otomatis/Terang/Gelap, huruf Barlow, bendera 47 negara, bagan bertema, papan skor Live Match ala TV. Spesifikasi: `docs/superpowers/specs/2026-10-13-percantik-ui-design.md`.
 - [ ] Perbaikan UX: daftar keluhan/temuan user dikumpulkan di sini sebelum tahap ini dimulai.
@@ -38,6 +43,10 @@ Daftar fitur yang belum dibuat. Fase 1–10 sudah selesai (lihat `git log`); asu
   - [x] Maju 4 minggu / sampai akhir musim serba otomatis (tanpa pop-up entry, Live Match, beregu & live drawing).
   - [x] Mobile: header ringkas, kolom nama menempel saat tabel digeser, line-up turun baris, tabel pop-up penuh, live drawing menggulir otomatis & kontrol menempel, papan skor Live Match muat selebar HP.
   - [x] Perbaikan: jadwal beregu kontinental tidak lagi ikut menampilkan Suhandinata; partai beregu tidak muncul sebagai hasil individu.
+  - [x] Spesialis ganda tidak lagi muncul di nomor tunggal di mana pun (skuad/line-up beregu, entry, ranking awal) — disaring sekali di `entrantsFor`.
+  - [x] Prioritas tier entry otomatis per atlet tunggal & pasangan (Skuad → Single/Pairs; tombol ringkas yang membuka panel tier). Spesifikasi: `docs/superpowers/specs/2026-10-15-prioritas-tier-entry-otomatis-design.md`.
+  - [x] Favicon (kok putih di kotak hijau).
+  - [x] Tabel Pairs di HP: sektor & status pindah ke sel nama, tombol Promote ke kolom aksi.
   - (tambahkan temuan di sini)
 - Catatan urutan: tampilan responsif dari Fase 11 sebaiknya dikerjakan bersama tahap ini; deploy GitHub Pages sudah otomatis.
 
