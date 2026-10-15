@@ -81,14 +81,20 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
  * Rencana musim: peserta negara manajer × minggu turnamen tersisa. Sel = keputusan manual (tegas), turnamen wajib (⭐)
  * atau "Otomatis" (samar); diubah lewat pilihan yang sama dengan entry mingguan (`manualEntries`).
  */
+const PLAN_WEEKS = 8;
+
 function SeasonPlan() {
   const { game, version, changed } = useGame();
   const { state, ruleset } = game;
   const { year, week } = state.date;
   const { players } = lookup(state);
   const ranks = useMemo(() => new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.results, d, absWeek(state.date), ruleset))])), [version, state, ruleset]);
-  const weeks = [...new Set(ruleset.calendar.map((e) => e.week))].filter((w) => w >= week && plannableEvents(ruleset, year, w).length).sort((a, b) => a - b);
-  const plan = useMemo(() => new Map(weeks.map((w) => [w, planWeek(state, ruleset, w)])), [version]);
+  const allWeeks = [...new Set(ruleset.calendar.map((e) => e.week))].filter((w) => w >= week && plannableEvents(ruleset, year, w).length).sort((a, b) => a - b);
+  // Per halaman 8 minggu: tabel penuh (±48 baris × 40+ minggu) membuat scroll patah-patah di HP.
+  const [page, setPage] = useState(0);
+  const pages = Math.max(1, Math.ceil(allWeeks.length / PLAN_WEEKS)), pg = Math.min(page, pages - 1);
+  const weeks = allWeeks.slice(pg * PLAN_WEEKS, (pg + 1) * PLAN_WEEKS);
+  const plan = useMemo(() => new Map(weeks.map((w) => [w, planWeek(state, ruleset, w)])), [version, pg, week]);
   const released = releasedIds(state);
   const rows = DISCIPLINES.flatMap((d) => entrantsFor(state, d).filter((e) => isManaged(state, released, e))
     .map((e) => ({ ...e, d, rank: ranks.get(d)!.get(e.id) }))
@@ -108,6 +114,11 @@ function SeasonPlan() {
   return (
     <>
       <p className="hint">{t('seasonPlanHint')}</p>
+      {pages > 1 && <div className="controls" style={{ alignItems: 'center' }}>
+        <button className="mini" style={{ fontSize: '1.2rem' }} disabled={pg === 0} onClick={() => setPage(pg - 1)}>‹</button>
+        <span>{t('weekShort')}{weeks[0]}–{t('weekShort')}{weeks[weeks.length - 1]} ({pg + 1}/{pages})</span>
+        <button className="mini" style={{ fontSize: '1.2rem' }} disabled={pg === pages - 1} onClick={() => setPage(pg + 1)}>›</button>
+      </div>}
       <div className="scroll">
         <table className="plan">
           <thead><tr><th>{t('name')}</th>{weeks.map((w) => (
