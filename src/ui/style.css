@@ -80,7 +80,6 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .splash { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
   padding: 24px; text-align: center; background: var(--accent); color: var(--on-accent); transition: opacity .4s; cursor: pointer; }
 .splash.out { opacity: 0; }
-.splash img { border-radius: 22px; box-shadow: 0 6px 24px #0004; }
 .splash h1 { margin: 8px 0 0; font-size: 1.8rem; font-weight: 800; line-height: 1.15; max-width: 12em; }
 .splash p { margin: 0; opacity: .85; }
 @media (prefers-reduced-motion: reduce) { .splash { transition: none; } }
