@@ -46,7 +46,7 @@ export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => voi
   const avg = (p: Pair, f: (x: NonNullable<ReturnType<typeof players.get>>) => number) => p.playerIds.reduce((t, id) => t + f(players.get(id)!), 0) / p.playerIds.length;
   const rankList = (p: Pair) => [
     { d: p.discipline as string, r: ranks.senior[p.discipline].get(p.id) },
-    { d: `${p.discipline} ${t('juniorShort')}`, r: ranks.junior[p.discipline].get(p.id) },
+    { d: `${p.discipline} Jr`, r: ranks.junior[p.discipline].get(p.id) },
   ].filter((x) => x.r !== undefined).sort((a, b) => a.r! - b.r!);
   const COLS: { key: string; label: TextKey; num?: boolean; value: (p: Pair) => string | number; desc?: boolean }[] = [
     { key: 'pair', label: 'pair', value: (p) => p.playerIds.map((id) => players.get(id)!.name).join(' / ') },

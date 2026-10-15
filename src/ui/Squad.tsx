@@ -64,8 +64,8 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   const allRanks = (p: Player) => {
     const s = p.gender === 'M' ? 'MS' : 'WS';
     const senior = [{ d: s, r: ranks.senior[s].get(p.id) }, ...doublesOf(p).map((d) => ({ d, r: ranks.senior[d].get(mainPair(p.id, d)?.id ?? '') }))];
-    const junior = [{ d: `${s} ${t('juniorShort')}`, r: ranks.junior[s].get(p.id) },
-      ...doublesOf(p).map((d) => ({ d: `${d} ${t('juniorShort')}`, r: ranks.junior[d].get((mainPair(p.id, d) ?? juniorPair(p.id, d))?.id ?? '') }))];
+    const junior = [{ d: `${s} Jr`, r: ranks.junior[s].get(p.id) },
+      ...doublesOf(p).map((d) => ({ d: `${d} Jr`, r: ranks.junior[d].get((mainPair(p.id, d) ?? juniorPair(p.id, d))?.id ?? '') }))];
     return [...senior, ...junior].filter((x) => x.r !== undefined).sort((a, b) => a.r! - b.r!);
   };
   const starsOf = (p: Player) => potentialStars(p, state.date, counts.get(p.id) ?? 0);
@@ -78,7 +78,8 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
     { key: 'ability', label: 'ability', num: true, value: (p) => currentAbility(p.attrs), desc: true },
     { key: 'potential', label: 'potential', value: starsOf, desc: true },
     { key: 'fatigue', label: 'fatigue', value: (p) => p.fatigue, desc: true },
-    { key: 'injury', label: 'injury', value: (p) => p.injury?.weeksLeft ?? 0, desc: true },
+    // Status: siap / lelah (di atas batas istirahat AI) / cedera (detail saat kursor diarahkan).
+    { key: 'status', label: 'status', value: (p) => (p.injury ? 2 + p.injury.weeksLeft / 100 : p.fatigue > ruleset.ai.restAbove ? 1 : 0), desc: true },
     { key: 'rank', label: 'bwfRank', num: true, value: (p) => allRanks(p)[0]?.r ?? Infinity }, // urut menurut peringkat terbaik
   ];
   // Junior: kolom status pelatnas (pratama/utama) + tombol promosi.
@@ -137,7 +138,10 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               <td className="num">{currentAbility(p.attrs)}<span className={p.caDelta! > 0 ? 'up' : 'down'}>{arrow(p.caDelta)}</span></td>
               <td className="stars">{starText(starsOf(p))}</td>
               <td><FatigueBar value={p.fatigue} /></td>
-              <td>{p.injury ? `${p.injury.weeksLeft} ${t('weeks')}${p.injury.severe ? ' ⚠' : ''}` : ''}</td>
+              <td>{p.injury
+                ? <span className="badge danger" title={`${t(p.injury.severe ? 'injurySevereLong' : 'injuryMinorLong')} · ${t('weeksShort', { n: p.injury.weeksLeft })}`}>✚ {t('injury')}</span>
+                : p.fatigue > ruleset.ai.restAbove ? <span className="badge gold" title={`${t('fatigue')} ${Math.round(p.fatigue)}`}>◐ {t('statusTired')}</span>
+                : <span className="badge good">● {t('statusFit')}</span>}</td>
               <td className="num">{allRanks(p).map((x, i) => <span key={x.d}>{i > 0 && <span className="muted-text"> · </span>}{x.r} <small className="muted-text">{x.d}</small></span>)}{allRanks(p).length === 0 && '—'}</td>
               <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>{released
                 ? <button className="mini" onClick={() => { recallPlayer(state, p.id); commit(); }}>{t('recall')}</button>
