@@ -17,13 +17,8 @@ Gaya sub-tab sama dengan Semua · Single · Pairs di Skuad.
   1. Cedera pada minggu itu (minggu ini + `injury.weeksLeft`): 🩹.
   2. Keputusan manual (`state.manualEntries`): tegas — tier + nama singkat, atau "Istirahat".
   3. Turnamen wajib (Top Committed, `state.commitments`): ⭐ + tier.
-  4. Selain itu perkiraan AI (samar, awalan "~"): prioritas tier (`state.tierPrefs`) → turnamen tier tertinggi yang
-     dicentang; tanpa prioritas → turnamen pertama dalam `ai.rankRange` sesuai ranking sekarang; tidak ada → "—".
-     Pasangan percobaan: "—".
-  Satu atlet satu turnamen per minggu: perkiraan nomor berikutnya (MS→XD) mengikuti turnamen yang sudah diperkirakan
-  untuk atlet yang sama bila turnamen itu membuka nomornya.
-- Keterangan di bawah tabel: "~ = perkiraan AI; kelelahan & peluang ikut tidak dihitung, bisa meleset untuk atlet
-  berstatus Otomatis".
+  4. Selain itu **"Otomatis"** (samar): AI memilih saat minggu itu tiba. (Revisi 2026-10-15: perkiraan AI "~" tidak
+     ditampilkan atas permintaan user.)
 
 ## Mengubah
 
@@ -38,14 +33,14 @@ bergaris merah dengan keterangan "bentrok". Tidak diblokir (sama seperti entry m
 
 ## Kode
 
-- `predictEntry` (engine, fungsi murni) di `src/engine/season.ts` atau berkas baru `src/engine/plan.ts`:
-  masukan state, ruleset, minggu → peta entrantId → { eventId | 'rest' | null, kind: 'manual'|'required'|'guess' }.
+- `planWeek` (engine, fungsi murni) di `src/engine/plan.ts`:
+  masukan state, ruleset, minggu → peta entrantId → { eventId | 'rest' | null, kind: 'manual'|'required'|'auto', conflict? }.
 - UI: komponen `SeasonPlan` di `src/ui/Entries.tsx`.
 
 ## Test
 
-Engine: urutan prioritas manual → wajib → prioritas tier → rentang ranking; pengikatan satu turnamen per minggu.
+Engine: urutan manual → wajib → otomatis; pengikatan satu turnamen per minggu; bentrok manual.
 
 ## i18n
 
-Teks baru id + en: nama sub-tab, keterangan "~", "bentrok".
+Teks baru id + en: nama sub-tab, keterangan sel, "bentrok".

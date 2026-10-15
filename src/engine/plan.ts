@@ -1,13 +1,12 @@
-import { isPratama } from './generator';
-import { aiEventChoice, entrantsFor, isHeld, weekKey, type SeasonState } from './season';
-import { DISCIPLINES, type Discipline, type Ruleset } from './types';
+import { entrantsFor, isHeld, weekKey, type SeasonState } from './season';
+import { DISCIPLINES, type Ruleset } from './types';
 
-// Ringkasan rencana musim: perkiraan entry negara manajer untuk satu minggu ke depan.
+// Ringkasan rencana musim: entry negara manajer yang sudah pasti untuk satu minggu ke depan.
 
 export interface PlanCell {
-  /** id turnamen, 'rest' (istirahat manual), atau null (tidak didaftarkan). */
+  /** id turnamen, 'rest' (istirahat manual), atau null (diserahkan ke AI). */
   eventId: string | null;
-  kind: 'manual' | 'required' | 'guess';
+  kind: 'manual' | 'required' | 'auto';
   /** Keputusan manual atlet yang sama menunjuk turnamen berbeda di minggu ini. */
   conflict?: boolean;
 }
@@ -20,16 +19,14 @@ export function plannableEvents(rs: Ruleset, year: number, week: number) {
 }
 
 /**
- * Perkiraan per peserta negara manajer: manual → turnamen wajib → pilihan AI (prioritas tier / rentang ranking).
- * Urutan & pengikatan "satu atlet satu turnamen per minggu" sama dengan `chooseEntries`; peluang ikut & kelelahan
- * tidak dihitung (tidak bisa ditebak jauh hari).
+ * Rencana per peserta negara manajer: keputusan manual → turnamen wajib → otomatis (AI memilih saat minggu itu tiba).
+ * Urutan & pengikatan "satu atlet satu turnamen per minggu" sama dengan `chooseEntries`.
  */
-export function predictWeek(state: SeasonState, rs: Ruleset, week: number, ranks: Map<Discipline, Map<string, number>>) {
+export function planWeek(state: SeasonState, rs: Ruleset, week: number) {
   const year = state.date.year;
   const events = plannableEvents(rs, year, week);
   const tier = (id: string) => rs.tiers.find((t) => t.id === id)!;
   const manual = state.manualEntries[weekKey({ year, week })] ?? {};
-  const players = new Map(state.players.map((p) => [p.id, p]));
   const all = DISCIPLINES.flatMap((d) => entrantsFor(state, d).filter((e) => e.countryId === state.managedCountryId).map((e) => ({ e, d })));
   const isManual = (x: (typeof all)[number]) => manual[x.e.id] !== undefined;
   const playerEvent = new Map<string, string>();
@@ -42,9 +39,7 @@ export function predictWeek(state: SeasonState, rs: Ruleset, week: number, ranks
     if (decision) cell = { eventId: decision, kind: 'manual' };
     else {
       const required = options.find((ev) => state.commitments[e.id]?.includes(ev.id));
-      const auto = !e.trial && !e.playerIds.some((id) => isPratama(players.get(id)!, state.date)); // AI tidak mendaftarkan
-      cell = required ? { eventId: required.id, kind: 'required' }
-        : { eventId: auto ? aiEventChoice(options, rs, ranks.get(d)!.get(e.id), state.tierPrefs?.[e.id])?.id ?? null : null, kind: 'guess' };
+      cell = required ? { eventId: required.id, kind: 'required' } : { eventId: null, kind: 'auto' };
     }
     if (cell.eventId && cell.eventId !== 'rest' && !fixed) e.playerIds.forEach((id) => playerEvent.set(id, cell.eventId!));
     out.set(e.id, cell);

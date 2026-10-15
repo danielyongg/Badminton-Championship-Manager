@@ -8,7 +8,7 @@ import { entrantLabel, eventName, lookup, saveGame, useGame } from './game';
 import { FatigueBar } from './Squad';
 import { isPratama } from '../engine/generator';
 import { formatName, SquadPicker } from './Team';
-import { plannableEvents, predictWeek, type PlanCell } from '../engine/plan';
+import { plannableEvents, planWeek, type PlanCell } from '../engine/plan';
 
 /** Kalender & entry: daftar jadwal turnamen musim ini + status entry; klik turnamen → isi entry-nya. */
 export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: number) => void }) {
@@ -79,7 +79,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
 
 /**
  * Rencana musim: peserta negara manajer × minggu turnamen tersisa. Sel = keputusan manual (tegas), turnamen wajib (⭐)
- * atau perkiraan AI ("~", samar); diubah lewat pilihan yang sama dengan entry mingguan (`manualEntries`).
+ * atau "Otomatis" (samar); diubah lewat pilihan yang sama dengan entry mingguan (`manualEntries`).
  */
 function SeasonPlan() {
   const { game, version, changed } = useGame();
@@ -88,7 +88,7 @@ function SeasonPlan() {
   const { players } = lookup(state);
   const ranks = useMemo(() => new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.results, d, absWeek(state.date), ruleset))])), [version, state, ruleset]);
   const weeks = [...new Set(ruleset.calendar.map((e) => e.week))].filter((w) => w >= week && plannableEvents(ruleset, year, w).length).sort((a, b) => a - b);
-  const plan = useMemo(() => new Map(weeks.map((w) => [w, predictWeek(state, ruleset, w, ranks)])), [version, ranks]);
+  const plan = useMemo(() => new Map(weeks.map((w) => [w, planWeek(state, ruleset, w)])), [version]);
   const rows = DISCIPLINES.flatMap((d) => entrantsFor(state, d).filter((e) => e.countryId === state.managedCountryId)
     .map((e) => ({ ...e, d, rank: ranks.get(d)!.get(e.id) }))
     .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9)));
@@ -120,10 +120,10 @@ function SeasonPlan() {
               {weeks.map((w) => {
                 const injured = e.playerIds.some((id) => (players.get(id)?.injury?.weeksLeft ?? 0) > w - week);
                 if (injured) return <td key={w} title={t('injury')}>🩹</td>;
-                const c = plan.get(w)!.get(e.id) ?? { eventId: null, kind: 'guess' as const };
+                const c = plan.get(w)!.get(e.id) ?? { eventId: null, kind: 'auto' as const };
                 const offered = plannableEvents(ruleset, year, w).filter((ev) => ruleset.tiers.find((x) => x.id === ev.tierId)!.drawSize[e.d] > 0);
-                const shown = c.kind === 'manual' ? label(c) : c.kind === 'required' ? `⭐ ${label(c)}` : c.eventId ? `~${label(c)}` : '—';
-                // Sel menampilkan rencana/perkiraan; pilihan (select transparan di atasnya) bertuliskan "Otomatis".
+                const shown = c.kind === 'manual' ? label(c) : c.kind === 'required' ? `⭐ ${label(c)}` : t('tierPrefsFree');
+                // Sel menampilkan pilihan manual / turnamen wajib / "Otomatis"; select transparan di atasnya untuk mengubah.
                 return (
                   <td key={w}>
                     <label className={`plan-cell ${c.kind}${c.conflict ? ' conflict' : ''}`} title={c.conflict ? t('planConflict') : undefined}>

@@ -180,5 +180,5 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 
 ## Prioritas tier, rencana musim & pencarian bakat junior (2026-10-15)
 - Prioritas tier (negara manajer): tier tertinggi yang dicentang selalu didaftarkan bila ada minggu itu, tanpa rentang ranking & peluang ikut; tetap tidak didaftarkan bila cedera atau kelelahan > `ai.restAbove`.
-- Rencana musim: perkiraan "~" memakai ranking saat ini dan mengabaikan kelelahan & peluang ikut; bisa meleset untuk atlet tanpa prioritas tier.
+- Rencana musim: hanya menampilkan yang sudah pasti (pilihan manual, turnamen wajib); sisanya "Otomatis" tanpa perkiraan.
 - Pencarian bakat: kursi = jumlah junior yang biasanya didapat negara manajer (tradisi), kandidat 2× kursi per gender (minimal 2). Rentang potensi lebar 2 bintang dan selalu memuat perkiraan potensi yang tampil di Skuad. Batas memilih minggu 4; pada awal minggu 5 (atau akhir musim berikutnya) kursi diisi otomatis menurut nilai tengah rentang, lalu kemampuan.
