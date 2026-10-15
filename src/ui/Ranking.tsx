@@ -8,6 +8,7 @@ import { ATTRS, DISCIPLINES, type Discipline, type Player, type Ruleset, type Wo
 import { dataName, numLocale, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName as eventNameOf } from './game';
 import { Flag } from './Flag';
+import { formatName, winnerOf } from './Team';
 
 /** Lab: dunia simulasi sendiri dengan tombol maju minggu, menampilkan SeasonViews. */
 export function Ranking({ ruleset, world, seed }: { ruleset: Ruleset; world: World; seed: number }) {
@@ -220,12 +221,25 @@ const shownYear = (s: SeasonState) => (s.date.week === 1 ? s.date.year - 1 : s.d
 
 export function Calendar({ state, ruleset, world, short, onOpenEvent, year = shownYear(state) }: { state: SeasonState; ruleset: Ruleset; world: World; short: (id: string) => string; onOpenEvent?: (id: string, year: number) => void; year?: number }) {
   const events = ruleset.calendar.filter((e) => isHeld(e, year)).sort((a, b) => a.week - b.week);
+  const teams = ruleset.team.events.filter((e) => isHeld(e, year));
   const city = new Map(world.cities.map((c) => [c.id, c]));
+  // Kejuaraan beregu: juara per format (Thomas/Uber/Sudirman/…) di kolom nomor.
+  const teamRow = (e: (typeof teams)[number]) => (
+    <tr key={e.id} className={year === state.date.year && e.week === state.date.week ? 'sel' : ''}>
+      <td className="num">{e.week}</td><td>{onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, year); }}>{eventNameOf(ruleset, e.id, year)}</a> : eventNameOf(ruleset, e.id, year)}</td><td>{t('teamShort')}</td>
+      <td className="hide-sm">{dataName(city.get(hostCityId(e, year))?.name)} ({city.get(hostCityId(e, year))?.countryId})</td>
+      <td className="num hide-sm">—</td>
+      <td colSpan={DISCIPLINES.length}>{state.teamResults.filter((x) => x.eventId === e.id && x.year === year).map((x) => {
+        const w = winnerOf(x);
+        return w && <span key={x.format} style={{ marginRight: 12, whiteSpace: 'nowrap' }}><small className="muted-text">{formatName(x.format)}</small> <Flag id={w} />{w}</span>;
+      })}</td>
+    </tr>
+  );
   return (
     <div className="scroll">
       <table>
         <thead><tr><th className="num">{t('week')}</th><th>{t('tournament')}</th><th>{t('tier')}</th><th className="hide-sm">{t('city')}</th><th className="num hide-sm">{t('prize')}</th>{DISCIPLINES.map((d) => <th key={d}>{d}</th>)}</tr></thead>
-        <tbody>{events.map((e) => (
+        <tbody>{[...events, ...teams].sort((a, b) => a.week - b.week).map((e) => !('tierId' in e) ? teamRow(e) : (
           <tr key={e.id} className={year === state.date.year && e.week === state.date.week ? 'sel' : ''}>
             <td className="num">{e.week}</td><td>{onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, year); }}>{dataName(e.name)}</a> : dataName(e.name)}</td><td>{e.tierId}</td>
             <td className="hide-sm">{dataName(city.get(hostCityId(e, year))?.name)} ({city.get(hostCityId(e, year))?.countryId})</td>
