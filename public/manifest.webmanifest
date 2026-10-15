@@ -1,0 +1,15 @@
+{
+  "name": "Badminton Championship Manager",
+  "short_name": "Badminton CM",
+  "description": "Game manajer badminton dengan aturan BWF",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f6f3",
+  "theme_color": "#0b6b45",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

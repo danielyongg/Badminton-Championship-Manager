@@ -101,7 +101,7 @@ function MainMenu({ onStart, onLab, onEditor, onLang }: { onStart: (g: Game) => 
                 <td className="hide-sm">{s.rulesetName}</td>
                 <td>{s.date.year} · {t('week')} {s.date.week}</td>
                 <td><button onClick={() => load(s)}>{t('load')}</button></td>
-                <td><button onClick={() => confirm(t('confirmDelete')) && deleteSave(s.id)}>{t('delete')}</button></td>
+                <td><button className="btn-danger" onClick={() => confirm(t('confirmDelete')) && deleteSave(s.id)}>{t('delete')}</button></td>
               </tr>
             ))}</tbody>
           </table>

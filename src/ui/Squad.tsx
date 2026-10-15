@@ -78,14 +78,15 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   };
   const starsOf = (p: Player) => potentialStars(p, state.date, counts.get(p.id) ?? 0);
   // Kolom yang bisa diurutkan: nilai sort + arah awal (angka besar dulu untuk kemampuan dsb., kecil dulu untuk usia/ranking).
-  const COLS: { key: string; label: TextKey; num?: boolean; value: (p: Player) => string | number; desc?: boolean }[] = [
+  // mHide: disembunyikan di HP (gender tersirat dari chip sektor, kelelahan dari kolom Status).
+  const COLS: { key: string; label: TextKey; num?: boolean; value: (p: Player) => string | number; desc?: boolean; mHide?: boolean }[] = [
     { key: 'name', label: 'name', value: (p) => p.name },
-    { key: 'gender', label: 'gender', value: (p) => p.gender },
+    { key: 'gender', label: 'gender', value: (p) => p.gender, mHide: true },
     { key: 'sector', label: 'sector', value: (p) => pairsOf(p.id) },
     { key: 'age', label: 'age', num: true, value: (p) => ageAt(p.birth, state.date) },
     { key: 'ability', label: 'ability', num: true, value: (p) => currentAbility(p.attrs), desc: true },
     { key: 'potential', label: 'potential', value: starsOf, desc: true },
-    { key: 'fatigue', label: 'fatigue', value: (p) => p.fatigue, desc: true },
+    { key: 'fatigue', label: 'fatigue', value: (p) => p.fatigue, desc: true, mHide: true },
     // Status: siap / lelah (di atas batas istirahat AI) / cedera (detail saat kursor diarahkan).
     { key: 'status', label: 'status', value: (p) => (p.injury ? 2 + p.injury.weeksLeft / 100 : p.fatigue > ruleset.ai.restAbove ? 1 : 0), desc: true },
     { key: 'rank', label: 'bwfRank', num: true, value: (p) => allRanks(p)[0]?.r ?? Infinity }, // urut menurut peringkat terbaik
@@ -126,14 +127,14 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
       <div className="scroll">
         <table>
           <thead><tr>{COLS.map((c) => (
-            <th key={c.key} className={`sortable${c.num ? ' num' : ''}`} aria-sort={sort.key === c.key ? (sort.desc ? 'descending' : 'ascending') : undefined}
+            <th key={c.key} className={`sortable${c.num ? ' num' : ''}${c.mHide ? ' m-hide' : ''}`} aria-sort={sort.key === c.key ? (sort.desc ? 'descending' : 'ascending') : undefined}
               onClick={() => setSort(sort.key === c.key ? { key: c.key, desc: !sort.desc } : { key: c.key, desc: !!c.desc })}>
               {t(c.label)}{sort.key === c.key ? (sort.desc ? ' ▼' : ' ▲') : ''}
             </th>
           ))}{released ? <th></th> : <th title={t('tierPrefsHint')}>{t(view === 'singles' ? 'tierPrefs' : 'manageSectors')}</th>}</tr></thead>
           <tbody>{list.map((p) => (
             <tr key={p.id} onClick={() => onOpen(p.id)} style={{ cursor: 'pointer' }}>
-              <td>{p.name}</td><td>{p.gender}</td>
+              <td>{p.name}</td><td className="m-hide">{p.gender}</td>
               {juniorCols && <td>{isPratama(p, state.date)
                 ? <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>
                 : <span className="tag">{t('utama')}</span>}</td>}
@@ -145,7 +146,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               <td className="num">{ageAt(p.birth, state.date)}</td>
               <td className="num">{currentAbility(p.attrs)}<span className={p.caDelta! > 0 ? 'up' : 'down'}>{arrow(p.caDelta)}</span></td>
               <td className="stars">{starText(starsOf(p))}</td>
-              <td><FatigueBar value={p.fatigue} /></td>
+              <td className="m-hide"><FatigueBar value={p.fatigue} /></td>
               <td>{p.injury
                 ? <span className={`badge danger${isBadInjury(p.injury) ? ' strong' : ''}`} title={injuryText(p.injury, state.date)}>✚ {t('injury')}</span>
                 : p.fatigue > ruleset.ai.restAbove ? <span className="badge gold" title={`${t('fatigue')} ${Math.round(p.fatigue)}`}>◐ {t('statusTired')}</span>

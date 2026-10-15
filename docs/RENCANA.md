@@ -48,6 +48,8 @@ Prinsip: game tetap ringan — tanpa latihan, anggaran, atau pelatih.
   - [x] Favicon (kok putih di kotak hijau).
   - [x] Tabel Pairs di HP: sektor & status pindah ke sel nama, tombol Promote ke kolom aksi.
   - [x] Lepas dari pelatnas (tombol di profil atlet): atlet tetap bertanding diatur AI, keluar dari tim manajer; bisa dipanggil kembali dari Skuad → Non-pelatnas. Spesifikasi: `docs/superpowers/specs/2026-10-15-lepas-dari-pelatnas-design.md`.
+  - [x] Audit tampilan HP (2026-10-15): tombol Live/Lewati di layar babak tidak terpotong, kolom Gender & Kelelahan Skuad disembunyikan di HP, isian 16px di iOS (tanpa zoom otomatis), safe area untuk bilah bawah & pop-up, tombol hapus save merah.
+  - [x] Web app (Add to Home Screen): `public/manifest.webmanifest`, ikon PNG 180/192/512, meta iOS. Belum offline (tanpa service worker).
   - (tambahkan temuan di sini)
 - Catatan urutan: tampilan responsif dari Fase 11 sebaiknya dikerjakan bersama tahap ini; deploy GitHub Pages sudah otomatis.
 
