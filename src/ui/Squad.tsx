@@ -43,8 +43,10 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
   // Skuad → Senior/Junior (semua pemain) → filter sektor: Single (pemain tunggal) / Pairs (pasangan ganda).
-  const [juniors, setJuniors] = useState(false);
-  const [view, setView] = useState<'all' | 'singles' | 'pairs' | 'released'>('all');
+  // Kelompok: Senior / Junior (pelatnas) / Non-pelatnas (atlet yang dilepas, senior & junior; yang pensiun tidak).
+  const [group, setGroup] = useState<'senior' | 'junior' | 'released'>('senior');
+  const juniors = group === 'junior', released = group === 'released';
+  const [view, setView] = useState<'all' | 'singles' | 'pairs'>('all');
   const commit = () => { changed(); void saveGame(game); };
   const counts = useMatchCounts();
   const ranks = useMemo(() => {
@@ -80,7 +82,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
     { key: 'rank', label: 'bwfRank', num: true, value: (p) => allRanks(p)[0]?.r ?? Infinity }, // urut menurut peringkat terbaik
   ];
   // Junior: kolom status pelatnas (pratama/utama) + tombol promosi.
-  const juniorCols = juniors && view !== 'released';
+  const juniorCols = juniors;
   if (juniorCols) COLS.splice(2, 0, { key: 'level', label: 'squadLevel', value: (p) => (isPratama(p, state.date) ? 0 : 1) });
   const [sort, setSort] = useState({ key: 'ability', desc: true });
   const col = COLS.find((c) => c.key === sort.key)!;
@@ -91,25 +93,27 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   };
   const list = state.players
     // Non-pelatnas: atlet yang sudah dilepas (senior & junior); selain itu junior yang sudah promosi masuk Senior.
-    .filter((p) => p.countryId === country && p.retired === undefined && (view === 'released' ? p.released !== undefined : p.released === undefined && isPratama(p, state.date) === juniors))
-    .filter((p) => view !== 'singles' || p.focus !== 'D')
+    .filter((p) => p.countryId === country && p.retired === undefined && (released ? p.released !== undefined : p.released === undefined && isPratama(p, state.date) === juniors))
+    .filter((p) => released || view !== 'singles' || p.focus !== 'D')
     .sort((a, b) => cmp(a, b) || currentAbility(b.attrs) - currentAbility(a.attrs));
 
   return (
     <>
       <nav className="controls">
-        <button aria-pressed={!juniors} onClick={() => setJuniors(false)}>{t('seniors')}</button>
-        <button aria-pressed={juniors} onClick={() => setJuniors(true)}>{t('juniors')}</button>
+        <button aria-pressed={group === 'senior'} onClick={() => setGroup('senior')}>{t('seniors')}</button>
+        <button aria-pressed={juniors} onClick={() => setGroup('junior')}>{t('juniors')}</button>
+        <button aria-pressed={released} onClick={() => setGroup('released')}>{t('nonSquad')}</button>
       </nav>
       <nav className="controls subnav">
-        <button aria-pressed={view === 'all'} onClick={() => setView('all')}>{t('all')}</button>
-        <button aria-pressed={view === 'singles'} onClick={() => setView('singles')}>{t('sector_singles')}</button>
-        <button aria-pressed={view === 'pairs'} onClick={() => setView('pairs')}>{t('sector_pairs')}</button>
-        <button aria-pressed={view === 'released'} onClick={() => setView('released')}>{t('nonSquad')}</button>
-        {view !== 'pairs' && <span className="count">{list.length} {t('players')}</span>}
+        {!released && <>
+          <button aria-pressed={view === 'all'} onClick={() => setView('all')}>{t('all')}</button>
+          <button aria-pressed={view === 'singles'} onClick={() => setView('singles')}>{t('sector_singles')}</button>
+          <button aria-pressed={view === 'pairs'} onClick={() => setView('pairs')}>{t('sector_pairs')}</button>
+        </>}
+        {(released || view !== 'pairs') && <span className="count">{list.length} {t('players')}</span>}
       </nav>
       {juniorCols && view !== 'pairs' && <p className="hint">{t('pratamaHint')}</p>}
-      {view === 'pairs' ? <Pairs onOpen={onOpen} juniors={juniors} /> : (
+      {view === 'pairs' && !released ? <Pairs onOpen={onOpen} juniors={juniors} /> : (
       <div className="scroll">
         <table>
           <thead><tr>{COLS.map((c) => (
@@ -117,7 +121,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               onClick={() => setSort(sort.key === c.key ? { key: c.key, desc: !sort.desc } : { key: c.key, desc: !!c.desc })}>
               {t(c.label)}{sort.key === c.key ? (sort.desc ? ' ▼' : ' ▲') : ''}
             </th>
-          ))}{view !== 'released' && <th title={t('tierPrefsHint')}>{t(view === 'singles' ? 'tierPrefs' : 'manageSectors')}</th>}{view === 'released' && <th></th>}</tr></thead>
+          ))}{released ? <th></th> : <th title={t('tierPrefsHint')}>{t(view === 'singles' ? 'tierPrefs' : 'manageSectors')}</th>}</tr></thead>
           <tbody>{list.map((p) => (
             <tr key={p.id} onClick={() => onOpen(p.id)} style={{ cursor: 'pointer' }}>
               <td>{p.name}</td><td>{p.gender}</td>
@@ -135,7 +139,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               <td><FatigueBar value={p.fatigue} /></td>
               <td>{p.injury ? `${p.injury.weeksLeft} ${t('weeks')}${p.injury.severe ? ' ⚠' : ''}` : ''}</td>
               <td className="num">{allRanks(p).map((x, i) => <span key={x.d}>{i > 0 && <span className="muted-text"> · </span>}{x.r} <small className="muted-text">{x.d}</small></span>)}{allRanks(p).length === 0 && '—'}</td>
-              <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>{view === 'released'
+              <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>{released
                 ? <button className="mini" onClick={() => { recallPlayer(state, p.id); commit(); }}>{t('recall')}</button>
                 : view === 'singles' ? <TierPrefs id={p.id} /> : <SectorPicker p={p} onChange={commit} />}</td>
             </tr>

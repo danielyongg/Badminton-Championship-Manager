@@ -4,7 +4,7 @@ Disetujui user 2026-10-15.
 
 - Tombol **Lepas dari pelatnas** di profil atlet negara manajer (aktif, belum dilepas), dengan konfirmasi.
   Profil menampilkan "Keluar pelatnas {tahun}".
-- **Panggil kembali** (revisi 2026-10-15): sub-tab **Non-pelatnas** di Skuad (keempat, setelah Pairs) mendaftar atlet
+- **Panggil kembali** (revisi 2026-10-15): kelompok **Non-pelatnas** di Skuad (sejajar Senior & Junior) mendaftar atlet
   yang dilepas (senior & junior) dengan tombol Panggil kembali; tombol yang sama di profil. Pasangan bentukan AI
   selama di luar pelatnas dibubarkan (`recallPlayer`).
 - Data: `Player.released?: number` (tahun). Atlet tetap aktif & berkebangsaan sama.

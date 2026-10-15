@@ -108,7 +108,7 @@ const id = {
   noSaves: 'Belum ada save.',
   load: 'Muat',
   delete: 'Hapus',
-  confirmDelete: 'Hapus save ini? Bisa dipanggil kembali dari Skuad → Non-pelatnas.',
+  confirmDelete: 'Hapus save ini? Tidak bisa dibatalkan.',
   openLab: 'Buka Lab (uji mesin pertandingan, wizard turnamen)',
   reputation: 'Reputasi',
   advance1: 'Lanjut 1 minggu',

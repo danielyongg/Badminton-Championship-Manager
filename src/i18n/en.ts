@@ -108,7 +108,7 @@ export const en: Record<TextKey, string> = {
   noSaves: 'No saves yet.',
   load: 'Load',
   delete: 'Delete',
-  confirmDelete: 'Delete this save? They can be recalled from Squad → Non-squad.',
+  confirmDelete: 'Delete this save? This cannot be undone.',
   openLab: 'Open Lab (match engine test, tournament wizard)',
   reputation: 'Reputation',
   advance1: 'Advance 1 week',
