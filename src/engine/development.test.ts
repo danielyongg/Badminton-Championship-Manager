@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { developQuarter, newJuniors, retirementChance } from './development';
+import { developQuarter, INJURY_TYPES, newJuniors, retirementChance, rollInjury } from './development';
 import { ageAt, currentAbility, generatePlayer } from './generator';
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
@@ -125,4 +125,23 @@ it('cedera berat menurunkan PA dan CA langsung ikut dijepit (termasuk atribut di
   expect(p.pa).toBe(20);
   expect(mean(p)).toBeLessThanOrEqual(20 + 1e-9);
   for (const a of ATTRS) expect(p.attrs[a]).toBeGreaterThanOrEqual(1);
+});
+
+describe('cedera 4 tingkat', () => {
+  it('peluang 67/21/10/2 %, lama absen sesuai tingkat, jenis sesuai tingkat, pensiun hanya cedera parah', () => {
+    const cfg = BWF_2026.injury, rng = makeRng(3), n = 50000;
+    const count: Record<string, number> = {};
+    let retired = 0;
+    for (let i = 0; i < n; i++) {
+      const { injury, retire } = rollInjury(cfg, rng);
+      const lv = cfg.levels.find((l) => l.id === injury.level)!;
+      expect(injury.weeksLeft).toBeGreaterThanOrEqual(lv.weeks.min);
+      expect(injury.weeksLeft).toBeLessThanOrEqual(lv.weeks.max);
+      expect(INJURY_TYPES[injury.level]).toContain(injury.type);
+      count[injury.level] = (count[injury.level] ?? 0) + 1;
+      if (retire) { expect(injury.level).toBe('critical'); retired++; }
+    }
+    for (const l of cfg.levels) expect(Math.abs(count[l.id] / n - l.chance)).toBeLessThan(0.01);
+    expect(Math.abs(retired / count.critical - 0.3)).toBeLessThan(0.06);
+  });
 });

@@ -20,7 +20,7 @@ import { LiveDraw } from './LiveDraw';
 import { LiveMatch } from './LiveMatch';
 import { advance, entrantLabel, eventName, JUNIOR_MAX_AGE, lookup, saveGame, useGame } from './game';
 import { SeasonViews } from './Ranking';
-import { Profile, Squad, usd } from './Squad';
+import { injuryText, isBadInjury, Profile, Squad, usd } from './Squad';
 import { autoPick, recruit, SCOUTING_DEADLINE_WEEK } from '../engine/scouting';
 import { currentAbility } from '../engine/generator';
 import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
@@ -436,7 +436,6 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
         <section className="card">
           <h3>{t('injuries')}</h3>
           {injured.map((p) => {
-            const back = state.date.week + p.injury!.weeksLeft;
             // Sektor utama: tunggal, atau nomor ganda pasangan utamanya (spesialis ganda).
             const sector = p.focus !== 'D' ? (p.gender === 'M' ? 'MS' : 'WS')
               : state.pairs.find((x) => !x.dissolved && !x.trial && !x.adHoc && x.playerIds.includes(p.id))?.discipline ?? (p.gender === 'M' ? 'MD' : 'WD');
@@ -445,9 +444,9 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
                 <span className="chip">{sector}</span>
                 <span className="grow">
                   <a href="#" onClick={(e) => { e.preventDefault(); onOpen(p.id); }}>{p.name}</a>
-                  <small className="muted-text">{p.injury!.severe ? t('injurySevereLong') : t('injuryMinorLong')} · {t('returnsWeek', { w: back > 52 ? back - 52 : back })}</small>
+                  <small className="muted-text">{injuryText(p.injury!, state.date)}</small>
                 </span>
-                <span className={`badge danger${p.injury!.severe ? ' strong' : ''}`}>🩹 {t('weeksShort', { n: p.injury!.weeksLeft })}</span>
+                <span className={`badge danger${isBadInjury(p.injury) ? ' strong' : ''}`}>🩹 {t('weeksShort', { n: p.injury!.weeksLeft })}</span>
               </div>
             );
           })}

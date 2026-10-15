@@ -1,6 +1,6 @@
 import { ageAt, currentAbility, generatePlayer } from './generator';
 import { normal, type Rng } from './rng';
-import { ATTRS, type AgeBand, type Country, type DevelopmentConfig, type GameDate, type GeneratorConfig, type Player } from './types';
+import { ATTRS, type AgeBand, type Country, type DevelopmentConfig, type GameDate, type GeneratorConfig, type Player, type InjuryConfig, type InjuryLevel } from './types';
 
 // Perkembangan (menuju PA), penuaan (penurunan per atribut), pensiun & regenerasi junior.
 // Atribut disimpan sebagai pecahan agar perubahan per kuartal yang kecil tetap terakumulasi; UI membulatkan.
@@ -97,8 +97,26 @@ export function newJuniors(country: Country, cfg: DevelopmentConfig, gen: Genera
   return out;
 }
 
-/** Cedera berat menurunkan PA sedikit (dipakai sistem cedera di Fase 7). */
-export function applySevereInjury(p: Player, cfg: DevelopmentConfig, rng: Rng) {
-  p.pa = Math.max(1, Math.round(p.pa - between(rng, cfg.severeInjuryPaLoss)));
+/** Cedera berat/parah menurunkan PA (`times` × `severeInjuryPaLoss`). */
+export function applySevereInjury(p: Player, cfg: DevelopmentConfig, rng: Rng, times = 1) {
+  p.pa = Math.max(1, Math.round(p.pa - times * between(rng, cfg.severeInjuryPaLoss)));
   capToPa(p);
 }
+
+/** Undi cedera: tingkat menurut peluang kumulatif, lama absen, jenis, dan apakah langsung pensiun. */
+export function rollInjury(cfg: InjuryConfig, rng: Rng) {
+  const roll = rng();
+  let acc = 0;
+  const lv = cfg.levels.find((l) => (acc += l.chance) > roll) ?? cfg.levels[cfg.levels.length - 1];
+  const kinds = INJURY_TYPES[lv.id];
+  const injury = { weeksLeft: lv.weeks.min + Math.floor(rng() * (lv.weeks.max - lv.weeks.min + 1)), level: lv.id, type: kinds[Math.floor(rng() * kinds.length)] };
+  return { injury, paLoss: lv.paLoss, retire: lv.retireChance > 0 && rng() < lv.retireChance };
+}
+
+/** Jenis cedera per tingkat (nama di teks `inj_{jenis}`). */
+export const INJURY_TYPES: Record<InjuryLevel, string[]> = {
+  minor: ['cramp', 'bruise', 'blister', 'neck'],
+  moderate: ['ankle', 'hamstring', 'elbow', 'back'],
+  severe: ['calf', 'shoulder', 'stress', 'meniscus'],
+  critical: ['acl', 'achilles', 'spine', 'knee'],
+};

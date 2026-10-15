@@ -13,6 +13,14 @@ import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
 
 
+/** Cedera: "Cedera berat: Robek otot betis · 14 mg · kembali minggu 33" (tahun ditulis bila melewati musim ini). */
+export function injuryText(inj: NonNullable<Player['injury']>, date: { year: number; week: number }) {
+  const at = date.week + inj.weeksLeft - 1;
+  const y = date.year + Math.floor(at / 52), w = (at % 52) + 1;
+  return `${t(`injLevel_${inj.level}` as TextKey)}: ${t(`inj_${inj.type}` as TextKey)} · ${t('weeksShort', { n: inj.weeksLeft })} · ${t('returnsWeek', { w: y > date.year ? `${w} (${y})` : w })}`;
+}
+export const isBadInjury = (inj?: Player['injury']) => inj?.level === 'severe' || inj?.level === 'critical';
+
 export const starText = (n: number) => '★'.repeat(Math.floor(n)) + (n % 1 ? '½' : '');
 const arrow = (d?: number) => (!d ? '' : d > 0 ? ` ▲${d}` : ` ▼${-d}`);
 
@@ -139,7 +147,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               <td className="stars">{starText(starsOf(p))}</td>
               <td><FatigueBar value={p.fatigue} /></td>
               <td>{p.injury
-                ? <span className="badge danger" title={`${t(p.injury.severe ? 'injurySevereLong' : 'injuryMinorLong')} · ${t('weeksShort', { n: p.injury.weeksLeft })}`}>✚ {t('injury')}</span>
+                ? <span className={`badge danger${isBadInjury(p.injury) ? ' strong' : ''}`} title={injuryText(p.injury, state.date)}>✚ {t('injury')}</span>
                 : p.fatigue > ruleset.ai.restAbove ? <span className="badge gold" title={`${t('fatigue')} ${Math.round(p.fatigue)}`}>◐ {t('statusTired')}</span>
                 : <span className="badge good">● {t('statusFit')}</span>}</td>
               <td className="num"><RankCell ranks={allRanks(p)} /></td>
@@ -248,7 +256,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         {t('age')} {ageAt(p.birth, state.date)} · {t('ability')} <b>{currentAbility(p.attrs)}</b>{arrow(p.caDelta)} ·
         {' '}{t('potential')} <span className="stars">{starText(potentialStars(p, state.date, counts.get(p.id) ?? 0))}</span> ·
         {' '}{t('fatigue')} <FatigueBar value={p.fatigue} />
-        {p.injury && <> · {t('injury')}: {p.injury.weeksLeft} {t('weeks')}{p.injury.severe ? ` (${t('injurySevere')})` : ''}</>}
+        {p.injury && <> · {injuryText(p.injury, state.date)}</>}
         {p.retired !== undefined && <> · {t('retired')} {p.retired}</>}
         {p.released !== undefined && <> · <span className="tag muted-tag">{t('releasedTag', { year: p.released })}</span></>}
         {' · '}{t('prizeMoney')}: {usd(state.earnings[state.date.year]?.[p.id] ?? 0)} {t('thisSeason')} / {usd(Object.values(state.earnings).reduce((s, y) => s + (y[p.id] ?? 0), 0))} {t('career')}

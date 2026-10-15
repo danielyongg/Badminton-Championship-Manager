@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import { INJURY_TYPES } from '../engine/development';
 import { writeSave } from '../db/saves';
 import { PRESETS, withDefaults } from '../engine/pack';
 import { BWF_2026 } from '../engine/presets/bwf2026';
@@ -26,6 +27,13 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
   blob.state.earnings ??= {};
   blob.state.eventRecords ??= []; // save sebelum halaman turnamen: bagan disusun dari daftar laga
   blob.state.juniorResults ??= []; // save sebelum turnamen junior
+  // Save sebelum 4 tingkat cedera: ringan/berat → tingkat + jenis cedera bawaan.
+  for (const p of blob.state.players)
+    if (p.injury && !p.injury.level) {
+      p.injury.level = p.injury.severe ? 'severe' : 'minor';
+      p.injury.type = INJURY_TYPES[p.injury.level][0];
+      delete p.injury.severe;
+    }
   // Save sebelum turnamen junior: tambahkan tier & event junior dari preset (event lain di kalender tidak diubah).
   for (const tier of preset.tiers.filter((x) => x.junior && !blob.ruleset.tiers.some((y) => y.id === x.id))) blob.ruleset.tiers.push(structuredClone(tier));
   const juniorTiers = new Set(preset.tiers.filter((x) => x.junior).map((x) => x.id));

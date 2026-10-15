@@ -298,7 +298,15 @@ export const BWF_2026: Ruleset = {
     severeInjuryPaLoss: { min: 1, max: 4 },
   },
   // ASUMSI: kalibrasi cedera — atlet segar ±0,2%/laga, sangat lelah (90) ±2,6%/laga.
-  injury: { base: 0.002, fatigueFactor: 0.03, severeChance: 0.15, minorWeeks: { min: 1, max: 3 }, severeWeeks: { min: 6, max: 20 } },
+  injury: {
+    base: 0.002, fatigueFactor: 0.03,
+    levels: [
+      { id: 'minor', chance: 0.67, weeks: { min: 1, max: 3 }, paLoss: 0, retireChance: 0 },
+      { id: 'moderate', chance: 0.21, weeks: { min: 4, max: 12 }, paLoss: 0, retireChance: 0 },
+      { id: 'severe', chance: 0.1, weeks: { min: 13, max: 26 }, paLoss: 1, retireChance: 0 },
+      { id: 'critical', chance: 0.02, weeks: { min: 27, max: 104 }, paLoss: 2, retireChance: 0.3 },
+    ],
+  },
   career: {
     titleTiers: ['OG', 'WC', 'WTF', 'S1000', 'S750', 'S500', 'S300', 'S100'],
     violationPenalty: 3,

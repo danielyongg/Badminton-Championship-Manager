@@ -119,13 +119,17 @@ export interface TeamConfig {
   continentalTeams: number;
 }
 
+export type InjuryLevel = 'minor' | 'moderate' | 'severe' | 'critical';
+
 export interface InjuryConfig {
   /** Peluang cedera per laga per atlet = base + fatigueFactor × (kelelahan/100)². */
   base: number;
   fatigueFactor: number;
-  severeChance: number;
-  minorWeeks: { min: number; max: number };
-  severeWeeks: { min: number; max: number };
+  /**
+   * Tingkat cedera (peluang dijumlah = 1): lama absen, kelipatan penurunan PA (× `development.severeInjuryPaLoss`),
+   * dan peluang langsung pensiun.
+   */
+  levels: { id: InjuryLevel; chance: number; weeks: { min: number; max: number }; paLoss: number; retireChance: number }[];
 }
 
 export interface CareerConfig {
@@ -247,7 +251,8 @@ export interface Player {
   pa: number; // potensi tersembunyi 1–100
   form: number; // -10..+10
   fatigue: number; // 0..100
-  injury?: { weeksLeft: number; severe: boolean };
+  /** `type` = jenis cedera (kunci teks `inj_{type}`); `severe` hanya ada di save lama (diganti `level` saat dimuat). */
+  injury?: { weeksLeft: number; level: InjuryLevel; type: string; severe?: boolean };
   trait?: 'late' | 'stagnant';
   /** Spesialis ganda: tidak diberi ranking tunggal awal & tidak didaftarkan AI di nomor tunggal (manajer tetap boleh). */
   focus?: 'D' | 'S'; // 'S' = hanya tunggal: tidak muncul di form bentuk pasangan

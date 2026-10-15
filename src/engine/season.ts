@@ -1,5 +1,5 @@
 import { seasonGoals, seasonReport } from './career';
-import { applySevereInjury, developQuarter, newJuniors, retirementChance } from './development';
+import { applySevereInjury, developQuarter, newJuniors, retirementChance, rollInjury } from './development';
 import { applyCountryQuota, type Candidate } from './entry';
 import { ageAt, currentAbility, generateWorld, isJuniorAge, isPratama } from './generator';
 import { absWeek, computeRace, computeRanking, knockoutResults, rankMap } from './ranking';
@@ -453,10 +453,13 @@ function applyEventLoad(state: SeasonState, rs: Ruleset, rng: Rng, firstMatch: n
       for (const id of pairs.get(side)?.playerIds ?? [side]) {
         const p = players.get(id)!;
         if (p.injury || rng() >= inj.base + inj.fatigueFactor * (p.fatigue / 100) ** 2) continue;
-        const severe = rng() < inj.severeChance;
-        const w = severe ? inj.severeWeeks : inj.minorWeeks;
-        p.injury = { weeksLeft: w.min + Math.floor(rng() * (w.max - w.min + 1)), severe };
-        if (severe) applySevereInjury(p, rs.development, rng);
+        const r = rollInjury(inj, rng);
+        p.injury = r.injury;
+        if (r.paLoss) applySevereInjury(p, rs.development, rng, r.paLoss);
+        if (r.retire) { // cedera parah: langsung pensiun, pasangannya bubar
+          p.retired = state.date.year;
+          for (const pair of state.pairs) if (!pair.dissolved && pair.playerIds.includes(p.id)) pair.dissolved = { ...state.date };
+        }
       }
   for (const id of played) {
     const p = players.get(id)!;

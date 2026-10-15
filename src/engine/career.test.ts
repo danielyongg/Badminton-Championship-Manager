@@ -130,6 +130,7 @@ describe('pasangan percobaan', () => {
     const ev = rs.calendar.find((e) => e.week === state.date.week && e.tierId === 'S300')!;
     // Pasangan percobaan didaftarkan manual; pasangan utama "Otomatis" → keputusan manual menang atas pilihan AI.
     const week = { ...state.date };
+    for (const id of trial.playerIds) state.players.find((p) => p.id === id)!.injury = undefined; // yang diuji entry, bukan cedera
     state.manualEntries[weekKey(week)] = { [trial.id]: ev.id };
     await playWeek(state, rs, WORLD, rng);
     const rec = state.eventRecords.find((r) => r.tournamentId === ev.id && r.year === week.year && r.discipline === 'MD')!;
