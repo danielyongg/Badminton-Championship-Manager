@@ -214,5 +214,11 @@ describe('lepas dari pelatnas', () => {
     const rng = makeRng(2);
     while (state.date.week <= 20 && !state.matches.some((m) => m.sides.some((x) => sides.has(x)))) await playWeek(state, rs, WORLD, rng);
     expect(state.matches.some((m) => m.sides.some((x) => sides.has(x)))).toBe(true);
+    // panggil kembali: masuk pelatnas lagi, pasangan bentukan AI bubar
+    const { recallPlayer } = await import('./career');
+    recallPlayer(state, a);
+    expect(state.players.find((x) => x.id === a)!.released).toBeUndefined();
+    expect(state.pairs.some((p) => !p.dissolved && p.playerIds.includes(a))).toBe(false);
+    expect(planWeek(state, rs, week).has(a) || state.players.find((x) => x.id === a)!.focus === 'D').toBe(true);
   });
 });

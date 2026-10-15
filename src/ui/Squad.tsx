@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { dissolvePair, potentialStars, promoteJunior, releasePlayer } from '../engine/career';
+import { dissolvePair, potentialStars, promoteJunior, recallPlayer, releasePlayer } from '../engine/career';
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { headToHead } from '../engine/match';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
@@ -44,7 +44,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   const country = state.career!.countryId!;
   // Skuad → Senior/Junior (semua pemain) → filter sektor: Single (pemain tunggal) / Pairs (pasangan ganda).
   const [juniors, setJuniors] = useState(false);
-  const [view, setView] = useState<'all' | 'singles' | 'pairs'>('all');
+  const [view, setView] = useState<'all' | 'singles' | 'pairs' | 'released'>('all');
   const commit = () => { changed(); void saveGame(game); };
   const counts = useMatchCounts();
   const ranks = useMemo(() => {
@@ -80,7 +80,8 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
     { key: 'rank', label: 'bwfRank', num: true, value: (p) => allRanks(p)[0]?.r ?? Infinity }, // urut menurut peringkat terbaik
   ];
   // Junior: kolom status pelatnas (pratama/utama) + tombol promosi.
-  if (juniors) COLS.splice(2, 0, { key: 'level', label: 'squadLevel', value: (p) => (isPratama(p, state.date) ? 0 : 1) });
+  const juniorCols = juniors && view !== 'released';
+  if (juniorCols) COLS.splice(2, 0, { key: 'level', label: 'squadLevel', value: (p) => (isPratama(p, state.date) ? 0 : 1) });
   const [sort, setSort] = useState({ key: 'ability', desc: true });
   const col = COLS.find((c) => c.key === sort.key)!;
   const cmp = (a: Player, b: Player) => {
@@ -89,7 +90,8 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
     return sort.desc ? -r : r;
   };
   const list = state.players
-    .filter((p) => p.countryId === country && p.retired === undefined && p.released === undefined && isPratama(p, state.date) === juniors) // junior yang sudah promosi masuk Senior
+    // Non-pelatnas: atlet yang sudah dilepas (senior & junior); selain itu junior yang sudah promosi masuk Senior.
+    .filter((p) => p.countryId === country && p.retired === undefined && (view === 'released' ? p.released !== undefined : p.released === undefined && isPratama(p, state.date) === juniors))
     .filter((p) => view !== 'singles' || p.focus !== 'D')
     .sort((a, b) => cmp(a, b) || currentAbility(b.attrs) - currentAbility(a.attrs));
 
@@ -103,9 +105,10 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
         <button aria-pressed={view === 'all'} onClick={() => setView('all')}>{t('all')}</button>
         <button aria-pressed={view === 'singles'} onClick={() => setView('singles')}>{t('sector_singles')}</button>
         <button aria-pressed={view === 'pairs'} onClick={() => setView('pairs')}>{t('sector_pairs')}</button>
+        <button aria-pressed={view === 'released'} onClick={() => setView('released')}>{t('nonSquad')}</button>
         {view !== 'pairs' && <span className="count">{list.length} {t('players')}</span>}
       </nav>
-      {juniors && view !== 'pairs' && <p className="hint">{t('pratamaHint')}</p>}
+      {juniorCols && view !== 'pairs' && <p className="hint">{t('pratamaHint')}</p>}
       {view === 'pairs' ? <Pairs onOpen={onOpen} juniors={juniors} /> : (
       <div className="scroll">
         <table>
@@ -114,11 +117,11 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               onClick={() => setSort(sort.key === c.key ? { key: c.key, desc: !sort.desc } : { key: c.key, desc: !!c.desc })}>
               {t(c.label)}{sort.key === c.key ? (sort.desc ? ' ▼' : ' ▲') : ''}
             </th>
-          ))}<th title={t('tierPrefsHint')}>{t(view === 'singles' ? 'tierPrefs' : 'manageSectors')}</th></tr></thead>
+          ))}{view !== 'released' && <th title={t('tierPrefsHint')}>{t(view === 'singles' ? 'tierPrefs' : 'manageSectors')}</th>}{view === 'released' && <th></th>}</tr></thead>
           <tbody>{list.map((p) => (
             <tr key={p.id} onClick={() => onOpen(p.id)} style={{ cursor: 'pointer' }}>
               <td>{p.name}</td><td>{p.gender}</td>
-              {juniors && <td onClick={(e) => e.stopPropagation()}>{isPratama(p, state.date)
+              {juniorCols && <td onClick={(e) => e.stopPropagation()}>{isPratama(p, state.date)
                 ? <><span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span> <button className="mini" onClick={() => { promoteJunior(state, p.id); commit(); }}>{t('promote')}</button></>
                 : <span className="tag">{t('utama')}</span>}</td>}
               <td>{sectorsOf(p).map((d) => {
@@ -132,7 +135,9 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               <td><FatigueBar value={p.fatigue} /></td>
               <td>{p.injury ? `${p.injury.weeksLeft} ${t('weeks')}${p.injury.severe ? ' ⚠' : ''}` : ''}</td>
               <td className="num">{allRanks(p).map((x, i) => <span key={x.d}>{i > 0 && <span className="muted-text"> · </span>}{x.r} <small className="muted-text">{x.d}</small></span>)}{allRanks(p).length === 0 && '—'}</td>
-              <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>{view === 'singles' ? <TierPrefs id={p.id} /> : <SectorPicker p={p} onChange={commit} />}</td>
+              <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>{view === 'released'
+                ? <button className="mini" onClick={() => { recallPlayer(state, p.id); commit(); }}>{t('recall')}</button>
+                : view === 'singles' ? <TierPrefs id={p.id} /> : <SectorPicker p={p} onChange={commit} />}</td>
             </tr>
           ))}</tbody>
         </table>
@@ -223,8 +228,10 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         {p.released !== undefined && <> · <span className="tag muted-tag">{t('releasedTag', { year: p.released })}</span></>}
         {' · '}{t('prizeMoney')}: {usd(state.earnings[state.date.year]?.[p.id] ?? 0)} {t('thisSeason')} / {usd(Object.values(state.earnings).reduce((s, y) => s + (y[p.id] ?? 0), 0))} {t('career')}
       </p>
-      {p.countryId === state.career?.countryId && p.retired === undefined && p.released === undefined && (
-        <p><button onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id); changed(); void saveGame(game); } }}>{t('release')}</button></p>
+      {p.countryId === state.career?.countryId && p.retired === undefined && (
+        <p>{p.released === undefined
+          ? <button onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id); changed(); void saveGame(game); } }}>{t('release')}</button>
+          : <button onClick={() => { recallPlayer(state, p.id); changed(); void saveGame(game); }}>{t('recall')}</button>}</p>
       )}
       <AttrChart p={p} date={state.date} />
       <div className="split">

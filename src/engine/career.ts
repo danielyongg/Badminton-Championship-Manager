@@ -154,6 +154,14 @@ export function releasePlayer(state: SeasonState, playerId: string) {
   if (state.tierPrefs) delete state.tierPrefs[playerId];
 }
 
+/** Panggil kembali ke pelatnas: pasangan yang dibentuk AI selama di luar pelatnas dibubarkan (manajer memasangkan lagi). */
+export function recallPlayer(state: SeasonState, playerId: string) {
+  const p = state.players.find((x) => x.id === playerId);
+  if (!p || p.released === undefined) return;
+  delete p.released;
+  for (const pair of state.pairs) if (!pair.dissolved && pair.playerIds.includes(playerId)) dissolvePair(state, pair.id);
+}
+
 export function dissolvePair(state: SeasonState, pairId: string) {
   const pair = state.pairs.find((p) => p.id === pairId);
   if (pair && !pair.dissolved) pair.dissolved = { ...state.date };
