@@ -31,6 +31,16 @@ describe('satu musim penuh (BWF 2026)', () => {
 
   it('cukup cepat', () => expect(ms).toBeLessThan(30000));
 
+  it('riwayat cedera: tiap cedera tercatat, cedera yang sedang berjalan = catatan terakhir', () => {
+    const all = state.players.flatMap((p) => p.injuryHistory ?? []);
+    expect(all.length).toBeGreaterThan(0);
+    for (const p of state.players.filter((x) => x.injury)) {
+      const last = p.injuryHistory!.at(-1)!;
+      expect([last.level, last.type]).toEqual([p.injury!.level, p.injury!.type]);
+      expect(p.injury!.weeksLeft).toBeLessThanOrEqual(last.weeks);
+    }
+  });
+
   it('catatan turnamen: tiap nomor yang dimainkan tercatat, yang > 2 musim dihapus, ukuran wajar', () => {
     const played = new Set(state.matches.filter((m) => m.year === 2026 && rs.calendar.some((e) => e.id === m.tournamentId)).map((m) => `${m.tournamentId}:${m.discipline}`));
     const recorded = new Set(state.eventRecords.filter((r) => r.year === 2026).map((r) => `${r.tournamentId}:${r.discipline}`));

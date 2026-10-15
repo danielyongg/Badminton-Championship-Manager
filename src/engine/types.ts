@@ -253,6 +253,8 @@ export interface Player {
   fatigue: number; // 0..100
   /** `type` = jenis cedera (kunci teks `inj_{type}`); `severe` hanya ada di save lama (diganti `level` saat dimuat). */
   injury?: { weeksLeft: number; level: InjuryLevel; type: string; severe?: boolean };
+  /** Riwayat cedera (dicatat sejak fitur ini ada): minggu terjadi, tingkat, jenis, lama absen. */
+  injuryHistory?: { year: number; week: number; level: InjuryLevel; type: string; weeks: number }[];
   trait?: 'late' | 'stagnant';
   /** Spesialis ganda: tidak diberi ranking tunggal awal & tidak didaftarkan AI di nomor tunggal (manajer tetap boleh). */
   focus?: 'D' | 'S'; // 'S' = hanya tunggal: tidak muncul di form bentuk pasangan

@@ -455,6 +455,7 @@ function applyEventLoad(state: SeasonState, rs: Ruleset, rng: Rng, firstMatch: n
         if (p.injury || rng() >= inj.base + inj.fatigueFactor * (p.fatigue / 100) ** 2) continue;
         const r = rollInjury(inj, rng);
         p.injury = r.injury;
+        (p.injuryHistory ??= []).push({ ...state.date, level: r.injury.level, type: r.injury.type, weeks: r.injury.weeksLeft });
         if (r.paLoss) applySevereInjury(p, rs.development, rng, r.paLoss);
         if (r.retire) { // cedera parah: langsung pensiun, pasangannya bubar
           p.retired = state.date.year;

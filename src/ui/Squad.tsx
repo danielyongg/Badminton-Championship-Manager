@@ -256,7 +256,6 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         {t('age')} {ageAt(p.birth, state.date)} · {t('ability')} <b>{currentAbility(p.attrs)}</b>{arrow(p.caDelta)} ·
         {' '}{t('potential')} <span className="stars">{starText(potentialStars(p, state.date, counts.get(p.id) ?? 0))}</span> ·
         {' '}{t('fatigue')} <FatigueBar value={p.fatigue} />
-        {p.injury && <> · {injuryText(p.injury, state.date)}</>}
         {p.retired !== undefined && <> · {t('retired')} {p.retired}</>}
         {p.released !== undefined && <> · <span className="tag muted-tag">{t('releasedTag', { year: p.released })}</span></>}
         {' · '}{t('prizeMoney')}: {usd(state.earnings[state.date.year]?.[p.id] ?? 0)} {t('thisSeason')} / {usd(Object.values(state.earnings).reduce((s, y) => s + (y[p.id] ?? 0), 0))} {t('career')}
@@ -266,6 +265,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           ? <button className="btn-danger" onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id); changed(); void saveGame(game); } }}>{t('release')}</button>
           : <button onClick={() => { recallPlayer(state, p.id); changed(); void saveGame(game); }}>{t('recall')}</button>}</p>
       )}
+      {p.injury && <p className={`injury-now${isBadInjury(p.injury) ? ' strong' : ''}`}>✚ {injuryText(p.injury, state.date)}</p>}
       <AttrChart p={p} date={state.date} />
       <div className="split">
         <div className="scroll">
@@ -315,6 +315,21 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           })}</tbody>
         </table>
       </div>
+      <h3>{t('injuryHistory')}</h3>
+      {!p.injuryHistory?.length ? <p className="hint">{t('injuryHistoryNone')}</p> : (
+        <div className="scroll">
+          <table style={{ maxWidth: 640 }}>
+            <tbody>{[...p.injuryHistory].reverse().map((h, i) => (
+              <tr key={i}>
+                <td className="num">{t('weekShort')}{h.week} {h.year}</td>
+                <td><span className={`badge danger${h.level === 'severe' || h.level === 'critical' ? ' strong' : ''}`}>{t(`injLevel_${h.level}` as TextKey)}</span></td>
+                <td>{t(`inj_${h.type}` as TextKey)}</td>
+                <td className="num">{t('weeksShort', { n: h.weeks })}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
       {h2h.length > 0 && (
         <>
           <h3>{t('h2h')}</h3>

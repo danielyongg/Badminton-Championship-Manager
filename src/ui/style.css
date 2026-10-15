@@ -66,6 +66,8 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .ranks summary { cursor: pointer; white-space: nowrap; list-style: none; }
 .ranks summary::-webkit-details-marker { display: none; }
 .ranks > div { white-space: nowrap; }
+.injury-now { display: inline-block; padding: 6px 12px; border: 1px solid var(--danger); border-radius: 6px; background: var(--danger-soft); color: var(--danger); font-weight: 600; }
+.injury-now.strong { background: var(--danger); color: var(--surface); }
 .btn-go { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); }
 .btn-danger { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
 .m-only { display: none; }
