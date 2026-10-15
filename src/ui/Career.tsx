@@ -21,7 +21,7 @@ import { LiveMatch } from './LiveMatch';
 import { advance, entrantLabel, eventName, JUNIOR_MAX_AGE, lookup, saveGame, useGame } from './game';
 import { SeasonViews } from './Ranking';
 import { Profile, Squad, usd } from './Squad';
-import { autoPick, pickError, recruit, SCOUTING_DEADLINE_WEEK } from '../engine/scouting';
+import { autoPick, recruit, SCOUTING_DEADLINE_WEEK } from '../engine/scouting';
 import { currentAbility } from '../engine/generator';
 import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
 import { TournamentView } from './TournamentView';
@@ -247,13 +247,10 @@ function ScoutingCard() {
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
   const count = (g: 'M' | 'F') => s.candidates.filter((p) => p.gender === g && picked.includes(p.id)).length;
-  const toggle = (id: string) => {
-    const next = picked.includes(id) ? picked.filter((x) => x !== id) : [...picked, id];
-    if (!pickError(s, next)) setPicked(next);
-  };
+  const toggle = (id: string) => setPicked(picked.includes(id) ? picked.filter((x) => x !== id) : [...picked, id]);
   const done = () => { recruit(state, picked); changed(); void saveGame(game); };
   const half = (n: number) => `${Math.floor(n) || ''}${n % 1 ? '½' : ''}`; // 2.5 → "2½"
-  const status = t('scoutingStatus', { m: `${count('M')}/${s.slots.M}`, f: `${count('F')}/${s.slots.F}`, week: SCOUTING_DEADLINE_WEEK });
+  const status = t('scoutingStatus', { m: count('M'), f: count('F'), sm: s.slots.M, sf: s.slots.F, week: SCOUTING_DEADLINE_WEEK });
   return (
     <section className="card" style={open ? { gridColumn: '1 / -1' } : undefined}>
       <h3>{t('scouting')} {s.year}</h3>
@@ -261,9 +258,9 @@ function ScoutingCard() {
       {!open ? <button className="primary" onClick={() => setOpen(true)}>{t('scoutingOpen')}</button> : (
         <>
           <p className="hint">{t('scoutingHint')}</p>
-          {(['M', 'F'] as const).filter((g) => s.slots[g] > 0).map((g) => (
+          {(['M', 'F'] as const).filter((g) => s.candidates.some((p) => p.gender === g)).map((g) => (
             <div key={g} className="scroll">
-              <h4>{t(g === 'M' ? 'men' : 'women')} · {count(g)}/{s.slots[g]}</h4>
+              <h4>{t(g === 'M' ? 'men' : 'women')} · {count(g)}</h4>
               <table>
                 <thead><tr><th>{t('name')}</th><th className="num">{t('age')}</th><th className="num">{t('ability')}</th><th>{t('potential')}</th></tr></thead>
                 <tbody>{s.candidates.filter((p) => p.gender === g).map((p) => {
@@ -282,7 +279,7 @@ function ScoutingCard() {
           ))}
           <p className="controls">
             <button onClick={() => setPicked(autoPick(s, picked))}>{t('autoPick')}</button>
-            <button className="primary" onClick={done}>{t('recruit')}</button>
+            <button className="primary" disabled={!picked.length} onClick={done}>{t('recruit')} ({picked.length})</button>
           </p>
         </>
       )}

@@ -3,11 +3,11 @@ import { potentialStars } from './career';
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
-import { autoPick, pickError, recruit } from './scouting';
+import { autoPick, recruit } from './scouting';
 import { newSeason, playWeek } from './season';
 
 describe('pencarian bakat junior', () => {
-  it('akhir musim: kandidat 2× kursi hanya untuk negara manajer; rekrut mengisi tepat sejumlah kursi', async () => {
+  it('akhir musim: kandidat 2× kursi hanya untuk negara manajer; jumlah rekrut bebas', async () => {
     const rs = BWF_2026;
     const state = newSeason(WORLD, rs, 11, { year: 2026, week: 50 }, 'INA');
     const rng = makeRng(11);
@@ -29,13 +29,11 @@ describe('pencarian bakat junior', () => {
       const est = potentialStars(p, { year: 2027, week: 1 }, 0);
       expect(est >= lo && est <= hi).toBe(true);
     }
-    const all = s.candidates.map((p) => p.id);
-    expect(pickError(s, all)).toBe(s.slots.M + s.slots.F > 0 ? 'tooMany' : null);
-    const picked = autoPick(s);
-    expect(picked.length).toBe(s.slots.M + s.slots.F);
+    expect(autoPick(s).length).toBe(s.slots.M + s.slots.F); // saran = sejumlah kursi
+    // jumlah rekrut bebas: semua kandidat boleh diambil
     const before = state.players.length;
-    recruit(state, picked.slice(0, 1));
-    expect(state.players.length - before).toBe(s.slots.M + s.slots.F);
+    recruit(state, s.candidates.map((p) => p.id));
+    expect(state.players.length - before).toBe(s.candidates.length);
     expect(state.scouting).toBeUndefined();
   });
 

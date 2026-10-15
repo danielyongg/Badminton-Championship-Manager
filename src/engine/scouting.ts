@@ -3,7 +3,7 @@ import { currentAbility, generatePlayer } from './generator';
 import type { Rng } from './rng';
 import type { Country, GameDate, GeneratorConfig, Player } from './types';
 
-// Pencarian bakat junior negara manajer: kandidat 2× kursi di akhir musim, dipilih manajer atau diisi otomatis.
+// Pencarian bakat junior negara manajer: kandidat 2× kursi di akhir musim; manajer merekrut berapa pun, atau diisi otomatis sejumlah kursi.
 
 export interface Scouting {
   year: number;
@@ -36,7 +36,7 @@ export function makeScouting(base: Player[], country: Country, gen: GeneratorCon
   return { year: date.year, slots, candidates, starRange };
 }
 
-/** Pilihan otomatis: tiap gender, nilai tengah rentang bintang tertinggi lalu kemampuan; `keep` = pilihan manajer dipertahankan. */
+/** Saran pilihan sejumlah kursi per gender: nilai tengah rentang bintang tertinggi lalu kemampuan; `keep` = pilihan manajer dipertahankan. */
 export function autoPick(s: Scouting, keep: string[] = []) {
   const out = [...keep];
   for (const g of ['M', 'F'] as const) {
@@ -49,17 +49,14 @@ export function autoPick(s: Scouting, keep: string[] = []) {
   return out;
 }
 
-/** Galat pilihan (melebihi kursi), atau null. */
-export function pickError(s: Scouting, ids: string[]) {
-  const over = (['M', 'F'] as const).some((g) => s.candidates.filter((p) => p.gender === g && ids.includes(p.id)).length > s.slots[g]);
-  return over ? 'tooMany' : null;
-}
-
-/** Rekrut: kandidat terpilih masuk daftar atlet (sisa kursi diisi otomatis), pencarian selesai. */
+/**
+ * Rekrut: kandidat terpilih masuk daftar atlet (jumlah bebas), pencarian selesai.
+ * Tanpa pilihan (batas minggu lewat / akhir musim): diisi otomatis sejumlah kursi.
+ */
 export function recruit(state: { players: Player[]; scouting?: Scouting }, ids: string[]) {
   const s = state.scouting;
   if (!s) return;
-  const chosen = new Set(autoPick(s, ids.filter((id) => s.candidates.some((p) => p.id === id))));
+  const chosen = new Set(ids.length ? ids : autoPick(s));
   state.players.push(...s.candidates.filter((p) => chosen.has(p.id)));
   delete state.scouting;
 }

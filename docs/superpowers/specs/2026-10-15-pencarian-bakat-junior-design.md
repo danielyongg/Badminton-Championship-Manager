@@ -11,10 +11,11 @@ Disetujui user 2026-10-15. Prinsip: tetap ringan — satu keputusan per musim, b
    2 × kursi (minimal 2 bila kursi 1). Kandidat dibuat dengan `generatePlayer` yang sama (usia 15–17).
 3. Minggu 1–4 musim baru: kartu **Pencarian bakat** di Dashboard (di sebelah laporan akhir musim) — status
    "Belum dipilih (Putra 0/3 · Putri 0/3)" → membuka layar kandidat.
-4. Layar kandidat: dua daftar (Putra, Putri). Kolom: nama, usia, kemampuan, gaya (tunggal/ganda), potensi
-   (rentang bintang). Tombol pilih/batal per kandidat (tidak bisa melebihi kursi), **Pilih otomatis**, **Rekrut**.
+4. Layar kandidat: dua daftar (Putra, Putri). Kolom: nama, usia, kemampuan, potensi (rentang bintang).
+   Tombol pilih/batal per kandidat — **jumlah bebas** (revisi 2026-10-15; kursi hanya saran), **Pilih otomatis**
+   (pilih sesuai saran kursi), **Rekrut (n)** (nonaktif bila belum ada yang dipilih).
    Rekrut = kandidat terpilih masuk `state.players` (pelatnas pratama seperti junior biasa), sisanya dibuang.
-5. Tidak dipilih sampai minggu 4 lewat, atau saat "Maju 4 minggu" / "Sampai akhir musim": kursi diisi otomatis
+5. Belum direkrut sampai minggu 4 lewat, atau saat "Maju 4 minggu" / "Sampai akhir musim": diisi otomatis sejumlah kursi
    (urut nilai tengah rentang bintang, lalu kemampuan). Junior tidak pernah hilang.
 
 ## Rentang bintang
