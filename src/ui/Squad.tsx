@@ -142,7 +142,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
                 ? <span className="badge danger" title={`${t(p.injury.severe ? 'injurySevereLong' : 'injuryMinorLong')} · ${t('weeksShort', { n: p.injury.weeksLeft })}`}>✚ {t('injury')}</span>
                 : p.fatigue > ruleset.ai.restAbove ? <span className="badge gold" title={`${t('fatigue')} ${Math.round(p.fatigue)}`}>◐ {t('statusTired')}</span>
                 : <span className="badge good">● {t('statusFit')}</span>}</td>
-              <td className="num">{allRanks(p).map((x, i) => <span key={x.d}>{i > 0 && <span className="muted-text"> · </span>}{x.r} <small className="muted-text">{x.d}</small></span>)}{allRanks(p).length === 0 && '—'}</td>
+              <td className="num"><RankCell ranks={allRanks(p)} /></td>
               <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>{released
                 ? <button className="mini" onClick={() => { recallPlayer(state, p.id); commit(); }}>{t('recall')}</button>
                 : view === 'singles' ? <TierPrefs id={p.id} /> : <>
@@ -155,6 +155,19 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
       </div>
       )}
     </>
+  );
+}
+
+/** Ranking terbaik + "+n"; ketuk/arahkan kursor untuk melihat semua (urut terbaik dulu). */
+export function RankCell({ ranks }: { ranks: { d: string; r?: number }[] }) {
+  if (!ranks.length) return <>—</>;
+  const one = (x: (typeof ranks)[number]) => <>{x.r} <small className="muted-text">{x.d}</small></>;
+  if (ranks.length === 1) return one(ranks[0]);
+  return (
+    <details className="ranks" title={ranks.map((x) => `${x.r} ${x.d}`).join(' · ')} onClick={(e) => e.stopPropagation()}>
+      <summary>{one(ranks[0])} <small className="muted-text">+{ranks.length - 1}</small></summary>
+      {ranks.slice(1).map((x) => <div key={x.d}>{one(x)}</div>)}
+    </details>
   );
 }
 
