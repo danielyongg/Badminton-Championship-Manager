@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ROUNDS } from '../types';
 import { BWF_2026 } from './bwf2026';
 import { BWF_2027 } from './bwf2027';
+import { realRoster } from './realPlayers';
 import { WORLD } from './world';
 
 const count = (rs: typeof BWF_2026, tier: string) => rs.calendar.filter((e) => e.tierId === tier).length;
@@ -48,4 +49,11 @@ it('ukuran draw default 2026: S300–S1000 = 32, S100 = 48 MS', () => {
   const tier = (id: string) => BWF_2026.tiers.find((t) => t.id === id)!;
   for (const id of ['S1000', 'S750', 'S500', 'S300']) expect(Object.values(tier(id).drawSize)).toEqual([32, 32, 32, 32, 32]);
   expect(tier('S100').drawSize).toEqual({ MS: 48, WS: 32, MD: 32, WD: 32, XD: 32 });
+});
+
+it('atlet asli: tunggal tanpa pasangan asli hanya sektor Single; yang punya pasangan tetap bisa ganda', () => {
+  const { players, pairs } = realRoster(2027);
+  const paired = new Set(pairs.flatMap((x) => x.playerIds));
+  expect(players.find((p) => p.name === 'Alwi Farhan')!.focus).toBe('S');
+  expect(players.filter((p) => p.focus === 'S' && paired.has(p.id))).toHaveLength(0);
 });
