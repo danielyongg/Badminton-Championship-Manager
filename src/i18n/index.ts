@@ -159,7 +159,7 @@ const id = {
   auto: 'Otomatis (AI)',
   rest: 'Istirahat',
   required: 'wajib',
-  entryHelp: 'Pilih turnamen tiap atlet/pasangan. "Otomatis" = asisten AI memilih (mematuhi Top Committed). Istirahat dari turnamen wajib tanpa cedera = pelanggaran & reputasi turun.',
+  calendarTab: 'Kalender', seasonPlan: 'Rencana musim', seasonPlanHint: 'Tiap sel = turnamen atlet/pasangan di minggu itu. Tebal = pilihan Anda; ⭐ = turnamen wajib; "~" = perkiraan AI (kelelahan & peluang ikut tidak dihitung, bisa meleset). Ketuk sel untuk mengubah.', planConflict: 'Bentrok: atlet yang sama diatur ke turnamen berbeda di minggu ini', entryHelp: 'Pilih turnamen tiap atlet/pasangan. "Otomatis" = asisten AI memilih (mematuhi Top Committed). Istirahat dari turnamen wajib tanpa cedera = pelanggaran & reputasi turun.',
   noEvents: 'Tidak ada turnamen minggu ini.',
   entryStatus: 'Status entry', entrySubmitted: 'Entry dikirim', entryIncomplete: 'Belum diisi', submitEntries: 'Submit entry', finished: 'Selesai',
   back: 'Kembali',

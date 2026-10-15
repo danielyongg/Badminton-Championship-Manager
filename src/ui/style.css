@@ -56,6 +56,11 @@ button[aria-pressed]:hover:not(:disabled) { border-color: transparent; color: va
 th.sortable { cursor: pointer; user-select: none; }
 th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .chip.sector { margin-right: 3px; }
+.plan th { white-space: nowrap; }
+.plan-cell { font-size: .8rem; padding: 1px 4px; min-width: 7.5em; border: 1px solid transparent; background: transparent; }
+.plan-cell.guess { color: var(--muted); }
+.plan-cell.manual { font-weight: 700; border-color: var(--line); }
+.plan-cell.conflict { border-color: var(--danger); background: var(--danger-soft); }
 .m-only { display: none; }
 @media (max-width: 700px) { .m-only { display: inline; } .m-hide { display: none; } }
 .tier-prefs summary { cursor: pointer; white-space: nowrap; font-size: .8rem; padding: 1px 6px; border: 1px solid var(--line); border-radius: 4px; display: inline-block; }

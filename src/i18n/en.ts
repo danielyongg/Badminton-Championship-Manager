@@ -159,7 +159,7 @@ export const en: Record<TextKey, string> = {
   auto: 'Automatic (AI)',
   rest: 'Rest',
   required: 'mandatory',
-  entryHelp: 'Choose a tournament for each player/pair. "Automatic" = the AI assistant chooses (respecting Top Committed rules). Resting from a mandatory tournament without injury = violation & reputation loss.',
+  calendarTab: 'Calendar', seasonPlan: 'Season plan', seasonPlanHint: 'Each cell = the athlete/pair\'s tournament that week. Bold = your choice; ⭐ = mandatory; "~" = AI estimate (fatigue & entry chance not counted, may differ). Tap a cell to change.', planConflict: 'Conflict: the same athlete is set to different tournaments this week', entryHelp: 'Choose a tournament for each player/pair. "Automatic" = the AI assistant chooses (respecting Top Committed rules). Resting from a mandatory tournament without injury = violation & reputation loss.',
   noEvents: 'No tournaments this week.',
   entryStatus: 'Entry status', entrySubmitted: 'Entries submitted', entryIncomplete: 'Incomplete', submitEntries: 'Submit entries', finished: 'Finished',
   back: 'Back',

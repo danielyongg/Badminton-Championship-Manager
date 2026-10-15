@@ -278,19 +278,25 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
     if (!choice && !decision && !e.trial) { // pasangan percobaan tidak pernah didaftarkan AI
       const tired = Math.max(...e.playerIds.map((id) => fatigue.get(id)!));
       const prefs = e.countryId === state.managedCountryId ? state.tierPrefs?.[e.id] : undefined;
-      if (prefs?.length) { // prioritas manajer: tier tertinggi yang dicentang selalu diikuti (kecuali lelah)
-        if (tired <= rs.ai.restAbove) choice = options.find((x) => prefs.includes(x.tierId));
-      } else {
-        const r = rank ?? 9999;
-        const ev = options.find((x) => { const [lo, hi] = rs.ai.rankRange[x.tierId] ?? [1, 9999]; return r >= lo && r <= hi; });
-        if (ev && tired <= rs.ai.restAbove && rng() < (rs.ai.playProb[ev.tierId] ?? 0.5) * (1 - tired / 150)) choice = ev;
-      }
+      const ev = aiEventChoice(options, rs, rank, prefs);
+      // prioritas manajer: selalu diikuti (kecuali lelah); tanpa prioritas: peluang ikut per tier & kelelahan
+      if (ev && tired <= rs.ai.restAbove && (prefs?.length || rng() < (rs.ai.playProb[ev.tierId] ?? 0.5) * (1 - tired / 150))) choice = ev;
     }
     if (!choice) continue;
     entries.get(choice.id)!.get(d)!.push({ id: e.id, countryId: e.countryId, rank });
     e.playerIds.forEach((id) => { playerEvent.set(id, choice.id); playerDisc.add(`${id}:${d}`); });
   }
   return entries;
+}
+
+/**
+ * Turnamen pilihan AI sebelum peluang ikut & kelelahan (`options` urut tier tertinggi dulu):
+ * prioritas tier manajer bila ada, selain itu turnamen pertama yang rentang rankingnya cocok.
+ */
+export function aiEventChoice<T extends { tierId: string }>(options: T[], rs: Ruleset, rank: number | undefined, prefs?: string[]) {
+  if (prefs?.length) return options.find((x) => prefs.includes(x.tierId));
+  const r = rank ?? 9999;
+  return options.find((x) => { const [lo, hi] = rs.ai.rankRange[x.tierId] ?? [1, 9999]; return r >= lo && r <= hi; });
 }
 
 /** Pilihan turnamen minggu ini: id turnamen yang dimainkan manajer, atau null = simulasikan sisanya. */

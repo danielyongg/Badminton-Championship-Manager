@@ -8,6 +8,7 @@ import { entrantLabel, eventName, lookup, saveGame, useGame } from './game';
 import { FatigueBar } from './Squad';
 import { isPratama } from '../engine/generator';
 import { formatName, SquadPicker } from './Team';
+import { plannableEvents, predictWeek, type PlanCell } from '../engine/plan';
 
 /** Kalender & entry: daftar jadwal turnamen musim ini + status entry; klik turnamen → isi entry-nya. */
 export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: number) => void }) {
@@ -16,6 +17,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   const { year, week } = state.date;
   const [open, setOpen] = useState<string>();
   const [showPast, setShowPast] = useState(false); // turnamen yang sudah selesai disembunyikan dulu (minggu ini langsung terlihat)
+  const [view, setView] = useState<'calendar' | 'plan'>('calendar');
   const submit = (id: string) => { (state.entriesSubmitted ??= {})[`${year}:${id}`] = true; changed(); void saveGame(game); setOpen(undefined); };
   const teamEv = open && ruleset.team.events.find((e) => e.id === open);
   if (teamEv) return (
@@ -40,7 +42,15 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   const all = [...ruleset.calendar, ...ruleset.team.events].filter((e) => isHeld(e, year)).sort((a, b) => a.week - b.week);
   const pastCount = all.filter((e) => e.week < week).length;
   const list = showPast ? all : all.filter((e) => e.week >= week);
+  const nav = (
+    <nav className="controls subnav">
+      <button aria-pressed={view === 'calendar'} onClick={() => setView('calendar')}>{t('calendarTab')}</button>
+      <button aria-pressed={view === 'plan'} onClick={() => setView('plan')}>{t('seasonPlan')}</button>
+    </nav>
+  );
+  if (view === 'plan') return <>{nav}<SeasonPlan /></>;
   return (
+    <>{nav}
     <div className="scroll">
       {pastCount > 0 && <p><button onClick={() => setShowPast(!showPast)}>{showPast ? t('hidePast') : t('showPast', { n: pastCount })}</button></p>}
       <table className="callist">
@@ -63,6 +73,72 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
         })}</tbody>
       </table>
     </div>
+    </>
+  );
+}
+
+/**
+ * Rencana musim: peserta negara manajer × minggu turnamen tersisa. Sel = keputusan manual (tegas), turnamen wajib (⭐)
+ * atau perkiraan AI ("~", samar); diubah lewat pilihan yang sama dengan entry mingguan (`manualEntries`).
+ */
+function SeasonPlan() {
+  const { game, version, changed } = useGame();
+  const { state, ruleset } = game;
+  const { year, week } = state.date;
+  const { players } = lookup(state);
+  const ranks = useMemo(() => new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.results, d, absWeek(state.date), ruleset))])), [version, state, ruleset]);
+  const weeks = [...new Set(ruleset.calendar.map((e) => e.week))].filter((w) => w >= week && plannableEvents(ruleset, year, w).length).sort((a, b) => a - b);
+  const plan = useMemo(() => new Map(weeks.map((w) => [w, predictWeek(state, ruleset, w, ranks)])), [version, ranks]);
+  const rows = DISCIPLINES.flatMap((d) => entrantsFor(state, d).filter((e) => e.countryId === state.managedCountryId)
+    .map((e) => ({ ...e, d, rank: ranks.get(d)!.get(e.id) }))
+    .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9)));
+  const set = (w: number, id: string, value: string) => {
+    const key = weekKey({ year, week: w });
+    const next = { ...state.manualEntries[key] };
+    if (value === 'auto') delete next[id]; else next[id] = value;
+    state.manualEntries[key] = next;
+    changed();
+    void saveGame(game);
+  };
+  const short = (id: string) => { const ev = ruleset.calendar.find((e) => e.id === id)!; return `${ev.tierId} ${dataName(ev.name).split(' ')[0]}`; };
+  const label = (c: PlanCell) => c.eventId === 'rest' ? t('rest') : c.eventId ? short(c.eventId) : '—';
+
+  if (!weeks.length) return <p>{t('noEvents')}</p>;
+  return (
+    <>
+      <p className="hint">{t('seasonPlanHint')}</p>
+      <div className="scroll">
+        <table className="plan">
+          <thead><tr><th>{t('name')}</th>{weeks.map((w) => (
+            <th key={w} title={plannableEvents(ruleset, year, w).map((e) => `${dataName(e.name)} (${e.tierId})`).join(' · ')}>
+              {t('weekShort')}{w} · {plannableEvents(ruleset, year, w)[0].tierId}
+            </th>
+          ))}</tr></thead>
+          <tbody>{rows.map((e) => (
+            <tr key={e.id}>
+              <td><span className="chip">{e.d}</span> {entrantLabel(state, e.id).name}</td>
+              {weeks.map((w) => {
+                const injured = e.playerIds.some((id) => (players.get(id)?.injury?.weeksLeft ?? 0) > w - week);
+                if (injured) return <td key={w} title={t('injury')}>🩹</td>;
+                const c = plan.get(w)!.get(e.id) ?? { eventId: null, kind: 'guess' as const };
+                const offered = plannableEvents(ruleset, year, w).filter((ev) => ruleset.tiers.find((x) => x.id === ev.tierId)!.drawSize[e.d] > 0);
+                const auto = c.kind === 'manual' ? t('auto') : c.kind === 'required' ? `⭐ ${label(c)}` : c.eventId ? `~${label(c)}` : '—';
+                return (
+                  <td key={w}>
+                    <select className={`plan-cell ${c.kind}${c.conflict ? ' conflict' : ''}`} title={c.conflict ? t('planConflict') : undefined}
+                      value={c.kind === 'manual' ? c.eventId! : 'auto'} onChange={(ev) => set(w, e.id, ev.target.value)}>
+                      <option value="auto">{auto}</option>
+                      {offered.map((ev) => <option key={ev.id} value={ev.id}>{short(ev.id)}</option>)}
+                      <option value="rest">{t('rest')}</option>
+                    </select>
+                  </td>
+                );
+              })}
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
