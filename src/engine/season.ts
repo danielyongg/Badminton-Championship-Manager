@@ -481,6 +481,28 @@ function rankingPoints(state: SeasonState, rs: Ruleset, results = state.results)
   return new Map(DISCIPLINES.map((d) => [d, new Map(computeRanking(results, d, now, rs).map((r) => [r.entrantId, r.points]))]));
 }
 
+/**
+ * Kekuatan peserta beregu untuk urutan line-up (besar = lebih kuat), dipakai mesin & layar line-up.
+ */
+export function lineupStrength(state: SeasonState, rs: Ruleset, format: TeamFormat): (id: EntrantId, d: Discipline) => number {
+  // Urutan kekuatan BWF (Statuta 5.2.1 kl. 13; GCR 11.6): tunggal = poin World Ranking tunggal; pasangan berperingkat =
+  // poin pasangan (main < 8 turnamen → adjusted: ×10/5, ×10/6, ×10/7); pasangan tanpa ranking (mis. ganda dadakan) =
+  // notional: rata-rata poin-per-turnamen terbaik tiap atlet bersama pasangan lain × 10 × 80%.
+  const now = absWeek(state.date);
+  const rows = new Map(DISCIPLINES.map((d) => [d, new Map(computeRanking(isJuniorFormat(format) ? state.juniorResults ?? [] : state.results, d, now, rs)
+    .map((r) => [r.entrantId, r]))]));
+  const perEvent = (d: Discipline, pairId: string) => { const r = rows.get(d)!.get(pairId); return r ? r.points / Math.min(r.tournamentsPlayed, rs.ranking.bestOf) : 0; };
+  const strength = (id: string, d: Discipline) => {
+    const row = rows.get(d)!.get(id);
+    if (d === 'MS' || d === 'WS') return row?.points ?? 0;
+    if (row) return row.tournamentsPlayed < 8 ? row.points * 10 / Math.max(5, row.tournamentsPlayed) : row.points;
+    const ids = state.pairs.find((p) => p.id === id)?.playerIds ?? id.slice(AD_HOC.length).split('+');
+    const best = ids.map((x) => Math.max(0, ...state.pairs.filter((p) => p.discipline === d && p.id !== id && p.playerIds.includes(x)).map((p) => perEvent(d, p.id))));
+    return (best.reduce((s, x) => s + x, 0) / ids.length) * 10 * 0.8;
+  };
+  return strength;
+}
+
 export interface TeamStrength { countryId: string; strength: number; lineup: Lineup; pool: Record<string, TeamEntrant[]> }
 
 /**
@@ -600,21 +622,7 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
       pools.set(c, squadPool(pool, squad));
     }
     // Posisi ranking per nomor. Atlet di ganda = posisi pasangan terbaiknya; ganda dadakan = rata-rata posisi kedua atlet.
-    // Urutan kekuatan BWF (Statuta 5.2.1 kl. 13; GCR 11.6): tunggal = poin World Ranking tunggal; pasangan berperingkat =
-    // poin pasangan (main < 8 turnamen → adjusted: ×10/5, ×10/6, ×10/7); pasangan tanpa ranking (mis. ganda dadakan) =
-    // notional: rata-rata poin-per-turnamen terbaik tiap atlet bersama pasangan lain × 10 × 80%.
-    const now = absWeek(state.date);
-    const rows = new Map(DISCIPLINES.map((d) => [d, new Map(computeRanking(isJuniorFormat(format) ? state.juniorResults ?? [] : state.results, d, now, rs)
-      .map((r) => [r.entrantId, r]))]));
-    const perEvent = (d: Discipline, pairId: string) => { const r = rows.get(d)!.get(pairId); return r ? r.points / Math.min(r.tournamentsPlayed, rs.ranking.bestOf) : 0; };
-    const strength = (id: string, d: Discipline) => {
-      const row = rows.get(d)!.get(id);
-      if (d === 'MS' || d === 'WS') return row?.points ?? 0;
-      if (row) return row.tournamentsPlayed < 8 ? row.points * 10 / Math.max(5, row.tournamentsPlayed) : row.points;
-      const ids = pairs.get(id)?.playerIds ?? id.slice(AD_HOC.length).split('+');
-      const best = ids.map((x) => Math.max(0, ...state.pairs.filter((p) => p.discipline === d && p.id !== id && p.playerIds.includes(x)).map((p) => perEvent(d, p.id))));
-      return (best.reduce((s, x) => s + x, 0) / ids.length) * 10 * 0.8;
-    };
+    const strength = lineupStrength(state, rs, format);
     const ranked = (l: Lineup) => rankOrder(l, order, strength);
     const lineupOf = async (c: string, opponent: string, round: MatchRound): Promise<Lineup> => {
       const pool = pools.get(c)!;

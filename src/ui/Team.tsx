@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { hostCityId, isHeld, teamFormatsIn, teamStrengths, type TeamResult, type TeamStrength, type TeamTie } from '../engine/season';
+import { hostCityId, isHeld, lineupStrength, teamFormatsIn, teamStrengths, type TeamResult, type TeamStrength, type TeamTie } from '../engine/season';
 import { ageAt, currentAbility } from '../engine/generator';
-import { AD_HOC, adHocEntrants, adHocId, autoLineup, autoSquad, lineupError, squadError, squadPool, type Lineup, type TeamEntrant } from '../engine/team';
+import { AD_HOC, adHocEntrants, adHocId, autoLineup, autoSquad, lineupError, rankOrder, squadError, squadPool, type Lineup, type TeamEntrant } from '../engine/team';
 import { isDoubles, isJuniorFormat, type Discipline, type TeamFormat } from '../engine/types';
 import { dataName, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, useGame } from './game';
@@ -103,14 +103,15 @@ const SLOT_GENDERS: Record<string, ['M' | 'F', 'M' | 'F']> = { MD: ['M', 'M'], W
 
 /**
  * Pilih peserta tiap partai. Tunggal: atlet. Ganda: dua atlet skuad — pasangan terdaftar bila ada,
- * selain itu ganda dadakan (pasangan khusus beregu).
+ * selain itu ganda dadakan (pasangan khusus beregu). Tiap perubahan langsung diurutkan menurut ranking (aturan BWF).
  */
-export function LineupPicker({ order, pool, squad, value, onChange }: {
-  order: Discipline[]; pool: Record<string, TeamEntrant[]>; squad: string[]; value: Lineup; onChange: (v: Lineup) => void;
+export function LineupPicker({ format, order, pool, squad, value, onChange }: {
+  format: TeamFormat; order: Discipline[]; pool: Record<string, TeamEntrant[]>; squad: string[]; value: Lineup; onChange: (v: Lineup) => void;
 }) {
-  const { game } = useGame();
+  const { game, version } = useGame();
   const { players } = lookup(game.state);
-  const set = (i: number, id: string | null) => { const next = [...value]; next[i] = id; onChange(next); };
+  const strength = useMemo(() => lineupStrength(game.state, game.ruleset, format), [game, format, version]);
+  const set = (i: number, id: string | null) => { const next = [...value]; next[i] = id; onChange(rankOrder(next, order, strength)); };
   const membersOf = (d: Discipline, id: string | null): string[] =>
     !id ? [] : id.startsWith(AD_HOC) ? id.slice(AD_HOC.length).split('+') : (pool[d] ?? []).find((e) => e.id === id)?.playerIds ?? [];
   const pick = (d: Discipline, i: number, k: 0 | 1) => {
@@ -193,7 +194,7 @@ function DefaultTeamEditor({ format, strengths, country }: { format: TeamFormat;
         <SquadPicker pool={mine.pool} value={squad} size={size} onChange={(v) => { setSquad(v); setMsg(''); }} />
         <div>
           <h4>{t('defaultLineup')}</h4>
-          <LineupPicker order={order} pool={sp} squad={squad} value={lineup} onChange={(v) => { setLineup(v); setMsg(''); }} />
+          <LineupPicker format={format} order={order} pool={sp} squad={squad} value={lineup} onChange={(v) => { setLineup(v); setMsg(''); }} />
         </div>
       </div>
       <div className="controls" style={{ marginTop: 8 }}>
@@ -245,7 +246,7 @@ export function TieLineupModal({ title, format, round, opponent, pool, squad, su
       <div className="live card">
         <h3>{title} · {formatName(format)} {round === 'G' ? t('group') : round} — vs {name}</h3>
         <p className="hint">{t('tieLineupHint')}</p>
-        <LineupPicker order={order} pool={pool} squad={squad} value={lineup} onChange={setLineup} />
+        <LineupPicker format={format} order={order} pool={pool} squad={squad} value={lineup} onChange={setLineup} />
         <div className="controls roundbar">
           <button className="primary" disabled={!!err} onClick={() => onDone(lineup)}>{t('confirmLineup')}</button>
           <button onClick={() => setLineup(suggested)}>{t('resetSuggestion')}</button>
