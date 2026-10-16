@@ -197,7 +197,7 @@ const id = {
   interval: 'interval',
   gameOver: 'game selesai',
   continue: 'Lanjut',
-  autoRestOfWeek: 'Otomatis sisa turnamen ini',
+  autoRestOfWeek: 'Otomatis sisa turnamen ({format})',
   strat_balanced: 'Seimbang',
   strat_attacking: 'Menyerang (Attacking)',
   strat_defensive: 'Bertahan (Defensive)',

@@ -42,7 +42,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   const [simWeek, setSimWeek] = useState<number>(); // minggu yang sedang disimulasikan (lanjut beberapa minggu)
   const stop = useRef(false);
   const [live, setLive] = useState<{ req: LiveRequest; mySide: 0 | 1; resolve: (r: MatchResult) => void }>();
-  const autoRest = useRef(false);
+  const autoRest = useRef(new Set<string>()); // format beregu (Thomas/Uber terpisah) yang line-up-nya otomatis sampai turnamen selesai
   type TeamAsk = { eventId: string; format: TeamFormat; pool: Record<string, TeamEntrant[]> } & (
     | { kind: 'squad'; suggested: string[]; resolve: (v: string[]) => void }
     | { kind: 'lineup'; round: MatchRound; opponent: string; squad: string[]; suggested: Lineup; resolve: (v: Lineup) => void });
@@ -52,12 +52,12 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   // Beregu: pop-up skuad (bila belum di-submit) & line-up sebelum tiap pertandingan (kecuali "Otomatis sisa turnamen").
   const teamHook: TeamHook = {
     squad: (req) => (!state.entriesSubmitted?.[`${state.date.year}:${req.eventId}`] ? new Promise((resolve) => setTeamAsk({ ...req, kind: 'squad', resolve })) : null),
-    lineup: (req) => (autoRest.current || skipEvent.current ? null : new Promise((resolve) => setTeamAsk({ ...req, kind: 'lineup', resolve }))),
+    lineup: (req) => (autoRest.current.has(req.format) || skipEvent.current ? null : new Promise((resolve) => setTeamAsk({ ...req, kind: 'lineup', resolve }))),
   };
   // Pilih turnamen minggu ini; tiap turnamen dimulai tanpa "lewati".
   const [weekAsk, setWeekAsk] = useState<WeekAsk & { resolve: (id: string | null) => void }>();
   const chooseEvent: ChooseEvent = (req) => new Promise((resolve) => setWeekAsk({ ...req, resolve: (id) => {
-    autoRest.current = false;
+    autoRest.current = new Set();
     skipDraw.current = false;
     skipEvent.current = false;
     resolve(id);
@@ -194,7 +194,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
       {teamAsk?.kind === 'lineup' && (
         <TieLineupModal key={`${teamAsk.eventId}-${teamAsk.format}-${teamAsk.round}-${teamAsk.opponent}`} title={teamTitle(teamAsk.eventId)}
           format={teamAsk.format} round={teamAsk.round} opponent={teamAsk.opponent} pool={teamAsk.pool} squad={teamAsk.squad} suggested={teamAsk.suggested}
-          onDone={(v) => { setTeamAsk(undefined); teamAsk.resolve(v); }} onAuto={() => { autoRest.current = true; }} />
+          onDone={(v) => { setTeamAsk(undefined); teamAsk.resolve(v); }} onAuto={() => { autoRest.current.add(teamAsk.format); }} />
       )}
       <nav className="controls">
         {tabs.map((x) => <button key={x} aria-pressed={tab === x && !profileId && !eventView} onClick={() => { setTab(x); setProfileId(undefined); setEventView(undefined); }}>{t(tabLabel[x])}</button>)}

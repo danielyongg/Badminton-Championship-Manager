@@ -64,6 +64,8 @@ export interface SeasonState {
   entriesSubmitted?: Record<string, true>;
   /** Snapshot ranking tiap 4 minggu (top 300 per nomor) untuk grafik riwayat peringkat. */
   rankSnapshots: { absWeek: number; discipline: Discipline; ids: string[] }[];
+  /** Peserta putaran final beregu yang sudah ditetapkan: "tahun:format" → negara. */
+  teamQualifiers?: Record<string, string[]>;
   /** Kontingen multi-event: "tahun:eventId" (nomor perorangan) → negara → atlet. */
   contingents?: Record<string, Record<string, string[]>>;
   /** Hasil kejuaraan beregu (kontinental & final). */
@@ -391,6 +393,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   if (state.commitmentsYear !== year) startYear(state, rs, rng, world);
   if (state.scouting && week > SCOUTING_DEADLINE_WEEK) recruit(state, []); // batas memilih lewat: isi otomatis
   lockContingents(state, rs);
+  lockFinalsQualifiers(state, rs, world, false);
   // Multi-event lebih dulu: negara anggota mengirim atlet terbaiknya (tanpa poin ranking, jadi tidak diurutkan dari poin).
   const events = rs.calendar.filter((e) => weekOf(e, year) === week && isHeld(e, year))
     .sort((a, b) => Number(!!b.countries) - Number(!!a.countries) || tierOf(rs, b).points[0] - tierOf(rs, a).points[0]);
@@ -460,6 +463,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     await playAny(pick, hooks, true);
   }
   for (const e of all) if (!played.includes(e.id)) await playAny(e.id, hooks.chooseEvent ? {} : hooks, false);
+  lockFinalsQualifiers(state, rs, world, true); // kejuaraan kontinental minggu ini selesai → peserta final langsung ditetapkan
 
   // Top Committed: absen dari turnamen wajib minggu ini = pelanggaran (cedera dikecualikan mulai Fase 7).
   for (const event of events)
@@ -613,28 +617,47 @@ export const teamFormatsIn = (rs: Ruleset, year: number) =>
   rs.team.events.filter((e) => !e.confederation && !e.countries && isHeld(e, year)).flatMap((e) => e.formats ?? []).filter((f) => !isJuniorFormat(f));
 
 /**
- * Peserta putaran final: tuan rumah, juara bertahan, lalu `qualifiers` tim teratas tiap kejuaraan kontinental
- * tahun ini (urutan finis: juara, finalis, semifinalis, …; tim yang sudah lolos sebagai tuan rumah/juara bertahan
- * dilewati dan kursinya jatuh ke tim berikutnya dari benua itu), lalu tim terkuat sampai kuota terpenuhi.
- * Urutan hasil = urutan unggulan (kekuatan tim).
+ * Peserta putaran final (aturan BWF Thomas & Uber / Sudirman): tuan rumah, juara bertahan, `qualifiers` tim teratas
+ * tiap kejuaraan kontinental tahun ini (Asia & Eropa: 4 semifinalis; lainnya juara). Kursi kontinental milik tim yang
+ * sudah lolos sebagai tuan rumah/juara bertahan jatuh ke tim berperingkat tertinggi berikutnya dari benua itu;
+ * sisanya menurut ranking tim (poin line-up terbaik). Urutan hasil = urutan unggulan (kekuatan tim).
+ * `conf` (negara → konfederasi); tanpa itu "benua" = peserta kejuaraan kontinentalnya.
  */
-export function finalsTeams(state: SeasonState, rs: Ruleset, format: TeamFormat, hostCountryId: string, all: TeamStrength[], size = rs.team.finals.teams) {
+export function finalsTeams(state: SeasonState, rs: Ruleset, format: TeamFormat, hostCountryId: string, all: TeamStrength[], size = rs.team.finals.teams, conf?: Map<string, string>) {
   const eligible = new Set(all.map((t) => t.countryId));
   const picked = new Set([hostCountryId, teamHolder(state, format)].filter((c): c is string => !!c && eligible.has(c)));
+  const vacant: TeamResult[] = [];
   for (const r of state.teamResults.filter((x) => x.year === state.date.year && x.format === format && x.confederation)) {
     const quota = rs.team.events.find((e) => e.id === r.eventId)?.qualifiers ?? 1;
     const depth = (c: string) => { const i = ROUNDS.indexOf(r.reached[c] as Round); return i < 0 ? ROUNDS.length : i; };
     const finish = [...r.teams].sort((a, b) => depth(a) - depth(b)); // sort stabil: seri → urutan unggulan
-    let added = 0;
-    for (const c of finish) {
-      if (added >= quota) break;
-      if (picked.has(c) || !eligible.has(c)) continue;
-      picked.add(c);
-      added++;
-    }
+    for (const c of finish.slice(0, quota)) if (picked.has(c) || !eligible.has(c)) vacant.push(r); else picked.add(c);
+  }
+  for (const r of vacant) {
+    const next = all.find((t) => !picked.has(t.countryId) && (conf ? conf.get(t.countryId) === r.confederation : r.teams.includes(t.countryId)));
+    if (next) picked.add(next.countryId);
   }
   for (const t of all) if (picked.size < size) picked.add(t.countryId);
   return all.filter((t) => picked.has(t.countryId)).map((t) => t.countryId);
+}
+
+/**
+ * Peserta putaran final ditetapkan begitu kejuaraan kontinental format itu tahun ini selesai (batas ranking = saat itu),
+ * sehingga status lolos langsung terlihat (target musim). `after` = dipanggil setelah turnamen minggu ini dimainkan.
+ */
+export function lockFinalsQualifiers(state: SeasonState, rs: Ruleset, world: World, after: boolean) {
+  const { year, week } = state.date;
+  const conf = new Map(world.countries.map((c) => [c.id, c.confederation as string]));
+  for (const ev of rs.team.events.filter((e) => !e.confederation && !e.countries && isHeld(e, year) && weekOf(e, year) >= week)) {
+    for (const format of (ev.formats ?? teamFormatsIn(rs, year)).filter((f) => !isJuniorFormat(f))) {
+      const key = `${year}:${format}`;
+      if (state.teamQualifiers?.[key]) continue;
+      const last = Math.max(-1, ...rs.team.events.filter((e) => e.confederation && isHeld(e, year) && (e.formats ?? teamFormatsIn(rs, year)).includes(format)).map((e) => weekOf(e, year)));
+      if (last > week || (last === week && !after)) continue;
+      const host = world.cities.find((c) => c.id === hostCityId(ev, year))!.countryId;
+      (state.teamQualifiers ??= {})[key] = finalsTeams(state, rs, format, host, teamStrengths(state, rs, format), ev.finals?.teams ?? rs.team.finals.teams, conf);
+    }
+  }
 }
 
 /**
@@ -656,6 +679,15 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
   const formats = ev.formats ?? teamFormatsIn(rs, year);
   const gate = gated ? roundGate(ev.id, formats, h.round) : undefined;
   const draw: DrawHook | undefined = gate && h.draw ? (d) => gate.serial(async () => { await h.draw!(d); }) : h.draw;
+  const conf = new Map(world.countries.map((c) => [c.id, c.confederation as string]));
+  /** Peserta final: daftar yang sudah ditetapkan (tim yang kini tak bisa turun diganti tim ranking berikutnya), atau dihitung sekarang. */
+  const finalsField = (format: TeamFormat, all: TeamStrength[]) => {
+    const fixed = state.teamQualifiers?.[`${year}:${format}`];
+    if (!fixed) return finalsTeams(state, rs, format, city.countryId, all, finals.teams, conf);
+    const picked = new Set(fixed.filter((c) => all.some((t) => t.countryId === c)));
+    for (const t of all) if (picked.size < finals.teams) picked.add(t.countryId);
+    return all.filter((t) => picked.has(t.countryId)).map((t) => t.countryId);
+  };
   await each(gated, formats, async (format) => {
     const order = rs.team.order[format];
     // Multi-event: pilihan atlet hanya dari kontingen; negara yang kontingennya tidak cukup untuk lima partai tidak ikut beregu.
@@ -664,7 +696,7 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
     const teams = ev.countries ? all.filter((t) => ev.countries!.includes(t.countryId)).map((t) => t.countryId) // multi-event: semua anggota
       : ev.confederation
       ? all.filter((t) => confederation.get(t.countryId) === ev.confederation).slice(0, rs.team.continentalTeams).map((t) => t.countryId)
-      : finalsTeams(state, rs, format, city.countryId, all, finals.teams);
+      : finalsField(format, all);
     if (teams.length < 2) {
       // Satu-satunya tim di konfederasinya menjadi juara kontinental tanpa bertanding (tetap lolos ke final).
       if (ev.confederation && teams.length === 1)

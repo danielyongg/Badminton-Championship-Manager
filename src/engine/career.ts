@@ -33,7 +33,8 @@ export function top10Of(state: SeasonState, rs: Ruleset, countryId: string) {
 /** Hasil beregu negara di putaran final tahun ini (0 = tidak lolos / belum dimainkan … 5 = juara). */
 export function teamLevel(state: SeasonState, countryId: string, year: number, format: TeamFormat) {
   const r = state.teamResults.find((x) => x.year === year && x.format === format && !x.confederation && !x.games);
-  return levelOf(!!r?.teams.includes(countryId), r?.reached[countryId]);
+  const qualified = !!r?.teams.includes(countryId) || !!state.teamQualifiers?.[`${year}:${format}`]?.includes(countryId); // lolos sebelum final dimainkan
+  return levelOf(qualified, r?.reached[countryId]);
 }
 
 /**

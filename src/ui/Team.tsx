@@ -250,7 +250,7 @@ export function TieLineupModal({ title, format, round, opponent, pool, squad, su
         <div className="controls roundbar">
           <button className="primary" disabled={!!err} onClick={() => onDone(lineup)}>{t('confirmLineup')}</button>
           <button onClick={() => setLineup(suggested)}>{t('resetSuggestion')}</button>
-          <button onClick={() => { onAuto(); onDone(suggested); }}>{t('autoRestOfWeek')}</button>
+          <button onClick={() => { onAuto(); onDone(suggested); }}>{t('autoRestOfWeek', { format: formatName(format) })}</button>
           <small className="down">{err}</small>
         </div>
       </div>

@@ -197,7 +197,7 @@ export const en: Record<TextKey, string> = {
   interval: 'interval',
   gameOver: 'game over',
   continue: 'Continue',
-  autoRestOfWeek: 'Auto for rest of tournament',
+  autoRestOfWeek: 'Auto for rest of tournament ({format})',
   strat_balanced: 'Balanced',
   strat_attacking: 'Attacking',
   strat_defensive: 'Defensive',

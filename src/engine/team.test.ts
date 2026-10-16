@@ -149,6 +149,37 @@ describe('Thomas, Uber & Sudirman Cup', () => {
     expect(finalsTeams(state, rs, 'thomas', 'DEN', all).sort()).toEqual(['CHN', 'DEN', 'INA', 'JPN', 'KOR', 'MAS']);
   });
 
+  it('kursi kontinental juara bertahan jatuh ke tim Asia berperingkat tertinggi berikutnya (bukan urutan finis)', () => {
+    const state = newSeason(WORLD, BWF_2026, 5, undefined, null);
+    const all = teamStrengths(state, BWF_2026, 'thomas');
+    const conf = new Map(WORLD.countries.map((c) => [c.id, c.confederation as string]));
+    const asia = all.filter((t) => conf.get(t.countryId) === 'BA').map((t) => t.countryId).slice(0, 8);
+    // Juara bertahan = juara Asia; finis lain dibalik dari ranking (tim terlemah finis lebih baik).
+    const [holder, ...rest] = asia;
+    const order = [holder, ...rest.reverse()];
+    const rounds = ['W', 'F', 'SF', 'SF', 'QF', 'QF', 'QF', 'QF'] as const;
+    state.teamResults.push(
+      { eventId: 'thomas-uber-cup', year: 2024, format: 'thomas', teams: [holder], reached: { [holder]: 'W' }, ties: [], squads: {} },
+      { eventId: 'asia-team', year: 2026, format: 'thomas', confederation: 'BA', teams: asia, reached: Object.fromEntries(order.map((c, i) => [c, rounds[i]])), ties: [], squads: {} },
+    );
+    const rs = structuredClone(BWF_2026);
+    rs.team.finals.teams = 6; // DEN + juara bertahan + 4 kursi Asia
+    const expected = ['DEN', holder, order[1], order[2], order[3], asia.find((c) => !order.slice(0, 4).includes(c))!];
+    expect(finalsTeams(state, rs, 'thomas', 'DEN', all, 6, conf).sort()).toEqual(expected.sort());
+  });
+
+  it('peserta final ditetapkan setelah kejuaraan kontinental; target beregu langsung "lolos"', async () => {
+    const state = newSeason(WORLD, BWF_2026, 9, undefined, 'INA');
+    await until(state, BWF_2026, 8, 9);
+    const q = state.teamQualifiers?.['2026:thomas'];
+    expect(q).toHaveLength(16);
+    const ina = q!.includes('INA');
+    expect(teamLevel(state, 'INA', 2026, 'thomas')).toBe(ina ? 1 : 0);
+    await until(state, BWF_2026, 19, 9);
+    const finals = state.teamResults.find((r) => r.eventId === 'thomas-uber-cup' && r.year === 2026 && r.format === 'thomas')!;
+    expect([...finals.teams].sort()).toEqual([...q!].sort());
+  }, 60000);
+
   it('live drawing: undian pot putaran final beregu ditampilkan & tersimpan untuk putar ulang', async () => {
     const state = newSeason(WORLD, BWF_2026, 9, undefined, 'INA');
     const team: DrawShow[] = [];
