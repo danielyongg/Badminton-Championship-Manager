@@ -2,7 +2,7 @@ import { makeDraw, type DrawResult } from './draw';
 import { acceptEntries, qualifyingSections, type Candidate, type EntryList } from './entry';
 import { groupDraw, groupEliminatedRound, knockoutFromGroups, playGroup, type GroupStageResult } from './groups';
 import { each, fillQualifiers, playKnockout, qualRoundName, slotField, type KnockoutResult, type PlayFn } from './knockout';
-import { simulateMatch, type MatchResult, type SideInput } from './match';
+import { matchConfigFor, simulateMatch, type MatchResult, type SideInput } from './match';
 import type { Rng } from './rng';
 import type { Discipline, DrawSlot, DrawStep, EntrantId, Match, MatchConfig, Pair, Player, Ruleset, TournamentDef } from './types';
 import type { MatchRound } from './knockout';
@@ -136,6 +136,6 @@ export function simPlay(opts: {
     const sides: [SideInput, SideInput] = [side(a), side(b)];
     const live = opts.live?.({ sides, entrants: [a, b], round, tournamentId: opts.tournamentId, discipline: opts.discipline });
     if (live) return live.then((r) => record(a, b, round, r));
-    return record(a, b, round, simulateMatch(sides, opts.cfg, opts.rng));
+    return record(a, b, round, simulateMatch(sides, matchConfigFor(opts.cfg, opts.year), opts.rng));
   };
 }

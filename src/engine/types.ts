@@ -210,6 +210,8 @@ export interface MatchConfig {
   /** Momentum (−1..1) bergeser tiap poin; sisi yang sedang unggul momentum mendapat bonus duel kecil. */
   momentum: { decay: number; weight: number };
   strategies: Record<Strategy, StrategyEffect>;
+  /** Sistem skor baru mulai tahun tertentu (BWF 3×15 mulai 2027): menggantikan poin, batas, interval, poin kritis & pemanasan. */
+  newScoring?: { fromYear: number; pointsToWin: number; cap: number; intervalAt: number; pressureFrom: number; warmupPoints: number };
 }
 
 export const STRATEGIES = ['balanced', 'attacking', 'defensive', 'fast', 'deceptive'] as const;

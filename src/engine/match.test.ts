@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createMatch, headToHead, playRally, simulateMatch, type SideInput } from './match';
+import { createMatch, headToHead, matchConfigFor, playRally, simulateMatch, type SideInput } from './match';
 import { BWF_2026 } from './presets/bwf2026';
 import { makeRng } from './rng';
 import { ATTRS, STRATEGIES, type Attrs, type Match, type Player, type Strategy } from './types';
@@ -127,4 +127,18 @@ describe('strategi Live', () => {
     expect(maxAbs).toBeGreaterThan(0.3);
     expect(maxAbs).toBeLessThanOrEqual(1);
   });
+});
+
+it('sistem skor 3×15 mulai 2027: game 15 poin, deuce unggul 2, batas 21; 2026 masih 21 poin', () => {
+  expect(matchConfigFor(cfg, 2026).pointsToWin).toBe(21);
+  const c = matchConfigFor(cfg, 2027);
+  expect([c.pointsToWin, c.cap, c.intervalAt]).toEqual([15, 21, 8]);
+  const rng = makeRng(3);
+  for (let i = 0; i < 40; i++) {
+    const r = simulateMatch([side(player(flat(60))), side(player(flat(60), { id: 'b' }))], c, rng);
+    for (const [a, b] of r.scores) {
+      const [w, l] = [Math.max(a, b), Math.min(a, b)];
+      expect(w === 15 && l <= 13 || w > 15 && w <= 21 && (w - l === 2 || w === 21)).toBe(true);
+    }
+  }
 });

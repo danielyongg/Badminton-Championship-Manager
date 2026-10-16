@@ -30,7 +30,7 @@ export interface MatchState {
 export interface RallyEvent {
   winner: 0 | 1;
   type: PointType;
-  interval?: boolean; // baru masuk interval 11 poin
+  interval?: boolean; // baru masuk interval (11 poin; 8 poin di sistem 3×15)
   gameOver?: boolean;
   matchOver?: boolean;
 }
@@ -200,4 +200,14 @@ export function headToHead(matches: Match[], a: EntrantId, b: EntrantId): [numbe
     h[m.winner === ia ? 0 : 1]++;
   }
   return h;
+}
+
+/** Aturan skor yang berlaku di tahun itu (sistem 3×15 mulai `newScoring.fromYear`). */
+export function matchConfigFor(cfg: MatchConfig, year: number): MatchConfig {
+  const n = cfg.newScoring;
+  if (!n || year < n.fromYear) return cfg;
+  return {
+    ...cfg, pointsToWin: n.pointsToWin, cap: n.cap, intervalAt: n.intervalAt,
+    pressure: { ...cfg.pressure, fromScore: n.pressureFrom }, warmup: { ...cfg.warmup, points: n.warmupPoints },
+  };
 }

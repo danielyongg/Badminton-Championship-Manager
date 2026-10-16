@@ -9,7 +9,7 @@ const SPEEDS = { slow: 600, normal: 250, fast: 60 } as const;
 const TYPES: PointType[] = ['smash', 'net', 'clear', 'drop', 'error', 'service'];
 
 /**
- * Live Match: rally demi rally. Strategi dipilih sebelum laga, saat interval 11 poin, dan antar game.
+ * Live Match: rally demi rally. Strategi dipilih sebelum laga, saat interval (11 poin; 8 poin di sistem 3×15), dan antar game.
  * Lawan (AI) memakai strategi 'balanced'.
  */
 export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, onDone, onSkipRound }: {

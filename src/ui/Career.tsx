@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { simulateMatch, type MatchResult } from '../engine/match';
+import { matchConfigFor, simulateMatch, type MatchResult } from '../engine/match';
 import type { DrawHook, DrawShow, LiveHook, LiveRequest } from '../engine/tournament';
 import { goalProgress } from '../engine/career';
 import { ageAt } from '../engine/generator';
@@ -79,7 +79,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
     setRoundAsk(undefined);
     if (ask && ask.show.phase !== 'playing') ask.resolve(); // babak yang menunggu klik langsung lanjut
     // Pop-up yang sedang terbuka ikut diselesaikan otomatis (laga disimulasikan, line-up saran dipakai).
-    if (live) { setLive(undefined); live.resolve(simulateMatch(live.req.sides, game.ruleset.match, game.rng)); }
+    if (live) { setLive(undefined); live.resolve(simulateMatch(live.req.sides, matchConfigFor(game.ruleset.match, state.date.year), game.rng)); }
     if (teamAsk?.kind === 'lineup') { setTeamAsk(undefined); teamAsk.resolve(teamAsk.suggested); }
   };
   const roundHook: RoundHook = (show) => {
@@ -170,7 +170,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
           names={[entrantLabel(state, live.req.entrants[0]).name, entrantLabel(state, live.req.entrants[1]).name]}
           ids={[entrantLabel(state, live.req.entrants[0]).country, entrantLabel(state, live.req.entrants[1]).country]}
           mySide={live.mySide}
-          cfg={game.ruleset.match}
+          cfg={matchConfigFor(game.ruleset.match, state.date.year)}
           rng={game.rng}
           title={`${eventName(game.ruleset, live.req.tournamentId, state.date.year)} · ${live.req.discipline} ${live.req.round}`}
           onDone={(r) => { setLive(undefined); live.resolve(r); }}

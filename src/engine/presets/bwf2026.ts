@@ -255,6 +255,9 @@ export const BWF_2026: Ruleset = {
     chemistryWeight: 0.15,
     serviceEvent: { base: 0.02, perMissingServe: 0.0005 },
     momentum: { decay: 0.8, weight: 2 },
+    // Sistem skor 3×15 (BWF, mulai 4 Jan 2027): 15 poin, deuce 14–14 unggul 2, batas 21, interval 8.
+    // ASUMSI: poin kritis mulai 12 & pemanasan 6 poin (diskalakan dari 18/21 & 8/21).
+    newScoring: { fromYear: 2027, pointsToWin: 15, cap: 21, intervalAt: 8, pressureFrom: 12, warmupPoints: 6 },
     // Strategi Live (ASUMSI: kalibrasi). Mode Auto memakai 'balanced'.
     strategies: {
       balanced: { weight: { smash: 1, net: 1, deception: 1, rally: 1 }, attack: {}, defend: 0, error: 0, energy: 1 },
