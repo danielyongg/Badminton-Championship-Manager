@@ -116,7 +116,7 @@ function Winners({ id, year, who }: { id: string; year: number; who: WhoFns }) {
         const k = f ? f.sides.indexOf(w ?? '') : -1, ru = f && k >= 0 ? f.sides[1 - k] : undefined;
         return (
           <tr key={r.format} className={w && who.mine?.(w) ? 'sel' : ''}>
-            <td><span className="chip">{formatName(r.format)}</span></td>
+            <td><span className="chip">{formatName(r.format, r.eventId)}</span></td>
             <td><b><Flag id={w} />{w ? country(w) : '—'}</b></td>
             <td>{ru ? <><Flag id={ru} />{country(ru)}</> : '—'}</td>
             <td className="num">{f && k >= 0 ? `${f.score[k]}–${f.score[1 - k]}` : ''}</td>
@@ -159,7 +159,7 @@ function WinnersHistory({ id, who }: { id: string; who: WhoFns }) {
     const years = [...new Set(team.map((r) => r.year))].sort((a, b) => b - a);
     return (
       <div className="scroll"><table style={{ maxWidth: 720 }}>
-        <thead><tr><th>{t('year')}</th>{formats.map((f) => <th key={f}>{formatName(f)}</th>)}</tr></thead>
+        <thead><tr><th>{t('year')}</th>{formats.map((f) => <th key={f}>{formatName(f, id)}</th>)}</tr></thead>
         <tbody>{years.map((y) => (
           <tr key={y}><td>{y}</td>{formats.map((f) => {
             const r = team.find((x) => x.year === y && x.format === f);

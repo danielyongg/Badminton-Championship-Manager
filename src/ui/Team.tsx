@@ -11,7 +11,9 @@ import { MatchLink } from './MatchDetail';
 
 // Beregu: jadwal, line-up negara sendiri, dan hasil Thomas/Uber/Sudirman Cup + kejuaraan kontinental.
 
-export const formatName = (f: TeamFormat) => t(`team_${f}` as TextKey);
+/** Nama format; di kejuaraan selain Thomas & Uber / Sudirman / Suhandinata Cup: beregu putra / putri / campuran. */
+const OWN_EVENT: Record<TeamFormat, string> = { thomas: 'thomas-uber-cup', uber: 'thomas-uber-cup', sudirman: 'sudirman-cup', suhandinata: 'suhandinata-cup' };
+export const formatName = (f: TeamFormat, eventId?: string) => t((eventId && eventId !== OWN_EVENT[f] ? `teamGeneric_${f}` : `team_${f}`) as TextKey);
 export const levelName = (n: number) => t(`teamLevel_${n}` as TextKey);
 export const winnerOf = (r: TeamResult) => Object.keys(r.reached).find((c) => r.reached[c] === 'W');
 
@@ -36,7 +38,7 @@ export function Team() {
       <section className="card">
         <h3>{t('teamSchedule')} {year}</h3>
         <ul>{ruleset.team.events.filter((e) => isHeld(e, year)).sort((a, b) => weekOf(a, year) - weekOf(b, year)).map((e) => (
-          <li key={e.id}>{t('week')} {weekOf(e, year)}: <b>{eventName(ruleset, e.id, year)}</b> ({(e.formats ?? teamFormatsIn(ruleset, year)).map(formatName).join(', ')}, {city(hostCityId(e, year))}){weekOf(e, year) < week ? ' ✓' : ''}</li>
+          <li key={e.id}>{t('week')} {weekOf(e, year)}: <b>{eventName(ruleset, e.id, year)}</b> ({(e.formats ?? teamFormatsIn(ruleset, year)).map((f) => formatName(f, e.id)).join(', ')}, {city(hostCityId(e, year))}){weekOf(e, year) < week ? ' ✓' : ''}</li>
         ))}</ul>
         <p className="hint">{t('teamHelp')}</p>
       </section>
@@ -49,7 +51,7 @@ export function Team() {
           <table>
             <tbody>{results.filter((r) => r.confederation).map((r) => (
               <tr key={r.eventId + r.format}>
-                <td>{eventName(ruleset, r.eventId, r.year)}</td><td>{formatName(r.format)}</td>
+                <td>{eventName(ruleset, r.eventId, r.year)}</td><td>{formatName(r.format, r.eventId)}</td>
                 <td><b><Flag id={winnerOf(r)} />{winnerOf(r)}</b></td><td>{r.teams.length} {t('teams')}</td>
               </tr>
             ))}</tbody>
@@ -207,7 +209,8 @@ function DefaultTeamEditor({ format, strengths, country }: { format: TeamFormat;
 }
 
 /** Pop-up sebelum turnamen beregu: daftarkan skuad. */
-export function SquadModal({ title, format, pool, suggested, onDone }: {
+export function SquadModal({ title, eventId, format, pool, suggested, onDone }: {
+  eventId?: string;
   title: string; format: TeamFormat; pool: Record<string, TeamEntrant[]>; suggested: string[]; onDone: (squad: string[]) => void;
 }) {
   const { game } = useGame();
@@ -217,7 +220,7 @@ export function SquadModal({ title, format, pool, suggested, onDone }: {
   return (
     <div className="modal" role="dialog" aria-label={t('registerSquad')}>
       <div className="live card">
-        <h3>{title} · {formatName(format)}: {t('registerSquad')}</h3>
+        <h3>{title} · {formatName(format, eventId)}: {t('registerSquad')}</h3>
         <p className="hint">{t('squadHint')}</p>
         <SquadPicker pool={pool} value={squad} onChange={setSquad} size={rs.team.squadSize[format]} />
         <div className="controls roundbar">
@@ -231,8 +234,8 @@ export function SquadModal({ title, format, pool, suggested, onDone }: {
 }
 
 /** Pop-up sebelum tiap pertandingan beregu: pilih line-up dari skuad. */
-export function TieLineupModal({ title, format, round, opponent, pool, squad, suggested, onDone, onAuto }: {
-  title: string; format: TeamFormat; round: string; opponent: string; pool: Record<string, TeamEntrant[]>; squad: string[]; suggested: Lineup;
+export function TieLineupModal({ title, eventId, format, round, opponent, pool, squad, suggested, onDone, onAuto }: {
+  title: string; eventId?: string; format: TeamFormat; round: string; opponent: string; pool: Record<string, TeamEntrant[]>; squad: string[]; suggested: Lineup;
   onDone: (l: Lineup) => void; onAuto: () => void;
 }) {
   const { game } = useGame();
@@ -244,13 +247,13 @@ export function TieLineupModal({ title, format, round, opponent, pool, squad, su
   return (
     <div className="modal" role="dialog" aria-label={t('lineup')}>
       <div className="live card">
-        <h3>{title} · {formatName(format)} {round === 'G' ? t('group') : round} — vs {name}</h3>
+        <h3>{title} · {formatName(format, eventId)} {round === 'G' ? t('group') : round} — vs {name}</h3>
         <p className="hint">{t('tieLineupHint')}</p>
         <LineupPicker format={format} order={order} pool={pool} squad={squad} value={lineup} onChange={setLineup} />
         <div className="controls roundbar">
           <button className="primary" disabled={!!err} onClick={() => onDone(lineup)}>{t('confirmLineup')}</button>
           <button onClick={() => setLineup(suggested)}>{t('resetSuggestion')}</button>
-          <button onClick={() => { onAuto(); onDone(suggested); }}>{t('autoRestOfWeek', { format: formatName(format) })}</button>
+          <button onClick={() => { onAuto(); onDone(suggested); }}>{t('autoRestOfWeek', { format: formatName(format, eventId) })}</button>
           <small className="down">{err}</small>
         </div>
       </div>
@@ -276,10 +279,10 @@ export function FinalsResult({ r }: { r: TeamResult }) {
   return (
     <section className="card">
       {open && <TieDetail r={r} tie={open} name={name} onClose={() => setOpen(undefined)} />}
-      <h3>{formatName(r.format)} — {t('champion')}: {champion ? name(champion) : '—'}</h3>
+      <h3>{formatName(r.format, r.eventId)} — {t('champion')}: {champion ? name(champion) : '—'}</h3>
       {r.drawSteps && <button onClick={() => setReplay(true)}>{t('draw_replay')}</button>}
       {replay && r.drawSteps && (
-        <LiveDraw replay title={`${eventName(game.ruleset, r.eventId, r.year)} · ${formatName(r.format)}`} show={{ steps: r.drawSteps, groups: r.groups?.length }}
+        <LiveDraw replay title={`${eventName(game.ruleset, r.eventId, r.year)} · ${formatName(r.format, r.eventId)}`} show={{ steps: r.drawSteps, groups: r.groups?.length }}
           name={name} mine={(c) => c === managed} onClose={() => setReplay(false)} />
       )}
       {r.groups && (
@@ -323,7 +326,7 @@ function TieDetail({ r, tie, name, onClose }: { r: TeamResult; tie: TeamTie; nam
     ? tie.matchIds.map((id) => state.matches.find((m) => m.id === id)!).filter(Boolean)
     : state.matches.filter((m) => m.tournamentId === r.eventId && m.year === r.year && m.round === tie.round && order.has(m.discipline)
       && [country(m.sides[0]), country(m.sides[1])].sort().join() === [...tie.sides].sort().join());
-  const title = `${eventName(game.ruleset, r.eventId, r.year)} · ${formatName(r.format)}`;
+  const title = `${eventName(game.ruleset, r.eventId, r.year)} · ${formatName(r.format, r.eventId)}`;
   return (
     <div className="modal" role="dialog" aria-label={t('matchDetail')} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="live card" style={{ width: 'min(980px, 100%)' }}>

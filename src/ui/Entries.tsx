@@ -309,7 +309,7 @@ function TeamSquads({ eventId, formats, onSubmit }: { eventId: string; formats: 
       {games && <p className="hint">{t('contingentRule', { m: games.contingent!.M, f: games.contingent!.F, w: lockWeek(ruleset, games, state.date.year) })}</p>}
       {pools.map(({ f, rank, total, pool }, i) => (
         <section key={f} className="card">
-          <h4>{formatName(f)}</h4>
+          <h4>{formatName(f, eventId)}</h4>
           {!pool ? <p>{t('teamNotEligible')}</p> : <>
             <p>{t('teamStrengthRank')}: <b>#{rank + 1}</b> / {total}</p>
             <TeamRules format={f} />

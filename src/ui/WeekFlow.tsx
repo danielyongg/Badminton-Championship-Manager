@@ -129,7 +129,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
           <nav className="controls subnav">
             {keys.map((k) => (
               <button key={k} aria-pressed={k === tab} disabled={playing && k !== tab} onClick={() => setTab(k)}>
-                {team ? formatName(k as TeamFormat) : k}{mineKeys.has(k) && <span className="mine"> ●</span>}
+                {team ? formatName(k as TeamFormat, show.tournamentId) : k}{mineKeys.has(k) && <span className="mine"> ●</span>}
               </button>
             ))}
           </nav>

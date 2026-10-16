@@ -247,7 +247,7 @@ export function Calendar({ state, ruleset, world, short, onOpenEvent, year = sho
       <td className="num hide-sm">—</td>
       <td colSpan={DISCIPLINES.length}>{state.teamResults.filter((x) => x.eventId === e.id && x.year === year).map((x) => {
         const w = winnerOf(x);
-        return w && <span key={x.format} style={{ marginRight: 12, whiteSpace: 'nowrap' }}><small className="muted-text">{formatName(x.format)}</small> <Flag id={w} />{w}</span>;
+        return w && <span key={x.format} style={{ marginRight: 12, whiteSpace: 'nowrap' }}><small className="muted-text">{formatName(x.format, x.eventId)}</small> <Flag id={w} />{w}</span>;
       })}</td>
     </tr>
   );

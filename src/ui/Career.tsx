@@ -188,11 +188,11 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
           onSkipEvent={() => { skipDraw.current = true; }} />
       )}
       {teamAsk?.kind === 'squad' && (
-        <SquadModal key={`${teamAsk.eventId}-${teamAsk.format}`} title={teamTitle(teamAsk.eventId)} format={teamAsk.format} pool={teamAsk.pool}
+        <SquadModal key={`${teamAsk.eventId}-${teamAsk.format}`} title={teamTitle(teamAsk.eventId)} eventId={teamAsk.eventId} format={teamAsk.format} pool={teamAsk.pool}
           suggested={teamAsk.suggested} onDone={(v) => { setTeamAsk(undefined); teamAsk.resolve(v); }} />
       )}
       {teamAsk?.kind === 'lineup' && (
-        <TieLineupModal key={`${teamAsk.eventId}-${teamAsk.format}-${teamAsk.round}-${teamAsk.opponent}`} title={teamTitle(teamAsk.eventId)}
+        <TieLineupModal key={`${teamAsk.eventId}-${teamAsk.format}-${teamAsk.round}-${teamAsk.opponent}`} title={teamTitle(teamAsk.eventId)} eventId={teamAsk.eventId}
           format={teamAsk.format} round={teamAsk.round} opponent={teamAsk.opponent} pool={teamAsk.pool} squad={teamAsk.squad} suggested={teamAsk.suggested}
           onDone={(v) => { setTeamAsk(undefined); teamAsk.resolve(v); }} onAuto={() => { autoRest.current.add(teamAsk.format); }} />
       )}
@@ -489,7 +489,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
             return (
               <div key={r.eventId + r.format} className={`drow${reached === 'W' ? ' champ' : ''}`}>
                 <span className="chip">{teamLabel(r)}</span>
-                <span className="grow"><b><EventLink id={r.eventId} year={r.year} onOpen={onOpenEvent} /> · {formatName(r.format)}</b></span>
+                <span className="grow"><b><EventLink id={r.eventId} year={r.year} onOpen={onOpenEvent} /> · {formatName(r.format, r.eventId)}</b></span>
                 <span className={`badge${reached === 'W' ? ' gold' : reached === 'F' || reached === 'SF' ? ' good' : ''}`}>{reached === 'W' ? `🏆 ${t('champion')}` : reached ?? t('group')}</span>
               </div>
             );
@@ -598,7 +598,7 @@ function Titles({ country, year, onOpen, onOpenEvent }: { country: string; year:
             {teamTitles.map((r) => (
               <div key={r.eventId + r.format} className="drow champ">
                 <span className="chip">{teamLabel(r)}</span>
-                <span className="grow">{formatName(r.format)} <small className="muted-text"><EventLink id={r.eventId} year={year} onOpen={onOpenEvent} /></small></span>
+                <span className="grow">{formatName(r.format, r.eventId)} <small className="muted-text"><EventLink id={r.eventId} year={year} onOpen={onOpenEvent} /></small></span>
                 <span className="badge gold">🏆</span>
               </div>
             ))}
@@ -656,7 +656,7 @@ function SeasonSummary({ year, country, onBack, onOpen, onOpenEvent }: { year: n
             return (
               <div key={r.eventId + r.format} className={`drow${reached === 'W' ? ' champ' : ''}`}>
                 <span className="chip">{teamLabel(r)}</span>
-                <span className="grow"><b><EventLink id={r.eventId} year={year} onOpen={onOpenEvent} /> · {formatName(r.format)}</b></span>
+                <span className="grow"><b><EventLink id={r.eventId} year={year} onOpen={onOpenEvent} /> · {formatName(r.format, r.eventId)}</b></span>
                 <span className={`badge${reached === 'W' ? ' gold' : reached === 'F' || reached === 'SF' ? ' good' : ''}`}>{reached === 'W' ? `🏆 ${t('champion')}` : reached ?? t('group')}</span>
               </div>
             );
