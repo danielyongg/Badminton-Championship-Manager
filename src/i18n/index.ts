@@ -130,7 +130,7 @@ const id = {
   goal_titles: 'Jumlah gelar',
   goal_top10: 'Atlet/pasangan di top 10 dunia',
   goal_team: 'Hasil beregu',
-  goal_medals: 'Medali {event}', goal_gold: 'Emas {event}', goal_olympic: 'Wakil lolos Olimpiade {y}', goal_olympicLater: 'dinilai {y}',
+  multiEvent: 'Multi-event', goal_medals: 'Medali {event}', goal_gold: 'Emas {event}', goal_olympic: 'Wakil lolos Olimpiade {y}', goal_olympicLater: 'dinilai {y}',
   challenge: 'Tantangan musim', challengeHint: 'Opsional: pilih satu sebelum minggu {w}. Berhasil +{win} reputasi, gagal −{lose}.',
   challengeChoose: 'Ambil', challengeNone: 'Tidak ada tantangan musim ini.', challengeDone: 'Berhasil', challengeFailed: 'Gagal',
   ch_homeTitle: 'Juara (nomor apa saja) di turnamen kandang {event}', ch_beatRival: 'Raih gelar lebih banyak dari {rival}',

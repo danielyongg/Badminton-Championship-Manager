@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { DISCIPLINES, type Discipline } from '../engine/types';
 import { dataName, numLocale, t } from '../i18n';
 import { BracketView, DrawStepsView, EntryView, GroupView, QualView, SeedsView, Who } from './EventViews';
-import { entrantLabel, eventName, lookup, useGame } from './game';
+import { entrantLabel, eventName, lookup, tierLabel, useGame } from './game';
 import { LiveDraw } from './LiveDraw';
 import { FinalsResult, formatName, winnerOf } from './Team';
 import { Flag } from './Flag';
@@ -36,7 +36,7 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
     eventTitle: eventName(ruleset, id, year),
   };
   const team = state.teamResults.filter((r) => r.eventId === id && r.year === year);
-  const tier = def && 'tierId' in def ? def.tierId : t('tabTeam');
+  const tier = def && 'tierId' in def ? tierLabel(def.tierId) : t('tabTeam');
   const prize = def && 'prizeUsd' in def && def.prizeUsd ? ` · $${def.prizeUsd.toLocaleString(numLocale())}` : '';
 
   const rec = records.find((r) => r.discipline === d);

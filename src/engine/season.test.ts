@@ -235,3 +235,14 @@ it('kalender musim baru: tahun resmi tetap, tahun berikutnya bergeser ±1 minggu
   expect(big).not.toContain(wc);
   expect(state.date.year).toBe(2027);
 });
+
+it('negara manajer hanya bisa memilih event yang terbuka untuknya (kontinental benua lain & multi-event non-anggota disimulasikan)', async () => {
+  const rs = structuredClone(BWF_2026);
+  const state = newSeason(WORLD, rs, 3, { year: 2026, week: 7 }, 'INA');
+  state.managedCountryId = 'INA';
+  let offered: string[] = [];
+  await playWeek(state, rs, WORLD, makeRng(1), { chooseEvent: (req) => { offered = req.events.map((e) => e.id); return Promise.resolve(null); } });
+  expect(offered).toContain('asia-team');
+  expect(offered).not.toContain('europe-team');
+  expect(state.teamResults.some((r) => r.eventId === 'europe-team')).toBe(true); // tetap dimainkan otomatis
+});

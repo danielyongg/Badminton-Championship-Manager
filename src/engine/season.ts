@@ -108,6 +108,11 @@ export const isHeld = (e: { everyYears?: TournamentDef['everyYears']; skipYears?
 export const hostCityId = (e: Pick<TournamentDef, 'cityId' | 'hosts' | 'rotation'>, year: number) =>
   e.hosts?.[year] ?? (e.rotation?.length ? e.rotation[year % e.rotation.length] : e.cityId);
 
+/** Event yang terbuka untuk negara: multi-event hanya anggotanya, kejuaraan kontinental hanya negara konfederasinya. */
+export const openTo = (e: { countries?: string[]; confederation?: Confederation }, countryId: string, world: World) =>
+  (!e.countries || e.countries.includes(countryId))
+  && (!e.confederation || world.countries.find((c) => c.id === countryId)?.confederation === e.confederation);
+
 /** Minggu event di tahun tertentu: jadwal per tahun (`weeks`) atau minggu bawaan. */
 export const weekOf = (e: Pick<TournamentDef, 'week' | 'weeks'>, year: number) => e.weeks?.[year] ?? e.week;
 
@@ -389,7 +394,10 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   // Pilihan pertama diminta sebelum entry dihitung: manajer masih bisa mengisi entry dari layar minggu.
   const all = [...events.map((e) => ({ id: e.id, kind: 'individual' as const })), ...teamEvents.map((e) => ({ id: e.id, kind: 'team' as const }))];
   const played: string[] = [];
-  const ask = () => (hooks.chooseEvent && played.length < all.length ? hooks.chooseEvent({ week, events: all, played }) : null);
+  // Negara manajer hanya bisa memilih event yang terbuka untuknya; event lain disimulasikan otomatis.
+  const managed = state.managedCountryId;
+  const choosable = all.filter((x) => !managed || openTo([...events, ...teamEvents].find((e) => e.id === x.id)!, managed, world));
+  const ask = () => (hooks.chooseEvent && choosable.some((e) => !played.includes(e.id)) ? hooks.chooseEvent({ week, events: choosable, played }) : null);
   let pick = await ask();
   // Turnamen junior lebih dulu: atlet yang ikut tidak didaftarkan ke turnamen senior minggu ini.
   const juniorRanks = new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.juniorResults, d, cutoff, rs))]));
@@ -432,7 +440,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   };
 
   for (; pick; pick = await ask()) {
-    if (played.includes(pick) || !all.some((e) => e.id === pick)) continue;
+    if (played.includes(pick) || !choosable.some((e) => e.id === pick)) continue;
     played.push(pick);
     await playAny(pick, hooks, true);
   }

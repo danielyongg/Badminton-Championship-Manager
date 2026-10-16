@@ -3,7 +3,7 @@ import { matchConfigFor, simulateMatch, type MatchResult } from '../engine/match
 import type { DrawHook, DrawShow, LiveHook, LiveRequest } from '../engine/tournament';
 import { CHALLENGE_DEADLINE_WEEK, CHALLENGE_PENALTY, CHALLENGE_REWARD, challengeProgress, goalProgress, goalWeight } from '../engine/career';
 import { ageAt } from '../engine/generator';
-import { hostCityId, isHeld, weekOf, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
+import { hostCityId, isHeld, openTo, weekOf, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
 import type { RoundHook, RoundShow } from '../engine/gate';
 import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
@@ -18,7 +18,7 @@ import { ThemeSelect } from './ThemeSelect';
 import { Flag } from './Flag';
 import { LiveDraw } from './LiveDraw';
 import { LiveMatch } from './LiveMatch';
-import { advance, entrantLabel, eventName, JUNIOR_MAX_AGE, lookup, saveGame, useGame } from './game';
+import { advance, entrantLabel, eventName, tierLabel, JUNIOR_MAX_AGE, lookup, saveGame, useGame } from './game';
 import { SeasonViews } from './Ranking';
 import { injuryText, isBadInjury, Profile, Squad, usd } from './Squad';
 import { autoPick, recruit, SCOUTING_DEADLINE_WEEK } from '../engine/scouting';
@@ -345,7 +345,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
       .map((r) => { const i = prev?.ids.indexOf(r.entrantId) ?? -1; return { id: r.entrantId, rank: r.rank, points: r.points, delta: i < 0 ? undefined : i + 1 - r.rank }; });
   }, [version, rankD]);
   const upcoming = [...ruleset.calendar, ...ruleset.team.events.map((e) => ({ ...e, tierId: t('teamShort') }))]
-    .filter((e) => isHeld(e, year) && weekOf(e, year) >= week && weekOf(e, year) < week + 4)
+    .filter((e) => isHeld(e, year) && weekOf(e, year) >= week && weekOf(e, year) < week + 4 && (!managed || openTo(e, managed, world)))
     .sort((a, b) => weekOf(a, year) - weekOf(b, year));
   const city = (id: string) => dataName(world.cities.find((c) => c.id === id)?.name);
 
@@ -407,7 +407,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
             <h4>{t('week')} {w}</h4>
             {list.map((e) => (
               <div key={e.id} className="drow">
-                <span className="chip">{ruleset.tiers.find((x) => x.id === e.tierId)?.junior ? t('juniorShort') : e.tierId}</span>
+                <span className="chip">{ruleset.tiers.find((x) => x.id === e.tierId)?.junior ? t('juniorShort') : tierLabel(e.tierId)}</span>
                 <span className="grow"><b>{eventName(ruleset, e.id, year)}</b> <small className="muted-text">{city(hostCityId(e, year))}</small></span>
               </div>
             ))}

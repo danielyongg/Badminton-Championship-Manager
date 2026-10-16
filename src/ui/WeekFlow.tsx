@@ -5,7 +5,7 @@ import { DISCIPLINES, type Discipline, type TeamFormat } from '../engine/types';
 import { dataName, t } from '../i18n';
 import { Flag } from './Flag';
 import { EntryTable } from './Entries';
-import { entrantLabel, eventName, saveGame, useGame } from './game';
+import { entrantLabel, eventName, saveGame, tierLabel, useGame } from './game';
 import { formatName } from './Team';
 
 // Alur minggu turnamen: pilih turnamen yang dimainkan → drawing → babak demi babak (laga negara sendiri live).
@@ -56,7 +56,7 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
           const done = ask.played.includes(id);
           return (
             <li key={id}>
-              <span className="chip">{kind === 'team' ? t('teamShort') : tier?.junior ? t('juniorShort') : tier?.id}</span>
+              <span className="chip">{kind === 'team' ? t('teamShort') : tier?.junior ? t('juniorShort') : tier && tierLabel(tier.id)}</span>
               <span className="grow"><b>{eventName(ruleset, id, year)}</b> <small className="muted-text">{city(hostCityId(ev, year))}</small><br />
                 <small>{done ? <span className="badge good">✓ {t('played')}</span>
                   : kind === 'team' ? null : auto ? t('auto') : submitted ? <span className="badge good">✓ {t('entrySubmitted')}</span>

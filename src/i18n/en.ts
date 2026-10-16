@@ -130,7 +130,7 @@ export const en: Record<TextKey, string> = {
   goal_titles: 'Titles won',
   goal_top10: 'Players/pairs in world top 10',
   goal_team: 'Team result',
-  goal_medals: '{event} medals', goal_gold: '{event} gold', goal_olympic: 'Olympic qualifiers {y}', goal_olympicLater: 'judged in {y}',
+  multiEvent: 'Multi-event', goal_medals: '{event} medals', goal_gold: '{event} gold', goal_olympic: 'Olympic qualifiers {y}', goal_olympicLater: 'judged in {y}',
   challenge: 'Season challenge', challengeHint: 'Optional: pick one before week {w}. Success +{win} reputation, failure −{lose}.',
   challengeChoose: 'Accept', challengeNone: 'No challenge this season.', challengeDone: 'Succeeded', challengeFailed: 'Failed',
   ch_homeTitle: 'Win a title (any event) at home tournament {event}', ch_beatRival: 'Win more titles than {rival}',

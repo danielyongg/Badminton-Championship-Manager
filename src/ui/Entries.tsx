@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
-import { entrantsFor, hostCityId, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
+import { entrantsFor, hostCityId, openTo, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
 import { autoSquad, squadError } from '../engine/team';
 import { DISCIPLINES, type TeamFormat } from '../engine/types';
 import { dataName, t } from '../i18n';
-import { entrantLabel, eventName, lookup, saveGame, useGame } from './game';
+import { entrantLabel, eventName, lookup, saveGame, tierLabel, useGame } from './game';
 import { FatigueBar } from './Squad';
 import { isPratama } from '../engine/generator';
 import { formatName, SquadPicker } from './Team';
@@ -31,7 +31,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   if (ev) return (
     <>
       <p><button onClick={() => setOpen(undefined)}>← {t('back')}</button></p>
-      <h3>{t('week')} {weekOf(ev, year)} · {dataName(ev.name)} <small className="muted-text">{ev.tierId}</small></h3>
+      <h3>{t('week')} {weekOf(ev, year)} · {dataName(ev.name)} <small className="muted-text">{tierLabel(ev.tierId)}</small></h3>
       <EntryTable week={weekOf(ev, year)} eventId={ev.id} />
       <p><button className="primary" onClick={() => submit(ev.id)}>{t('submitEntries')}</button></p>
     </>
@@ -39,7 +39,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   const city = (id: string) => dataName(game.world.cities.find((c) => c.id === id)?.name);
   const submitted = (id: string) => state.entriesSubmitted?.[`${year}:${id}`];
   const teamIds = new Set(ruleset.team.events.map((e) => e.id));
-  const all = [...ruleset.calendar, ...ruleset.team.events].filter((e) => isHeld(e, year) && (!e.countries || !state.managedCountryId || e.countries.includes(state.managedCountryId))) // multi-event: hanya negara anggota
+  const all = [...ruleset.calendar, ...ruleset.team.events].filter((e) => isHeld(e, year) && (!state.managedCountryId || openTo(e, state.managedCountryId, game.world))) // hanya event yang terbuka untuk negara manajer
    .sort((a, b) => weekOf(a, year) - weekOf(b, year));
   const pastCount = all.filter((e) => weekOf(e, year) < week).length;
   const list = showPast ? all : all.filter((e) => weekOf(e, year) >= week);
@@ -65,7 +65,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
             <tr key={e.id} className={past ? 'muted-text' : undefined}>
               <td className="num">{weekOf(e, year)}</td>
               <td><a href="#" onClick={(x) => { x.preventDefault(); if (past || auto) onOpenEvent?.(e.id, year); else setOpen(e.id); }}>{team ? eventName(ruleset, e.id, year) : dataName(e.name)}</a></td>
-              <td><span className="chip">{team ? t('teamShort') : ruleset.tiers.find((x) => x.id === tier)?.junior ? t('juniorShort') : tier}</span></td>
+              <td><span className="chip">{team ? t('teamShort') : ruleset.tiers.find((x) => x.id === tier)?.junior ? t('juniorShort') : tierLabel(tier)}</span></td>
               <td className="hide-sm">{city(hostCityId(e, year))}</td>
               <td>{past ? t('finished') : auto ? t('auto')
                 : submitted(e.id) ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>}</td>
@@ -108,7 +108,7 @@ function SeasonPlan() {
     changed();
     void saveGame(game);
   };
-  const short = (id: string) => { const ev = ruleset.calendar.find((e) => e.id === id)!; return `${ev.tierId} ${dataName(ev.name).split(' ')[0]}`; };
+  const short = (id: string) => { const ev = ruleset.calendar.find((e) => e.id === id)!; return `${tierLabel(ev.tierId)} ${dataName(ev.name).split(' ')[0]}`; };
   const label = (c: PlanCell) => c.eventId === 'rest' ? t('rest') : c.eventId ? short(c.eventId) : '—';
 
   if (!weeks.length) return <p>{t('noEvents')}</p>;
@@ -123,8 +123,8 @@ function SeasonPlan() {
       <div className="scroll">
         <table className="plan">
           <thead><tr><th>{t('name')}</th>{weeks.map((w) => (
-            <th key={w} title={plannableEvents(ruleset, year, w, state.managedCountryId).map((e) => `${dataName(e.name)} (${e.tierId})`).join(' · ')}>
-              {t('weekShort')}{w} · {plannableEvents(ruleset, year, w, state.managedCountryId)[0].tierId}
+            <th key={w} title={plannableEvents(ruleset, year, w, state.managedCountryId).map((e) => `${dataName(e.name)} (${tierLabel(e.tierId)})`).join(' · ')}>
+              {t('weekShort')}{w} · {tierLabel(plannableEvents(ruleset, year, w, state.managedCountryId)[0].tierId)}
             </th>
           ))}</tr></thead>
           <tbody>{rows.map((e) => (
@@ -208,7 +208,7 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
       <p>{t('entryHelp')}</p>
       {events.length === 0 ? <p>{t('noEvents')}</p> : (
         <>
-          {!eventId && <p>{events.map((e) => `${dataName(e.name)} (${e.tierId})`).join(' · ')}</p>}
+          {!eventId && <p>{events.map((e) => `${dataName(e.name)} (${tierLabel(e.tierId)})`).join(' · ')}</p>}
           <p className="controls">
             <button onClick={() => setAll((e) => e.trial ? decisions[e.id] : (eventId && offeredFor(e.d).some((ev) => ev.id === eventId) ? eventId : offeredFor(e.d)[0]?.id))}>{t('playAll')}</button>
             <button onClick={() => setAll(() => 'rest')}>{t('restAll')}</button>
