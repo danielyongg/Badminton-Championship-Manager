@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { entrantsFor, hostCityId, openTo, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
-import { autoSquad, squadError } from '../engine/team';
-import { inContingent } from '../engine/contingent';
-import { DISCIPLINES, type TeamFormat } from '../engine/types';
+import { autoSquad, squadError, squadPool } from '../engine/team';
+import { contingentOf, inContingent, lockWeek } from '../engine/contingent';
+import { DISCIPLINES, isDoubles, type Discipline, type TeamFormat, type TournamentDef } from '../engine/types';
 import { dataName, t } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, teamLabel, tierLabel, useGame } from './game';
 import { FatigueBar } from './Squad';
@@ -25,7 +25,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
     <>
       <p><button onClick={() => setOpen(undefined)}>← {t('back')}</button></p>
       <h3>{t('week')} {weekOf(teamEv, year)} · {eventName(ruleset, teamEv.id, year)} <small className="muted-text">{teamLabel(teamEv)}</small></h3>
-      <TeamSquads formats={teamEv.formats ?? teamFormatsIn(ruleset, year)} onSubmit={() => submit(teamEv.id)} />
+      <TeamSquads eventId={teamEv.id} formats={teamEv.formats ?? teamFormatsIn(ruleset, year)} onSubmit={() => submit(teamEv.id)} />
     </>
   );
   const ev = open && ruleset.calendar.find((e) => e.id === open);
@@ -33,6 +33,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
     <>
       <p><button onClick={() => setOpen(undefined)}>← {t('back')}</button></p>
       <h3>{t('week')} {weekOf(ev, year)} · {dataName(ev.name)} <small className="muted-text">{tierLabel(ev.tierId)}</small></h3>
+      <EntryRules ev={ev} />
       <EntryTable week={weekOf(ev, year)} eventId={ev.id} />
       <p><button className="primary" onClick={() => submit(ev.id)}>{t('submitEntries')}</button></p>
     </>
@@ -249,16 +250,55 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
   );
 }
 
+/**
+ * Aturan skuad beregu: urutan partai & kebutuhan minimal per sektor. Tunggal: atlet berbeda per partai;
+ * ganda: pasangan berbeda; tiap atlet maks `max` partai di nomor berbeda → minimal atlet per gender.
+ */
+function TeamRules({ format }: { format: TeamFormat }) {
+  const { ruleset } = useGame().game;
+  const order = ruleset.team.order[format], max = ruleset.team.maxMatchesPerPlayer;
+  const slots = (d: Discipline) => order.filter((x) => x === d).length;
+  const need = [...new Set(order)].map((d) => `${d} ${slots(d)} ${t(isDoubles(d) ? 'pairsDistinct' : 'playersDistinct')}`);
+  const minOf = (g: 'M' | 'F') => {
+    const per = [...new Set(order)].map((d) => slots(d) * (d === 'XD' ? 1 : isDoubles(d) ? 2 : 1) * Number(GENDER_OF[d].includes(g)));
+    return Math.max(...per, Math.ceil(per.reduce((a, b) => a + b, 0) / max));
+  };
+  const men = minOf('M'), women = minOf('F');
+  return (
+    <p className="hint">{t('teamRules', { order: order.join(' · '), need: need.join(', '), max })}
+      {' '}{[men && `${men} ${t('men').toLowerCase()}`, women && `${women} ${t('women').toLowerCase()}`].filter(Boolean).join(' + ')} {t('minimumBring')}</p>
+  );
+}
+const GENDER_OF: Record<Discipline, string> = { MS: 'M', WS: 'F', MD: 'M', WD: 'F', XD: 'MF' };
+
+/** Aturan entry turnamen individu: kuota per negara & (multi-event) kontingen. */
+function EntryRules({ ev }: { ev: TournamentDef }) {
+  const { game } = useGame();
+  const { ruleset, state } = game;
+  const q = ruleset.tiers.find((x) => x.id === ev.tierId)?.countryQuota;
+  if (!q && !ev.contingent) return null;
+  const { year } = state.date;
+  return (
+    <p className="hint">
+      {q && (q.max > q.base ? t('quotaRuleTop', { n: q.base, max: q.max, top: q.topRank }) : t('quotaRule', { n: q.base }))}
+      {ev.contingent && <> {t('contingentRule', { m: ev.contingent.M, f: ev.contingent.F, w: lockWeek(ruleset, ev, year) })}</>}
+    </p>
+  );
+}
+
 /** Skuad beregu per format turnamen (line-up dipilih di pop-up sebelum tiap pertandingan). */
-function TeamSquads({ formats, onSubmit }: { formats: TeamFormat[]; onSubmit: () => void }) {
+function TeamSquads({ eventId, formats, onSubmit }: { eventId: string; formats: TeamFormat[]; onSubmit: () => void }) {
   const { game } = useGame();
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
   const max = ruleset.team.maxMatchesPerPlayer;
+  const contingent = contingentOf(state, eventId, country); // multi-event: hanya atlet kontingen
+  const games = ruleset.calendar.find((e) => e.contingent && `${e.id}-team` === eventId);
   const pools = formats.map((f) => {
     const all = teamStrengths(state, ruleset, f);
     const rank = all.findIndex((x) => x.countryId === country);
-    return { f, rank, total: all.length, pool: all[rank]?.pool };
+    const pool = all[rank]?.pool;
+    return { f, rank, total: all.length, pool: pool && contingent ? squadPool(pool, contingent) : pool };
   });
   const [squads, setSquads] = useState(() => Object.fromEntries(pools.map(({ f, pool }) =>
     [f, state.teamSquads[f] ?? (pool ? autoSquad(ruleset.team.order[f], pool, max, ruleset.team.squadSize[f].max) : [])])) as Record<TeamFormat, string[]>);
@@ -266,11 +306,13 @@ function TeamSquads({ formats, onSubmit }: { formats: TeamFormat[]; onSubmit: ()
   return (
     <>
       <p className="hint">{t('squadHint')}</p>
+      {games && <p className="hint">{t('contingentRule', { m: games.contingent!.M, f: games.contingent!.F, w: lockWeek(ruleset, games, state.date.year) })}</p>}
       {pools.map(({ f, rank, total, pool }, i) => (
         <section key={f} className="card">
           <h4>{formatName(f)}</h4>
           {!pool ? <p>{t('teamNotEligible')}</p> : <>
             <p>{t('teamStrengthRank')}: <b>#{rank + 1}</b> / {total}</p>
+            <TeamRules format={f} />
             <SquadPicker pool={pool} value={squads[f]} size={ruleset.team.squadSize[f]} onChange={(v) => setSquads({ ...squads, [f]: v })} />
             {errs[i] && <small className="down">{errs[i]}</small>}
           </>}
