@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { LiveMatch } from './LiveMatch';
 import { currentAbility } from '../engine/generator';
-import { headToHead, simulateMatch, type MatchResult } from '../engine/match';
+import { headToHead, matchConfigFor, simulateMatch, type MatchResult } from '../engine/match';
 import { makeRng } from '../engine/rng';
 import type { Match, MatchConfig, Player, PointType } from '../engine/types';
 import { t } from '../i18n';
@@ -9,13 +9,16 @@ import { t } from '../i18n';
 const TYPES: PointType[] = ['smash', 'net', 'clear', 'drop', 'error', 'service'];
 
 /** Uji coba mesin pertandingan: pilih dua atlet tunggal, simulasikan, lihat skor, statistik & H2H. */
-export function MatchLab({ players, cfg }: { players: Player[]; cfg: MatchConfig }) {
+export function MatchLab({ players, cfg: base }: { players: Player[]; cfg: MatchConfig }) {
   const top = [...players].sort((a, b) => currentAbility(b.attrs) - currentAbility(a.attrs)).slice(0, 200);
   const [a, setA] = useState(top[0].id);
   const [b, setB] = useState(top[1].id);
   const [history, setHistory] = useState<Match[]>([]);
   const [last, setLast] = useState<MatchResult>();
   const [live, setLive] = useState(false);
+  // Sistem skor: 3×15 (berlaku mulai 2027) atau 21 poin lama, untuk membandingkan.
+  const [scoring, setScoring] = useState<'15' | '21'>(base.newScoring ? '15' : '21');
+  const cfg = scoring === '15' ? matchConfigFor(base, base.newScoring?.fromYear ?? 0) : base;
   const byId = new Map(top.map((p) => [p.id, p]));
   const pa = byId.get(a) ?? top[0], pb = byId.get(b) ?? top[1];
 
@@ -43,6 +46,12 @@ export function MatchLab({ players, cfg }: { players: Player[]; cfg: MatchConfig
       <div className="controls">
         <label>{t('sideA')}{select(a, setA)}</label>
         <label>{t('sideB')}{select(b, setB)}</label>
+        {base.newScoring && <label>{t('scoringSystem')}
+          <select value={scoring} onChange={(e) => { setScoring(e.target.value as '15' | '21'); setHistory([]); setLast(undefined); }}>
+            <option value="15">{t('scoring3x15', { y: base.newScoring.fromYear })}</option>
+            <option value="21">{t('scoring21')}</option>
+          </select>
+        </label>}
         <button onClick={() => play(1)}>{t('playOne')}</button>
         <button onClick={() => play(100)}>{t('playHundred')}</button>
         <button onClick={() => setLive(true)}>{t('playLive')}</button>
