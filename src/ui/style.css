@@ -45,6 +45,7 @@ h2, h3, h4 { font-weight: 600; }
 button, select, input { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 4px 10px; }
 /* Panah select sendiri (panah bawaan menempel di tepi kanan); warna per tema lewat --chevron. */
 select { appearance: none; padding-right: 32px; background-image: var(--chevron); background-position: right 12px center; background-size: 12px 8px; background-repeat: no-repeat; }
+td select { width: 100%; min-width: 7.5rem; } /* tabel sempit (HP): kotak pilihan mengikuti lebar kolom, tidak melewati layar */
 button { cursor: pointer; transition: background-color 150ms, color 150ms, border-color 150ms; }
 button:hover:not(:disabled) { border-color: var(--accent); }
 button:disabled { opacity: .5; cursor: default; }
