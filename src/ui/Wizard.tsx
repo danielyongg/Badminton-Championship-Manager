@@ -1,4 +1,4 @@
-import { hostCityId } from '../engine/season';
+import { hostCityId, weekOf } from '../engine/season';
 import { useEffect, useMemo, useState } from 'react';
 import type { Candidate } from '../engine/entry';
 import { BracketView, DrawStepsView, EntryView, GroupView, QualView, SeedsView } from './EventViews';
@@ -64,7 +64,7 @@ export function Wizard({ players, pairs, ruleset, world }: { players: Player[]; 
       <div className="controls">
         <label>{t('tournament')}
           <select value={eventId} onChange={(e) => { setEventId(e.target.value); reset(); }}>
-            {events.map((e) => <option key={e.id} value={e.id}>{t('week')} {e.week} · {dataName(e.name)} ({e.tierId})</option>)}
+            {events.map((e) => <option key={e.id} value={e.id}>{t('week')} {weekOf(e, ruleset.startYear)} · {dataName(e.name)} ({e.tierId})</option>)}
           </select>
         </label>
         <label>{t('discipline')}

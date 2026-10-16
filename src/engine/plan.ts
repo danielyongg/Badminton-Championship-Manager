@@ -1,4 +1,4 @@
-import { entrantsFor, isHeld, isManaged, releasedIds, weekKey, type SeasonState } from './season';
+import { entrantsFor, isHeld, weekOf, isManaged, releasedIds, weekKey, type SeasonState } from './season';
 import { DISCIPLINES, type Ruleset } from './types';
 
 // Ringkasan rencana musim: entry negara manajer yang sudah pasti untuk satu minggu ke depan.
@@ -14,7 +14,7 @@ export interface PlanCell {
 /** Turnamen individu senior minggu itu yang entry-nya diatur manajer (tanpa WTF & junior), tier tertinggi dulu. */
 export function plannableEvents(rs: Ruleset, year: number, week: number) {
   const tier = (id: string) => rs.tiers.find((t) => t.id === id)!;
-  return rs.calendar.filter((e) => e.week === week && isHeld(e, year) && e.tierId !== 'WTF' && !tier(e.tierId).junior)
+  return rs.calendar.filter((e) => weekOf(e, year) === week && isHeld(e, year) && e.tierId !== 'WTF' && !tier(e.tierId).junior)
     .sort((a, b) => tier(b.tierId).points[0] - tier(a.tierId).points[0]);
 }
 

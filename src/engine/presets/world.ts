@@ -113,6 +113,9 @@ export const WORLD: World = {
     { id: 'guatemala-city', countryId: 'GUA', name: 'Guatemala City', venue: 'Domo Polideportivo', lat: 14.63, lon: -90.51 },
     // ASUMSI: venue Beijing (Sudirman Cup 2027) belum diumumkan.
     { id: 'beijing', countryId: 'CHN', name: 'Beijing', venue: 'National Indoor Stadium', lat: 39.99, lon: 116.39 },
+    // ASUMSI: venue Chengdu (China Open 2027–28) & Manila (Philippine Open) belum dipastikan.
+    { id: 'chengdu', countryId: 'CHN', name: 'Chengdu', venue: 'Sichuan Gymnasium', lat: 30.66, lon: 104.07 },
+    { id: 'manila', countryId: 'PHI', name: 'Manila', venue: 'Rizal Memorial Coliseum', lat: 14.56, lon: 120.99 },
     { id: 'brisbane', countryId: 'AUS', name: 'Brisbane', venue: 'Brisbane Convention & Exhibition Centre', lat: -27.48, lon: 153.02 },
     { id: 'rose-hill', countryId: 'MRI', name: 'Rose Hill', venue: 'Badminton Hall Rose Hill', lat: -20.24, lon: 57.47 },
   ],

@@ -106,6 +106,37 @@ export const isHeld = (e: { everyYears?: TournamentDef['everyYears'] }, year: nu
 export const hostCityId = (e: Pick<TournamentDef, 'cityId' | 'hosts' | 'rotation'>, year: number) =>
   e.hosts?.[year] ?? (e.rotation?.length ? e.rotation[year % e.rotation.length] : e.cityId);
 
+/** Minggu event di tahun tertentu: jadwal per tahun (`weeks`) atau minggu bawaan. */
+export const weekOf = (e: Pick<TournamentDef, 'week' | 'weeks'>, year: number) => e.weeks?.[year] ?? e.week;
+
+/** Event besar & tetap (patokan kalender): tidak digeser oleh `scheduleYear`. */
+const ANCHOR_TIERS = new Set(['OG', 'WC', 'WTF']);
+const BIG_TIERS = new Set(['S1000', 'S750', 'S500']);
+
+/**
+ * Kalender musim baru (per save): turnamen yang belum punya jadwal tahun ini bergeser −1/0/+1 minggu dari minggu
+ * bawaannya (ASUMSI, meniru pergeseran tanggal antarmusim). Super 500 ke atas tidak sepekan dengan Super 500+ lain,
+ * Olimpiade/Kejuaraan Dunia, atau final beregu. Event besar, beregu & junior tetap.
+ */
+export function scheduleYear(rs: Ruleset, year: number, rng: Rng) {
+  const junior = new Set(rs.tiers.filter((x) => x.junior).map((x) => x.id));
+  const held = rs.calendar.filter((e) => isHeld(e, year));
+  const blocked = new Set([
+    ...held.filter((e) => ANCHOR_TIERS.has(e.tierId) && e.tierId !== 'WTF').map((e) => weekOf(e, year)),
+    ...rs.team.events.filter((e) => isHeld(e, year) && !e.confederation && e.formats?.every((f) => !isJuniorFormat(f))).map((e) => weekOf(e, year)),
+  ]);
+  const wtf = Math.min(...held.filter((e) => e.tierId === 'WTF').map((e) => weekOf(e, year)), 53);
+  const big = new Set(held.filter((e) => BIG_TIERS.has(e.tierId) && e.weeks?.[year] !== undefined).map((e) => e.weeks![year]));
+  for (const e of shuffle(rng, held.filter((x) => x.weeks?.[year] === undefined && !ANCHOR_TIERS.has(x.tierId) && !junior.has(x.tierId)))) {
+    const isBig = BIG_TIERS.has(e.tierId);
+    const options = shuffle(rng, [-1, 0, 0, 1]).map((d) => e.week + d)
+      .filter((w) => w >= 1 && w < wtf && (!isBig || (!big.has(w) && !blocked.has(w))));
+    const w = options[0] ?? e.week;
+    (e.weeks ??= {})[year] = w;
+    if (isBig) big.add(w);
+  }
+}
+
 export interface Entrant { id: EntrantId; countryId: string; playerIds: string[]; trial?: boolean }
 
 /** Atlet yang sudah keluar pelatnas negara manajer (tetap aktif, diatur AI). */
@@ -198,6 +229,7 @@ const tierOf = (rs: Ruleset, e: TournamentDef) => rs.tiers.find((t) => t.id === 
  */
 export function startYear(state: SeasonState, rs: Ruleset, rng: Rng) {
   const { year } = state.date;
+  if (year > rs.startYear) scheduleYear(rs, year, rng); // musim pertama = kalender asli preset
   const now = absWeek(state.date);
   const tc = rs.topCommitted;
   const held = rs.calendar.filter((e) => isHeld(e, year));
@@ -330,8 +362,8 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   const { year, week } = state.date;
   if (state.commitmentsYear !== year) startYear(state, rs, rng);
   if (state.scouting && week > SCOUTING_DEADLINE_WEEK) recruit(state, []); // batas memilih lewat: isi otomatis
-  const events = rs.calendar.filter((e) => e.week === week && isHeld(e, year)).sort((a, b) => tierOf(rs, b).points[0] - tierOf(rs, a).points[0]);
-  const teamEvents = rs.team.events.filter((e) => e.week === week && isHeld(e, year));
+  const events = rs.calendar.filter((e) => weekOf(e, year) === week && isHeld(e, year)).sort((a, b) => tierOf(rs, b).points[0] - tierOf(rs, a).points[0]);
+  const teamEvents = rs.team.events.filter((e) => weekOf(e, year) === week && isHeld(e, year));
   const players = new Map(state.players.map((p) => [p.id, p]));
   const pairs = new Map(state.pairs.map((p) => [p.id, p]));
   const cities = new Map(world.cities.map((c) => [c.id, c]));

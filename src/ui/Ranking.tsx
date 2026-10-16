@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { absWeek, computeRace, computeRanking, expiringPoints } from '../engine/ranking';
 import { presetPack } from '../engine/pack';
 import { makeRng } from '../engine/rng';
-import { hostCityId, isHeld, newSeason, playWeek, rankFromSnapshots, type SeasonState } from '../engine/season';
+import { hostCityId, isHeld, weekOf, newSeason, playWeek, rankFromSnapshots, type SeasonState } from '../engine/season';
 import { ageAt, currentAbility } from '../engine/generator';
 import { ATTRS, DISCIPLINES, type Discipline, type Player, type Ruleset, type World } from '../engine/types';
 import { dataName, numLocale, t, type TextKey } from '../i18n';
@@ -220,13 +220,13 @@ const weekOfAbs = (a: number) => a - yearOfAbs(a) * 52;
 const shownYear = (s: SeasonState) => (s.date.week === 1 ? s.date.year - 1 : s.date.year);
 
 export function Calendar({ state, ruleset, world, short, onOpenEvent, year = shownYear(state) }: { state: SeasonState; ruleset: Ruleset; world: World; short: (id: string) => string; onOpenEvent?: (id: string, year: number) => void; year?: number }) {
-  const events = ruleset.calendar.filter((e) => isHeld(e, year)).sort((a, b) => a.week - b.week);
+  const events = ruleset.calendar.filter((e) => isHeld(e, year)).sort((a, b) => weekOf(a, year) - weekOf(b, year));
   const teams = ruleset.team.events.filter((e) => isHeld(e, year));
   const city = new Map(world.cities.map((c) => [c.id, c]));
   // Kejuaraan beregu: juara per format (Thomas/Uber/Sudirman/…) di kolom nomor.
   const teamRow = (e: (typeof teams)[number]) => (
-    <tr key={e.id} className={year === state.date.year && e.week === state.date.week ? 'sel' : ''}>
-      <td className="num">{e.week}</td><td>{onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, year); }}>{eventNameOf(ruleset, e.id, year)}</a> : eventNameOf(ruleset, e.id, year)}</td><td>{t('teamShort')}</td>
+    <tr key={e.id} className={year === state.date.year && weekOf(e, year) === state.date.week ? 'sel' : ''}>
+      <td className="num">{weekOf(e, year)}</td><td>{onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, year); }}>{eventNameOf(ruleset, e.id, year)}</a> : eventNameOf(ruleset, e.id, year)}</td><td>{t('teamShort')}</td>
       <td className="hide-sm">{dataName(city.get(hostCityId(e, year))?.name)} ({city.get(hostCityId(e, year))?.countryId})</td>
       <td className="num hide-sm">—</td>
       <td colSpan={DISCIPLINES.length}>{state.teamResults.filter((x) => x.eventId === e.id && x.year === year).map((x) => {
@@ -239,9 +239,9 @@ export function Calendar({ state, ruleset, world, short, onOpenEvent, year = sho
     <div className="scroll">
       <table>
         <thead><tr><th className="num">{t('week')}</th><th>{t('tournament')}</th><th>{t('tier')}</th><th className="hide-sm">{t('city')}</th><th className="num hide-sm">{t('prize')}</th>{DISCIPLINES.map((d) => <th key={d}>{d}</th>)}</tr></thead>
-        <tbody>{[...events, ...teams].sort((a, b) => a.week - b.week).map((e) => !('tierId' in e) ? teamRow(e) : (
-          <tr key={e.id} className={year === state.date.year && e.week === state.date.week ? 'sel' : ''}>
-            <td className="num">{e.week}</td><td>{onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, year); }}>{dataName(e.name)}</a> : dataName(e.name)}</td><td>{e.tierId}</td>
+        <tbody>{[...events, ...teams].sort((a, b) => weekOf(a, year) - weekOf(b, year)).map((e) => !('tierId' in e) ? teamRow(e) : (
+          <tr key={e.id} className={year === state.date.year && weekOf(e, year) === state.date.week ? 'sel' : ''}>
+            <td className="num">{weekOf(e, year)}</td><td>{onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, year); }}>{dataName(e.name)}</a> : dataName(e.name)}</td><td>{e.tierId}</td>
             <td className="hide-sm">{dataName(city.get(hostCityId(e, year))?.name)} ({city.get(hostCityId(e, year))?.countryId})</td>
             <td className="num hide-sm">{e.prizeUsd ? `$${e.prizeUsd.toLocaleString(numLocale())}` : '—'}</td>
             {DISCIPLINES.map((d) => {
@@ -263,10 +263,10 @@ export function commitmentStatus(state: SeasonState, ruleset: Ruleset, entrantId
   const missed = new Set(state.violations.filter((v) => v.year === year && v.entrantId === entrantId).map((v) => v.tournamentId));
   return (state.commitments[entrantId] ?? []).map((id) => {
     const ev = ruleset.calendar.find((e) => e.id === id);
-    const w = ev?.week ?? 0;
+    const w = ev ? weekOf(ev, year) : 0;
     const status = played.has(id) ? 'done' : missed.has(id) ? 'missed' : w < week ? 'excused' : 'upcoming';
     return { id, week: w, tierId: ev?.tierId ?? '', status } as const;
-  }).sort((a, b) => a.week - b.week);
+  }).sort((a, b) => weekOf(a, year) - weekOf(b, year));
 }
 
 /** Chip turnamen wajib: ✓ diikuti · ✗ absen (pelanggaran) · cedera (dikecualikan) · mendatang (minggu). */

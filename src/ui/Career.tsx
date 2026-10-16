@@ -3,7 +3,7 @@ import { simulateMatch, type MatchResult } from '../engine/match';
 import type { DrawHook, DrawShow, LiveHook, LiveRequest } from '../engine/tournament';
 import { goalProgress } from '../engine/career';
 import { ageAt } from '../engine/generator';
-import { hostCityId, isHeld, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
+import { hostCityId, isHeld, weekOf, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
 import type { RoundHook, RoundShow } from '../engine/gate';
 import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
@@ -303,12 +303,13 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
       .map((r) => { const i = prev?.ids.indexOf(r.entrantId) ?? -1; return { id: r.entrantId, rank: r.rank, points: r.points, delta: i < 0 ? undefined : i + 1 - r.rank }; });
   }, [version, rankD]);
   const upcoming = [...ruleset.calendar, ...ruleset.team.events.map((e) => ({ ...e, tierId: t('teamShort') }))]
-    .filter((e) => isHeld(e, year) && e.week >= week && e.week < week + 4)
-    .sort((a, b) => a.week - b.week);
+    .filter((e) => isHeld(e, year) && weekOf(e, year) >= week && weekOf(e, year) < week + 4)
+    .sort((a, b) => weekOf(a, year) - weekOf(b, year));
   const city = (id: string) => dataName(world.cities.find((c) => c.id === id)?.name);
 
   // Hasil turnamen: minggu-minggu lampau yang diikuti negara ini (tahun*100 + minggu), bisa dimaju-mundurkan.
-  const weekOf = new Map([...ruleset.calendar, ...ruleset.team.events].map((e) => [e.id, e.week]));
+  const defs = new Map([...ruleset.calendar, ...ruleset.team.events].map((e) => [e.id, e]));
+  const weekIn = (id: string, y: number) => { const e = defs.get(id); return e ? weekOf(e, y) : 0; }; // minggu event di tahun itu
   const teamEventIds = new Set(ruleset.team.events.map((e) => e.id));
   const playerCountry = new Map(state.players.map((p) => [p.id, p.countryId]));
   const mine = new Set([
@@ -317,15 +318,15 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
   ]);
   const myTeams = state.teamResults.filter((r) => r.teams.includes(managed ?? ''));
   const resultWeeks = [...new Set([
-    ...state.matches.filter((m) => mine.has(m.sides[0]) || mine.has(m.sides[1])).map((m) => m.year * 100 + (weekOf.get(m.tournamentId) ?? 0)),
-    ...myTeams.map((r) => r.year * 100 + (weekOf.get(r.eventId) ?? 0)),
+    ...state.matches.filter((m) => mine.has(m.sides[0]) || mine.has(m.sides[1])).map((m) => m.year * 100 + weekIn(m.tournamentId, m.year)),
+    ...myTeams.map((r) => r.year * 100 + weekIn(r.eventId, r.year)),
   ])].filter((k) => k % 100 > 0 && k < year * 100 + week).sort((a, b) => a - b);
   const sel = resultWeeks[Math.max(0, resultWeeks.length - 1 - back)];
   const selYear = Math.floor((sel ?? 0) / 100), selWeek = (sel ?? 0) % 100;
   // Laga terakhir tiap peserta negara ini di turnamen minggu terpilih.
   const last = new Map<string, { event: string; id: string; m: Match; i: 0 | 1 }>();
   for (const m of state.matches) {
-    if (m.year !== selYear || weekOf.get(m.tournamentId) !== selWeek || teamEventIds.has(m.tournamentId)) continue; // partai beregu: lihat baris Tim
+    if (m.year !== selYear || weekIn(m.tournamentId, m.year) !== selWeek || teamEventIds.has(m.tournamentId)) continue; // partai beregu: lihat baris Tim
     m.sides.forEach((side, i) => {
       if (mine.has(side)) last.set(`${m.tournamentId}:${side}`, { event: m.tournamentId, id: side, m, i: i as 0 | 1 });
     });
@@ -334,9 +335,9 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
   const reachedOf = (r: { m: Match; i: 0 | 1 }) => (r.m.winner === r.i && r.m.round === 'F' ? 'W' : r.m.round);
   const byEvent = groupBy([...last.values()], (r) => r.event);
   for (const list of byEvent.values()) list.sort((a, b) => ROUND_ORDER.indexOf(reachedOf(a)) - ROUND_ORDER.indexOf(reachedOf(b)));
-  const byWeek = groupBy(upcoming, (e) => e.week);
+  const byWeek = groupBy(upcoming, (e) => weekOf(e, year));
   // Beregu minggu terpilih: babak terakhir negara ini per format.
-  const lastTeam = myTeams.filter((r) => r.year === selYear && weekOf.get(r.eventId) === selWeek);
+  const lastTeam = myTeams.filter((r) => r.year === selYear && weekIn(r.eventId, r.year) === selWeek);
   const injured = state.players.filter((p) => p.countryId === managed && p.injury && p.retired === undefined && p.released === undefined);
   const lastReport = state.career?.reports.at(-1);
 

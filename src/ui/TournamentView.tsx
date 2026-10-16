@@ -1,4 +1,4 @@
-import { hostCityId } from '../engine/season';
+import { hostCityId, weekOf } from '../engine/season';
 import { useState } from 'react';
 import { DISCIPLINES, type Discipline } from '../engine/types';
 import { dataName, numLocale, t } from '../i18n';
@@ -45,7 +45,7 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
     <section>
       <div className="controls"><button onClick={onBack}>{t('back')}</button></div>
       <h2>{eventName(ruleset, id, year)} {year}</h2>
-      <p>{tier} · {dataName(city?.name)} ({city?.countryId}) · {t('week')} {def?.week}{prize}</p>
+      <p>{tier} · {dataName(city?.name)} ({city?.countryId}) · {t('week')} {def && weekOf(def, year)}{prize}</p>
       <nav className="controls">
         {(['event', 'winners', 'history'] as const).map((x) => (
           <button key={x} aria-pressed={page === x} onClick={() => setPage(x)}>

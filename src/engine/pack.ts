@@ -94,11 +94,11 @@ export function validatePack(p: Pick<DataPack, 'ruleset' | 'world' | 'players' |
   for (const e of rs.calendar) {
     for (const c of venues(e)) if (!cities.has(c)) errs.push(`${t('tournament')} ${e.id}: ${t('v_city', { c })}`);
     if (!tiers.has(e.tierId)) errs.push(`${t('tournament')} ${e.id}: ${t('v_tierRef', { tier: e.tierId })}`);
-    if (!inRange(e.week, 1, 52)) errs.push(`${t('tournament')} ${e.id}: ${t('v_week')}`);
+    if (![e.week, ...Object.values(e.weeks ?? {})].every((w) => inRange(w, 1, 52))) errs.push(`${t('tournament')} ${e.id}: ${t('v_week')}`);
   }
   for (const e of rs.team.events) {
     for (const c of venues(e)) if (!cities.has(c)) errs.push(`${t('tabTeam')} ${e.id}: ${t('v_city', { c })}`);
-    if (!inRange(e.week, 1, 52)) errs.push(`${t('tabTeam')} ${e.id}: ${t('v_week')}`);
+    if (![e.week, ...Object.values(e.weeks ?? {})].every((w) => inRange(w, 1, 52))) errs.push(`${t('tabTeam')} ${e.id}: ${t('v_week')}`);
   }
 
   const players = new Map(p.players.map((x) => [x.id, x]));

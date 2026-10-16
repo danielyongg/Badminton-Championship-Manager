@@ -195,6 +195,29 @@ export const CALENDAR_2026: TournamentDef[] = [
   { id: 'world-junior', name: 'BWF World Junior Championships', cityId: 'guwahati', week: 41, tierId: 'WJC', prizeUsd: 0 },
 ];
 
+/**
+ * Minggu resmi HSBC BWF World Tour 2027 & 2028 (kalender BWF 30 Juni 2026); Super 1000 (12 hari) = minggu pertamanya.
+ * Turnamen yang tidak ada di kalender resmi tahun itu memakai jadwal hasil `scheduleYear`.
+ */
+export const OFFICIAL_WEEKS: Record<string, [number, number]> = {
+  'malaysia-open': [3, 5], 'india-open': [5, 4], 'indonesia-masters': [6, 3], 'thailand-masters': [7, 2], 'german-open': [8, 8],
+  'all-england': [9, 9], 'swiss-open': [11, 11], 'orleans-masters': [12, 12], 'philippine-open': [15, 7], 'taipei-open': [18, 18],
+  'korea-open': [19, 19], 'hong-kong-open': [20, 20], 'indonesia-open': [21, 21], 'singapore-open': [23, 33], 'vietnam-open': [24, 24],
+  'china-s100': [25, 27], 'canada-open': [26, 25], 'us-open': [27, 26], 'syed-modi': [30, 30], 'thailand-open': [32, 32],
+  'malaysia-masters': [33, 23], 'japan-open': [34, 34], 'china-open': [35, 35], 'kaohsiung-masters': [37, 37], 'arctic-open': [39, 39],
+  'french-open': [40, 40], 'denmark-open': [41, 41], 'malaysia-s100': [42, 42], 'hylo-open': [43, 38], 'china-masters': [44, 45],
+  'japan-masters': [45, 46], 'australian-open': [46, 44], 'macau-open': [47, 47], 'indonesia-masters-100': [48, 48],
+  'world-tour-finals': [48, 48], 'indonesia-s100-2': [49, 49],
+  // ASUMSI: Kejuaraan Dunia 2027 di celah kalender Juli (minggu 28–29) karena Agustus terisi tur Asia.
+  'world-championships': [28, 34],
+};
+const OFFICIAL_HOSTS: Record<string, Record<string, string>> = { 'us-open': { 2027: 'los-angeles' }, 'china-open': { 2027: 'chengdu', 2028: 'chengdu' } };
+for (const e of CALENDAR_2026) {
+  const w = OFFICIAL_WEEKS[e.id];
+  if (w) e.weeks = { 2027: w[0], 2028: w[1] };
+  if (OFFICIAL_HOSTS[e.id]) e.hosts = { ...e.hosts, ...OFFICIAL_HOSTS[e.id] };
+}
+
 export const BWF_2026: Ruleset = {
   id: 'bwf-2026',
   name: 'BWF 2026',
@@ -319,13 +342,15 @@ export const BWF_2026: Ruleset = {
   // 2025 Guwahati & 2026 Kairo, kontinental 2026 (Qingdao, Istanbul, Guatemala City, Gaborone, Auckland), Asia 2027 Qingdao.
   // ASUMSI: tahun yang belum diumumkan bergilir di antara tuan rumah terdahulu (`rotation`). Eropa 2027 aslinya Tallinn
   // (Estonia belum ada di daftar negara).
+  // Minggu per tahun (`weeks`): Sudirman 2027 21 Apr–2 Mei (minggu 16), Asia beregu campuran 2027 12–17 Jan (minggu 2),
+  // Eropa 6–10 Jan (minggu 1). ASUMSI: Thomas & Uber 2028 minggu 16 (celah kalender World Tour April–Mei).
   // Final 16 tim: tuan rumah, juara bertahan, 4 teratas Asia & Eropa (semifinalis), juara Pan Am/Afrika/Oseania,
   // sisanya menurut kekuatan tim (poin ranking line-up terbaik).
   team: {
     events: [
-      { id: 'asia-team', name: 'Badminton Asia Team Championships', nameMixed: 'Badminton Asia Mixed Team Championships', cityId: 'qingdao', week: 7, confederation: 'BA', qualifiers: 4,
+      { id: 'asia-team', name: 'Badminton Asia Team Championships', nameMixed: 'Badminton Asia Mixed Team Championships', cityId: 'qingdao', week: 7, confederation: 'BA', qualifiers: 4, weeks: { 2027: 2 },
         hosts: { 2026: 'qingdao', 2027: 'qingdao' }, rotation: ['kuala-lumpur', 'hong-kong', 'qingdao'] },
-      { id: 'europe-team', name: 'European Team Championships', nameMixed: 'European Mixed Team Championships', cityId: 'istanbul', week: 7, confederation: 'BE', qualifiers: 4,
+      { id: 'europe-team', name: 'European Team Championships', nameMixed: 'European Mixed Team Championships', cityId: 'istanbul', week: 7, confederation: 'BE', qualifiers: 4, weeks: { 2027: 1 },
         hosts: { 2026: 'istanbul' }, rotation: ['vantaa', 'almere', 'sofia', 'horsens'] },
       { id: 'panam-team', name: 'Pan Am Male & Female Cup', nameMixed: 'Pan Am Cup', cityId: 'guatemala-city', week: 7, confederation: 'BAM',
         hosts: { 2026: 'guatemala-city' }, rotation: ['lima', 'calgary', 'guatemala-city', 'sao-paulo'] },
@@ -333,9 +358,9 @@ export const BWF_2026: Ruleset = {
         hosts: { 2026: 'gaborone' }, rotation: ['cairo', 'lagos', 'johannesburg', 'rose-hill'] },
       { id: 'oceania-team', name: 'Oceania Team Championships', nameMixed: 'Oceania Mixed Team Championships', cityId: 'auckland', week: 7, confederation: 'BO',
         hosts: { 2026: 'auckland' }, rotation: ['sydney', 'auckland'] },
-      { id: 'thomas-uber-cup', name: 'Thomas & Uber Cup', cityId: 'horsens', week: 18, formats: ['thomas', 'uber'], everyYears: { interval: 2, offset: 0 },
+      { id: 'thomas-uber-cup', name: 'Thomas & Uber Cup', cityId: 'horsens', week: 18, formats: ['thomas', 'uber'], everyYears: { interval: 2, offset: 0 }, weeks: { 2028: 16 },
         hosts: { 2026: 'horsens' }, rotation: ['bangkok', 'jakarta', 'kuala-lumpur'] },
-      { id: 'sudirman-cup', name: 'Sudirman Cup', cityId: 'xiamen', week: 18, formats: ['sudirman'], everyYears: { interval: 2, offset: 1 },
+      { id: 'sudirman-cup', name: 'Sudirman Cup', cityId: 'xiamen', week: 18, formats: ['sudirman'], everyYears: { interval: 2, offset: 1 }, weeks: { 2027: 16 },
         hosts: { 2025: 'xiamen', 2027: 'beijing' }, rotation: ['kuala-lumpur', 'vantaa', 'glasgow'] },
       // Kejuaraan Dunia Beregu Campuran Junior (U19), setiap tahun seminggu sebelum Kejuaraan Dunia Junior. ASUMSI: tuan rumah.
       // ASUMSI: 32 tim (8 grup × 4, 2 teratas ke babak 16 besar); kenyataannya ±38 tim dengan grup bervariasi.

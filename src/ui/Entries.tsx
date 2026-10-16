@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
-import { entrantsFor, hostCityId, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
+import { entrantsFor, hostCityId, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
 import { autoSquad, squadError } from '../engine/team';
 import { DISCIPLINES, type TeamFormat } from '../engine/types';
 import { dataName, t } from '../i18n';
@@ -23,7 +23,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   if (teamEv) return (
     <>
       <p><button onClick={() => setOpen(undefined)}>← {t('back')}</button></p>
-      <h3>{t('week')} {teamEv.week} · {eventName(ruleset, teamEv.id, year)} <small className="muted-text">{t('teamShort')}</small></h3>
+      <h3>{t('week')} {weekOf(teamEv, year)} · {eventName(ruleset, teamEv.id, year)} <small className="muted-text">{t('teamShort')}</small></h3>
       <TeamSquads formats={teamEv.formats ?? teamFormatsIn(ruleset, year)} onSubmit={() => submit(teamEv.id)} />
     </>
   );
@@ -31,17 +31,17 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   if (ev) return (
     <>
       <p><button onClick={() => setOpen(undefined)}>← {t('back')}</button></p>
-      <h3>{t('week')} {ev.week} · {dataName(ev.name)} <small className="muted-text">{ev.tierId}</small></h3>
-      <EntryTable week={ev.week} eventId={ev.id} />
+      <h3>{t('week')} {weekOf(ev, year)} · {dataName(ev.name)} <small className="muted-text">{ev.tierId}</small></h3>
+      <EntryTable week={weekOf(ev, year)} eventId={ev.id} />
       <p><button className="primary" onClick={() => submit(ev.id)}>{t('submitEntries')}</button></p>
     </>
   );
   const city = (id: string) => dataName(game.world.cities.find((c) => c.id === id)?.name);
   const submitted = (id: string) => state.entriesSubmitted?.[`${year}:${id}`];
   const teamIds = new Set(ruleset.team.events.map((e) => e.id));
-  const all = [...ruleset.calendar, ...ruleset.team.events].filter((e) => isHeld(e, year)).sort((a, b) => a.week - b.week);
-  const pastCount = all.filter((e) => e.week < week).length;
-  const list = showPast ? all : all.filter((e) => e.week >= week);
+  const all = [...ruleset.calendar, ...ruleset.team.events].filter((e) => isHeld(e, year)).sort((a, b) => weekOf(a, year) - weekOf(b, year));
+  const pastCount = all.filter((e) => weekOf(e, year) < week).length;
+  const list = showPast ? all : all.filter((e) => weekOf(e, year) >= week);
   const nav = (
     <nav className="controls subnav">
       <button aria-pressed={view === 'calendar'} onClick={() => setView('calendar')}>{t('calendarTab')}</button>
@@ -56,13 +56,13 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
       <table className="callist">
         <thead><tr><th className="num">{t('week')}</th><th>{t('tournament')}</th><th>{t('tier')}</th><th className="hide-sm">{t('city')}</th><th>{t('entryStatus')}</th></tr></thead>
         <tbody>{list.map((e) => {
-          const past = e.week < week;
+          const past = weekOf(e, year) < week;
           const team = teamIds.has(e.id);
           const tier = 'tierId' in e ? e.tierId : '';
           const auto = !team && (tier === 'WTF' || ruleset.tiers.find((x) => x.id === tier)?.junior); // junior & Finals: otomatis
           return (
             <tr key={e.id} className={past ? 'muted-text' : undefined}>
-              <td className="num">{e.week}</td>
+              <td className="num">{weekOf(e, year)}</td>
               <td><a href="#" onClick={(x) => { x.preventDefault(); if (past || auto) onOpenEvent?.(e.id, year); else setOpen(e.id); }}>{team ? eventName(ruleset, e.id, year) : dataName(e.name)}</a></td>
               <td><span className="chip">{team ? t('teamShort') : ruleset.tiers.find((x) => x.id === tier)?.junior ? t('juniorShort') : tier}</span></td>
               <td className="hide-sm">{city(hostCityId(e, year))}</td>
@@ -89,7 +89,7 @@ function SeasonPlan() {
   const { year, week } = state.date;
   const { players } = lookup(state);
   const ranks = useMemo(() => new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.results, d, absWeek(state.date), ruleset))])), [version, state, ruleset]);
-  const allWeeks = [...new Set(ruleset.calendar.map((e) => e.week))].filter((w) => w >= week && plannableEvents(ruleset, year, w).length).sort((a, b) => a - b);
+  const allWeeks = [...new Set(ruleset.calendar.map((e) => weekOf(e, year)))].filter((w) => w >= week && plannableEvents(ruleset, year, w).length).sort((a, b) => a - b);
   // Per halaman 8 minggu: tabel penuh (±48 baris × 40+ minggu) membuat scroll patah-patah di HP.
   const [page, setPage] = useState(0);
   const pages = Math.max(1, Math.ceil(allWeeks.length / PLAN_WEEKS)), pg = Math.min(page, pages - 1);
@@ -163,7 +163,7 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
   const { year } = state.date;
-  const events = ruleset.calendar.filter((e) => e.week === w && isHeld(e, year) && e.tierId !== 'WTF' && !ruleset.tiers.find((x) => x.id === e.tierId)?.junior); // junior: otomatis
+  const events = ruleset.calendar.filter((e) => weekOf(e, year) === w && isHeld(e, year) && e.tierId !== 'WTF' && !ruleset.tiers.find((x) => x.id === e.tierId)?.junior); // junior: otomatis
   const key = weekKey({ year, week: w });
   const decisions = state.manualEntries[key] ?? {};
   const { players } = lookup(state);

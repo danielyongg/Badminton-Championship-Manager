@@ -52,6 +52,8 @@ export interface TournamentDef {
   everyYears?: { interval: number; offset: number; invert?: boolean };
   /** Tuan rumah per tahun (tahun → cityId), mengganti `cityId` di tahun itu. */
   hosts?: Record<string, string>;
+  /** Minggu per tahun (tahun → minggu), mengganti `week` di tahun itu: jadwal resmi atau hasil `scheduleYear`. */
+  weeks?: Record<string, number>;
   /** Tahun tanpa `hosts`: tuan rumah bergilir dari daftar ini (indeks = tahun % panjang); kosong → `cityId`. */
   rotation?: string[];
   /** Turnamen khusus atlet satu konfederasi (kejuaraan junior kontinental). */
@@ -109,6 +111,7 @@ export interface TeamEventDef {
   everyYears?: TournamentDef['everyYears'];
   hosts?: TournamentDef['hosts'];
   rotation?: TournamentDef['rotation'];
+  weeks?: TournamentDef['weeks'];
   /** Ukuran putaran final event ini (bawaan `team.finals`). */
   finals?: { teams: number; groups: GroupStage };
 }

@@ -5,7 +5,7 @@ import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
 import { presetPack, PRESETS } from './pack';
 import { makeRng } from './rng';
-import { formPairs, isHeld, newSeason, playWeek, wtfQualifiers } from './season';
+import { formPairs, isHeld, newSeason, playWeek, scheduleYear, weekOf, wtfQualifiers } from './season';
 import { ATTRS, DISCIPLINES } from './types';
 
 describe('satu musim penuh (BWF 2026)', () => {
@@ -137,7 +137,7 @@ it('BWF 2027: tunggal Super 1000 memakai fase grup 16 × 3 → R16', async () =>
   const rs = BWF_2027;
   const state = newSeason(WORLD, rs, 3, { year: 2027, week: 1 });
   const rng = makeRng(4);
-  while (state.date.week <= 2) await playWeek(state, rs, WORLD, rng); // Malaysia Open minggu 2
+  while (state.date.week <= 3) await playWeek(state, rs, WORLD, rng); // Malaysia Open minggu 3 (kalender resmi 2027)
   const ms = state.matches.filter((m) => m.tournamentId === 'malaysia-open' && m.discipline === 'MS');
   expect(ms.filter((m) => m.round === 'G')).toHaveLength(16 * 3);
   expect(ms.filter((m) => m.round === 'R16')).toHaveLength(8);
@@ -215,4 +215,23 @@ describe('prioritas tier entry otomatis', () => {
       if (prefWeek) expect(played.length, `minggu ${week}`).toBeGreaterThan(0);
     }
   });
+});
+
+it('kalender musim baru: tahun resmi tetap, tahun berikutnya bergeser ±1 minggu per save tanpa Super 500+ bentrok', async () => {
+  const rs = structuredClone(BWF_2027);
+  const state = newSeason(WORLD, rs, 3, { year: 2027, week: 1 });
+  const ev = (id: string) => rs.calendar.find((e) => e.id === id)!;
+  expect(weekOf(ev('malaysia-open'), 2027)).toBe(3);
+  expect(weekOf(ev('malaysia-open'), 2028)).toBe(5);
+  const other = structuredClone(BWF_2027);
+  scheduleYear(rs, 2029, makeRng(1));
+  scheduleYear(other, 2029, makeRng(2));
+  const weeks = (r: typeof rs) => r.calendar.map((e) => weekOf(e, 2029)).join();
+  expect(weeks(rs)).not.toBe(weeks(other)); // beda save, beda kalender
+  for (const e of rs.calendar) expect(Math.abs(weekOf(e, 2029) - e.week)).toBeLessThanOrEqual(1);
+  const big = rs.calendar.filter((e) => ['S1000', 'S750', 'S500'].includes(e.tierId)).map((e) => weekOf(e, 2029));
+  expect(new Set(big).size).toBe(big.length);
+  const wc = weekOf(ev('world-championships'), 2029);
+  expect(big).not.toContain(wc);
+  expect(state.date.year).toBe(2027);
 });
