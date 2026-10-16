@@ -138,7 +138,7 @@ export function LineupPicker({ format, order, pool, squad, value, onChange }: {
           <td>{t('matchNo')} {i + 1}</td><td>{d}</td>
           <td>
             {isDoubles(d) ? (
-              <>{pick(d, i, 0)} / {pick(d, i, 1)}{value[i]?.startsWith(AD_HOC) && <> <span className="tag">{t('adHocPair')}</span></>}</>
+              <>{pick(d, i, 0)}<span className="pair-sep"> / </span>{pick(d, i, 1)}{value[i]?.startsWith(AD_HOC) && <> <span className="tag">{t('adHocPair')}</span></>}</>
             ) : (
               <select value={value[i] ?? ''} onChange={(e) => set(i, e.target.value || null)}>
                 <option value="">—</option>
