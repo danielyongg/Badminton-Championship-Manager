@@ -3,7 +3,7 @@ import { matchConfigFor, simulateMatch, type MatchResult } from '../engine/match
 import type { DrawHook, DrawShow, LiveHook, LiveRequest } from '../engine/tournament';
 import { CHALLENGE_DEADLINE_WEEK, CHALLENGE_PENALTY, CHALLENGE_REWARD, challengeProgress, goalProgress, goalWeight } from '../engine/career';
 import { ageAt } from '../engine/generator';
-import { hostCityId, isHeld, openTo, weekOf, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
+import { hostCityId, isHeld, openTo, teamFormatsIn, weekOf, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
 import type { RoundHook, RoundShow } from '../engine/gate';
 import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
@@ -233,6 +233,25 @@ function goalLabel(ruleset: Ruleset, g: FederationGoal, year: number) {
 }
 const goalKey = (g: FederationGoal) => g.kind + (g.format ?? '') + (g.eventId ?? '');
 
+/**
+ * Tahap target beregu musim ini: menunggu kualifikasi (kejuaraan kontinental), lolos / tidak lolos ke putaran final,
+ * lalu hasil akhirnya.
+ */
+function teamStatus(game: ReturnType<typeof useGame>['game'], format: TeamFormat, level: number) {
+  const { state, ruleset: rs, world } = game;
+  const { year, week } = state.date;
+  const country = state.career!.countryId!;
+  const has = (e: { formats?: TeamFormat[] }) => (e.formats ?? teamFormatsIn(rs, year)).includes(format);
+  const finals = rs.team.events.find((e) => !e.confederation && !e.countries && isHeld(e, year) && has(e));
+  const played = state.teamResults.some((r) => r.year === year && r.format === format && !r.confederation && !r.games);
+  if (played) return t(`teamDone_${level}` as TextKey);
+  if (level >= 1) return t('teamQualified', { w: finals ? weekOf(finals, year) : '—' });
+  if (state.teamQualifiers?.[`${year}:${format}`]) return t('teamLevel_0');
+  const conf = world.countries.find((c) => c.id === country)?.confederation;
+  const cont = rs.team.events.find((e) => e.confederation === conf && isHeld(e, year) && has(e) && weekOf(e, year) >= week);
+  return cont ? t('teamWaiting', { event: eventName(rs, cont.id, year) ?? cont.id, w: weekOf(cont, year) }) : t('teamWaitingRank');
+}
+
 function GoalTable({ goals, current, year }: { goals: FederationGoal[]; current?: (g: FederationGoal) => number; year: number }) {
   const { game } = useGame();
   // Daftar bertumpuk (bukan tabel) agar tidak terpotong di kartu dashboard yang sempit.
@@ -240,11 +259,13 @@ function GoalTable({ goals, current, year }: { goals: FederationGoal[]; current?
     <ul className="goals">{goals.map((g) => {
       const now = current ? current(g) : g.achieved ?? 0;
       const show = (n: number) => (g.kind === 'team' ? levelName(n) : n);
+      const status = current && g.kind === 'team' ? teamStatus(game, g.format!, now) : show(now);
       return (
         <li key={goalKey(g)}>
-          <b>{goalLabel(game.ruleset, g, year)}{goalWeight(g, year) > 1 && ' ×2'}
+          <b>{goalLabel(game.ruleset, g, year)}
+            {goalWeight(g, year) > 1 && <small className="muted-text"> ({t('goalDouble')})</small>}
             {goalWeight(g, year) === 0 && <small className="muted-text"> ({t('goal_olympicLater', { y: g.year ?? year })})</small>}</b>
-          <span>{t('target')}: {show(g.target)} · {t('progress')}: <span className={now >= g.target ? 'up' : ''}>{show(now)}</span></span>
+          <span>{t('target')}: {show(g.target)} · {t('progress')}: <span className={now >= g.target ? 'up' : ''}>{status}</span></span>
         </li>
       );
     })}</ul>
