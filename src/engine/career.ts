@@ -32,7 +32,7 @@ export function top10Of(state: SeasonState, rs: Ruleset, countryId: string) {
 
 /** Hasil beregu negara di putaran final tahun ini (0 = tidak lolos / belum dimainkan … 5 = juara). */
 export function teamLevel(state: SeasonState, countryId: string, year: number, format: TeamFormat) {
-  const r = state.teamResults.find((x) => x.year === year && x.format === format && !x.confederation);
+  const r = state.teamResults.find((x) => x.year === year && x.format === format && !x.confederation && !x.games);
   return levelOf(!!r?.teams.includes(countryId), r?.reached[countryId]);
 }
 
@@ -57,12 +57,38 @@ function bestRanks(state: SeasonState, rs: Ruleset, countryId: string) {
 
 const heldOfTier = (rs: Ruleset, tierId: string, year: number) => rs.calendar.find((e) => e.tierId === tierId && isHeld(e, year));
 
-/** Medali (semifinalis ke atas) atau emas negara di satu event besar tahun itu. */
+/**
+ * Medali (semifinalis ke atas) atau emas negara di satu event besar tahun itu. Multi-event: termasuk beregu-nya
+ * (`<eventId>-team`, per format putra/putri/campuran).
+ */
 export function medalsOf(state: SeasonState, countryId: string, eventId: string, year: number, gold = false) {
   const country = countryOfEntrant(state);
-  if (gold) return state.champions.filter((c) => c.tournamentId === eventId && c.year === year && country(c.winner) === countryId).length;
+  const team = state.teamResults.filter((r) => r.eventId === `${eventId}-team` && r.year === year)
+    .filter((r) => (gold ? ['W'] : ['W', 'F', 'SF']).includes(r.reached[countryId] ?? '')).length;
+  if (gold) return team + state.champions.filter((c) => c.tournamentId === eventId && c.year === year && country(c.winner) === countryId).length;
   const ids = new Set(state.matches.filter((m) => m.tournamentId === eventId && m.year === year && m.round === 'SF').flatMap((m) => m.sides));
-  return [...ids].filter((id) => country(id) === countryId).length;
+  return team + [...ids].filter((id) => country(id) === countryId).length;
+}
+
+/**
+ * Target multi-event untuk negara anggota (ASUMSI): emas sebanyak nomor yang dipimpin negara itu di antara peserta anggota
+ * (peringkat terbaik); bila tidak ada, medali sebanyak nomor dengan wakil 4 besar di antara anggota.
+ */
+function gamesGoals(state: SeasonState, rs: Ruleset, countryId: string): FederationGoal[] {
+  const year = state.date.year;
+  const country = countryOfEntrant(state);
+  const now = absWeek(state.date);
+  return rs.calendar.filter((e) => e.countries?.includes(countryId) && isHeld(e, year)).flatMap((e): FederationGoal[] => {
+    const places = DISCIPLINES.map((d) => {
+      const members = computeRanking(state.results, d, now, rs).filter((r) => e.countries!.includes(country(r.entrantId) ?? ''));
+      const i = members.findIndex((r) => country(r.entrantId) === countryId);
+      return i < 0 ? Infinity : i + 1;
+    });
+    const golds = places.filter((p) => p === 1).length;
+    if (golds) return [{ kind: 'medals', eventId: e.id, gold: true, target: golds, games: true }];
+    const medals = places.filter((p) => p <= 4).length;
+    return medals ? [{ kind: 'medals', eventId: e.id, target: medals, games: true }] : [];
+  });
 }
 
 /**
@@ -124,6 +150,7 @@ export function seasonGoals(state: SeasonState, rs: Ruleset, countryId: string):
     { kind: 'top10', target: Math.max(top10 > 0 ? 1 : 0, top10) },
     ...teamGoals(state, rs, countryId),
     ...majorGoals(state, rs, countryId),
+    ...gamesGoals(state, rs, countryId),
     ...olympicGoal(state, rs, countryId),
   ];
 }
@@ -137,8 +164,8 @@ export function goalProgress(state: SeasonState, rs: Ruleset, countryId: string,
     : teamLevel(state, countryId, year, g.format!);
 }
 
-/** Bobot target di rapor: turnamen besar 2×; siklus Olimpiade hanya dinilai di tahun Olimpiade (2×). */
-export const goalWeight = (g: FederationGoal, year: number): number => (g.kind === 'medals' ? 2 : g.kind === 'olympic' ? (g.year === year ? 2 : 0) : 1);
+/** Bobot target di rapor: Kejuaraan Dunia & Olimpiade 2×, multi-event 1×; siklus Olimpiade hanya dinilai di tahun Olimpiade (2×). */
+export const goalWeight = (g: FederationGoal, year: number): number => (g.kind === 'medals' ? (g.games ? 1 : 2) : g.kind === 'olympic' ? (g.year === year ? 2 : 0) : 1);
 
 // ASUMSI: bonus / penalti reputasi tantangan opsional.
 export const CHALLENGE_REWARD = 8;

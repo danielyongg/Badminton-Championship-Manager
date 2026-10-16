@@ -46,6 +46,10 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
     if (p && e.qualifiers === undefined && p.qualifiers) e.qualifiers = p.qualifiers; // kuota kontinental (Asia & Eropa 4)
   }
   for (const r of blob.state.teamResults) r.squads ??= {};
+  // Save sebelum multi-event (Asian Games, SEA Games, dll.): tambahkan tier, turnamen & beregu-nya dari preset.
+  for (const tier of preset.tiers.filter((x) => x.id === 'MSG' && !blob.ruleset.tiers.some((y) => y.id === x.id))) blob.ruleset.tiers.push(structuredClone(tier));
+  for (const e of preset.calendar.filter((x) => x.countries && !blob.ruleset.calendar.some((y) => y.id === x.id))) blob.ruleset.calendar.push(structuredClone(e));
+  for (const e of preset.team.events.filter((x) => x.countries && !blob.ruleset.team.events.some((y) => y.id === x.id))) blob.ruleset.team.events.push(structuredClone(e));
   // Save sebelum tuan rumah per tahun: tambah kota baru & salin `hosts`/`rotation` dari preset (kecuali kota event diubah di Editor).
   for (const c of WORLD.cities) if (!blob.world.cities.some((x) => x.id === c.id)) blob.world.cities.push({ ...c });
   for (const e of [...blob.ruleset.calendar, ...(blob.ruleset.team?.events ?? [])]) {

@@ -88,6 +88,8 @@ export interface TeamResult {
   year: number;
   format: TeamFormat;
   confederation?: Confederation;
+  /** Beregu multi-event (Asian Games dll.): bukan final / kualifikasi. */
+  games?: true;
   teams: string[]; // id negara, urut unggulan
   groups?: string[][];
   standings?: Standing[][]; // gameDiff = selisih partai, pointDiff = selisih game
@@ -99,8 +101,8 @@ export interface TeamResult {
 
 export const weekKey = (d: GameDate) => `${d.year}-${d.week}`;
 
-export const isHeld = (e: { everyYears?: TournamentDef['everyYears'] }, year: number) =>
-  !e.everyYears || (year % e.everyYears.interval === e.everyYears.offset) !== !!e.everyYears.invert;
+export const isHeld = (e: { everyYears?: TournamentDef['everyYears']; skipYears?: number[] }, year: number) =>
+  (!e.everyYears || (year % e.everyYears.interval === e.everyYears.offset) !== !!e.everyYears.invert) && !e.skipYears?.includes(year);
 
 /** Kota tuan rumah event di tahun tertentu: `hosts` (asli) → `rotation` (bergilir) → `cityId`. */
 export const hostCityId = (e: Pick<TournamentDef, 'cityId' | 'hosts' | 'rotation'>, year: number) =>
@@ -116,7 +118,7 @@ const BIG_TIERS = new Set(['S1000', 'S750', 'S500']);
 /**
  * Kalender musim baru (per save): turnamen yang belum punya jadwal tahun ini bergeser −1/0/+1 minggu dari minggu
  * bawaannya (ASUMSI, meniru pergeseran tanggal antarmusim). Super 500 ke atas tidak sepekan dengan Super 500+ lain,
- * Olimpiade/Kejuaraan Dunia, atau final beregu. Event besar, beregu & junior tetap.
+ * Olimpiade/Kejuaraan Dunia, atau final beregu. Event besar, multi-event, beregu & junior tetap.
  */
 export function scheduleYear(rs: Ruleset, year: number, rng: Rng) {
   const junior = new Set(rs.tiers.filter((x) => x.junior).map((x) => x.id));
@@ -127,7 +129,7 @@ export function scheduleYear(rs: Ruleset, year: number, rng: Rng) {
   ]);
   const wtf = Math.min(...held.filter((e) => e.tierId === 'WTF').map((e) => weekOf(e, year)), 53);
   const big = new Set(held.filter((e) => BIG_TIERS.has(e.tierId) && e.weeks?.[year] !== undefined).map((e) => e.weeks![year]));
-  for (const e of shuffle(rng, held.filter((x) => x.weeks?.[year] === undefined && !ANCHOR_TIERS.has(x.tierId) && !junior.has(x.tierId)))) {
+  for (const e of shuffle(rng, held.filter((x) => x.weeks?.[year] === undefined && !ANCHOR_TIERS.has(x.tierId) && !junior.has(x.tierId) && !x.countries))) {
     const isBig = BIG_TIERS.has(e.tierId);
     const options = shuffle(rng, [-1, 0, 0, 1]).map((d) => e.week + d)
       .filter((w) => w >= 1 && w < wtf && (!isBig || (!big.has(w) && !blocked.has(w))));
@@ -325,7 +327,8 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
     if (taken || e.playerIds.some((id) => injured.has(id) || playerDisc.has(`${id}:${d}`))) continue;
     const rank = ranks.get(d)!.get(e.id);
     const fixed = e.playerIds.map((id) => playerEvent.get(id)).find(Boolean);
-    const options = events.filter((ev) => ev.tierId !== 'WTF' && tierOf(rs, ev).drawSize[d] > 0 && (!fixed || ev.id === fixed));
+    const options = events.filter((ev) => ev.tierId !== 'WTF' && tierOf(rs, ev).drawSize[d] > 0 && (!fixed || ev.id === fixed)
+      && (!ev.countries || ev.countries.includes(e.countryId)));
     const decision = mine(e) ? manual[e.id] : undefined;
     if (!decision && e.playerIds.some((id) => pratama.has(id) || busy.has(id))) continue;
     let choice = decision ? options.find((ev) => ev.id === decision) : options.find((ev) => state.commitments[e.id]?.includes(ev.id));
@@ -368,7 +371,9 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   const { year, week } = state.date;
   if (state.commitmentsYear !== year) startYear(state, rs, rng, world);
   if (state.scouting && week > SCOUTING_DEADLINE_WEEK) recruit(state, []); // batas memilih lewat: isi otomatis
-  const events = rs.calendar.filter((e) => weekOf(e, year) === week && isHeld(e, year)).sort((a, b) => tierOf(rs, b).points[0] - tierOf(rs, a).points[0]);
+  // Multi-event lebih dulu: negara anggota mengirim atlet terbaiknya (tanpa poin ranking, jadi tidak diurutkan dari poin).
+  const events = rs.calendar.filter((e) => weekOf(e, year) === week && isHeld(e, year))
+    .sort((a, b) => Number(!!b.countries) - Number(!!a.countries) || tierOf(rs, b).points[0] - tierOf(rs, a).points[0]);
   const teamEvents = rs.team.events.filter((e) => weekOf(e, year) === week && isHeld(e, year));
   const players = new Map(state.players.map((p) => [p.id, p]));
   const pairs = new Map(state.pairs.map((p) => [p.id, p]));
@@ -577,12 +582,12 @@ const winnerOf = (r: TeamResult | undefined) => r && Object.keys(r.reached).find
 
 /** Juara bertahan suatu format (putaran final terakhir). */
 export const teamHolder = (state: SeasonState, format: TeamFormat) =>
-  winnerOf(state.teamResults.filter((r) => r.format === format && !r.confederation).at(-1));
+  winnerOf(state.teamResults.filter((r) => r.format === format && !r.confederation && !r.games).at(-1));
 
 /** Format yang dimainkan tahun ini (dari putaran final yang digelar). */
 /** Format beregu senior yang putaran finalnya digelar tahun ini (juga format kejuaraan kontinental & target musim). */
 export const teamFormatsIn = (rs: Ruleset, year: number) =>
-  rs.team.events.filter((e) => !e.confederation && isHeld(e, year)).flatMap((e) => e.formats ?? []).filter((f) => !isJuniorFormat(f));
+  rs.team.events.filter((e) => !e.confederation && !e.countries && isHeld(e, year)).flatMap((e) => e.formats ?? []).filter((f) => !isJuniorFormat(f));
 
 /**
  * Peserta putaran final: tuan rumah, juara bertahan, lalu `qualifiers` tim teratas tiap kejuaraan kontinental
@@ -631,7 +636,8 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
   await each(gated, formats, async (format) => {
     const order = rs.team.order[format];
     const all = teamStrengths(state, rs, format);
-    const teams = ev.confederation
+    const teams = ev.countries ? all.filter((t) => ev.countries!.includes(t.countryId)).map((t) => t.countryId) // multi-event: semua anggota
+      : ev.confederation
       ? all.filter((t) => confederation.get(t.countryId) === ev.confederation).slice(0, rs.team.continentalTeams).map((t) => t.countryId)
       : finalsTeams(state, rs, format, city.countryId, all, finals.teams);
     if (teams.length < 2) {
@@ -708,10 +714,10 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
       ties.push({ round, sides: [a, b], score: [won, r.scores.length - won], matchIds: state.matches.slice(from).map((m) => m.id) });
       return r;
     };
-    const run = await runTeamEvent(teams, ev.confederation ? undefined : finals.groups, gate ? gate.wrap(format, tie) : tie, rng,
+    const run = await runTeamEvent(teams, ev.confederation || ev.countries ? undefined : finals.groups, gate ? gate.wrap(format, tie) : tie, rng,
       (steps) => draw?.({ tournamentId: ev.id, entrants: teams, steps, groups: finals.groups.groups }) ?? null, gated);
     state.teamResults.push({
-      eventId: ev.id, year, format, confederation: ev.confederation, teams,
+      eventId: ev.id, year, format, confederation: ev.confederation, ...(ev.countries && { games: true as const }), teams,
       groups: run.groups, standings: run.standings, reached: Object.fromEntries(run.reached), ties, squads, drawSteps: run.steps,
     });
   });

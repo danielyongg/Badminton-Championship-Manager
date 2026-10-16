@@ -111,7 +111,7 @@ describe('Thomas, Uber & Sudirman Cup', () => {
   it('tahun ganjil: Sudirman Cup (XD, WS, MS, WD, MD), tanpa Thomas & Uber', async () => {
     const state = newSeason(WORLD, BWF_2027, 4, { year: 2027, week: 1 }, null);
     await until(state, BWF_2027, 19, 4);
-    const finals = state.teamResults.filter((r) => !r.confederation);
+    const finals = state.teamResults.filter((r) => !r.confederation && !r.games); // tanpa beregu multi-event (African Games minggu 10)
     expect(finals.map((r) => r.format)).toEqual(['sudirman']);
     expect(finals[0].teams).toHaveLength(16);
     expect(state.teamResults.filter((r) => r.confederation).every((r) => r.format === 'sudirman')).toBe(true);

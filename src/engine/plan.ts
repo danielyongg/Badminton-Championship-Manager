@@ -12,10 +12,11 @@ export interface PlanCell {
 }
 
 /** Turnamen individu senior minggu itu yang entry-nya diatur manajer (tanpa WTF & junior), tier tertinggi dulu. */
-export function plannableEvents(rs: Ruleset, year: number, week: number) {
+export function plannableEvents(rs: Ruleset, year: number, week: number, country?: string | null) {
   const tier = (id: string) => rs.tiers.find((t) => t.id === id)!;
-  return rs.calendar.filter((e) => weekOf(e, year) === week && isHeld(e, year) && e.tierId !== 'WTF' && !tier(e.tierId).junior)
-    .sort((a, b) => tier(b.tierId).points[0] - tier(a.tierId).points[0]);
+  return rs.calendar.filter((e) => weekOf(e, year) === week && isHeld(e, year) && e.tierId !== 'WTF' && !tier(e.tierId).junior
+      && (!e.countries || !country || e.countries.includes(country))) // multi-event: hanya negara anggota
+    .sort((a, b) => Number(!!b.countries) - Number(!!a.countries) || tier(b.tierId).points[0] - tier(a.tierId).points[0]);
 }
 
 /**
@@ -24,7 +25,7 @@ export function plannableEvents(rs: Ruleset, year: number, week: number) {
  */
 export function planWeek(state: SeasonState, rs: Ruleset, week: number) {
   const year = state.date.year;
-  const events = plannableEvents(rs, year, week);
+  const events = plannableEvents(rs, year, week, state.managedCountryId);
   const tier = (id: string) => rs.tiers.find((t) => t.id === id)!;
   const manual = state.manualEntries[weekKey({ year, week })] ?? {};
   const released = releasedIds(state);

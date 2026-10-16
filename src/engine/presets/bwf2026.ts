@@ -97,6 +97,16 @@ export const TIERS_2026: Tier[] = [
     prizeUsd: 5000, prizeSplit: PRIZE_SPLIT,
     drawSize: draws(32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: false,
   },
+  // Multi-event (Asian Games, SEA Games, Pan Am, European, African & Commonwealth Games): tanpa poin ranking BWF
+  // & tanpa hadiah; peserta hanya negara anggota (`countries`). ASUMSI: 32 tunggal / 16 ganda, maks 2 per negara.
+  {
+    id: 'MSG', name: 'Multi-event', grade: 1,
+    points: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    prizeUsd: 0, prizeSplit: NO_PRIZE,
+    drawSize: draws(32, 16),
+    countryQuota: { base: 2, max: 2, topRank: 0 },
+    qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
+  },
   // ASUMSI: turnamen junior U19 — tanpa hadiah & tanpa poin senior; poin ranking junior disederhanakan.
   {
     id: 'WJC', name: 'Kejuaraan Dunia Junior', grade: 2,
@@ -128,6 +138,14 @@ export const TIERS_2026: Tier[] = [
 
 const t = (id: string, name: string, cityId: string, week: number, tierId: string, prizeUsd: number, extra: Partial<TournamentDef> = {}): TournamentDef =>
   ({ id, name, cityId, week, tierId, prizeUsd, ...extra });
+
+// Anggota multi-event (negara yang ada di game).
+const ASIA = ['CHN', 'INA', 'JPN', 'KOR', 'MAS', 'TPE', 'THA', 'IND', 'HKG', 'SGP', 'VIE', 'PHI', 'MAC', 'UAE'];
+const SEA = ['INA', 'MAS', 'THA', 'SGP', 'VIE', 'PHI'];
+const AMERICAS = ['CAN', 'USA', 'GUA', 'BRA', 'MEX', 'PER'];
+const EUROPE = ['DEN', 'FRA', 'ENG', 'GER', 'ESP', 'NED', 'SCO', 'IRL', 'SWE', 'FIN', 'SUI', 'POL', 'BUL', 'CZE', 'UKR', 'AUT', 'TUR', 'NOR', 'ITA'];
+const AFRICA = ['EGY', 'NGR', 'RSA', 'ALG', 'MRI', 'BOT'];
+const COMMONWEALTH = ['ENG', 'SCO', 'IND', 'MAS', 'SGP', 'CAN', 'AUS', 'NZL', 'NGR', 'RSA', 'MRI', 'BOT'];
 
 // ASUMSI: minggu & hadiah mendekati kalender HSBC BWF World Tour 2026; koreksi lewat Editor.
 export const CALENDAR_2026: TournamentDef[] = [
@@ -186,6 +204,26 @@ export const CALENDAR_2026: TournamentDef[] = [
   t('syed-modi', 'Syed Modi International', 'lucknow', 48, 'S300', 250000),
   t('odisha-masters', 'Odisha Masters', 'cuttack', 49, 'S100', 110000),
   t('world-tour-finals', 'World Tour Finals', 'hangzhou', 50, 'WTF', 2500000),
+  // Multi-event (tier MSG, tanpa poin): peserta hanya negara anggota; beregu-nya di `team.events` seminggu sebelumnya.
+  // Tuan rumah & tanggal asli bila sudah diumumkan; selain itu mengikuti edisi sebelumnya (ASUMSI).
+  // Asian Games 2026 Aichi–Nagoya 19 Sep–4 Okt; 2030 aslinya Doha (Qatar belum ada di daftar negara → kota edisi terdahulu).
+  t('asian-games', 'Asian Games', 'nagoya', 39, 'MSG', 0, { everyYears: { interval: 4, offset: 2 }, countries: ASIA,
+    hosts: { 2026: 'nagoya' }, rotation: ['hangzhou', 'jakarta'] }),
+  // SEA Games: 2025 Bangkok (Des), 2027 Malaysia 18–29 Sep (sementara), 2029 Singapura (tanggal mengikuti 2027).
+  t('sea-games', 'SEA Games', 'kuala-lumpur', 38, 'MSG', 0, { everyYears: { interval: 2, offset: 1 }, countries: SEA,
+    hosts: { 2025: 'bangkok', 2027: 'kuala-lumpur', 2029: 'singapore' }, rotation: ['manila', 'ho-chi-minh', 'bangkok', 'jakarta'] }),
+  // Pan American Games 2027 Lima 23 Jul–8 Agu.
+  t('pan-am-games', 'Pan American Games', 'lima', 30, 'MSG', 0, { everyYears: { interval: 4, offset: 3 }, countries: AMERICAS,
+    hosts: { 2027: 'lima' }, rotation: ['sao-paulo', 'calgary', 'lima'] }),
+  // European Games: minggu mengikuti Kraków 2023 (akhir Juni); 2027 Istanbul. Inggris & Skotlandia tetap terpisah (disederhanakan).
+  t('european-games', 'European Games', 'istanbul', 26, 'MSG', 0, { everyYears: { interval: 4, offset: 3 }, countries: EUROPE,
+    hosts: { 2027: 'istanbul' }, rotation: ['sofia', 'almere', 'vantaa'] }),
+  // African Games: minggu mengikuti Accra 2023 (digelar Maret 2024); tuan rumah 2027 belum pasti.
+  t('african-games', 'African Games', 'cairo', 11, 'MSG', 0, { everyYears: { interval: 4, offset: 3 }, countries: AFRICA,
+    rotation: ['cairo', 'lagos', 'johannesburg'] }),
+  // Commonwealth Games: Glasgow 2026 tanpa badminton; 2030 Ahmedabad (program badminton mengikuti Birmingham 2022, akhir Juli).
+  t('commonwealth-games', 'Commonwealth Games', 'ahmedabad', 31, 'MSG', 0, { everyYears: { interval: 4, offset: 2 }, skipYears: [2026], countries: COMMONWEALTH,
+    hosts: { 2022: 'birmingham', 2030: 'ahmedabad' }, rotation: ['birmingham', 'glasgow', 'sydney'] }),
   // Turnamen junior (U19). ASUMSI: kota tuan rumah & minggu disederhanakan.
   { id: 'asia-junior', name: 'Badminton Asia Junior Championships', cityId: 'surabaya', week: 28, tierId: 'JC', prizeUsd: 0, confederation: 'BA' },
   { id: 'europe-junior', name: 'European Junior Championships', cityId: 'brno', week: 28, tierId: 'JC', prizeUsd: 0, confederation: 'BE' },
@@ -272,11 +310,11 @@ export const BWF_2026: Ruleset = {
   // Perilaku AI saat memilih turnamen. (ASUMSI: kalibrasi agar atlet top main ±18–22 turnamen/tahun)
   ai: {
     rankRange: {
-      OG: [1, 9999], WC: [1, 9999], WTF: [1, 9999],
+      OG: [1, 9999], WC: [1, 9999], WTF: [1, 9999], MSG: [1, 9999],
       S1000: [1, 64], S750: [1, 64], S500: [1, 100], S300: [1, 160], S100: [10, 260],
       IC: [25, 400], IS: [40, 9999], FS: [60, 9999],
     },
-    playProb: { OG: 1, WC: 1, WTF: 1, S1000: 0.95, S750: 0.85, S500: 0.65, S300: 0.5, S100: 0.55, IC: 0.5, IS: 0.5, FS: 0.5 },
+    playProb: { OG: 1, WC: 1, WTF: 1, MSG: 1, S1000: 0.95, S750: 0.85, S500: 0.65, S300: 0.5, S100: 0.55, IC: 0.5, IS: 0.5, FS: 0.5 },
     restAbove: 45,
   },
   // Perkembangan & penuaan, diproses tiap kuartal (13 minggu). Nilai dari spesifikasi; sisanya ASUMSI kalibrasi.
@@ -370,6 +408,16 @@ export const BWF_2026: Ruleset = {
       { id: 'suhandinata-cup', name: 'BWF World Junior Mixed Team Championships', cityId: 'guwahati', week: 40, formats: ['suhandinata'],
         hosts: { 2025: 'guwahati', 2026: 'cairo' }, rotation: ['surabaya', 'bangkok', 'calgary', 'kuala-lumpur'],
         finals: { teams: 32, groups: { groups: 8, perGroup: 4, advance: 2 } } },
+      // Beregu multi-event (seminggu sebelum nomor perorangan): semua negara anggota langsung bertanding, sistem gugur.
+      // ASUMSI: Asian & SEA Games beregu putra/putri (format Thomas/Uber); African & Commonwealth Games beregu campuran.
+      { id: 'asian-games-team', name: 'Asian Games Team', cityId: 'nagoya', week: 38, formats: ['thomas', 'uber'], countries: ASIA,
+        everyYears: { interval: 4, offset: 2 }, hosts: { 2026: 'nagoya' }, rotation: ['hangzhou', 'jakarta'] },
+      { id: 'sea-games-team', name: 'SEA Games Team', cityId: 'kuala-lumpur', week: 37, formats: ['thomas', 'uber'], countries: SEA,
+        everyYears: { interval: 2, offset: 1 }, hosts: { 2025: 'bangkok', 2027: 'kuala-lumpur', 2029: 'singapore' }, rotation: ['manila', 'ho-chi-minh', 'bangkok', 'jakarta'] },
+      { id: 'african-games-team', name: 'African Games Team', cityId: 'cairo', week: 10, formats: ['sudirman'], countries: AFRICA,
+        everyYears: { interval: 4, offset: 3 }, rotation: ['cairo', 'lagos', 'johannesburg'] },
+      { id: 'commonwealth-games-team', name: 'Commonwealth Games Team', cityId: 'ahmedabad', week: 30, formats: ['sudirman'], countries: COMMONWEALTH,
+        everyYears: { interval: 4, offset: 2 }, skipYears: [2026], hosts: { 2022: 'birmingham', 2030: 'ahmedabad' }, rotation: ['birmingham', 'glasgow', 'sydney'] },
     ],
     // ASUMSI: urutan partai Sudirman Cup tetap XD–WS–MS–WD–MD (aslinya bisa berubah per edisi).
     order: {

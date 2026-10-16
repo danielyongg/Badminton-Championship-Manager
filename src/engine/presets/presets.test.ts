@@ -13,7 +13,8 @@ describe.each([BWF_2026, BWF_2027])('preset $name', (rs) => {
     for (const t of rs.tiers) {
       for (const table of [t.points, t.prizeSplit.singles, t.prizeSplit.doubles, ...(t.bonusPoints ?? []).map((b) => b.points)])
         expect(table).toHaveLength(ROUNDS.length);
-      for (let i = 1; i < t.points.length; i++) expect(t.points[i]).toBeLessThan(t.points[i - 1]);
+      if (t.points.some(Boolean)) // tier tanpa poin ranking (multi-event) dikecualikan
+        for (let i = 1; i < t.points.length; i++) expect(t.points[i]).toBeLessThan(t.points[i - 1]);
     }
   });
 

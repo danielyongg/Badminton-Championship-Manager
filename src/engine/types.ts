@@ -58,6 +58,10 @@ export interface TournamentDef {
   rotation?: string[];
   /** Turnamen khusus atlet satu konfederasi (kejuaraan junior kontinental). */
   confederation?: Confederation;
+  /** Multi-event: hanya negara anggota ini yang boleh ikut (mis. SEA Games). */
+  countries?: string[];
+  /** Tahun yang tidak digelar walau sesuai `everyYears` (mis. Commonwealth Games 2026 tanpa badminton). */
+  skipYears?: number[];
 }
 
 export interface AgeBand {
@@ -114,6 +118,9 @@ export interface TeamEventDef {
   weeks?: TournamentDef['weeks'];
   /** Ukuran putaran final event ini (bawaan `team.finals`). */
   finals?: { teams: number; groups: GroupStage };
+  /** Beregu multi-event: semua negara anggota ini langsung bertanding; tidak dihitung final / juara bertahan / kualifikasi. */
+  countries?: string[];
+  skipYears?: number[];
 }
 
 export interface TeamConfig {
@@ -394,6 +401,8 @@ export interface FederationGoal {
   /** medals: event besar (Kejuaraan Dunia / Olimpiade); `gold` = hanya emas. olympic: event Olimpiade tujuan. */
   eventId?: string;
   gold?: boolean;
+  /** medals: multi-event (bobot biasa, bukan 2×). */
+  games?: true;
   /** olympic: tahun Olimpiade tujuan (dinilai di tahun itu saja). */
   year?: number;
   target: number;

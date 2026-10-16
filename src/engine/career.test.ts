@@ -16,7 +16,8 @@ describe('mode karier', () => {
     const state = newSeason(WORLD, rs, 1, undefined, 'INA');
     const rng = makeRng(1);
     await playWeek(state, rs, WORLD, rng);
-    expect(state.career!.goals.map((g) => g.kind)).toEqual(['titles', 'top10', 'team', 'team', 'medals', 'olympic']);
+    expect(state.career!.goals.map((g) => g.kind)).toEqual(['titles', 'top10', 'team', 'team', 'medals', 'medals', 'olympic']);
+    expect(state.career!.goals.filter((g) => g.kind === 'medals').map((g) => g.eventId)).toEqual(['world-championships', 'asian-games']);
     expect(state.career!.goals.every((g) => g.target >= 1)).toBe(true);
     expect(state.career!.goals.find((g) => g.kind === 'olympic')!.year).toBe(2028);
     // Tantangan opsional: 3 pilihan, manajer memilih satu → dinilai di rapor (bonus / penalti reputasi).

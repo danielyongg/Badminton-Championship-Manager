@@ -39,7 +39,8 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   const city = (id: string) => dataName(game.world.cities.find((c) => c.id === id)?.name);
   const submitted = (id: string) => state.entriesSubmitted?.[`${year}:${id}`];
   const teamIds = new Set(ruleset.team.events.map((e) => e.id));
-  const all = [...ruleset.calendar, ...ruleset.team.events].filter((e) => isHeld(e, year)).sort((a, b) => weekOf(a, year) - weekOf(b, year));
+  const all = [...ruleset.calendar, ...ruleset.team.events].filter((e) => isHeld(e, year) && (!e.countries || !state.managedCountryId || e.countries.includes(state.managedCountryId))) // multi-event: hanya negara anggota
+   .sort((a, b) => weekOf(a, year) - weekOf(b, year));
   const pastCount = all.filter((e) => weekOf(e, year) < week).length;
   const list = showPast ? all : all.filter((e) => weekOf(e, year) >= week);
   const nav = (
@@ -89,7 +90,7 @@ function SeasonPlan() {
   const { year, week } = state.date;
   const { players } = lookup(state);
   const ranks = useMemo(() => new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.results, d, absWeek(state.date), ruleset))])), [version, state, ruleset]);
-  const allWeeks = [...new Set(ruleset.calendar.map((e) => weekOf(e, year)))].filter((w) => w >= week && plannableEvents(ruleset, year, w).length).sort((a, b) => a - b);
+  const allWeeks = [...new Set(ruleset.calendar.map((e) => weekOf(e, year)))].filter((w) => w >= week && plannableEvents(ruleset, year, w, state.managedCountryId).length).sort((a, b) => a - b);
   // Per halaman 8 minggu: tabel penuh (±48 baris × 40+ minggu) membuat scroll patah-patah di HP.
   const [page, setPage] = useState(0);
   const pages = Math.max(1, Math.ceil(allWeeks.length / PLAN_WEEKS)), pg = Math.min(page, pages - 1);
@@ -122,8 +123,8 @@ function SeasonPlan() {
       <div className="scroll">
         <table className="plan">
           <thead><tr><th>{t('name')}</th>{weeks.map((w) => (
-            <th key={w} title={plannableEvents(ruleset, year, w).map((e) => `${dataName(e.name)} (${e.tierId})`).join(' · ')}>
-              {t('weekShort')}{w} · {plannableEvents(ruleset, year, w)[0].tierId}
+            <th key={w} title={plannableEvents(ruleset, year, w, state.managedCountryId).map((e) => `${dataName(e.name)} (${e.tierId})`).join(' · ')}>
+              {t('weekShort')}{w} · {plannableEvents(ruleset, year, w, state.managedCountryId)[0].tierId}
             </th>
           ))}</tr></thead>
           <tbody>{rows.map((e) => (
@@ -133,7 +134,7 @@ function SeasonPlan() {
                 const injured = e.playerIds.some((id) => (players.get(id)?.injury?.weeksLeft ?? 0) > w - week);
                 if (injured) return <td key={w} title={t('injury')}>🩹</td>;
                 const c = plan.get(w)!.get(e.id) ?? { eventId: null, kind: 'auto' as const };
-                const offered = plannableEvents(ruleset, year, w).filter((ev) => ruleset.tiers.find((x) => x.id === ev.tierId)!.drawSize[e.d] > 0);
+                const offered = plannableEvents(ruleset, year, w, state.managedCountryId).filter((ev) => ruleset.tiers.find((x) => x.id === ev.tierId)!.drawSize[e.d] > 0);
                 const shown = c.kind === 'manual' ? label(c) : c.kind === 'required' ? `⭐ ${label(c)}` : t('tierPrefsFree');
                 // Sel menampilkan pilihan manual / turnamen wajib / "Otomatis"; select transparan di atasnya untuk mengubah.
                 return (
