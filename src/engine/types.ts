@@ -388,9 +388,14 @@ export interface RankingRow {
 }
 
 export interface FederationGoal {
-  kind: 'titles' | 'top10' | 'team';
+  kind: 'titles' | 'top10' | 'team' | 'medals' | 'olympic';
   /** Target beregu: tingkat hasil 0–5 (lihat `teamLevel`), satu per format. */
   format?: TeamFormat;
+  /** medals: event besar (Kejuaraan Dunia / Olimpiade); `gold` = hanya emas. olympic: event Olimpiade tujuan. */
+  eventId?: string;
+  gold?: boolean;
+  /** olympic: tahun Olimpiade tujuan (dinilai di tahun itu saja). */
+  year?: number;
   target: number;
   achieved?: number;
 }
@@ -402,6 +407,16 @@ export interface SeasonReport {
   violations: number;
   grade: string;
   reputationChange: number;
+  /** Tantangan opsional musim itu (bila dipilih) & hasilnya. */
+  challenge?: Challenge & { done: boolean; reputation: number };
+}
+
+/** Tantangan opsional musim (dipilih manajer di awal musim): berhasil = bonus reputasi, gagal = penalti. */
+export interface Challenge {
+  kind: 'homeTitle' | 'beatRival' | 'superTitles' | 'juniorWorld';
+  eventId?: string; // homeTitle / juniorWorld
+  rival?: string; // beatRival: id negara
+  target?: number; // superTitles: jumlah gelar Super 1000
 }
 
 /** Data karier manajer (null countryId = Mode Pengamat). */
@@ -410,6 +425,11 @@ export interface Career {
   goals: FederationGoal[];
   reports: SeasonReport[];
   reputation: number; // 0–100
+  /** Tiga pilihan tantangan musim ini (sampai dipilih / batas minggu) & yang dipilih. */
+  challengeOptions?: Challenge[];
+  challenge?: Challenge;
+  /** Target siklus Olimpiade: jumlah wakil lolos ke Olimpiade `year`, ditetapkan di awal siklus. */
+  olympicCycle?: { year: number; target: number };
 }
 
 /** Ringkasan slot save (daftar Load). Isi lengkap disimpan terpisah. */

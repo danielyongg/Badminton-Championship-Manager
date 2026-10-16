@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { matchConfigFor, simulateMatch, type MatchResult } from '../engine/match';
 import type { DrawHook, DrawShow, LiveHook, LiveRequest } from '../engine/tournament';
-import { goalProgress } from '../engine/career';
+import { CHALLENGE_DEADLINE_WEEK, CHALLENGE_PENALTY, CHALLENGE_REWARD, challengeProgress, goalProgress, goalWeight } from '../engine/career';
 import { ageAt } from '../engine/generator';
 import { hostCityId, isHeld, weekOf, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
 import type { RoundHook, RoundShow } from '../engine/gate';
@@ -9,7 +9,7 @@ import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
 import { DISCIPLINES, ROUNDS, type Discipline, type Match, type TeamFormat } from '../engine/types';
 import { absWeek, computeRanking } from '../engine/ranking';
-import type { FederationGoal, Ruleset, SeasonReport } from '../engine/types';
+import type { Challenge, FederationGoal, Ruleset, SeasonReport } from '../engine/types';
 import { dataName, numLocale, t, type TextKey } from '../i18n';
 import { downloadPack, Editor, useDebounced } from './Editor';
 import { Entries } from './Entries';
@@ -223,19 +223,61 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   );
 }
 
-function GoalTable({ goals, current }: { goals: FederationGoal[]; current?: (g: FederationGoal) => number }) {
+/** Nama target: jenis + format beregu / event besar / tahun Olimpiade tujuan. */
+function goalLabel(ruleset: Ruleset, g: FederationGoal, year: number) {
+  if (g.kind === 'medals') return t(g.gold ? 'goal_gold' : 'goal_medals', { event: eventName(ruleset, g.eventId!, year) ?? '' });
+  if (g.kind === 'olympic') return t('goal_olympic', { y: g.year! }) + (g.year !== year ? ` (${t('goal_olympicLater', { y: g.year! })})` : '');
+  return t(`goal_${g.kind}` as TextKey) + (g.format ? `: ${formatName(g.format)}` : '');
+}
+const goalKey = (g: FederationGoal) => g.kind + (g.format ?? '') + (g.eventId ?? '');
+
+function GoalTable({ goals, current, year }: { goals: FederationGoal[]; current?: (g: FederationGoal) => number; year: number }) {
+  const { game } = useGame();
   // Daftar bertumpuk (bukan tabel) agar tidak terpotong di kartu dashboard yang sempit.
   return (
     <ul className="goals">{goals.map((g) => {
       const now = current ? current(g) : g.achieved ?? 0;
       const show = (n: number) => (g.kind === 'team' ? levelName(n) : n);
       return (
-        <li key={g.kind + (g.format ?? '')}>
-          <b>{t(`goal_${g.kind}` as TextKey)}{g.format && `: ${formatName(g.format)}`}</b>
+        <li key={goalKey(g)} className={goalWeight(g, year) === 0 ? 'muted-text' : undefined}>
+          <b>{goalLabel(game.ruleset, g, year)}{goalWeight(g, year) > 1 && ' ×2'}</b>
           <span>{t('target')}: {show(g.target)} · {t('progress')}: <span className={now >= g.target ? 'up' : ''}>{show(now)}</span></span>
         </li>
       );
     })}</ul>
+  );
+}
+
+function challengeText(game: ReturnType<typeof useGame>['game'], c: Challenge, year: number) {
+  const country = (id: string) => dataName(game.world.countries.find((x) => x.id === id)?.name) ?? id;
+  return t(`ch_${c.kind}` as TextKey, { event: (c.eventId && eventName(game.ruleset, c.eventId, year)) || '', rival: c.rival ? country(c.rival) : '', n: c.target ?? 1 });
+}
+
+/** Tantangan opsional musim: pilih satu dari tiga sebelum batas minggu; setelah dipilih tampil capaiannya. */
+function ChallengeCard() {
+  const { game, changed } = useGame();
+  const { state, ruleset } = game;
+  const career = state.career!;
+  const { year } = state.date;
+  const pick = (c: Challenge) => { career.challenge = c; changed(); void saveGame(game); };
+  if (career.challenge) {
+    const [now, target] = challengeProgress(state, ruleset, career.countryId!, career.challenge);
+    return (
+      <section className="card">
+        <h3>{t('challenge')} {year}</h3>
+        <p><b>{challengeText(game, career.challenge, year)}</b><br />
+          <small>{t('progress')}: <span className={now >= target ? 'up' : ''}>{now}</span> / {target} · +{CHALLENGE_REWARD} / −{CHALLENGE_PENALTY} {t('reputation')}</small></p>
+      </section>
+    );
+  }
+  return (
+    <section className="card">
+      <h3>{t('challenge')} {year}</h3>
+      <p className="hint">{t('challengeHint', { w: CHALLENGE_DEADLINE_WEEK + 1, win: CHALLENGE_REWARD, lose: CHALLENGE_PENALTY })}</p>
+      <ul className="goals">{career.challengeOptions!.map((c, i) => (
+        <li key={i}><span>{challengeText(game, c, year)}</span> <button className="mini btn-go" onClick={() => pick(c)}>{t('challengeChoose')}</button></li>
+      ))}</ul>
+    </section>
   );
 }
 
@@ -348,13 +390,14 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
       {managed && (
         <section className="card">
           <h3>{t('goals')} {year}</h3>
-          <GoalTable goals={state.career!.goals} current={(g) => goalProgress(state, ruleset, managed, g)} />
+          <GoalTable goals={state.career!.goals} current={(g) => goalProgress(state, ruleset, managed, g)} year={year} />
         </section>
       )}
+      {managed && (state.career!.challenge || (state.career!.challengeOptions?.length && week <= CHALLENGE_DEADLINE_WEEK)) && <ChallengeCard />}
       {lastReport && week <= 4 && (
         <section className="card">
           <h3>{t('seasonEndReport')} {lastReport.year}: {t('grade')} {lastReport.grade} ({lastReport.reputationChange >= 0 ? '+' : ''}{lastReport.reputationChange} {t('reputation')})</h3>
-          <GoalTable goals={lastReport.goals} />
+          <GoalTable goals={lastReport.goals} year={lastReport.year} />
         </section>
       )}
       <section className="card">
@@ -594,17 +637,18 @@ function ReportCard({ r, onClick }: { r: SeasonReport; onClick?: () => void }) {
         <span className="grow"><b>{r.year}</b> <small className="muted-text"><Flag id={r.countryId} />{countryName}</small></span>
         <span className={`badge ${r.reputationChange > 0 ? 'good' : r.reputationChange < 0 ? 'danger' : ''}`}>{r.reputationChange >= 0 ? '+' : ''}{r.reputationChange} {t('reputation')}</span>
       </div>
-      {r.goals.map((g) => {
+      {r.goals.filter((g) => goalWeight(g, r.year) > 0).map((g) => {
         const done = g.achieved ?? 0;
         const show = (n: number) => (g.kind === 'team' ? levelName(n) : n);
         return (
-          <div key={g.kind + (g.format ?? '')} className="goalbar">
-            <span>{g.format ? formatName(g.format) : t(`goal_${g.kind}` as TextKey)}</span>
+          <div key={goalKey(g)} className="goalbar">
+            <span>{g.format ? formatName(g.format) : goalLabel(game.ruleset, g, r.year)}</span>
             <small className={done >= g.target ? 'up' : 'muted-text'}>{show(done)} / {show(g.target)}</small>
             <span className="bar"><span style={{ width: `${Math.min(100, (done / Math.max(1, g.target)) * 100)}%`, background: done >= g.target ? 'var(--accent)' : 'var(--gold)' }} /></span>
           </div>
         );
       })}
+      {r.challenge && <small className={r.challenge.done ? 'up' : 'down'}>{t('challenge')}: {challengeText(game, r.challenge, r.year)} — {t(r.challenge.done ? 'challengeDone' : 'challengeFailed')} ({r.challenge.reputation > 0 ? '+' : ''}{r.challenge.reputation})</small>}
       <small className={r.violations ? 'down' : 'muted-text'}>{t('violations')}: {r.violations}</small>
     </div>
   );

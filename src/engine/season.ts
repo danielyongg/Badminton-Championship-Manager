@@ -1,4 +1,4 @@
-import { seasonGoals, seasonReport } from './career';
+import { makeChallenges, seasonGoals, seasonReport } from './career';
 import { applySevereInjury, developQuarter, newJuniors, retirementChance, rollInjury } from './development';
 import { applyCountryQuota, type Candidate } from './entry';
 import { ageAt, currentAbility, generateWorld, isJuniorAge, isPratama } from './generator';
@@ -210,14 +210,16 @@ export function newSeason(
   }
   state.managedCountryId = countryId;
   state.results = bootstrapResults(state, ruleset);
-  startYear(state, ruleset, makeRng(seed + 1));
+  startYear(state, ruleset, makeRng(seed + 1), world);
   return state;
 }
 
 /** Ganti negara di tengah karier: target musim dihitung ulang untuk negara baru. */
 export function switchCountry(state: SeasonState, rs: Ruleset, countryId: string | null) {
   state.managedCountryId = countryId;
-  state.career = { ...(state.career ?? { reports: [], reputation: 50 }), countryId, goals: countryId ? seasonGoals(state, rs, countryId) : [] };
+  // Siklus Olimpiade & tantangan milik negara lama tidak dibawa (tantangan baru muncul musim depan).
+  state.career = { ...(state.career ?? { reports: [], reputation: 50 }), countryId, goals: [], olympicCycle: undefined, challengeOptions: undefined, challenge: undefined };
+  if (countryId) state.career.goals = seasonGoals(state, rs, countryId);
 }
 
 const tierOf = (rs: Ruleset, e: TournamentDef) => rs.tiers.find((t) => t.id === e.tierId)!;
@@ -227,7 +229,7 @@ const tierOf = (rs: Ruleset, e: TournamentDef) => rs.tiers.find((t) => t.id === 
  * semua turnamen tier 'all' dan N turnamen tier bernilai angka (dipilih acak di awal musim).
  * WTF ditambahkan saat kualifikasi WTF ditentukan.
  */
-export function startYear(state: SeasonState, rs: Ruleset, rng: Rng) {
+export function startYear(state: SeasonState, rs: Ruleset, rng: Rng, world?: World) {
   const { year } = state.date;
   if (year > rs.startYear) scheduleYear(rs, year, rng); // musim pertama = kalender asli preset
   const now = absWeek(state.date);
@@ -247,7 +249,11 @@ export function startYear(state: SeasonState, rs: Ruleset, rng: Rng) {
     }
   }
   state.commitmentsYear = year;
-  if (state.career?.countryId) state.career.goals = seasonGoals(state, rs, state.career.countryId);
+  if (state.career?.countryId) {
+    state.career.goals = seasonGoals(state, rs, state.career.countryId);
+    delete state.career.challenge;
+    state.career.challengeOptions = world ? makeChallenges(state, rs, world, state.career.countryId, rng) : undefined;
+  }
 }
 
 /** Kualifikasi WTF: 8 teratas Race, maks 2 per negara; juara dunia tahun ini otomatis (menggantikan yang terbawah). */
@@ -360,7 +366,7 @@ export interface WeekHooks { live?: LiveHook; team?: TeamHook; draw?: DrawHook; 
 /** Satu minggu kalender. Hook yang mengembalikan Promise membuat simulasi menunggu keputusan di UI. */
 export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rng: Rng, hooks: WeekHooks = {}) {
   const { year, week } = state.date;
-  if (state.commitmentsYear !== year) startYear(state, rs, rng);
+  if (state.commitmentsYear !== year) startYear(state, rs, rng, world);
   if (state.scouting && week > SCOUTING_DEADLINE_WEEK) recruit(state, []); // batas memilih lewat: isi otomatis
   const events = rs.calendar.filter((e) => weekOf(e, year) === week && isHeld(e, year)).sort((a, b) => tierOf(rs, b).points[0] - tierOf(rs, a).points[0]);
   const teamEvents = rs.team.events.filter((e) => weekOf(e, year) === week && isHeld(e, year));
@@ -446,7 +452,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   if (week % 13 === 0) endQuarter(state, rs, rng);
   if (week >= 52) endYear(state, rs, world, rng);
   state.date = week >= 52 ? { year: year + 1, week: 1 } : { year, week: week + 1 };
-  if (week >= 52) startYear(state, rs, rng); // target & Top Committed musim baru langsung terlihat di minggu 1
+  if (week >= 52) startYear(state, rs, rng, world); // target & Top Committed musim baru langsung terlihat di minggu 1
 }
 
 /**

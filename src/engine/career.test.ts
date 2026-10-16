@@ -16,10 +16,17 @@ describe('mode karier', () => {
     const state = newSeason(WORLD, rs, 1, undefined, 'INA');
     const rng = makeRng(1);
     await playWeek(state, rs, WORLD, rng);
-    expect(state.career!.goals.map((g) => g.kind)).toEqual(['titles', 'top10', 'team', 'team']);
+    expect(state.career!.goals.map((g) => g.kind)).toEqual(['titles', 'top10', 'team', 'team', 'medals', 'olympic']);
     expect(state.career!.goals.every((g) => g.target >= 1)).toBe(true);
+    expect(state.career!.goals.find((g) => g.kind === 'olympic')!.year).toBe(2028);
+    // Tantangan opsional: 3 pilihan, manajer memilih satu → dinilai di rapor (bonus / penalti reputasi).
+    expect(state.career!.challengeOptions).toHaveLength(3);
+    state.career!.challenge = state.career!.challengeOptions![0];
     while (state.date.year === 2026) await playWeek(state, rs, WORLD, rng);
     const report = state.career!.reports[0];
+    expect(report.challenge && Math.abs(report.challenge.reputation)).toBeGreaterThan(0);
+    expect(state.career!.challengeOptions).toHaveLength(3); // musim baru: pilihan baru
+    expect(state.career!.challenge).toBeUndefined();
     expect(report.year).toBe(2026);
     expect(['A', 'B', 'C', 'D', 'E']).toContain(report.grade);
     expect(report.goals.every((g) => g.achieved !== undefined)).toBe(true);
