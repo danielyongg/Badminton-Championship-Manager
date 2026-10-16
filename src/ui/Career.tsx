@@ -227,7 +227,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
 function goalLabel(ruleset: Ruleset, g: FederationGoal, year: number) {
   // Multi-event: medali perorangan + beregu → nama event tanpa "Individual".
   if (g.kind === 'medals') return t(g.gold ? 'goal_gold' : 'goal_medals', { event: (eventName(ruleset, g.eventId!, year) ?? '').replace(/ Individual$/, '') });
-  if (g.kind === 'olympic') return t('goal_olympic', { y: g.year! }) + (g.year !== year ? ` (${t('goal_olympicLater', { y: g.year! })})` : '');
+  if (g.kind === 'olympic') return t('goal_olympic', { y: g.year! });
   return t(`goal_${g.kind}` as TextKey) + (g.format ? `: ${formatName(g.format)}` : '');
 }
 const goalKey = (g: FederationGoal) => g.kind + (g.format ?? '') + (g.eventId ?? '');
@@ -240,8 +240,9 @@ function GoalTable({ goals, current, year }: { goals: FederationGoal[]; current?
       const now = current ? current(g) : g.achieved ?? 0;
       const show = (n: number) => (g.kind === 'team' ? levelName(n) : n);
       return (
-        <li key={goalKey(g)} className={goalWeight(g, year) === 0 ? 'muted-text' : undefined}>
-          <b>{goalLabel(game.ruleset, g, year)}{goalWeight(g, year) > 1 && ' ×2'}</b>
+        <li key={goalKey(g)}>
+          <b>{goalLabel(game.ruleset, g, year)}{goalWeight(g, year) > 1 && ' ×2'}
+            {goalWeight(g, year) === 0 && <small className="muted-text"> ({t('goal_olympicLater', { y: g.year ?? year })})</small>}</b>
           <span>{t('target')}: {show(g.target)} · {t('progress')}: <span className={now >= g.target ? 'up' : ''}>{show(now)}</span></span>
         </li>
       );
