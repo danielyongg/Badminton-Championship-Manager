@@ -1,5 +1,5 @@
-import { applyCountryQuota } from './entry';
 import { ageAt } from './generator';
+import { nextOlympics, olympicField } from './olympics';
 import { absWeek, computeRanking } from './ranking';
 import { shuffle, type Rng } from './rng';
 import { hostCityId, isHeld, teamFormatsIn, teamStrengths, type SeasonState } from './season';
@@ -92,22 +92,16 @@ function gamesGoals(state: SeasonState, rs: Ruleset, countryId: string): Federat
 }
 
 /**
- * Wakil negara di Olimpiade: setelah Olimpiade dimainkan = peserta sebenarnya; sebelumnya = proyeksi dari ranking saat ini
- * dengan kuota negara & ukuran draw Olimpiade (ASUMSI: menyederhanakan Race to Olympics).
+ * Wakil negara di Olimpiade terdekat: setelah Olimpiade dimainkan = peserta sebenarnya; sebelumnya = daftar lolos menurut
+ * ranking Olimpiade (periode kualifikasi) & kuota saat ini (`olympicField`).
  */
-export function olympicQualifiers(state: SeasonState, rs: Ruleset, countryId: string) {
-  const og = rs.calendar.find((e) => e.tierId === 'OG');
-  const tier = rs.tiers.find((x) => x.id === 'OG');
-  if (!og || !tier) return 0;
+export function olympicQualifiers(state: SeasonState, rs: Ruleset, countryId: string, world?: World) {
+  const next = nextOlympics(rs, state.date.year);
+  if (!next) return 0;
   const country = countryOfEntrant(state);
-  const played = state.matches.filter((m) => m.tournamentId === og.id && m.year === state.date.year);
+  const played = state.matches.filter((m) => m.tournamentId === next.event.id && m.year === next.year);
   if (played.length) return new Set(played.flatMap((m) => m.sides).filter((id) => country(id) === countryId)).size;
-  const now = absWeek(state.date);
-  return DISCIPLINES.reduce((n, d) => {
-    const cands = computeRanking(state.results, d, now, rs).flatMap((r) => { const c = country(r.entrantId); return c ? [{ id: r.entrantId, countryId: c, rank: r.rank }] : []; });
-    const picked = (tier.countryQuota ? applyCountryQuota(cands, tier.countryQuota) : cands).slice(0, tier.drawSize[d]);
-    return n + picked.filter((c) => c.countryId === countryId).length;
-  }, 0);
+  return DISCIPLINES.reduce((n, d) => n + olympicField(state, rs, d, next.year, world).filter((c) => c.countryId === countryId).length, 0);
 }
 
 /**
@@ -125,22 +119,20 @@ function majorGoals(state: SeasonState, rs: Ruleset, countryId: string): Federat
 }
 
 /** Target siklus Olimpiade: ditetapkan sekali per siklus = proyeksi wakil saat itu + 1 (ASUMSI), dinilai di tahun Olimpiade. */
-function olympicGoal(state: SeasonState, rs: Ruleset, countryId: string): FederationGoal[] {
-  const og = rs.calendar.find((e) => e.tierId === 'OG');
-  const tier = rs.tiers.find((x) => x.id === 'OG');
-  if (!og || !tier || !state.career) return [];
-  let year = state.date.year;
-  while (!isHeld(og, year) && year < state.date.year + 8) year++;
-  const max = DISCIPLINES.reduce((n, d) => n + Math.min(tier.countryQuota?.max ?? 1, tier.drawSize[d]), 0);
-  if (state.career.olympicCycle?.year !== year) state.career.olympicCycle = { year, target: Math.max(1, Math.min(max, olympicQualifiers(state, rs, countryId) + 1)) };
-  return [{ kind: 'olympic', eventId: og.id, year, target: state.career.olympicCycle.target }];
+function olympicGoal(state: SeasonState, rs: Ruleset, countryId: string, world?: World): FederationGoal[] {
+  const next = nextOlympics(rs, state.date.year);
+  if (!next || !state.career) return [];
+  const { year } = next;
+  const max = DISCIPLINES.length * 2; // maks 2 wakil per nomor
+  if (state.career.olympicCycle?.year !== year) state.career.olympicCycle = { year, target: Math.max(1, Math.min(max, olympicQualifiers(state, rs, countryId, world) + 1)) };
+  return [{ kind: 'olympic', eventId: next.event.id, year, target: state.career.olympicCycle.target }];
 }
 
 /**
  * Target musim dari posisi awal negara: top 10 = pertahankan jumlah saat ini (min 1 bila punya atlet top 20);
  * gelar = gelar musim lalu, atau perkiraan 1,5 per entri top 10 di musim pertama. (ASUMSI)
  */
-export function seasonGoals(state: SeasonState, rs: Ruleset, countryId: string): FederationGoal[] {
+export function seasonGoals(state: SeasonState, rs: Ruleset, countryId: string, world?: World): FederationGoal[] {
   const top10 = top10Of(state, rs, countryId);
   const lastYear = titlesOf(state, rs, countryId, state.date.year - 1);
   const hadSeason = state.champions.some((c) => c.year === state.date.year - 1);
@@ -151,16 +143,16 @@ export function seasonGoals(state: SeasonState, rs: Ruleset, countryId: string):
     ...teamGoals(state, rs, countryId),
     ...majorGoals(state, rs, countryId),
     ...gamesGoals(state, rs, countryId),
-    ...olympicGoal(state, rs, countryId),
+    ...olympicGoal(state, rs, countryId, world),
   ];
 }
 
 /** Capaian terkini suatu target (dipakai Dashboard & rapor). */
-export function goalProgress(state: SeasonState, rs: Ruleset, countryId: string, g: FederationGoal) {
+export function goalProgress(state: SeasonState, rs: Ruleset, countryId: string, g: FederationGoal, world?: World) {
   const year = state.date.year;
   return g.kind === 'titles' ? titlesOf(state, rs, countryId, year) : g.kind === 'top10' ? top10Of(state, rs, countryId)
     : g.kind === 'medals' ? medalsOf(state, countryId, g.eventId!, year, g.gold)
-    : g.kind === 'olympic' ? olympicQualifiers(state, rs, countryId)
+    : g.kind === 'olympic' ? olympicQualifiers(state, rs, countryId, world)
     : teamLevel(state, countryId, year, g.format!);
 }
 
@@ -214,11 +206,11 @@ export function challengeProgress(state: SeasonState, rs: Ruleset, countryId: st
 const GRADES = ['A', 'B', 'C', 'D', 'E'];
 
 /** Rapor akhir musim: rata-rata pencapaian (maks 150% per target) → nilai; ≥ 3 pelanggaran turun satu nilai. */
-export function seasonReport(state: SeasonState, rs: Ruleset, countryId: string, goals: FederationGoal[]): SeasonReport {
+export function seasonReport(state: SeasonState, rs: Ruleset, countryId: string, goals: FederationGoal[], world?: World): SeasonReport {
   const year = state.date.year;
   const achieved = goals.map((g) => ({
     ...g,
-    achieved: goalProgress(state, rs, countryId, g),
+    achieved: goalProgress(state, rs, countryId, g, world),
   }));
   const weights = achieved.map((g) => goalWeight(g, year));
   const ratio = achieved.reduce((s, g, i) => s + weights[i] * Math.min(1.5, g.achieved / Math.max(1, g.target)), 0) / Math.max(1, weights.reduce((a, b) => a + b, 0));

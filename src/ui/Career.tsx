@@ -392,7 +392,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
       {managed && (
         <section className="card">
           <h3>{t('goals')} {year}</h3>
-          <GoalTable goals={state.career!.goals} current={(g) => goalProgress(state, ruleset, managed, g)} year={year} />
+          <GoalTable goals={state.career!.goals} current={(g) => goalProgress(state, ruleset, managed, g, world)} year={year} />
         </section>
       )}
       {managed && (state.career!.challenge || (state.career!.challengeOptions?.length && week <= CHALLENGE_DEADLINE_WEEK)) && <ChallengeCard />}

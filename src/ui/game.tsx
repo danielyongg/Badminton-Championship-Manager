@@ -46,6 +46,12 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
     if (p && e.qualifiers === undefined && p.qualifiers) e.qualifiers = p.qualifiers; // kuota kontinental (Asia & Eropa 4)
   }
   for (const r of blob.state.teamResults) r.squads ??= {};
+  // Save sebelum kualifikasi Olimpiade (LA28): draw & grup Olimpiade dari preset, tanpa kuota negara lama.
+  const ogPreset = preset.tiers.find((x) => x.id === 'OG'), ogSaved = blob.ruleset.tiers.find((x) => x.id === 'OG');
+  if (ogPreset && ogSaved?.countryQuota && ogSaved.drawSize.MS === 48) {
+    Object.assign(ogSaved, { drawSize: { ...ogPreset.drawSize }, groupStage: structuredClone(ogPreset.groupStage) });
+    delete ogSaved.countryQuota;
+  }
   // Save sebelum multi-event (Asian Games, SEA Games, dll.): tambahkan tier, turnamen & beregu-nya dari preset.
   for (const tier of preset.tiers.filter((x) => x.id === 'MSG' && !blob.ruleset.tiers.some((y) => y.id === x.id))) blob.ruleset.tiers.push(structuredClone(tier));
   for (const e of preset.calendar.filter((x) => x.countries && !blob.ruleset.calendar.some((y) => y.id === x.id))) blob.ruleset.calendar.push(structuredClone(e));

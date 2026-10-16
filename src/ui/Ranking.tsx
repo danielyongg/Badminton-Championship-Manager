@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { absWeek, computeRace, computeRanking, expiringPoints } from '../engine/ranking';
+import { nextOlympics, olympicField, olympicRanking } from '../engine/olympics';
 import { presetPack } from '../engine/pack';
 import { makeRng } from '../engine/rng';
 import { hostCityId, isHeld, weekOf, newSeason, playWeek, rankFromSnapshots, type SeasonState } from '../engine/season';
@@ -40,7 +41,8 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
   state: SeasonState; ruleset: Ruleset; world: World; version: number; onOpenPlayer?: (id: string) => void; onOpenEvent?: (id: string, year: number) => void;
 }) {
   const [discipline, setDiscipline] = useState<Discipline>('MS');
-  const [mode, setMode] = useState<'world' | 'race' | 'junior'>('world');
+  const [mode, setMode] = useState<'world' | 'race' | 'junior' | 'olympic'>('world');
+  const og = nextOlympics(ruleset, state.date.year);
   const [selected, setSelected] = useState<string>();
   const [view, setView] = useState<'ranking' | 'calendar' | 'committed' | 'players'>('ranking');
   const [calYear, setCalYear] = useState(shownYear(state));
@@ -56,12 +58,21 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
   const name = (id: string) => entrantLabel(state, id);
   const eventName = (id: string) => eventNameOf(ruleset, id) ?? t('preseason');
 
+  // Ranking Olimpiade: periode kualifikasi + daftar lolos menurut kuota (✓ / benua / tuan rumah).
+  const olympic = useMemo(() => (mode === 'olympic' && og ? {
+    ...olympicRanking(state, ruleset, discipline, og.year),
+    field: new Map(olympicField(state, ruleset, discipline, og.year, world).map((c) => [c.id, c.via])),
+  } : undefined), [version, discipline, mode, ruleset]);
+  const qualified = (id: string) => olympic?.field.has(id) && (
+    <span className="badge good">✓{olympic.field.get(id) !== 'rank' ? ` ${t(olympic.field.get(id) === 'host' ? 'olympicHost' : 'olympicContinent')}` : ''}</span>
+  );
   const rows = useMemo(() => {
     const upTo = (rs: typeof state.results) => (asOf === undefined ? rs : rs.filter((e) => absWeek(e) <= at));
+    if (olympic) return olympic.rows;
     return mode === 'world' ? computeRanking(upTo(state.results), discipline, at, ruleset)
       : mode === 'junior' ? computeRanking(upTo(state.juniorResults ?? []), discipline, at, ruleset)
       : computeRace(upTo(state.results), discipline, yearOfAbs(at), ruleset);
-  }, [version, discipline, mode, at, ruleset]);
+  }, [version, discipline, mode, at, ruleset, olympic]);
   const lastChampions = state.champions.filter((c) => c.year === state.date.year && ruleset.calendar.find((e) => e.id === c.tournamentId)?.week === state.date.week - 1);
 
   return (
@@ -92,9 +103,10 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
             <option value="world">{t('worldRanking')}</option>
             <option value="race">{t('raceToFinals')}</option>
             <option value="junior">{t('juniorRanking')}</option>
+            {og && <option value="olympic">{t('olympicRanking', { y: og.year })}</option>}
           </select>
         </label>
-        {view === 'ranking' && (
+        {view === 'ranking' && mode !== 'olympic' && (
           <label>{t('rankAsOf')}
             <select value={asOf ?? ''} onChange={(e) => setAsOf(e.target.value ? Number(e.target.value) : undefined)}>
               <option value="">{t('rankCurrent')}</option>
@@ -114,15 +126,19 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
       {view === 'calendar' && <Calendar state={state} ruleset={ruleset} world={world} year={calYear} short={(id) => name(id).name} onOpenEvent={onOpenEvent} />}
       {view === 'committed' && <Committed state={state} ruleset={ruleset} label={(id) => name(id).name} />}
       {view === 'players' && <Development state={state} world={world} onOpen={onOpenPlayer} />}
+      {view === 'ranking' && olympic && og && (
+        <p className="hint">{t(olympic.projected ? 'olympicHintProjected' : 'olympicHint', { from: og.year - 1, to: og.year, n: olympic.field.size })}</p>
+      )}
       {view === 'ranking' && <div className="split">
         <div className="scroll">
           <table>
-            <thead><tr><th className="num">#</th><th>{t('name')}</th><th className="hide-sm">{t('country')}</th><th className="num">{t('points')}</th><th className="num hide-sm">{t('tournaments')}</th></tr></thead>
+            <thead><tr><th className="num">#</th><th>{t('name')}</th><th className="hide-sm">{t('country')}</th><th className="num">{t('points')}</th><th className="num hide-sm">{t('tournaments')}</th>{olympic && <th className="hide-sm">{t('olympicQualified')}</th>}</tr></thead>
             <tbody>
               {rows.slice(0, 100).map((r) => (
                 <tr key={r.entrantId} onClick={() => setSelected(r.entrantId)} className={selected === r.entrantId ? 'sel' : ''} style={{ cursor: 'pointer' }}>
-                  <td className="num">{r.rank}</td><td><span className="show-sm"><Flag id={name(r.entrantId).country} /></span>{name(r.entrantId).name}</td><td className="hide-sm"><Flag id={name(r.entrantId).country} />{name(r.entrantId).country}</td>
+                  <td className="num">{r.rank}</td><td><span className="show-sm"><Flag id={name(r.entrantId).country} /></span>{name(r.entrantId).name}{olympic && <span className="show-sm"> {qualified(r.entrantId)}</span>}</td><td className="hide-sm"><Flag id={name(r.entrantId).country} />{name(r.entrantId).country}</td>
                   <td className="num">{r.points.toLocaleString(numLocale())}</td><td className="num hide-sm">{r.tournamentsPlayed}</td>
+                  {olympic && <td className="hide-sm">{qualified(r.entrantId)}</td>}
                 </tr>
               ))}
             </tbody>

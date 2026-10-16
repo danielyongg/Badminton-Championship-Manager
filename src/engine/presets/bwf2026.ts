@@ -20,11 +20,12 @@ export const TIERS_2026: Tier[] = [
     id: 'OG', name: 'Olimpiade', grade: 1,
     points: [14500, 12500, 10500, 8200, 6000, 3700, 1450, 750, 300],
     prizeUsd: 0, prizeSplit: NO_PRIZE,
-    // ASUMSI: tunggal 16 grup × 3 (juara grup ke R16); ganda 4 grup × 4 (2 teratas ke QF).
-    drawSize: { MS: 48, WS: 48, MD: 16, WD: 16, XD: 16 },
-    countryQuota: { base: 1, max: 2, topRank: 16 }, // ASUMSI: disederhanakan
+    // Peserta dari ranking Olimpiade & kuota (lihat olympics.ts): tunggal 38, ganda 16 pasangan.
+    // Seperti Paris 2024: tunggal grup isi 3–4 (12 grup → 10 × 3 + 2 × 4), juara grup ke R16 (4 bye);
+    // ganda 4 grup × 4, 2 teratas ke perempat final.
+    drawSize: { MS: 38, WS: 38, MD: 16, WD: 16, XD: 16 },
     groupStage: {
-      MS: { groups: 16, perGroup: 3, advance: 1 }, WS: { groups: 16, perGroup: 3, advance: 1 },
+      MS: { groups: 12, perGroup: 4, advance: 1 }, WS: { groups: 12, perGroup: 4, advance: 1 },
       MD: { groups: 4, perGroup: 4, advance: 2 }, WD: { groups: 4, perGroup: 4, advance: 2 }, XD: { groups: 4, perGroup: 4, advance: 2 },
     },
     qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,

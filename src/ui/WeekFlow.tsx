@@ -51,7 +51,7 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
           const ev = kind === 'team' ? ruleset.team.events.find((e) => e.id === id)! : ruleset.calendar.find((e) => e.id === id)!;
           const tier = 'tierId' in ev ? ruleset.tiers.find((x) => x.id === ev.tierId) : undefined;
           // Junior & Finals: entry otomatis. Beregu: skuad dipilih di pop-up bila belum di-submit.
-          const auto = kind === 'team' || tier?.junior || tier?.id === 'WTF';
+          const auto = kind === 'team' || tier?.junior || tier?.id === 'WTF' || tier?.id === 'OG';
           const submitted = state.entriesSubmitted?.[`${year}:${id}`];
           const done = ask.played.includes(id);
           return (

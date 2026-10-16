@@ -21,7 +21,11 @@ describe.each([BWF_2026, BWF_2027])('preset $name', (rs) => {
   it('format grup cocok dengan ukuran draw', () => {
     for (const t of rs.tiers)
       for (const [d, g] of Object.entries(t.groupStage ?? {}))
-        expect(g!.groups * g!.perGroup, `${t.id} ${d}`).toBe(t.drawSize[d as 'MS']);
+      { // grup boleh berisi perGroup atau perGroup − 1 (Olimpiade: 38 tunggal → 10 grup × 3 + 2 grup × 4)
+        const n = t.drawSize[d as 'MS'];
+        expect(n, `${t.id} ${d}`).toBeLessThanOrEqual(g!.groups * g!.perGroup);
+        expect(n, `${t.id} ${d}`).toBeGreaterThan(g!.groups * (g!.perGroup - 1));
+      }
   });
 
   it('kalender hanya merujuk tier & kota yang ada, id unik', () => {

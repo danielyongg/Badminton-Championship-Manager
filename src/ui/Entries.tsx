@@ -60,7 +60,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
           const past = weekOf(e, year) < week;
           const team = teamIds.has(e.id);
           const tier = 'tierId' in e ? e.tierId : '';
-          const auto = !team && (tier === 'WTF' || ruleset.tiers.find((x) => x.id === tier)?.junior); // junior & Finals: otomatis
+          const auto = !team && (tier === 'WTF' || tier === 'OG' || ruleset.tiers.find((x) => x.id === tier)?.junior); // junior, Finals & Olimpiade: otomatis
           return (
             <tr key={e.id} className={past ? 'muted-text' : undefined}>
               <td className="num">{weekOf(e, year)}</td>
@@ -164,7 +164,7 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
   const { year } = state.date;
-  const events = ruleset.calendar.filter((e) => weekOf(e, year) === w && isHeld(e, year) && e.tierId !== 'WTF' && !ruleset.tiers.find((x) => x.id === e.tierId)?.junior); // junior: otomatis
+  const events = ruleset.calendar.filter((e) => weekOf(e, year) === w && isHeld(e, year) && e.tierId !== 'WTF' && e.tierId !== 'OG' && !ruleset.tiers.find((x) => x.id === e.tierId)?.junior); // junior & Olimpiade: otomatis
   const key = weekKey({ year, week: w });
   const decisions = state.manualEntries[key] ?? {};
   const { players } = lookup(state);

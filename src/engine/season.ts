@@ -1,4 +1,5 @@
 import { makeChallenges, seasonGoals, seasonReport } from './career';
+import { olympicField } from './olympics';
 import { applySevereInjury, developQuarter, newJuniors, retirementChance, rollInjury } from './development';
 import { applyCountryQuota, type Candidate } from './entry';
 import { ageAt, currentAbility, generateWorld, isJuniorAge, isPratama } from './generator';
@@ -257,7 +258,7 @@ export function startYear(state: SeasonState, rs: Ruleset, rng: Rng, world?: Wor
   }
   state.commitmentsYear = year;
   if (state.career?.countryId) {
-    state.career.goals = seasonGoals(state, rs, state.career.countryId);
+    state.career.goals = seasonGoals(state, rs, state.career.countryId, world);
     delete state.career.challenge;
     state.career.challengeOptions = world ? makeChallenges(state, rs, world, state.career.countryId, rng) : undefined;
   }
@@ -299,7 +300,7 @@ function distanceKm(a: City, b: City) {
  * Urutan nomor MS→XD: turnamen pertama yang dipilih seorang atlet mengikat nomor lainnya (satu turnamen per minggu).
  * Turnamen wajib (Top Committed) selalu dipilih; lainnya menurut rentang peringkat, peluang ikut & kelelahan.
  */
-function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset, rng: Rng, ranks: Map<Discipline, Map<string, number>>, busy = new Set<string>()) {
+function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset, rng: Rng, ranks: Map<Discipline, Map<string, number>>, busy = new Set<string>(), world?: World) {
   const entries = new Map(events.map((e) => [e.id, new Map<Discipline, Candidate[]>(DISCIPLINES.map((d) => [d, []]))]));
   const playerEvent = new Map<string, string>();
   const fatigue = new Map(state.players.map((p) => [p.id, p.fatigue]));
@@ -322,17 +323,27 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
       }
     }
 
+  // Olimpiade: peserta dari ranking Olimpiade & kuota (otomatis, seperti WTF).
+  const og = events.find((e) => e.tierId === 'OG');
+  if (og)
+    for (const d of DISCIPLINES) {
+      const q = olympicField(state, rs, d, state.date.year, world);
+      entries.get(og.id)!.set(d, q);
+      const pids = new Map(entrantsFor(state, d).map((e) => [e.id, e.playerIds]));
+      for (const c of q) pids.get(c.id)?.forEach((id) => playerEvent.set(id, og.id));
+    }
+
   // Keputusan manual manajer diproses lebih dulu (tidak didahului pilihan AI yang mengikat atletnya ke turnamen lain).
   // Satu atlet: satu turnamen per minggu, dan satu pasangan per nomor (pasangan utama ATAU percobaan).
   const playerDisc = new Set<string>();
   const all = DISCIPLINES.flatMap((d) => entrantsFor(state, d).map((e) => ({ e, d })));
   const isManual = (x: { e: Entrant }) => mine(x.e) && manual[x.e.id] !== undefined;
   for (const { e, d } of [...all.filter(isManual), ...all.filter((x) => !isManual(x))]) {
-    const taken = wtf ? entries.get(wtf.id)!.get(d)!.some((c) => c.id === e.id) : false;
+    const taken = [wtf, og].some((x) => x && entries.get(x.id)!.get(d)!.some((c) => c.id === e.id));
     if (taken || e.playerIds.some((id) => injured.has(id) || playerDisc.has(`${id}:${d}`))) continue;
     const rank = ranks.get(d)!.get(e.id);
     const fixed = e.playerIds.map((id) => playerEvent.get(id)).find(Boolean);
-    const options = events.filter((ev) => ev.tierId !== 'WTF' && tierOf(rs, ev).drawSize[d] > 0 && (!fixed || ev.id === fixed)
+    const options = events.filter((ev) => ev.tierId !== 'WTF' && ev.tierId !== 'OG' && tierOf(rs, ev).drawSize[d] > 0 && (!fixed || ev.id === fixed)
       && (!ev.countries || ev.countries.includes(e.countryId)));
     const decision = mine(e) ? manual[e.id] : undefined;
     if (!decision && e.playerIds.some((id) => pratama.has(id) || busy.has(id))) continue;
@@ -407,7 +418,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   // Minggu beregu junior (Suhandinata Cup): semua junior disiapkan untuk timnya, tidak didaftarkan otomatis ke turnamen senior.
   if (teamEvents.some((e) => e.formats?.some(isJuniorFormat)))
     for (const p of state.players) if (isJuniorAge(p, state.date)) junior.busy.add(p.id);
-  const entries = chooseEntries(state, events.filter((e) => !isJunior(e)), rs, rng, ranks, junior.busy);
+  const entries = chooseEntries(state, events.filter((e) => !isJunior(e)), rs, rng, ranks, junior.busy, world);
   for (const [id, byD] of junior.entries) entries.set(id, byD);
 
   /** Satu turnamen individu; `gated` = kelima nomor bersamaan lewat gerbang babak. */
@@ -766,7 +777,7 @@ function endYear(state: SeasonState, rs: Ruleset, world: World, rng: Rng) {
   const now = absWeek(state.date);
   const career = state.career;
   if (career?.countryId) {
-    const report = seasonReport(state, rs, career.countryId, career.goals);
+    const report = seasonReport(state, rs, career.countryId, career.goals, world);
     career.reports.push(report);
     career.reputation = Math.max(0, Math.min(100, career.reputation + report.reputationChange));
   }
