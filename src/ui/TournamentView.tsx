@@ -36,7 +36,7 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
     eventTitle: eventName(ruleset, id, year),
   };
   const team = state.teamResults.filter((r) => r.eventId === id && r.year === year);
-  const tier = def && 'tierId' in def ? tierLabel(def.tierId) : t('tabTeam');
+  const tier = def && 'tierId' in def ? tierLabel(def.tierId) : def?.countries ? t('multiEvent') : t('tabTeam');
   const prize = def && 'prizeUsd' in def && def.prizeUsd ? ` · $${def.prizeUsd.toLocaleString(numLocale())}` : '';
 
   const rec = records.find((r) => r.discipline === d);

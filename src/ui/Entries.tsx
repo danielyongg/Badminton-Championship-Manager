@@ -4,7 +4,7 @@ import { entrantsFor, hostCityId, openTo, weekOf, isHeld, isManaged, releasedIds
 import { autoSquad, squadError } from '../engine/team';
 import { DISCIPLINES, type TeamFormat } from '../engine/types';
 import { dataName, t } from '../i18n';
-import { entrantLabel, eventName, lookup, saveGame, tierLabel, useGame } from './game';
+import { entrantLabel, eventName, lookup, saveGame, teamLabel, tierLabel, useGame } from './game';
 import { FatigueBar } from './Squad';
 import { isPratama } from '../engine/generator';
 import { formatName, SquadPicker } from './Team';
@@ -23,7 +23,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   if (teamEv) return (
     <>
       <p><button onClick={() => setOpen(undefined)}>← {t('back')}</button></p>
-      <h3>{t('week')} {weekOf(teamEv, year)} · {eventName(ruleset, teamEv.id, year)} <small className="muted-text">{t('teamShort')}</small></h3>
+      <h3>{t('week')} {weekOf(teamEv, year)} · {eventName(ruleset, teamEv.id, year)} <small className="muted-text">{teamLabel(teamEv)}</small></h3>
       <TeamSquads formats={teamEv.formats ?? teamFormatsIn(ruleset, year)} onSubmit={() => submit(teamEv.id)} />
     </>
   );
@@ -65,7 +65,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
             <tr key={e.id} className={past ? 'muted-text' : undefined}>
               <td className="num">{weekOf(e, year)}</td>
               <td><a href="#" onClick={(x) => { x.preventDefault(); if (past || auto) onOpenEvent?.(e.id, year); else setOpen(e.id); }}>{team ? eventName(ruleset, e.id, year) : dataName(e.name)}</a></td>
-              <td><span className="chip">{team ? t('teamShort') : ruleset.tiers.find((x) => x.id === tier)?.junior ? t('juniorShort') : tierLabel(tier)}</span></td>
+              <td><span className="chip">{team ? teamLabel(e) : ruleset.tiers.find((x) => x.id === tier)?.junior ? t('juniorShort') : tierLabel(tier)}</span></td>
               <td className="hide-sm">{city(hostCityId(e, year))}</td>
               <td>{past ? t('finished') : auto ? t('auto')
                 : submitted(e.id) ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>}</td>

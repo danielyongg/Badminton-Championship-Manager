@@ -18,7 +18,7 @@ import { ThemeSelect } from './ThemeSelect';
 import { Flag } from './Flag';
 import { LiveDraw } from './LiveDraw';
 import { LiveMatch } from './LiveMatch';
-import { advance, entrantLabel, eventName, tierLabel, JUNIOR_MAX_AGE, lookup, saveGame, useGame } from './game';
+import { advance, entrantLabel, eventName, teamLabel, tierLabel, JUNIOR_MAX_AGE, lookup, saveGame, useGame } from './game';
 import { SeasonViews } from './Ranking';
 import { injuryText, isBadInjury, Profile, Squad, usd } from './Squad';
 import { autoPick, recruit, SCOUTING_DEADLINE_WEEK } from '../engine/scouting';
@@ -225,7 +225,8 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
 
 /** Nama target: jenis + format beregu / event besar / tahun Olimpiade tujuan. */
 function goalLabel(ruleset: Ruleset, g: FederationGoal, year: number) {
-  if (g.kind === 'medals') return t(g.gold ? 'goal_gold' : 'goal_medals', { event: eventName(ruleset, g.eventId!, year) ?? '' });
+  // Multi-event: medali perorangan + beregu → nama event tanpa "Individual".
+  if (g.kind === 'medals') return t(g.gold ? 'goal_gold' : 'goal_medals', { event: (eventName(ruleset, g.eventId!, year) ?? '').replace(/ Individual$/, '') });
   if (g.kind === 'olympic') return t('goal_olympic', { y: g.year! }) + (g.year !== year ? ` (${t('goal_olympicLater', { y: g.year! })})` : '');
   return t(`goal_${g.kind}` as TextKey) + (g.format ? `: ${formatName(g.format)}` : '');
 }
@@ -344,7 +345,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
     return computeRanking(state.results, rankD, now, ruleset).slice(0, 10)
       .map((r) => { const i = prev?.ids.indexOf(r.entrantId) ?? -1; return { id: r.entrantId, rank: r.rank, points: r.points, delta: i < 0 ? undefined : i + 1 - r.rank }; });
   }, [version, rankD]);
-  const upcoming = [...ruleset.calendar, ...ruleset.team.events.map((e) => ({ ...e, tierId: t('teamShort') }))]
+  const upcoming = [...ruleset.calendar, ...ruleset.team.events.map((e) => ({ ...e, tierId: e.countries ? 'MSG' : t('teamShort') }))]
     .filter((e) => isHeld(e, year) && weekOf(e, year) >= week && weekOf(e, year) < week + 4 && (!managed || openTo(e, managed, world)))
     .sort((a, b) => weekOf(a, year) - weekOf(b, year));
   const city = (id: string) => dataName(world.cities.find((c) => c.id === id)?.name);
@@ -428,7 +429,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
             const reached = r.reached[managed!];
             return (
               <div key={r.eventId + r.format} className={`drow${reached === 'W' ? ' champ' : ''}`}>
-                <span className="chip">{t('teamShort')}</span>
+                <span className="chip">{teamLabel(r)}</span>
                 <span className="grow"><b><EventLink id={r.eventId} year={r.year} onOpen={onOpenEvent} /> · {formatName(r.format)}</b></span>
                 <span className={`badge${reached === 'W' ? ' gold' : reached === 'F' || reached === 'SF' ? ' good' : ''}`}>{reached === 'W' ? `🏆 ${t('champion')}` : reached ?? t('group')}</span>
               </div>
@@ -537,7 +538,7 @@ function Titles({ country, year, onOpen, onOpenEvent }: { country: string; year:
             <h4>{t('teamShort')} <small className="muted-text">{winners(teamTitles.length)}</small></h4>
             {teamTitles.map((r) => (
               <div key={r.eventId + r.format} className="drow champ">
-                <span className="chip">{t('teamShort')}</span>
+                <span className="chip">{teamLabel(r)}</span>
                 <span className="grow">{formatName(r.format)} <small className="muted-text"><EventLink id={r.eventId} year={year} onOpen={onOpenEvent} /></small></span>
                 <span className="badge gold">🏆</span>
               </div>
@@ -595,7 +596,7 @@ function SeasonSummary({ year, country, onBack, onOpen, onOpenEvent }: { year: n
             const reached = r.reached[country];
             return (
               <div key={r.eventId + r.format} className={`drow${reached === 'W' ? ' champ' : ''}`}>
-                <span className="chip">{t('teamShort')}</span>
+                <span className="chip">{teamLabel(r)}</span>
                 <span className="grow"><b><EventLink id={r.eventId} year={year} onOpen={onOpenEvent} /> · {formatName(r.format)}</b></span>
                 <span className={`badge${reached === 'W' ? ' gold' : reached === 'F' || reached === 'SF' ? ' good' : ''}`}>{reached === 'W' ? `🏆 ${t('champion')}` : reached ?? t('group')}</span>
               </div>

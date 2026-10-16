@@ -49,6 +49,11 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
   // Save sebelum multi-event (Asian Games, SEA Games, dll.): tambahkan tier, turnamen & beregu-nya dari preset.
   for (const tier of preset.tiers.filter((x) => x.id === 'MSG' && !blob.ruleset.tiers.some((y) => y.id === x.id))) blob.ruleset.tiers.push(structuredClone(tier));
   for (const e of preset.calendar.filter((x) => x.countries && !blob.ruleset.calendar.some((y) => y.id === x.id))) blob.ruleset.calendar.push(structuredClone(e));
+  // Nomor perorangan multi-event bernama "... Individual" (pasangan dari "... Team"); nama lama bawaan ikut diganti.
+  for (const e of blob.ruleset.calendar) {
+    const p = e.countries && preset.calendar.find((x) => x.id === e.id);
+    if (p && `${e.name} Individual` === p.name) e.name = p.name;
+  }
   for (const e of preset.team.events.filter((x) => x.countries && !blob.ruleset.team.events.some((y) => y.id === x.id))) blob.ruleset.team.events.push(structuredClone(e));
   // Save sebelum tuan rumah per tahun: tambah kota baru & salin `hosts`/`rotation` dari preset (kecuali kota event diubah di Editor).
   for (const c of WORLD.cities) if (!blob.world.cities.some((x) => x.id === c.id)) blob.world.cities.push({ ...c });
@@ -117,6 +122,8 @@ export function lookup(state: SeasonState) {
 /** Nama turnamen individu atau kejuaraan beregu (kejuaraan kontinental bernama lain di tahun Sudirman Cup). */
 /** Label tier untuk tampilan: multi-event (tier MSG) ditulis lengkap. */
 export const tierLabel = (id: string) => (id === 'MSG' ? t('multiEvent') : id);
+/** Label event beregu: beregu multi-event (Asian Games Team dll.) ikut tier "Multi-event", selain itu "Tim". */
+export const teamLabel = (e?: { countries?: string[]; games?: true }) => (e?.countries || e?.games ? t('multiEvent') : t('teamShort'));
 
 export function eventName(ruleset: Ruleset, id: string, year?: number) {
   const team = ruleset.team.events.find((e) => e.id === id);
