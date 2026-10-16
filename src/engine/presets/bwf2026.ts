@@ -386,19 +386,23 @@ export const BWF_2026: Ruleset = {
   // (Estonia belum ada di daftar negara).
   // Minggu per tahun (`weeks`): Sudirman 2027 21 Apr–2 Mei (minggu 16), Asia beregu campuran 2027 12–17 Jan (minggu 2),
   // Eropa 6–10 Jan (minggu 1). ASUMSI: Thomas & Uber 2028 minggu 16 (celah kalender World Tour April–Mei).
+  // Format kejuaraan beregu (`finals`): Asia 12 tim, 4 grup, 2 teratas → perempat final (Qingdao 2026); Eropa 8 tim,
+  // 2 grup × 4, 2 teratas → semifinal (Istanbul 2026; babak kualifikasi tidak dimodelkan); Commonwealth Games 16 tim,
+  // 4 grup × 4 → perempat final (Birmingham 2022). ASUMSI: Pan Am & Afrika seperti Eropa, Oseania satu grup → final,
+  // African Games seperti Afrika (2 grup → semifinal). Asian Games & SEA Games beregu: sistem gugur (seperti aslinya).
   // Final 16 tim: tuan rumah, juara bertahan, 4 teratas Asia & Eropa (semifinalis), juara Pan Am/Afrika/Oseania,
   // sisanya menurut kekuatan tim (poin ranking line-up terbaik).
   team: {
     events: [
-      { id: 'asia-team', name: 'Badminton Asia Team Championships', nameMixed: 'Badminton Asia Mixed Team Championships', cityId: 'qingdao', week: 7, confederation: 'BA', qualifiers: 4, weeks: { 2027: 2 },
+      { id: 'asia-team', finals: { teams: 12, groups: { groups: 4, perGroup: 3, advance: 2 } }, name: 'Badminton Asia Team Championships', nameMixed: 'Badminton Asia Mixed Team Championships', cityId: 'qingdao', week: 7, confederation: 'BA', qualifiers: 4, weeks: { 2027: 2 },
         hosts: { 2026: 'qingdao', 2027: 'qingdao' }, rotation: ['kuala-lumpur', 'hong-kong', 'qingdao'] },
-      { id: 'europe-team', name: 'European Team Championships', nameMixed: 'European Mixed Team Championships', cityId: 'istanbul', week: 7, confederation: 'BE', qualifiers: 4, weeks: { 2027: 1 },
+      { id: 'europe-team', finals: { teams: 8, groups: { groups: 2, perGroup: 4, advance: 2 } }, name: 'European Team Championships', nameMixed: 'European Mixed Team Championships', cityId: 'istanbul', week: 7, confederation: 'BE', qualifiers: 4, weeks: { 2027: 1 },
         hosts: { 2026: 'istanbul' }, rotation: ['vantaa', 'almere', 'sofia', 'horsens'] },
-      { id: 'panam-team', name: 'Pan Am Male & Female Cup', nameMixed: 'Pan Am Cup', cityId: 'guatemala-city', week: 7, confederation: 'BAM',
+      { id: 'panam-team', finals: { teams: 8, groups: { groups: 2, perGroup: 4, advance: 2 } }, name: 'Pan Am Male & Female Cup', nameMixed: 'Pan Am Cup', cityId: 'guatemala-city', week: 7, confederation: 'BAM',
         hosts: { 2026: 'guatemala-city' }, rotation: ['lima', 'calgary', 'guatemala-city', 'sao-paulo'] },
-      { id: 'africa-team', name: 'All Africa Senior Championships', cityId: 'gaborone', week: 7, confederation: 'BCA',
+      { id: 'africa-team', finals: { teams: 8, groups: { groups: 2, perGroup: 4, advance: 2 } }, name: 'All Africa Senior Championships', cityId: 'gaborone', week: 7, confederation: 'BCA',
         hosts: { 2026: 'gaborone' }, rotation: ['cairo', 'lagos', 'johannesburg', 'rose-hill'] },
-      { id: 'oceania-team', name: 'Oceania Team Championships', nameMixed: 'Oceania Mixed Team Championships', cityId: 'auckland', week: 7, confederation: 'BO',
+      { id: 'oceania-team', finals: { teams: 4, groups: { groups: 1, perGroup: 4, advance: 2 } }, name: 'Oceania Team Championships', nameMixed: 'Oceania Mixed Team Championships', cityId: 'auckland', week: 7, confederation: 'BO',
         hosts: { 2026: 'auckland' }, rotation: ['sydney', 'auckland'] },
       { id: 'thomas-uber-cup', name: 'Thomas & Uber Cup', cityId: 'horsens', week: 18, formats: ['thomas', 'uber'], everyYears: { interval: 2, offset: 0 }, weeks: { 2028: 16 },
         hosts: { 2026: 'horsens' }, rotation: ['bangkok', 'jakarta', 'kuala-lumpur'] },
@@ -415,9 +419,9 @@ export const BWF_2026: Ruleset = {
         everyYears: { interval: 4, offset: 2 }, hosts: { 2026: 'nagoya' }, rotation: ['hangzhou', 'jakarta'] },
       { id: 'sea-games-team', name: 'SEA Games Team', cityId: 'kuala-lumpur', week: 37, formats: ['thomas', 'uber'], countries: SEA,
         everyYears: { interval: 2, offset: 1 }, hosts: { 2025: 'bangkok', 2027: 'kuala-lumpur', 2029: 'singapore' }, rotation: ['manila', 'ho-chi-minh', 'bangkok', 'jakarta'] },
-      { id: 'african-games-team', name: 'African Games Team', cityId: 'cairo', week: 10, formats: ['sudirman'], countries: AFRICA,
+      { id: 'african-games-team', finals: { teams: 8, groups: { groups: 2, perGroup: 4, advance: 2 } }, name: 'African Games Team', cityId: 'cairo', week: 10, formats: ['sudirman'], countries: AFRICA,
         everyYears: { interval: 4, offset: 3 }, rotation: ['cairo', 'lagos', 'johannesburg'] },
-      { id: 'commonwealth-games-team', name: 'Commonwealth Games Team', cityId: 'ahmedabad', week: 30, formats: ['sudirman'], countries: COMMONWEALTH,
+      { id: 'commonwealth-games-team', finals: { teams: 16, groups: { groups: 4, perGroup: 4, advance: 2 } }, name: 'Commonwealth Games Team', cityId: 'ahmedabad', week: 30, formats: ['sudirman'], countries: COMMONWEALTH,
         everyYears: { interval: 4, offset: 2 }, skipYears: [2026], hosts: { 2022: 'birmingham', 2030: 'ahmedabad' }, rotation: ['birmingham', 'glasgow', 'sydney'] },
     ],
     // ASUMSI: urutan partai Sudirman Cup tetap XD–WS–MS–WD–MD (aslinya bisa berubah per edisi).

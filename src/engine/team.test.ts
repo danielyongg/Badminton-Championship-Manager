@@ -184,8 +184,11 @@ describe('Thomas, Uber & Sudirman Cup', () => {
     const state = newSeason(WORLD, BWF_2026, 9, undefined, 'INA');
     const team: DrawShow[] = [];
     await until(state, BWF_2026, 19, 9, { draw: (d) => { if (!d.discipline) team.push(d); return null; } });
-    expect(team.map((d) => d.tournamentId)).toEqual(['thomas-uber-cup', 'thomas-uber-cup']);
-    for (const d of team) {
+    // Kejuaraan kontinental (fase grup) ikut diundi; Asia 4 grup.
+    expect(team.filter((d) => d.tournamentId === 'asia-team').map((d) => d.groups)).toEqual([4, 4]);
+    const finalsDraws = team.filter((d) => d.tournamentId === 'thomas-uber-cup');
+    expect(finalsDraws).toHaveLength(2);
+    for (const d of finalsDraws) {
       expect(d.groups).toBe(4);
       expect(d.steps.filter((s) => s.key === 'step_pot')).toHaveLength(16);
     }

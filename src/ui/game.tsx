@@ -66,6 +66,7 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
   for (const c of WORLD.cities) if (!blob.world.cities.some((x) => x.id === c.id)) blob.world.cities.push({ ...c });
   for (const e of [...blob.ruleset.calendar, ...(blob.ruleset.team?.events ?? [])]) {
     const p = [...preset.calendar, ...preset.team.events].find((x) => x.id === e.id);
+    if ('finals' in (p ?? {}) && !('finals' in e)) (e as { finals?: unknown }).finals = structuredClone((p as { finals?: unknown }).finals); // save sebelum fase grup kontinental
     if (p?.hosts && !e.hosts && e.cityId === p.cityId) Object.assign(e, { hosts: { ...p.hosts }, rotation: p.rotation && [...p.rotation] });
     // Save sebelum kalender per tahun: jadwal resmi preset untuk tahun-tahun yang belum dimainkan.
     for (const [y, w] of Object.entries(p?.weeks ?? {})) if (Number(y) > blob.state.date.year && e.weeks?.[y] === undefined) (e.weeks ??= {})[y] = w;

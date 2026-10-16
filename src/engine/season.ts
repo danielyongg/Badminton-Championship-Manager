@@ -693,9 +693,9 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
     // Multi-event: pilihan atlet hanya dari kontingen; negara yang kontingennya tidak cukup untuk lima partai tidak ikut beregu.
     const all = teamStrengths(state, rs, format).map((x) => { const c = contingentOf(state, ev.id, x.countryId); return c ? { ...x, pool: squadPool(x.pool, c) } : x; })
       .filter((x) => autoLineup(order, x.pool, max).every(Boolean));
-    const teams = ev.countries ? all.filter((t) => ev.countries!.includes(t.countryId)).map((t) => t.countryId) // multi-event: semua anggota
+    const teams = ev.countries ? all.filter((t) => ev.countries!.includes(t.countryId)).slice(0, ev.finals?.teams).map((t) => t.countryId) // multi-event: anggota (terkuat bila dibatasi)
       : ev.confederation
-      ? all.filter((t) => confederation.get(t.countryId) === ev.confederation).slice(0, rs.team.continentalTeams).map((t) => t.countryId)
+      ? all.filter((t) => confederation.get(t.countryId) === ev.confederation).slice(0, ev.finals?.teams ?? rs.team.continentalTeams).map((t) => t.countryId)
       : finalsField(format, all);
     if (teams.length < 2) {
       // Satu-satunya tim di konfederasinya menjadi juara kontinental tanpa bertanding (tetap lolos ke final).
@@ -771,7 +771,7 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
       ties.push({ round, sides: [a, b], score: [won, r.scores.length - won], matchIds: state.matches.slice(from).map((m) => m.id) });
       return r;
     };
-    const run = await runTeamEvent(teams, ev.confederation || ev.countries ? undefined : finals.groups, gate ? gate.wrap(format, tie) : tie, rng,
+    const run = await runTeamEvent(teams, ev.confederation || ev.countries ? ev.finals?.groups : finals.groups, gate ? gate.wrap(format, tie) : tie, rng,
       (steps) => draw?.({ tournamentId: ev.id, entrants: teams, steps, groups: finals.groups.groups }) ?? null, gated);
     state.teamResults.push({
       eventId: ev.id, year, format, confederation: ev.confederation, ...(ev.countries && { games: true as const }), teams,

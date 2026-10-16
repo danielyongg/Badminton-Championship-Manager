@@ -84,7 +84,8 @@ describe('satu musim penuh (BWF 2026)', () => {
   it('atlet top bermain jumlah turnamen yang realistis (±10–26, cedera bisa mengurangi)', async () => {
     for (const r of startRanking.slice(0, 10)) {
       const n = eventsOf(r.entrantId).size;
-      expect(n, r.entrantId).toBeGreaterThanOrEqual(10);
+      const longInjury = state.players.find((p) => p.id === r.entrantId)?.injuryHistory?.some((h) => h.year === 2026 && h.weeks >= 12);
+      if (!longInjury) expect(n, r.entrantId).toBeGreaterThanOrEqual(10); // cedera panjang boleh di bawah 10
       expect(n, r.entrantId).toBeLessThanOrEqual(26);
     }
   });
