@@ -54,12 +54,27 @@ export function groupDraw(entrants: DrawEntrant[], g: GroupStage, rng: Rng): { g
  * Round-robin satu grup. Urutan: jumlah menang; 2 seri → head-to-head;
  * ≥ 3 seri → selisih game, lalu selisih poin, lalu urutan unggulan. (ASUMSI: disederhanakan dari GCR)
  */
+/**
+ * Jadwal round-robin per hari pertandingan (metode lingkaran, unggulan 1 tetap): 4 tim → (1v4, 2v3), (1v3, 4v2), (1v2, 3v4),
+ * seperti jadwal grup BWF. Indeks posisi di grup.
+ */
+export function roundRobin(n: number): [number, number][][] {
+  const t = [...Array(n).keys()];
+  if (n % 2) t.push(-1); // bye
+  const days: [number, number][][] = [];
+  for (let r = 0; r < t.length - 1; r++) {
+    days.push(t.slice(0, t.length / 2).map((a, k) => [a, t[t.length - 1 - k]] as [number, number]).filter(([a, b]) => a >= 0 && b >= 0));
+    t.splice(1, 0, t.pop()!);
+  }
+  return days;
+}
+
 export async function playGroup(ids: EntrantId[], play: PlayFn, parallel = false): Promise<Standing[]> {
   const st = new Map(ids.map((id) => [id, { id, wins: 0, gameDiff: 0, pointDiff: 0 }]));
   const beat = new Set<string>();
   const pending: Promise<void>[] = [];
-  for (let i = 0; i < ids.length; i++)
-    for (let j = i + 1; j < ids.length; j++) {
+  for (const day of roundRobin(ids.length)) {
+    for (const [i, j] of day) {
       const settle = (r: PlayResult) => {
         const [w, l] = r.winner === 0 ? [ids[i], ids[j]] : [ids[j], ids[i]];
         st.get(w)!.wins++;
@@ -73,6 +88,9 @@ export async function playGroup(ids: EntrantId[], play: PlayFn, parallel = false
       const r = play(ids[i], ids[j], 'G');
       if (parallel) pending.push(Promise.resolve(r).then(settle)); else settle(await r);
     }
+    // Paralel: beri giliran grup lain mendaftarkan hari yang sama → urutan laga hari 1 semua grup, lalu hari 2, dst.
+    if (parallel) await Promise.resolve();
+  }
   await Promise.all(pending);
   const seedOrder = new Map(ids.map((id, i) => [id, i]));
   const list = [...st.values()];
