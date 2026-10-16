@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { entrantsFor, hostCityId, openTo, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
 import { autoSquad, squadError } from '../engine/team';
+import { inContingent } from '../engine/contingent';
 import { DISCIPLINES, type TeamFormat } from '../engine/types';
 import { dataName, t } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, teamLabel, tierLabel, useGame } from './game';
@@ -188,7 +189,9 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
       .map((e) => ({ ...e, d, rank: ranks.get(d)!.get(e.id) }))
       .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9)));
 
-  const offeredFor = (d: (typeof rows)[number]['d']) => events.filter((ev) => ruleset.tiers.find((tt) => tt.id === ev.tierId)!.drawSize[d] > 0);
+  // Multi-event: hanya anggota kontingen (setelah dikunci) yang bisa didaftarkan.
+  const offeredFor = (e: (typeof rows)[number]) => events.filter((ev) => ruleset.tiers.find((tt) => tt.id === ev.tierId)!.drawSize[e.d] > 0
+    && inContingent(state, ev.id, country, e.playerIds));
   // Semua baris sekaligus: Main = turnamen ini (atau turnamen pertama yang membuka nomornya; pasangan trial tidak diubah
   // agar pasangan utama tidak tergeser), Istirahat, atau kembali Otomatis.
   const setAll = (pick: (e: (typeof rows)[number]) => string | undefined) => {
@@ -210,7 +213,7 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
         <>
           {!eventId && <p>{events.map((e) => `${dataName(e.name)} (${tierLabel(e.tierId)})`).join(' · ')}</p>}
           <p className="controls">
-            <button onClick={() => setAll((e) => e.trial ? decisions[e.id] : (eventId && offeredFor(e.d).some((ev) => ev.id === eventId) ? eventId : offeredFor(e.d)[0]?.id))}>{t('playAll')}</button>
+            <button onClick={() => setAll((e) => e.trial ? decisions[e.id] : (eventId && offeredFor(e).some((ev) => ev.id === eventId) ? eventId : offeredFor(e)[0]?.id))}>{t('playAll')}</button>
             <button onClick={() => setAll(() => 'rest')}>{t('restAll')}</button>
             <button onClick={() => setAll(() => 'auto')}>{t('autoAll')}</button>
           </p>
@@ -221,7 +224,7 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
                 const required = events.find((ev) => state.commitments[e.id]?.includes(ev.id));
                 const injured = e.playerIds.some((id) => players.get(id)?.injury);
                 const tired = Math.max(...e.playerIds.map((id) => players.get(id)?.fatigue ?? 0));
-                const offered = offeredFor(e.d);
+                const offered = offeredFor(e);
                 return (
                   <tr key={e.id}>
                     {/* Nomor sebagai label di depan nama: kolom nama yang menempel saat tabel digeser di HP. */}

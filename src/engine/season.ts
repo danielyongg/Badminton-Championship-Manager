@@ -1,4 +1,5 @@
 import { makeChallenges, seasonGoals, seasonReport } from './career';
+import { contingentOf, inContingent, lockContingents } from './contingent';
 import { olympicField } from './olympics';
 import { applySevereInjury, developQuarter, newJuniors, retirementChance, rollInjury } from './development';
 import { applyCountryQuota, type Candidate } from './entry';
@@ -63,6 +64,8 @@ export interface SeasonState {
   entriesSubmitted?: Record<string, true>;
   /** Snapshot ranking tiap 4 minggu (top 300 per nomor) untuk grafik riwayat peringkat. */
   rankSnapshots: { absWeek: number; discipline: Discipline; ids: string[] }[];
+  /** Kontingen multi-event: "tahun:eventId" (nomor perorangan) → negara → atlet. */
+  contingents?: Record<string, Record<string, string[]>>;
   /** Hasil kejuaraan beregu (kontinental & final). */
   teamResults: TeamResult[];
   /** Line-up beregu pilihan manajer per format; tidak sah (cedera, pasangan bubar) → line-up otomatis. */
@@ -344,7 +347,7 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
     const rank = ranks.get(d)!.get(e.id);
     const fixed = e.playerIds.map((id) => playerEvent.get(id)).find(Boolean);
     const options = events.filter((ev) => ev.tierId !== 'WTF' && ev.tierId !== 'OG' && tierOf(rs, ev).drawSize[d] > 0 && (!fixed || ev.id === fixed)
-      && (!ev.countries || ev.countries.includes(e.countryId)));
+      && (!ev.countries || ev.countries.includes(e.countryId)) && inContingent(state, ev.id, e.countryId, e.playerIds));
     const decision = mine(e) ? manual[e.id] : undefined;
     if (!decision && e.playerIds.some((id) => pratama.has(id) || busy.has(id))) continue;
     let choice = decision ? options.find((ev) => ev.id === decision) : options.find((ev) => state.commitments[e.id]?.includes(ev.id));
@@ -387,6 +390,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   const { year, week } = state.date;
   if (state.commitmentsYear !== year) startYear(state, rs, rng, world);
   if (state.scouting && week > SCOUTING_DEADLINE_WEEK) recruit(state, []); // batas memilih lewat: isi otomatis
+  lockContingents(state, rs);
   // Multi-event lebih dulu: negara anggota mengirim atlet terbaiknya (tanpa poin ranking, jadi tidak diurutkan dari poin).
   const events = rs.calendar.filter((e) => weekOf(e, year) === week && isHeld(e, year))
     .sort((a, b) => Number(!!b.countries) - Number(!!a.countries) || tierOf(rs, b).points[0] - tierOf(rs, a).points[0]);
@@ -654,7 +658,9 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
   const draw: DrawHook | undefined = gate && h.draw ? (d) => gate.serial(async () => { await h.draw!(d); }) : h.draw;
   await each(gated, formats, async (format) => {
     const order = rs.team.order[format];
-    const all = teamStrengths(state, rs, format);
+    // Multi-event: pilihan atlet hanya dari kontingen; negara yang kontingennya tidak cukup untuk lima partai tidak ikut beregu.
+    const all = teamStrengths(state, rs, format).map((x) => { const c = contingentOf(state, ev.id, x.countryId); return c ? { ...x, pool: squadPool(x.pool, c) } : x; })
+      .filter((x) => autoLineup(order, x.pool, max).every(Boolean));
     const teams = ev.countries ? all.filter((t) => ev.countries!.includes(t.countryId)).map((t) => t.countryId) // multi-event: semua anggota
       : ev.confederation
       ? all.filter((t) => confederation.get(t.countryId) === ev.confederation).slice(0, rs.team.continentalTeams).map((t) => t.countryId)

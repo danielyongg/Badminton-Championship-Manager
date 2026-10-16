@@ -208,22 +208,22 @@ export const CALENDAR_2026: TournamentDef[] = [
   // Multi-event (tier MSG, tanpa poin): peserta hanya negara anggota; beregu-nya di `team.events` seminggu sebelumnya.
   // Tuan rumah & tanggal asli bila sudah diumumkan; selain itu mengikuti edisi sebelumnya (ASUMSI).
   // Asian Games 2026 Aichi–Nagoya 19 Sep–4 Okt; 2030 aslinya Doha (Qatar belum ada di daftar negara → kota edisi terdahulu).
-  t('asian-games', 'Asian Games Individual', 'nagoya', 39, 'MSG', 0, { everyYears: { interval: 4, offset: 2 }, countries: ASIA,
+  t('asian-games', 'Asian Games Individual', 'nagoya', 39, 'MSG', 0, { everyYears: { interval: 4, offset: 2 }, countries: ASIA, contingent: { M: 10, F: 10 },
     hosts: { 2026: 'nagoya' }, rotation: ['hangzhou', 'jakarta'] }),
   // SEA Games: 2025 Bangkok (Des), 2027 Malaysia 18–29 Sep (sementara), 2029 Singapura (tanggal mengikuti 2027).
-  t('sea-games', 'SEA Games Individual', 'kuala-lumpur', 38, 'MSG', 0, { everyYears: { interval: 2, offset: 1 }, countries: SEA,
+  t('sea-games', 'SEA Games Individual', 'kuala-lumpur', 38, 'MSG', 0, { everyYears: { interval: 2, offset: 1 }, countries: SEA, contingent: { M: 10, F: 10 },
     hosts: { 2025: 'bangkok', 2027: 'kuala-lumpur', 2029: 'singapore' }, rotation: ['manila', 'ho-chi-minh', 'bangkok', 'jakarta'] }),
   // Pan American Games 2027 Lima 23 Jul–8 Agu.
-  t('pan-am-games', 'Pan American Games Individual', 'lima', 30, 'MSG', 0, { everyYears: { interval: 4, offset: 3 }, countries: AMERICAS,
+  t('pan-am-games', 'Pan American Games Individual', 'lima', 30, 'MSG', 0, { everyYears: { interval: 4, offset: 3 }, countries: AMERICAS, contingent: { M: 4, F: 4 },
     hosts: { 2027: 'lima' }, rotation: ['sao-paulo', 'calgary', 'lima'] }),
   // European Games: minggu mengikuti Kraków 2023 (akhir Juni); 2027 Istanbul. Inggris & Skotlandia tetap terpisah (disederhanakan).
-  t('european-games', 'European Games Individual', 'istanbul', 26, 'MSG', 0, { everyYears: { interval: 4, offset: 3 }, countries: EUROPE,
+  t('european-games', 'European Games Individual', 'istanbul', 26, 'MSG', 0, { everyYears: { interval: 4, offset: 3 }, countries: EUROPE, contingent: { M: 4, F: 4 },
     hosts: { 2027: 'istanbul' }, rotation: ['sofia', 'almere', 'vantaa'] }),
   // African Games: minggu mengikuti Accra 2023 (digelar Maret 2024); tuan rumah 2027 belum pasti.
-  t('african-games', 'African Games Individual', 'cairo', 11, 'MSG', 0, { everyYears: { interval: 4, offset: 3 }, countries: AFRICA,
+  t('african-games', 'African Games Individual', 'cairo', 11, 'MSG', 0, { everyYears: { interval: 4, offset: 3 }, countries: AFRICA, contingent: { M: 5, F: 5 },
     rotation: ['cairo', 'lagos', 'johannesburg'] }),
   // Commonwealth Games: Glasgow 2026 tanpa badminton; 2030 Ahmedabad (program badminton mengikuti Birmingham 2022, akhir Juli).
-  t('commonwealth-games', 'Commonwealth Games Individual', 'ahmedabad', 31, 'MSG', 0, { everyYears: { interval: 4, offset: 2 }, skipYears: [2026], countries: COMMONWEALTH,
+  t('commonwealth-games', 'Commonwealth Games Individual', 'ahmedabad', 31, 'MSG', 0, { everyYears: { interval: 4, offset: 2 }, skipYears: [2026], countries: COMMONWEALTH, contingent: { M: 5, F: 5 },
     hosts: { 2022: 'birmingham', 2030: 'ahmedabad' }, rotation: ['birmingham', 'glasgow', 'sydney'] }),
   // Turnamen junior (U19). ASUMSI: kota tuan rumah & minggu disederhanakan.
   { id: 'asia-junior', name: 'Badminton Asia Junior Championships', cityId: 'surabaya', week: 28, tierId: 'JC', prizeUsd: 0, confederation: 'BA' },

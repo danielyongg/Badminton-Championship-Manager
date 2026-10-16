@@ -134,6 +134,7 @@ const id = {
   olympicHint: 'Periode kualifikasi: Mei {from} – April {to} (hanya poin dalam periode ini). ✓ = lolos ({n} tempat): maks 2 per negara bila keduanya top 16 (tunggal) / top 8 (ganda), wakil tiap benua, tempat tuan rumah (tunggal).',
   olympicHintProjected: 'Periode kualifikasi (Mei {from} – April {to}) belum dimulai: perkiraan dari ranking dunia saat ini. ✓ = lolos ({n} tempat) bila kualifikasi ditutup sekarang.',
   olympicHost: 'tuan rumah', olympicContinent: 'benua', goal_medals: 'Medali {event}', goal_gold: 'Emas {event}', goal_olympic: 'Wakil lolos Olimpiade {y}', goal_olympicLater: 'dinilai {y}',
+  contingent: 'Kontingen', contingentHint: 'Pilih maks. {m} putra & {f} putri sebelum minggu {w}. Skuad beregu & wakil perorangan hanya dari kontingen ini. Tidak diubah = pilihan otomatis (atlet terbaik).', contingentLocked: 'Kontingen sudah dikunci.', contingentOpen: 'Pilih kontingen',
   challenge: 'Tantangan musim', challengeHint: 'Opsional: pilih satu sebelum minggu {w}. Berhasil +{win} reputasi, gagal −{lose}.',
   challengeChoose: 'Ambil', challengeNone: 'Tidak ada tantangan musim ini.', challengeDone: 'Berhasil', challengeFailed: 'Gagal',
   ch_homeTitle: 'Juara (nomor apa saja) di turnamen kandang {event}', ch_beatRival: 'Raih gelar lebih banyak dari {rival}',

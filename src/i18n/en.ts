@@ -134,6 +134,7 @@ export const en: Record<TextKey, string> = {
   olympicHint: 'Qualification period: May {from} – April {to} (only points in this period). ✓ = qualified ({n} places): max 2 per country if both top 16 (singles) / top 8 (doubles), continental places, host place (singles).',
   olympicHintProjected: 'Qualification period (May {from} – April {to}) has not started: projection from the current world ranking. ✓ = would qualify ({n} places) if qualification closed now.',
   olympicHost: 'host', olympicContinent: 'continent', goal_medals: '{event} medals', goal_gold: '{event} gold', goal_olympic: 'Olympic qualifiers {y}', goal_olympicLater: 'judged in {y}',
+  contingent: 'Contingent', contingentHint: 'Pick up to {m} men & {f} women before week {w}. Team squads & individual entries come only from this contingent. Unchanged = automatic pick (best athletes).', contingentLocked: 'The contingent is locked.', contingentOpen: 'Pick contingent',
   challenge: 'Season challenge', challengeHint: 'Optional: pick one before week {w}. Success +{win} reputation, failure −{lose}.',
   challengeChoose: 'Accept', challengeNone: 'No challenge this season.', challengeDone: 'Succeeded', challengeFailed: 'Failed',
   ch_homeTitle: 'Win a title (any event) at home tournament {event}', ch_beatRival: 'Win more titles than {rival}',

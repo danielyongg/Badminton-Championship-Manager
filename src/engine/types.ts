@@ -60,6 +60,8 @@ export interface TournamentDef {
   confederation?: Confederation;
   /** Multi-event: hanya negara anggota ini yang boleh ikut (mis. SEA Games). */
   countries?: string[];
+  /** Multi-event: ukuran kontingen per negara (atlet putra / putri); beregu & perorangan hanya dari kontingen. */
+  contingent?: { M: number; F: number };
   /** Tahun yang tidak digelar walau sesuai `everyYears` (mis. Commonwealth Games 2026 tanpa badminton). */
   skipYears?: number[];
 }

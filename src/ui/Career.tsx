@@ -9,7 +9,7 @@ import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
 import { DISCIPLINES, ROUNDS, type Discipline, type Match, type TeamFormat } from '../engine/types';
 import { absWeek, computeRanking } from '../engine/ranking';
-import type { Challenge, FederationGoal, Ruleset, SeasonReport } from '../engine/types';
+import type { Challenge, FederationGoal, Ruleset, SeasonReport, TournamentDef } from '../engine/types';
 import { dataName, numLocale, t, type TextKey } from '../i18n';
 import { downloadPack, Editor, useDebounced } from './Editor';
 import { Entries } from './Entries';
@@ -22,6 +22,7 @@ import { advance, entrantLabel, eventName, teamLabel, tierLabel, JUNIOR_MAX_AGE,
 import { SeasonViews } from './Ranking';
 import { injuryText, isBadInjury, Profile, Squad, usd } from './Squad';
 import { autoPick, recruit, SCOUTING_DEADLINE_WEEK } from '../engine/scouting';
+import { autoContingents, gamesThisYear, lockWeek, playerBestRanks, setContingent } from '../engine/contingent';
 import { currentAbility } from '../engine/generator';
 import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
 import { TournamentView } from './TournamentView';
@@ -283,6 +284,61 @@ function ChallengeCard() {
   );
 }
 
+/** Kontingen multi-event: dipilih sampai batas minggu (default = pilihan otomatis), lalu dikunci sampai Games selesai. */
+function ContingentCard({ ev }: { ev: TournamentDef }) {
+  const { game, version, changed } = useGame();
+  const { state, ruleset } = game;
+  const country = state.career!.countryId!;
+  const { year, week } = state.date;
+  const lock = lockWeek(ruleset, ev, year);
+  const locked = week >= lock;
+  const saved = state.contingents?.[`${year}:${ev.id}`]?.[country];
+  const [open, setOpen] = useState(false);
+  const best = useMemo(() => playerBestRanks(state, ruleset), [version]);
+  const suggested = useMemo(() => (saved ? [] : autoContingents(state, ruleset, ev, [country])[country]), [version, !!saved]);
+  const picked = saved ?? suggested;
+  const cap = ev.contingent!;
+  const count = (g: 'M' | 'F') => picked.filter((id) => state.players.find((p) => p.id === id)?.gender === g).length;
+  const save = (ids: string[]) => { setContingent(state, ev.id, year, country, ids); changed(); void saveGame(game); };
+  const toggle = (id: string, g: 'M' | 'F') => {
+    if (locked) return;
+    if (picked.includes(id)) save(picked.filter((x) => x !== id));
+    else if (count(g) < cap[g]) save([...picked, id]);
+  };
+  const players = state.players.filter((p) => p.countryId === country && p.retired === undefined && p.released === undefined && (!locked || picked.includes(p.id)))
+    .sort((a, b) => (best.get(a.id) ?? Infinity) - (best.get(b.id) ?? Infinity) || currentAbility(b.attrs) - currentAbility(a.attrs));
+  return (
+    <section className="card" style={open ? { gridColumn: '1 / -1' } : undefined}>
+      <h3>{t('contingent')} · {(eventName(ruleset, ev.id, year) ?? '').replace(/ Individual$/, '')}</h3>
+      <p>{t('men')} {count('M')}/{cap.M} · {t('women')} {count('F')}/{cap.F}</p>
+      <p className="hint">{locked ? t('contingentLocked') : t('contingentHint', { m: cap.M, f: cap.F, w: lock })}</p>
+      {!open ? <button className={locked ? undefined : 'primary'} onClick={() => setOpen(true)}>{locked ? t('contingent') : t('contingentOpen')}</button> : (
+        <>
+          {(['M', 'F'] as const).map((g) => (
+            <div key={g} className="scroll">
+              <h4>{t(g === 'M' ? 'men' : 'women')} · {count(g)}/{cap[g]}</h4>
+              <table>
+                <thead><tr><th>{t('name')}</th><th className="num">{t('rank')}</th><th className="num">{t('ability')}</th></tr></thead>
+                <tbody>{players.filter((p) => p.gender === g).map((p) => (
+                  <tr key={p.id} className={picked.includes(p.id) ? 'sel' : undefined} onClick={() => toggle(p.id, g)} style={locked ? undefined : { cursor: 'pointer' }}>
+                    <td>{!locked && <input type="checkbox" checked={picked.includes(p.id)} readOnly />} {p.name}{p.injury && ' 🩹'}</td>
+                    <td className="num">{best.get(p.id) ?? '—'}</td>
+                    <td className="num">{currentAbility(p.attrs)}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          ))}
+          <p className="controls">
+            {!locked && <button onClick={() => save(autoContingents(state, ruleset, ev, [country])[country])}>{t('autoPick')}</button>}
+            <button onClick={() => setOpen(false)}>{t('close')}</button>
+          </p>
+        </>
+      )}
+    </section>
+  );
+}
+
 /** Pencarian bakat junior: pilih kandidat untuk kursi putra/putri sebelum batas minggu (sisa kursi diisi otomatis). */
 function ScoutingCard() {
   const { game, changed } = useGame();
@@ -395,6 +451,8 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
           <GoalTable goals={state.career!.goals} current={(g) => goalProgress(state, ruleset, managed, g, world)} year={year} />
         </section>
       )}
+      {managed && gamesThisYear(ruleset, year).filter((e) => openTo(e, managed, world) && week >= lockWeek(ruleset, e, year) - 12 && week <= weekOf(e, year))
+        .map((e) => <ContingentCard key={e.id} ev={e} />)}
       {managed && (state.career!.challenge || (state.career!.challengeOptions?.length && week <= CHALLENGE_DEADLINE_WEEK)) && <ChallengeCard />}
       {lastReport && week <= 4 && (
         <section className="card">

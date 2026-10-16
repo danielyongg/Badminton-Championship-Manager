@@ -59,6 +59,7 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
   for (const e of blob.ruleset.calendar) {
     const p = e.countries && preset.calendar.find((x) => x.id === e.id);
     if (p && `${e.name} Individual` === p.name) e.name = p.name;
+    if (p?.contingent && !e.contingent) e.contingent = { ...p.contingent }; // save sebelum kontingen
   }
   for (const e of preset.team.events.filter((x) => x.countries && !blob.ruleset.team.events.some((y) => y.id === x.id))) blob.ruleset.team.events.push(structuredClone(e));
   // Save sebelum tuan rumah per tahun: tambah kota baru & salin `hosts`/`rotation` dari preset (kecuali kota event diubah di Editor).
