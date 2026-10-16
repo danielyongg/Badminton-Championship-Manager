@@ -184,6 +184,9 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .goals { list-style: none; margin: 0; padding: 0; }
 .goals li { display: flex; flex-direction: column; gap: 1px; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .goals li > span { font-size: .85rem; color: var(--muted); }
+.goals li.choice { flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; }
+.goals li.choice > span { color: var(--fg); }
+.goals li.choice > button { flex: none; }
 .goals .up { font-size: inherit; font-weight: 700; }
 .bar { display: inline-block; width: 60px; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; vertical-align: middle; }
 .bar span { display: block; height: 100%; }
@@ -296,6 +299,12 @@ td.strong { font-weight: 700; }
   .live .controls { gap: 6px; }
   .live .controls button, .live .controls select { min-height: 32px; font-size: 14px; padding: 2px 10px; }
   .live .controls select { padding-right: 28px; }
+  /* Target sentuh nyaman di HP (≥ 32–40 px). */
+  .roundlist button.rowtoggle { min-height: 32px; padding: 4px 10px; font-size: .8rem; }
+  .plan-cell { padding: 10px 6px; }
+  td a[href], .drow a[href] { display: inline-block; padding: 6px 0; }
+  /* Menu tab yang bisa digeser: tepi kanan memudar sebagai petunjuk masih ada tab lain. */
+  main > nav.controls { padding-right: 36px; mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
   /* Papan skor Live Match muat selebar HP. */
   .board td { padding: 4px 4px; }
   .board td:nth-child(2) { min-width: 0; white-space: normal; }

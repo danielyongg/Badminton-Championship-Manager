@@ -275,7 +275,7 @@ function ChallengeCard() {
       <h3>{t('challenge')} {year}</h3>
       <p className="hint">{t('challengeHint', { w: CHALLENGE_DEADLINE_WEEK + 1, win: CHALLENGE_REWARD, lose: CHALLENGE_PENALTY })}</p>
       <ul className="goals">{career.challengeOptions!.map((c, i) => (
-        <li key={i}><span>{challengeText(game, c, year)}</span> <button className="mini btn-go" onClick={() => pick(c)}>{t('challengeChoose')}</button></li>
+        <li key={i} className="choice"><span>{challengeText(game, c, year)}</span><button className="mini btn-go" onClick={() => pick(c)}>{t('challengeChoose')}</button></li>
       ))}</ul>
     </section>
   );
