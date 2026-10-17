@@ -167,7 +167,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
             ? <button onClick={onSkipRest}>{t('simRound')}</button>
             : <button className="primary" onClick={onNext}>{!done ? t('playRound') : final ? t('doneEvent') : t('nextRound')}</button>}
           {!(done && final) && <button onClick={onSkipEvent}>{t('simEvent')}</button>}
-          {onDetails && !team && <button onClick={() => { setHidden(true); onDetails(); }}>{t('tournamentDetails')}</button>}
+          {onDetails && <button onClick={() => { setHidden(true); onDetails(); }}>{t('tournamentDetails')}</button>}
         </div>
       </div>
     </div>

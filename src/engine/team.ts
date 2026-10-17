@@ -148,13 +148,13 @@ export interface TeamEventRun {
  * `tie` = PlayFn tingkat negara (memainkan 5 partai); id peserta = id negara.
  */
 export async function runTeamEvent(
-  teams: string[], groups: GroupStage | undefined, tie: PlayFn, rng: Rng, onDraw?: (steps: DrawStep[]) => Promise<void> | null, parallel = false,
+  teams: string[], groups: GroupStage | undefined, tie: PlayFn, rng: Rng, onDraw?: (steps: DrawStep[], groups: string[][]) => Promise<void> | null, parallel = false,
 ): Promise<TeamEventRun> {
   const standing = (id: string): Standing => ({ id, wins: 0, gameDiff: 0, pointDiff: 0 });
   if (groups && teams.length > groups.groups * groups.advance) {
     const drawn = groupDraw(teams.map((id, i) => ({ id, countryId: id, rank: i + 1 })), groups, rng);
     const ids = drawn.groups.map((g) => g.map((e) => e.id));
-    await onDraw?.(drawn.steps);
+    await onDraw?.(drawn.steps, ids);
     const standings = await each(parallel, ids, (g) => playGroup(g, tie, parallel));
     const ko = await playKnockout(knockoutFromGroups(standings, groups.advance, rng), tie, undefined, parallel);
     return { groups: ids, standings, steps: drawn.steps, ...ko };

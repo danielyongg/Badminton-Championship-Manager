@@ -668,6 +668,12 @@ export function lockFinalsQualifiers(state: SeasonState, rs: Ruleset, world: Wor
 }
 
 /**
+ * Hasil beregu yang sedang dimainkan (diisi selama turnamen berjalan) untuk halaman turnamen. Terpisah dari
+ * `teamResults` (tidak disimpan) agar target, gelar & kualifikasi tidak membaca hasil yang belum selesai.
+ */
+export const liveTeamResults = new WeakMap<SeasonState, TeamResult[]>();
+
+/**
  * Satu kejuaraan beregu (kontinental atau final). Partai dicatat sebagai laga biasa (H2H, Live, kelelahan).
  * Tiap tim mendaftarkan skuad sebelum turnamen; line-up tiap pertandingan diambil dari skuad itu.
  * Manajer memilih lewat `team` (hook UI); tanpa hook / pilihan tidak sah → pilihan tersimpan, lalu otomatis.
@@ -770,6 +776,11 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
       players, pairs, cfg: rs.match, rng, tournamentId: ev.id, year, discipline: d, matches: state.matches, live,
     })).get(d)!;
     const ties: TeamTie[] = [];
+    const current: TeamResult = {
+      eventId: ev.id, year, format, confederation: ev.confederation, ...(ev.countries && { games: true as const }), teams, reached: {}, ties, squads,
+    };
+    const lives = liveTeamResults.get(state) ?? [];
+    liveTeamResults.set(state, [...lives.filter((r) => !(r.eventId === ev.id && r.year === year && r.format === format)), current]);
     const tie: PlayFn = async (a, b, round) => {
       const lineups: [Lineup, Lineup] = [await lineupOf(a, b, round), await lineupOf(b, a, round)];
       const from = state.matches.length;
@@ -779,7 +790,11 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
       return r;
     };
     const run = await runTeamEvent(teams, ev.confederation || ev.countries ? ev.finals?.groups : finals.groups, gate ? gate.wrap(format, tie) : tie, rng,
-      (steps) => draw?.({ tournamentId: ev.id, entrants: teams, steps, groups: finals.groups.groups }) ?? null, gated);
+      (steps, groups) => {
+        Object.assign(current, { groups, drawSteps: steps });
+        return draw?.({ tournamentId: ev.id, entrants: teams, steps, groups: finals.groups.groups }) ?? null;
+      }, gated);
+    liveTeamResults.set(state, (liveTeamResults.get(state) ?? []).filter((r) => r !== current));
     state.teamResults.push({
       eventId: ev.id, year, format, confederation: ev.confederation, ...(ev.countries && { games: true as const }), teams,
       groups: run.groups, standings: run.standings, reached: Object.fromEntries(run.reached), ties, squads, drawSteps: run.steps,

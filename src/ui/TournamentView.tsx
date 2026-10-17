@@ -1,4 +1,4 @@
-import { hostCityId, weekOf } from '../engine/season';
+import { hostCityId, liveTeamResults, weekOf } from '../engine/season';
 import { useState } from 'react';
 import { DISCIPLINES, type Discipline } from '../engine/types';
 import { dataName, numLocale, t } from '../i18n';
@@ -35,7 +35,8 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
     onOpen: (x: string) => onOpenPlayer(lookup(state).pairs.get(x)?.playerIds[0] ?? x),
     eventTitle: eventName(ruleset, id, year),
   };
-  const team = state.teamResults.filter((r) => r.eventId === id && r.year === year);
+  // Beregu: hasil yang sudah selesai, atau yang sedang dimainkan (halaman dibuka dari layar babak).
+  const team = [...state.teamResults, ...(liveTeamResults.get(state) ?? [])].filter((r) => r.eventId === id && r.year === year);
   const tier = def && 'tierId' in def ? tierLabel(def.tierId) : def?.countries ? t('multiEvent') : t('tabTeam');
   const prize = def && 'prizeUsd' in def && def.prizeUsd ? ` · $${def.prizeUsd.toLocaleString(numLocale())}` : '';
 

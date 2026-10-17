@@ -261,6 +261,15 @@ export function TieLineupModal({ title, eventId, format, round, opponent, pool, 
   );
 }
 
+/** Klasemen grup; selama fase grup berjalan dihitung dari pertandingan yang sudah selesai (menang, selisih partai). */
+function standingsOf(r: TeamResult) {
+  if (r.standings) return r.standings;
+  return r.groups!.map((g) => g.map((id) => {
+    const mine = r.ties.filter((x) => x.round === 'G' && x.sides.includes(id)).map((x) => (x.sides[0] === id ? x.score : [x.score[1], x.score[0]]));
+    return { id, wins: mine.filter(([a, b]) => a > b).length, gameDiff: mine.reduce((n, [a, b]) => n + a - b, 0), pointDiff: 0 };
+  }).sort((a, b) => b.wins - a.wins || b.gameDiff - a.gameDiff));
+}
+
 export function FinalsResult({ r }: { r: TeamResult }) {
   const { game } = useGame();
   const champion = winnerOf(r);
@@ -286,14 +295,14 @@ export function FinalsResult({ r }: { r: TeamResult }) {
           name={name} mine={(c) => c === managed} onClose={() => setReplay(false)} />
       )}
       {r.groups && (
-        <div className="groups">{r.standings!.map((s, gi) => (
+        <div className="groups">{standingsOf(r).map((s, gi) => (
           <div key={gi}>
           <table>
             <thead><tr><th>{t('group')} {String.fromCharCode(65 + gi)}</th><th>{t('tiesWon')}</th><th>{t('matchDiff')}</th><th>{t('gameDiff')}</th></tr></thead>
             <tbody>{s.map((row, place) => (
               <tr key={row.id} className={row.id === managed ? 'sel' : ''}>
                 <td>{place + 1}. <Flag id={row.id} />{name(row.id)}</td><td className="num">{row.wins}</td>
-                <td className="num">{row.gameDiff > 0 ? '+' : ''}{row.gameDiff}</td><td className="num">{row.pointDiff > 0 ? '+' : ''}{row.pointDiff}</td>
+                <td className="num">{row.gameDiff > 0 ? '+' : ''}{row.gameDiff}</td><td className="num">{!r.standings ? '—' : `${row.pointDiff > 0 ? '+' : ''}${row.pointDiff}`}</td>
               </tr>
             ))}</tbody>
           </table>

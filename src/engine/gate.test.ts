@@ -4,7 +4,7 @@ import { simulateMatch } from './match';
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
-import { newSeason, playWeek, weekKey, type ChooseEvent, type WeekHooks } from './season';
+import { liveTeamResults, newSeason, playWeek, weekKey, type ChooseEvent, type WeekHooks } from './season';
 import type { LiveRequest } from './tournament';
 
 const rs = BWF_2026;
@@ -111,11 +111,25 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
   it('beregu (Thomas & Uber Cup): line-up tiap pertandingan INA, skor sah, babak berurutan', async () => {
     const lineups: string[] = [];
     const shows: RoundShow[] = [];
-    const state = await weekOf(18, () => ({
+    const liveTies: number[] = []; // hasil sementara (halaman turnamen) saat tiap babak dimulai
+    const state = await weekOf(18, (s) => ({
       chooseEvent: choose(['thomas-uber-cup']),
       team: { squad: () => null, lineup: (req) => { lineups.push(`${req.format}:${req.round}`); return Promise.resolve(req.suggested); } },
-      round: (r) => { if (r.phase === 'done') shows.push(r); return null; },
+      round: (r) => {
+        if (r.phase === 'done') shows.push(r);
+        if (r.phase === 'pending') {
+          const live = liveTeamResults.get(s) ?? [];
+          expect(live.map((x) => x.format).sort()).toEqual(['thomas', 'uber']);
+          expect(live.every((x) => x.groups?.length)).toBe(true);
+          liveTies.push(live.reduce((n, x) => n + x.ties.length, 0));
+        }
+        return null;
+      },
     }), 8);
+    expect(liveTies[0]).toBe(0);
+    expect(liveTies).toEqual([...liveTies].sort((a, b) => a - b));
+    expect(liveTies.at(-1)).toBeGreaterThan(0);
+    expect(liveTeamResults.get(state)).toEqual([]); // selesai → pindah ke teamResults
     const res = state.teamResults.filter((r) => r.eventId === 'thomas-uber-cup' && r.year === 2026);
     expect(res.map((r) => r.format).sort()).toEqual(['thomas', 'uber']);
     const inaTies = res.flatMap((r) => r.ties.filter((t) => t.sides.includes('INA')).map((t) => `${r.format}:${t.round}`));
