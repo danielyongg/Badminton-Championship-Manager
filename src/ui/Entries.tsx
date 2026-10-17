@@ -190,6 +190,10 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
       .map((e) => ({ ...e, d, rank: ranks.get(d)!.get(e.id) }))
       .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9)));
 
+  // Sub-tab per nomor agar daftar tidak memanjang; tombol "semua" tetap berlaku untuk semua nomor.
+  const sectors = DISCIPLINES.filter((d) => rows.some((e) => e.d === d));
+  const [picked, setSector] = useState<Discipline>();
+  const sector = picked && sectors.includes(picked) ? picked : sectors[0];
   // Multi-event: hanya anggota kontingen (setelah dikunci) yang bisa didaftarkan.
   const offeredFor = (e: (typeof rows)[number]) => events.filter((ev) => ruleset.tiers.find((tt) => tt.id === ev.tierId)!.drawSize[e.d] > 0
     && inContingent(state, ev.id, country, e.playerIds));
@@ -218,10 +222,17 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
             <button onClick={() => setAll(() => 'rest')}>{t('restAll')}</button>
             <button onClick={() => setAll(() => 'auto')}>{t('autoAll')}</button>
           </p>
+          <nav className="controls subnav">
+            {sectors.map((d) => (
+              <button key={d} aria-pressed={d === sector} onClick={() => setSector(d)}>
+                {d} <span className="muted-text">{rows.filter((e) => e.d === d).length}</span>
+              </button>
+            ))}
+          </nav>
           <div className="scroll">
             <table>
               <thead><tr><th>{t('name')}</th><th className="num">{t('rank')}</th><th className="hide-sm">{t('fatigue')}</th><th>{t('tournament')}</th></tr></thead>
-              <tbody>{rows.map((e) => {
+              <tbody>{rows.filter((e) => e.d === sector).map((e) => {
                 const required = events.find((ev) => state.commitments[e.id]?.includes(ev.id));
                 const injured = e.playerIds.some((id) => players.get(id)?.injury);
                 const tired = Math.max(...e.playerIds.map((id) => players.get(id)?.fatigue ?? 0));
