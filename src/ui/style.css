@@ -424,9 +424,10 @@ td.strong { font-weight: 700; }
 .rubber { border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
 .rubber .rhead { display: flex; align-items: center; gap: 6px; font-size: .8rem; margin-bottom: 4px; }
 .rubber .rhead a { margin-left: auto; }
-.rubber table { width: 100%; display: table; }
-.rubber td { padding: 2px 0; white-space: normal; border: 0; }
-.rubber td.game { width: 2.2em; text-align: right; font-variant-numeric: tabular-nums; }
+.rubber .rrow { display: grid; align-items: center; gap: 4px; padding: 2px 0; }
+.rubber .rname { min-width: 0; overflow-wrap: anywhere; }
+.rubber .rrow .num { text-align: right; font-variant-numeric: tabular-nums; }
+.rubber .rrow.strong { font-weight: 700; }
+.live { max-width: 100%; min-width: 0; }
 .tiehead { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 14px; }
 .live .close { top: 10px; right: 10px; }
-.rubber tr.strong td { font-weight: 700; }

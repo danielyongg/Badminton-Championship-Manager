@@ -413,12 +413,12 @@ function TieDetail({ r, tie, name, onClose }: { r: TeamResult; tie: TeamTie; nam
                   {(m.walkover || m.retired) && <small className="muted-text"> {m.walkover ? 'w/o' : 'ret.'}</small>}
                   <MatchLink m={m} name={who} title={title}>{t('matchDetail')} ›</MatchLink>
                 </div>
-                <table><tbody>{[top, 1 - top].map((k) => (
-                  <tr key={k} className={m.winner === k ? 'strong' : 'muted-text'}>
-                    <td><Flag id={country(m.sides[k])} />{who(m.sides[k])}</td>
-                    {m.scores.map((g, j) => <td key={j} className="num game">{g[k]}</td>)}
-                  </tr>
-                ))}</tbody></table>
+                {[top, 1 - top].map((k) => (
+                  <div key={k} className={`rrow${m.winner === k ? ' strong' : ' muted-text'}`} style={{ gridTemplateColumns: `minmax(0, 1fr) repeat(${m.scores.length}, 2em)` }}>
+                    <span className="rname"><Flag id={country(m.sides[k])} />{who(m.sides[k])}</span>
+                    {m.scores.map((g, j) => <span key={j} className="num">{g[k]}</span>)}
+                  </div>
+                ))}
               </div>
             );
           })}</div>
