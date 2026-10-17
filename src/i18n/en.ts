@@ -367,6 +367,7 @@ export const en: Record<TextKey, string> = {
   position: 'pos.',
   stillIn: 'Still in',
   hostCountry: 'Host',
+  noPairsYet: 'No pairs yet. Form one below.',
   draw_skipEvent: 'Skip draw',
   draw_replay: 'Replay draw',
   draw_topHalf: 'Top half',

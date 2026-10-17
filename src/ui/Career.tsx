@@ -163,7 +163,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
         <button aria-pressed={hubTab === 'schedule'} onClick={() => setHubTab('schedule')}>{t('schedule')}</button>
         <button aria-pressed={hubTab === 'details'} onClick={() => setHubTab('details')}>{t('tournamentDetails')}</button>
       </nav>
-      {hubTab === 'details' ? <TournamentView key={playing} id={playing} year={state.date.year} onOpenPlayer={open} onBack={() => setHubTab('schedule')} />
+      {hubTab === 'details' ? <TournamentView key={playing} id={playing} year={state.date.year} onOpenPlayer={open} />
       : entriesAsk ? (
         <EntriesScreen key={entriesAsk.e.tournamentId} show={entriesAsk.e}
           onDraw={() => { setEntriesAsk(undefined); entriesAsk.resolve(); }}

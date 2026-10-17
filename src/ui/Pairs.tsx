@@ -73,7 +73,7 @@ export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => voi
 
   return (
     <>
-      {list.length === 0 ? <p className="hint">—</p> : (
+      {list.length === 0 ? <p className="hint">{t('noPairsYet')}</p> : (
         <div className="scroll">
           <table>
             <thead><tr>{COLS.map((c) => (

@@ -15,7 +15,8 @@ const SECTIONS = ['entry', 'qual', 'draw', 'bracket'] as const;
 type Section = (typeof SECTIONS)[number];
 const LABEL = { entry: 'stageEntry', qual: 'stageQual', draw: 'stageDraw', bracket: 'stageBracket' } as const;
 
-export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string; year: number; onOpenPlayer: (id: string) => void; onBack: () => void }) {
+/** `onBack` kosong = disematkan di halaman turnamen yang sedang dimainkan (sudah ada sub-tab Jadwal), tanpa tombol Kembali. */
+export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string; year: number; onOpenPlayer: (id: string) => void; onBack?: () => void }) {
   const { game } = useGame();
   const { state, ruleset, world } = game;
   const managed = state.career?.countryId;
@@ -46,7 +47,7 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
   const fact = (k: string, v: ReactNode) => <div><dt>{k}</dt><dd>{v}</dd></div>;
   return (
     <section>
-      <div className="controls"><button onClick={onBack}>{t('back')}</button></div>
+      {onBack && <div className="controls"><button onClick={onBack}>{t('back')}</button></div>}
       {/* Info turnamen: tier, tuan rumah, kota, venue, minggu, hadiah. */}
       <section className="card evinfo">
         <h2>{eventName(ruleset, id, year)} {year}</h2>
