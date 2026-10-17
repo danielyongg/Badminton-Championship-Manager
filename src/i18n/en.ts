@@ -370,6 +370,8 @@ export const en: Record<TextKey, string> = {
   noPairsYet: 'No pairs yet. Form one below.',
   liveAll: 'Live all',
   skipAllRows: 'Skip all',
+  rankNew: 'NEW',
+  rankMoveHint: 'Change since last week’s ranking',
   draw_skipEvent: 'Skip draw',
   draw_replay: 'Replay draw',
   draw_topHalf: 'Top half',

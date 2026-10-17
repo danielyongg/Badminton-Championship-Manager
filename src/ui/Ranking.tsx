@@ -73,6 +73,19 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
       : mode === 'junior' ? computeRanking(upTo(state.juniorResults ?? []), discipline, at, ruleset)
       : computeRace(upTo(state.results), discipline, yearOfAbs(at), ruleset);
   }, [version, discipline, mode, at, ruleset, olympic]);
+  // Perubahan peringkat dibanding ranking minggu sebelumnya (world & junior): ▲ naik, ▼ turun, BARU = baru masuk ranking.
+  const prevRank = useMemo(() => {
+    if (mode !== 'world' && mode !== 'junior') return undefined;
+    const src = (mode === 'world' ? state.results : state.juniorResults ?? []).filter((e) => absWeek(e) <= at - 2); // hasil dicatat di minggu turnamen; ranking minggu lalu belum memuatnya
+    return new Map(computeRanking(src, discipline, at - 1, ruleset).map((r) => [r.entrantId, r.rank]));
+  }, [version, discipline, mode, at, ruleset]);
+  const move = (id: string, rank: number) => {
+    if (!prevRank?.size) return null;
+    const before = prevRank.get(id);
+    if (before === undefined) return <span className="up">{t('rankNew')}</span>;
+    const d = before - rank;
+    return d ? <span className={d > 0 ? 'up' : 'down'}>{d > 0 ? '▲' : '▼'}{Math.abs(d)}</span> : <span className="muted-text">–</span>;
+  };
   const lastChampions = state.champions.filter((c) => c.year === state.date.year && ruleset.calendar.find((e) => e.id === c.tournamentId)?.week === state.date.week - 1);
 
   return (
@@ -132,11 +145,11 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
       {view === 'ranking' && <div className="split">
         <div className="scroll">
           <table>
-            <thead><tr><th className="num">#</th><th>{t('name')}</th><th className="hide-sm">{t('country')}</th><th className="num">{t('points')}</th><th className="num hide-sm">{t('tournaments')}</th>{olympic && <th className="hide-sm">{t('olympicQualified')}</th>}</tr></thead>
+            <thead><tr><th className="num" title={prevRank ? t('rankMoveHint') : undefined}>#</th><th>{t('name')}</th><th className="hide-sm">{t('country')}</th><th className="num">{t('points')}</th><th className="num hide-sm">{t('tournaments')}</th>{olympic && <th className="hide-sm">{t('olympicQualified')}</th>}</tr></thead>
             <tbody>
               {rows.slice(0, 100).map((r) => (
                 <tr key={r.entrantId} onClick={() => setSelected(r.entrantId)} className={selected === r.entrantId ? 'sel' : ''} style={{ cursor: 'pointer' }}>
-                  <td className="num">{r.rank}</td><td><span className="show-sm"><Flag id={name(r.entrantId).country} /></span>{name(r.entrantId).name}{olympic && <span className="show-sm"> {qualified(r.entrantId)}</span>}</td><td className="hide-sm"><Flag id={name(r.entrantId).country} />{name(r.entrantId).country}</td>
+                  <td className="num rankcell">{r.rank} <small>{move(r.entrantId, r.rank)}</small></td><td><span className="show-sm"><Flag id={name(r.entrantId).country} /></span>{name(r.entrantId).name}{olympic && <span className="show-sm"> {qualified(r.entrantId)}</span>}</td><td className="hide-sm"><Flag id={name(r.entrantId).country} />{name(r.entrantId).country}</td>
                   <td className="num">{r.points.toLocaleString(numLocale())}</td><td className="num hide-sm">{r.tournamentsPlayed}</td>
                   {olympic && <td className="hide-sm">{qualified(r.entrantId)}</td>}
                 </tr>
