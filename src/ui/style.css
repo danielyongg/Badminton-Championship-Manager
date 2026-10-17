@@ -419,3 +419,14 @@ td.strong { font-weight: 700; }
 .rankcell { white-space: nowrap; }
 .rankcell small { display: inline-block; min-width: 2.4em; text-align: left; font-size: .72rem; }
 @media (max-width: 700px) { .rankcell small { display: block; min-width: 0; text-align: right; line-height: 1; } }
+/* Detail pertandingan beregu: kartu per partai (papan skor), muat di HP tanpa geser. */
+.rubbers { display: grid; gap: 8px; }
+.rubber { border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+.rubber .rhead { display: flex; align-items: center; gap: 6px; font-size: .8rem; margin-bottom: 4px; }
+.rubber .rhead a { margin-left: auto; }
+.rubber table { width: 100%; display: table; }
+.rubber td { padding: 2px 0; white-space: normal; border: 0; }
+.rubber td.game { width: 2.2em; text-align: right; font-variant-numeric: tabular-nums; }
+.tiehead { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 14px; }
+.live .close { top: 10px; right: 10px; }
+.rubber tr.strong td { font-weight: 700; }

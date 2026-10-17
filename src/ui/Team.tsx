@@ -347,19 +347,25 @@ function TieDetail({ r, tie, name, onClose }: { r: TeamResult; tie: TeamTie; nam
           <span className={tie.score[1] > tie.score[0] ? 'win' : ''}><Flag id={tie.sides[1]} />{name(tie.sides[1])}</span>
         </p>
         {rubbers.length === 0 ? <p className="hint">{t('tieNoDetail')}</p> : (
-          <div className="scroll">
-            <table className="rubbers">
-              <tbody>{rubbers.map((m, i) => (
-                <tr key={m.id}>
-                  <td className="muted-text">{t('matchNo')} {i + 1}</td>
-                  <td><span className="chip">{m.discipline}</span></td>
-                  <td className={m.winner === 0 ? 'strong' : 'muted-text'}>{who(m.sides[0])}</td>
-                  <td className="num"><MatchLink m={m} name={who} title={title}>{m.scores.map((g) => g.join('-')).join(', ')}</MatchLink></td>
-                  <td className={m.winner === 1 ? 'strong' : 'muted-text'}>{who(m.sides[1])}</td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
+          // Tiap partai: papan skor dua baris (tim kiri di atas, sama dengan judul), skor per game, klik → detail laga.
+          <div className="rubbers">{rubbers.map((m, i) => {
+            const top = country(m.sides[0]) === tie.sides[0] ? 0 : 1;
+            return (
+              <div key={m.id} className="rubber">
+                <div className="rhead">
+                  <span className="muted-text">{t('matchNo')} {i + 1}</span> <span className="chip">{m.discipline}</span>
+                  {(m.walkover || m.retired) && <small className="muted-text"> {m.walkover ? 'w/o' : 'ret.'}</small>}
+                  <MatchLink m={m} name={who} title={title}>{t('matchDetail')} ›</MatchLink>
+                </div>
+                <table><tbody>{[top, 1 - top].map((k) => (
+                  <tr key={k} className={m.winner === k ? 'strong' : 'muted-text'}>
+                    <td><Flag id={country(m.sides[k])} />{who(m.sides[k])}</td>
+                    {m.scores.map((g, j) => <td key={j} className="num game">{g[k]}</td>)}
+                  </tr>
+                ))}</tbody></table>
+              </div>
+            );
+          })}</div>
         )}
       </div>
     </div>
