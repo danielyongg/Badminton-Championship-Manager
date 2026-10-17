@@ -94,6 +94,9 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   const setTab = (k: string) => { pick(k); onTab(k); };
   const [, render] = useState(0);
   const toggle = (k: string) => { if (!skipped.delete(k)) skipped.add(k); render((x) => x + 1); };
+  // Semua laga atlet sendiri di babak ini (semua nomor) sekaligus: Live atau Skip.
+  const mineRows = show.matches.filter((m) => m.sides.some(isMine) && !m.result).map(rowKey);
+  const setAll = (skip: boolean) => { for (const k of mineRows) if (skip) skipped.add(k); else skipped.delete(k); render((x) => x + 1); };
   const playing = show.phase === 'playing';
   const current = playing ? show.matches[show.current!] : undefined;
   // Saat dimainkan, tab mengikuti laga yang sedang giliran; selain itu tab terakhir / nomor pertama berisi atlet sendiri.
@@ -115,6 +118,14 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
               </button>
             ))}
           </nav>
+        )}
+        {!done && mineRows.length > 1 && (
+          <div className="drawctl">
+            <span className="seg">
+              <button aria-pressed={mineRows.every((k) => !skipped.has(k))} onClick={() => setAll(false)}>▶ {t('liveAll')}</button>
+              <button aria-pressed={mineRows.every((k) => skipped.has(k))} onClick={() => setAll(true)}>⏭ {t('skipAllRows')}</button>
+            </span>
+          </div>
         )}
         <table className="roundlist">
           <colgroup><col className="side" /><col className="vs" /><col className="side" /><col className="score" /></colgroup>

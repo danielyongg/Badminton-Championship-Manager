@@ -368,6 +368,8 @@ const id = {
   stillIn: 'Masih bertanding',
   hostCountry: 'Tuan rumah',
   noPairsYet: 'Belum ada pasangan. Bentuk pasangan baru di bawah.',
+  liveAll: 'Live semua',
+  skipAllRows: 'Lewati semua',
   draw_skipEvent: 'Lewati drawing',
   draw_replay: 'Putar ulang undian',
   draw_topHalf: 'Paruh atas',
