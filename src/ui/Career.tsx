@@ -56,7 +56,13 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   };
   // Pilih turnamen minggu ini; tiap turnamen dimulai tanpa "lewati".
   const [weekAsk, setWeekAsk] = useState<WeekAsk & { resolve: (id: string | null) => void }>();
+  // Halaman turnamen yang sedang dimainkan (menggantikan pop-up): tab "Turnamen" di menu selama minggu turnamen berjalan.
+  const [playing, setPlaying] = useState<string>(); // turnamen yang sedang dimainkan
+  const [hubAway, setHubAway] = useState(false); // manajer membuka tab lain; bilah bawah untuk kembali
+  const [hubTab, setHubTab] = useState<'schedule' | 'details'>('schedule');
   const chooseEvent: ChooseEvent = (req) => new Promise((resolve) => setWeekAsk({ ...req, resolve: (id) => {
+    setPlaying(id ?? undefined);
+    setHubTab('schedule');
     autoRest.current = new Set();
     skipDraw.current = false;
     skipEvent.current = false;
@@ -129,6 +135,8 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
       await new Promise((r) => setTimeout(r, 0));
     }
     setSimWeek(undefined);
+    setPlaying(undefined);
+    setHubAway(false);
     setBusy(false);
     changed();
     void persist();
@@ -144,6 +152,34 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   const [eventView, setEventView] = useState<{ id: string; year: number }>();
   const openEvent = (id: string, year: number) => { setProfileId(undefined); setEventView({ id, year }); window.scrollTo(0, 0); };
 
+  const hubOn = !!managed && (!!weekAsk || !!playing);
+  const hubTitle = playing ? eventName(game.ruleset, playing, state.date.year) : `${t('weekEvents')} · ${t('week')} ${state.date.week}`;
+  const hub = weekAsk ? <WeekScreen ask={weekAsk} onPick={(id) => { setWeekAsk(undefined); weekAsk.resolve(id); }} /> : playing && (
+    <>
+      <nav className="controls subnav">
+        <button aria-pressed={hubTab === 'schedule'} onClick={() => setHubTab('schedule')}>{t('schedule')}</button>
+        <button aria-pressed={hubTab === 'details'} onClick={() => setHubTab('details')}>{t('tournamentDetails')}</button>
+      </nav>
+      {hubTab === 'details' ? <TournamentView key={playing} id={playing} year={state.date.year} onOpenPlayer={open} onBack={() => setHubTab('schedule')} />
+      : drawAsk ? (
+        <LiveDraw page key={`${drawAsk.d.tournamentId}-${drawAsk.d.discipline}`} show={drawAsk.d}
+          title={`${eventName(game.ruleset, drawAsk.d.tournamentId, state.date.year)}${drawAsk.d.discipline ? ` · ${drawAsk.d.discipline}` : ''}`}
+          name={(id) => (drawAsk.d.discipline ? `${entrantLabel(state, id).name} (${entrantLabel(state, id).country})` : nameOfCountry(id))}
+          mine={(id) => (drawAsk.d.discipline ? entrantLabel(state, id).country === managed : id === managed)}
+          onClose={() => { setDrawAsk(undefined); drawAsk.resolve(); }}
+          onSkipEvent={() => { skipDraw.current = true; }} />
+      )
+      : roundAsk ? (
+        <RoundScreen key={`${roundAsk.show.tournamentId}-${roundAsk.show.round}`} show={roundAsk.show} skipped={skipRows.current}
+          tab={roundTab.current} onTab={(k) => { roundTab.current = k; }} onSkipRest={() => { skipRound.current = true; }} onSkipEvent={skipTournament}
+          onNext={() => { if (roundAsk.show.phase !== 'pending') setRoundAsk(undefined); roundAsk.resolve(); }}
+          onDetails={() => setHubTab('details')} />
+      )
+      : <section className="card hub"><p className="muted">…</p></section>}
+    </>
+  );
+  const showHub = hubOn && !hubAway && !profileId && !eventView;
+
   return (
     <main>
       <header className="controls shell">
@@ -153,18 +189,14 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
           <small>{status === 'saving' ? t('saving') : status === 'saved' ? t('saved') : ''}</small>
         </span>
         {/* Tombol maju: di HP jadi bilah tetap di bawah layar (mudah dijangkau jempol). */}
-        <div className="advbar">
+        {!hubOn && <div className="advbar">
           {simWeek !== undefined && <span className="simulating">{t('simulating', { w: simWeek })} <button onClick={() => { stop.current = true; }}>{t('stop')}</button></span>}
           <button className="primary" disabled={busy} onClick={() => go(1)}>{t('advance1')}</button>
           <button disabled={busy} onClick={() => go(4)}>{t('advance4')}</button>
           <button disabled={busy} onClick={() => go(weeksToSeasonEnd)}>{t('advanceSeason')}</button>
-        </div>
+        </div>}
         <button className="menu-btn" disabled={busy} onClick={onQuit}>{t('mainMenu')}</button>
       </header>
-      {roundAsk && <RoundScreen key={`${roundAsk.show.tournamentId}-${roundAsk.show.round}`} show={roundAsk.show} skipped={skipRows.current}
-        tab={roundTab.current} onTab={(k) => { roundTab.current = k; }} onSkipRest={() => { skipRound.current = true; }} onSkipEvent={skipTournament}
-        onNext={() => { if (roundAsk.show.phase !== 'pending') setRoundAsk(undefined); roundAsk.resolve(); }}
-        onDetails={() => openEvent(roundAsk.show.tournamentId, state.date.year)} />}
       {live && (
         <LiveMatch
           key={`${live.req.tournamentId}-${live.req.entrants.join('-')}-${live.req.round}`}
@@ -179,15 +211,6 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
           onSkipRound={() => { skipRound.current = true; }}
         />
       )}
-      {weekAsk && <WeekScreen ask={weekAsk} onPick={(id) => { setWeekAsk(undefined); weekAsk.resolve(id); }} />}
-      {drawAsk && (
-        <LiveDraw key={`${drawAsk.d.tournamentId}-${drawAsk.d.discipline}`} show={drawAsk.d}
-          title={`${eventName(game.ruleset, drawAsk.d.tournamentId, state.date.year)}${drawAsk.d.discipline ? ` · ${drawAsk.d.discipline}` : ''}`}
-          name={(id) => (drawAsk.d.discipline ? `${entrantLabel(state, id).name} (${entrantLabel(state, id).country})` : nameOfCountry(id))}
-          mine={(id) => (drawAsk.d.discipline ? entrantLabel(state, id).country === managed : id === managed)}
-          onClose={() => { setDrawAsk(undefined); drawAsk.resolve(); }}
-          onSkipEvent={() => { skipDraw.current = true; }} />
-      )}
       {teamAsk?.kind === 'squad' && (
         <SquadModal key={`${teamAsk.eventId}-${teamAsk.format}`} title={teamTitle(teamAsk.eventId)} eventId={teamAsk.eventId} format={teamAsk.format} pool={teamAsk.pool}
           suggested={teamAsk.suggested} onDone={(v) => { setTeamAsk(undefined); teamAsk.resolve(v); }} />
@@ -198,9 +221,17 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
           onDone={(v) => { setTeamAsk(undefined); teamAsk.resolve(v); }} onAuto={() => { autoRest.current.add(teamAsk.format); }} />
       )}
       <nav className="controls">
-        {tabs.map((x) => <button key={x} aria-pressed={tab === x && !profileId && !eventView} onClick={() => { setTab(x); setProfileId(undefined); setEventView(undefined); }}>{t(tabLabel[x])}</button>)}
+        {hubOn && <button aria-pressed={showHub} onClick={() => { setHubAway(false); setProfileId(undefined); setEventView(undefined); }}>🏸 {t('tabLive')}</button>}
+        {tabs.map((x) => <button key={x} aria-pressed={!showHub && tab === x && !profileId && !eventView} onClick={() => { setTab(x); setHubAway(true); setProfileId(undefined); setEventView(undefined); }}>{t(tabLabel[x])}</button>)}
       </nav>
-      {profileId ? <Profile id={profileId} onBack={() => setProfileId(undefined)} onOpen={open} onOpenEvent={openEvent} />
+      {hubOn && !showHub && (
+        <div className="livebar card">
+          🏸 <b>{hubTitle}</b>
+          <button className="primary" onClick={() => { setHubAway(false); setProfileId(undefined); setEventView(undefined); window.scrollTo(0, 0); }}>{t('openRound')}</button>
+        </div>
+      )}
+      {showHub ? hub
+        : profileId ? <Profile id={profileId} onBack={() => setProfileId(undefined)} onOpen={open} onOpenEvent={openEvent} />
         : eventView ? <TournamentView key={`${eventView.id}-${eventView.year}`} id={eventView.id} year={eventView.year} onOpenPlayer={open} onBack={() => setEventView(undefined)} />
         : tab === 'settings' ? (
           <section className="card">

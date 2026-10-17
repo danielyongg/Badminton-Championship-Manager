@@ -377,3 +377,5 @@ td.strong { font-weight: 700; }
   .drawboard { width: 100%; }
   .drawboard td:last-child { white-space: normal; }
 }
+/* Halaman turnamen yang dimainkan (dulu pop-up): kepala undian tidak menempel karena menu tab sudah menempel di atas. */
+.hub .drawhead { position: static; margin: 0 0 8px; padding: 0 0 4px; }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { bowlAt, phaseOf, replayDraw } from '../engine/drawReplay';
 import type { Candidate, EntryList } from '../engine/entry';
 import type { DrawStep } from '../engine/types';
@@ -19,9 +19,10 @@ function phaseLabel(phase: string) {
   return t(({ step_bye: 'bye', step_qualifier: 'qualifying', step_place: 'draw_unseeded', step_swap: 'draw_separation', step_clash: 'draw_separation' } as const)[phase as 'step_bye'] ?? 'draw_start');
 }
 
-export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay }: {
+/** `page`: tampil di halaman turnamen (bukan pop-up); putar ulang undian tetap pop-up. */
+export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay, page }: {
   title: string; show: DrawShowData; name: (id: string) => string; mine: (id: string) => boolean;
-  onClose: () => void; onSkipEvent?: () => void; replay?: boolean;
+  onClose: () => void; onSkipEvent?: () => void; replay?: boolean; page?: boolean;
 }) {
   const { steps } = show;
   // Sebelum undian babak utama: daftar entry, lalu bagan kualifikasi (bila ada).
@@ -33,6 +34,9 @@ export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay
   const done = idx >= steps.length;
   // Posisi yang baru diisi digeser ke tengah layar (undian 128 posisi tidak muat satu layar, terutama di HP).
   const box = useRef<HTMLDivElement>(null);
+  const wrap = (inner: ReactNode, ref?: Ref<HTMLDivElement>) => page
+    ? <section className="card hub">{inner}</section>
+    : <div className="modal" role="dialog" aria-label={t('draw_title')} ref={ref}><div className="live card">{inner}</div></div>;
   useEffect(() => { box.current?.querySelector('.flash')?.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, [idx]);
   const drawing = stages[stage] === 'draw';
 
@@ -67,9 +71,8 @@ export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay
 
   if (!drawing) {
     const who2 = { name, mine };
-    return (
-      <div className="modal" role="dialog" aria-label={t('draw_title')}>
-        <div className="live card">
+    return wrap(
+        <>
           <h3>{title} · {stages[stage] === 'entry' ? t('entryList') : t('qualDraw')}</h3>
           {stages[stage] === 'entry'
             ? <EntryLists entry={show.entry!} {...who2} />
@@ -83,14 +86,12 @@ export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay
             <button className="primary" onClick={() => setStage(stage + 1)}>{stages[stage + 1] === 'qual' ? t('qualDraw') : t('mainDraw')} →</button>
             {onSkipEvent && <button onClick={() => { onSkipEvent(); onClose(); }}>{t('draw_skipEvent')}</button>}
           </div>
-        </div>
-      </div>
+        </>
     );
   }
 
-  return (
-    <div className="modal" role="dialog" aria-label={t('draw_title')} ref={box}>
-      <div className="live card">
+  return wrap(
+      <>
         {/* Judul, pengumuman & kontrol menempel di atas saat bagan digulir. */}
         <div className="drawhead">
         <h3>{title} · {t('draw_title')}</h3>
@@ -133,7 +134,6 @@ export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </>, box,
   );
 }

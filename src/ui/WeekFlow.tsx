@@ -21,31 +21,19 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
   const { state, ruleset, world } = game;
   const { year } = state.date;
   const [editing, setEditing] = useState<string>();
-  const [hidden, setHidden] = useState(false); // ✕: pop-up disembunyikan agar tab lain (Entry, Skuad) bisa dibuka
   const city = (id: string) => dataName(world.cities.find((c) => c.id === id)?.name);
   if (editing) return (
-    <div className="modal" role="dialog" aria-label={t('weekEvents')}>
-      <div className="live card">
-        <button className="close" aria-label={t('back')} title={t('back')} onClick={() => setEditing(undefined)}>✕</button>
-        <h3>{eventName(ruleset, editing, year)} · {t('entryStatus')}</h3>
-        <EntryTable week={ask.week} eventId={editing} />
-        <div className="controls roundbar">
-          <button className="primary" onClick={() => { (state.entriesSubmitted ??= {})[`${year}:${editing}`] = true; changed(); void saveGame(game); setEditing(undefined); }}>{t('submitEntries')}</button>
-          <button onClick={() => setEditing(undefined)}>← {t('back')}</button>
-        </div>
+    <section className="card hub">
+      <h3>{eventName(ruleset, editing, year)} · {t('entryStatus')}</h3>
+      <EntryTable week={ask.week} eventId={editing} />
+      <div className="controls roundbar">
+        <button className="primary" onClick={() => { (state.entriesSubmitted ??= {})[`${year}:${editing}`] = true; changed(); void saveGame(game); setEditing(undefined); }}>{t('submitEntries')}</button>
+        <button onClick={() => setEditing(undefined)}>← {t('back')}</button>
       </div>
-    </div>
-  );
-  if (hidden) return (
-    <div className="livebar card">
-      🏸 <b>{t('weekEvents')} · {t('week')} {ask.week}</b>
-      <button onClick={() => setHidden(false)}>{t('openRound')}</button>
-    </div>
+    </section>
   );
   return (
-    <div className="modal" role="dialog" aria-label={t('weekEvents')}>
-      <div className="live card">
-        <button className="close" title={t('hideRound')} aria-label={t('hideRound')} onClick={() => setHidden(true)}>✕</button>
+    <section className="card hub">
         <h3>{t('weekEvents')} · {t('week')} {ask.week}</h3>
         <ul className="weeklist">{ask.events.map(({ id, kind }) => {
           const ev = kind === 'team' ? ruleset.team.events.find((e) => e.id === id)! : ruleset.calendar.find((e) => e.id === id)!;
@@ -70,8 +58,7 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
         <div className="controls">
           <button onClick={() => onPick(null)}>{ask.played.length ? t('skipRest') : t('skipAll')}</button>
         </div>
-      </div>
-    </div>
+    </section>
   );
 }
 
@@ -86,7 +73,7 @@ export const rowKey = (m: RoundMatch) => `${m.key}:${m.sides.join('-')}`;
  */
 export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkipRest, onSkipEvent, onDetails }: {
   show: RoundShow; tab?: string; onTab: (k: string) => void; skipped: Set<string>; onNext: () => void; onSkipRest: () => void; onSkipEvent: () => void;
-  /** Buka halaman turnamen (entry, undian, bagan); layar babak disembunyikan, bisa dibuka lagi dari bilah bawah. */
+  /** Buka tab detail turnamen (entry, undian, bagan). */
   onDetails?: () => void;
 }) {
   const { game } = useGame();
@@ -109,24 +96,12 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   const tab = current?.key ?? (picked && keys.includes(picked) ? picked : keys.find((k) => mineKeys.has(k)) ?? keys[0]);
   const done = show.phase === 'done';
   const final = show.round === 'F';
-  const box = useRef<HTMLDivElement>(null);
+  const box = useRef<HTMLElement>(null);
   useEffect(() => { box.current?.querySelector('tr.current')?.scrollIntoView({ block: 'nearest' }); }, [show.current]);
-  // ✕: pop-up disembunyikan (turnamen dijeda di layar ini) agar tab lain bisa dibuka; bilah bawah untuk kembali.
-  const [hidden, setHidden] = useState(false);
   const roundName = show.round === 'G' ? t('roundG') : show.round.startsWith('Q') ? `${t('qualifying')} R${show.round.slice(1)}` : show.round;
   const title = `${eventName(ruleset, show.tournamentId, state.date.year)} · ${roundName}`;
-  if (hidden)
-    return (
-      <div className="livebar card">
-        🏸 <b>{title}</b>
-        <button onClick={() => setHidden(false)}>{t('openRound')}</button>
-        <button onClick={onSkipEvent}>{t('simEvent')}</button>
-      </div>
-    );
   return (
-    <div className="modal" role="dialog" aria-label={t('weekEvents')} ref={box} onClick={(e) => e.target === e.currentTarget && setHidden(true)}>
-      <div className="live card">
-        <button className="close" title={t('hideRound')} aria-label={t('hideRound')} onClick={() => setHidden(true)}>✕</button>
+    <section className="card hub" ref={box}>
         <h3>{title}</h3>
         {keys.length > 1 && (
           <nav className="controls subnav">
@@ -167,9 +142,8 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
             ? <button onClick={onSkipRest}>{t('simRound')}</button>
             : <button className="primary" onClick={onNext}>{!done ? t('playRound') : final ? t('doneEvent') : t('nextRound')}</button>}
           {!(done && final) && <button onClick={onSkipEvent}>{t('simEvent')}</button>}
-          {onDetails && <button onClick={() => { setHidden(true); onDetails(); }}>{t('tournamentDetails')}</button>}
+          {onDetails && <button onClick={onDetails}>{t('tournamentDetails')}</button>}
         </div>
-      </div>
-    </div>
+    </section>
   );
 }
