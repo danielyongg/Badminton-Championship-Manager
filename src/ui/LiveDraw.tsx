@@ -94,19 +94,22 @@ export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay
         <div className="drawhead">
         <h3>{title} · {t('draw_title')}</h3>
         <p className="announce">{last ? stepText(last, name) : t('draw_start')}</p>
-        <div className="controls">
-          {!done && (running
-            ? <button onClick={() => setRunning(false)}>{t('pause')}</button>
-            : <button onClick={() => setRunning(true)}>{t('resume')}</button>)}
-          {!done && <button onClick={() => { setRunning(false); setIdx(idx + 1); }}>{t('nextStep')}</button>}
-          {!done && <button onClick={() => setIdx(steps.length)}>{t('draw_skipToEnd')}</button>}
-          <label>{t('gameSpeed')}
-            <select value={speed} onChange={(e) => setSpeed(e.target.value as keyof typeof SPEEDS)}>
-              {Object.keys(SPEEDS).map((s) => <option key={s} value={s}>{t(`speed_${s}` as 'speed_slow')}</option>)}
-            </select>
-          </label>
-          <button className="primary" onClick={onClose}>{replay ? t('draw_closeReplay') : t('draw_close')}</button>
-          {onSkipEvent && <button onClick={() => { onSkipEvent(); onClose(); }}>{t('draw_skipEvent')}</button>}
+        {/* Kontrol putar: tombol ringkas sebaris + pilihan kecepatan bersegmen. */}
+        <div className="drawctl">
+          {!done && (
+            <span className="seg">
+              {running
+                ? <button onClick={() => setRunning(false)}>⏸ {t('pause')}</button>
+                : <button onClick={() => setRunning(true)}>▶ {t('resume')}</button>}
+              <button onClick={() => { setRunning(false); setIdx(idx + 1); }}>{t('nextStep')}</button>
+              <button onClick={() => setIdx(steps.length)}>⏭ {t('draw_skipToEnd')}</button>
+            </span>
+          )}
+          <span className="seg" role="group" aria-label={t('gameSpeed')}>
+            {(Object.keys(SPEEDS) as (keyof typeof SPEEDS)[]).map((x) => (
+              <button key={x} aria-pressed={speed === x} onClick={() => setSpeed(x)}>{t(`speed_${x}` as 'speed_slow')}</button>
+            ))}
+          </span>
         </div>
         </div>
         <div className="drawlayout">
@@ -131,6 +134,10 @@ export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay
               <div><h4>{t('draw_bottomHalf')}</h4>{half((show.size ?? 0) / 2 + 1, show.size ?? 0)}</div>
             </div>
           )}
+        </div>
+        <div className="controls roundbar">
+          <button className="primary" onClick={onClose}>{replay ? t('draw_closeReplay') : t('draw_close')}</button>
+          {onSkipEvent && <button onClick={() => { onSkipEvent(); onClose(); }}>{t('draw_skipEvent')}</button>}
         </div>
       </>, box,
   );

@@ -389,3 +389,13 @@ td.strong { font-weight: 700; }
 .entrylist td:nth-child(3) { width: 3em; font-size: .85rem; }
 .entrylist td:last-child { width: 4em; }
 @media (max-width: 700px) { .entrylist table { display: table; } }
+/* Kontrol undian: grup tombol bersegmen (putar & kecepatan) sebaris, membungkus rapi di HP. */
+.drawctl { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.seg { display: inline-flex; }
+.seg button { border-radius: 0; margin-left: -1px; padding: 4px 10px; font-size: .85rem; min-height: 34px; white-space: nowrap; }
+.seg button:first-child { border-radius: 4px 0 0 4px !important; margin-left: 0; }
+.seg button:last-child { border-radius: 0 4px 4px 0 !important; }
+.seg button[aria-pressed] { border-color: var(--line); background: var(--surface); }
+.seg button[aria-pressed=true] { background: var(--accent-soft); color: var(--accent-strong); box-shadow: none; border-color: var(--accent); position: relative; }
+.announce { margin: 4px 0 8px; }
+@media (max-width: 700px) { .seg button { font-size: 13px; padding: 2px 8px; min-height: 34px; } .announce { font-size: 1rem; } }
