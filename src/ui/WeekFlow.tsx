@@ -105,7 +105,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   const final = show.round === 'F';
   const box = useRef<HTMLElement>(null);
   useEffect(() => { box.current?.querySelector('tr.current')?.scrollIntoView({ block: 'nearest' }); }, [show.current]);
-  const roundName = show.round === 'G' ? t('roundG') : show.round.startsWith('Q') ? `${t('qualifying')} R${show.round.slice(1)}` : show.round;
+  const roundName = show.round === 'G' ? t('roundG') : /^Q\d/.test(show.round) ? `${t('qualifying')} R${show.round.slice(1)}` : show.round;
   const title = `${eventName(ruleset, show.tournamentId, state.date.year)} · ${roundName}`;
   return (
     <section className="card hub" ref={box}>

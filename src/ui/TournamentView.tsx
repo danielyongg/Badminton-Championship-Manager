@@ -5,7 +5,7 @@ import { dataName, numLocale, t } from '../i18n';
 import { BracketView, DrawResultView, DrawStepsView, EntryView, GroupView, QualView, SeedsView, Who } from './EventViews';
 import { entrantLabel, eventName, lookup, tierLabel, useGame } from './game';
 import { LiveDraw } from './LiveDraw';
-import { FinalsResult, formatName, winnerOf } from './Team';
+import { formatName, TeamResults, winnerOf } from './Team';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
 
@@ -70,7 +70,7 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
       {page === 'winners' ? <Winners id={id} year={year} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
       : page === 'history' ? <WinnersHistory id={id} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
       : page === 'participants' ? <Participants id={id} year={year} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
-      : team.length > 0 ? team.map((r) => <FinalsResult key={r.format} r={r} />) : played.length === 0 ? <p>{t('notPlayedYet')}</p> : (
+      : team.length > 0 ? <TeamResults results={team} /> : played.length === 0 ? <p>{t('notPlayedYet')}</p> : (
         <>
           {/* Bagian (entry, kualifikasi, undian, bagan) dulu, lalu nomor sebagai sub-tab. */}
           {records.length > 0 && (

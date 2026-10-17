@@ -149,6 +149,8 @@ export interface TeamEventRun {
  */
 export async function runTeamEvent(
   teams: string[], groups: GroupStage | undefined, tie: PlayFn, rng: Rng, onDraw?: (steps: DrawStep[], groups: string[][]) => Promise<void> | null, parallel = false,
+  /** Diisi selama turnamen berjalan: klasemen grup begitu fase grup selesai, bagan gugur sejak babak gugur dimulai. */
+  live: { standings?: Standing[][]; rounds?: (string | null)[][] } = {},
 ): Promise<TeamEventRun> {
   const standing = (id: string): Standing => ({ id, wins: 0, gameDiff: 0, pointDiff: 0 });
   if (groups && teams.length > groups.groups * groups.advance) {
@@ -156,11 +158,12 @@ export async function runTeamEvent(
     const ids = drawn.groups.map((g) => g.map((e) => e.id));
     await onDraw?.(drawn.steps, ids);
     const standings = await each(parallel, ids, (g) => playGroup(g, tie, parallel));
-    const ko = await playKnockout(knockoutFromGroups(standings, groups.advance, rng), tie, undefined, parallel);
+    live.standings = standings;
+    const ko = await playKnockout(knockoutFromGroups(standings, groups.advance, rng), tie, undefined, parallel, live.rounds = []);
     return { groups: ids, standings, steps: drawn.steps, ...ko };
   }
   // ponytail: unggulan sebagai "juara grup" berisi 1 tim → posisi unggulan & bye dari knockoutFromGroups.
-  return playKnockout(knockoutFromGroups(teams.map((id) => [standing(id)]), 1, rng), tie, undefined, parallel);
+  return playKnockout(knockoutFromGroups(teams.map((id) => [standing(id)]), 1, rng), tie, undefined, parallel, live.rounds = []);
 }
 
 /** Tingkat hasil beregu untuk target federasi: 0 tidak lolos, 1 fase grup, 2 QF, 3 SF, 4 final, 5 juara. */

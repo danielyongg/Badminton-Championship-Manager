@@ -372,6 +372,8 @@ export const en: Record<TextKey, string> = {
   skipAllRows: 'Skip all',
   rankNew: 'NEW',
   rankMoveHint: 'Change since last week’s ranking',
+  groupStage: 'Group stage',
+  knockoutPending: 'The knockout draw appears once the group stage is finished.',
   draw_skipEvent: 'Skip draw',
   draw_replay: 'Replay draw',
   draw_topHalf: 'Top half',

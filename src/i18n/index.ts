@@ -372,6 +372,8 @@ const id = {
   skipAllRows: 'Lewati semua',
   rankNew: 'BARU',
   rankMoveHint: 'Perubahan dibanding ranking minggu lalu',
+  groupStage: 'Fase grup',
+  knockoutPending: 'Bagan knockout muncul begitu fase grup selesai.',
   draw_skipEvent: 'Lewati drawing',
   draw_replay: 'Putar ulang undian',
   draw_topHalf: 'Paruh atas',

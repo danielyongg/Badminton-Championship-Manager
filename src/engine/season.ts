@@ -103,6 +103,8 @@ export interface TeamResult {
   ties: TeamTie[];
   squads: Record<string, string[]>; // skuad terdaftar per negara
   drawSteps?: DrawStep[]; // undian pot putaran final (untuk putar ulang)
+  /** Bagan gugur: bracket[0] = posisi awal, terakhir = [juara]. Save lama: tidak ada (bagan disusun dari daftar pertandingan). */
+  bracket?: (string | null)[][];
 }
 
 export const weekKey = (d: GameDate) => `${d.year}-${d.week}`;
@@ -685,6 +687,11 @@ export function lockFinalsQualifiers(state: SeasonState, rs: Ruleset, world: Wor
  * `teamResults` (tidak disimpan) agar target, gelar & kualifikasi tidak membaca hasil yang belum selesai.
  */
 export const liveTeamResults = new WeakMap<SeasonState, TeamResult[]>();
+/** Penghubung hasil sementara dengan runTeamEvent: klasemen & bagan gugur langsung tercatat begitu tersedia. */
+const liveStages = (r: TeamResult) => ({
+  set standings(v: Standing[][] | undefined) { r.standings = v; }, get standings() { return r.standings; },
+  set rounds(v: (string | null)[][] | undefined) { r.bracket = v; }, get rounds() { return r.bracket; },
+});
 
 /**
  * Satu kejuaraan beregu (kontinental atau final). Partai dicatat sebagai laga biasa (H2H, Live, kelelahan).
@@ -806,11 +813,11 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
       (steps, groups) => {
         Object.assign(current, { groups, drawSteps: steps });
         return draw?.({ tournamentId: ev.id, entrants: teams, steps, groups: finals.groups.groups }) ?? null;
-      }, gated);
+      }, gated, liveStages(current));
     liveTeamResults.set(state, (liveTeamResults.get(state) ?? []).filter((r) => r !== current));
     state.teamResults.push({
       eventId: ev.id, year, format, confederation: ev.confederation, ...(ev.countries && { games: true as const }), teams,
-      groups: run.groups, standings: run.standings, reached: Object.fromEntries(run.reached), ties, squads, drawSteps: run.steps,
+      groups: run.groups, standings: run.standings, reached: Object.fromEntries(run.reached), ties, squads, drawSteps: run.steps, bracket: run.rounds,
     });
   });
   applyEventLoad(state, rs, rng, firstMatch, city, true, cities);

@@ -130,6 +130,8 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
           const live = liveTeamResults.get(s) ?? [];
           expect(live.map((x) => x.format).sort()).toEqual(['thomas', 'uber']);
           expect(live.every((x) => x.groups?.length)).toBe(true);
+          // Babak gugur pertama dimulai: klasemen grup & pasangan laga gugur sudah tercatat sebelum dimainkan.
+          if (r.round === 'QF') for (const x of live) { expect(x.standings?.length).toBe(x.groups!.length); expect(x.bracket![0].filter(Boolean).length).toBe(8); }
           liveTies.push(live.reduce((n, x) => n + x.ties.length, 0));
         }
         return null;
@@ -141,10 +143,19 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
     expect(liveTeamResults.get(state)).toEqual([]); // selesai → pindah ke teamResults
     const res = state.teamResults.filter((r) => r.eventId === 'thomas-uber-cup' && r.year === 2026);
     expect(res.map((r) => r.format).sort()).toEqual(['thomas', 'uber']);
+    for (const r of res) expect(r.bracket!.at(-1)).toEqual([Object.keys(r.reached).find((c) => r.reached[c] === 'W')]);
     const inaTies = res.flatMap((r) => r.ties.filter((t) => t.sides.includes('INA')).map((t) => `${r.format}:${t.round}`));
     expect(lineups.sort()).toEqual(inaTies.sort());
     for (const r of res) for (const t of r.ties) expect(Math.max(...t.score)).toBeGreaterThanOrEqual(3);
     expect(shows.map((s) => s.round)).toEqual(['G', 'QF', 'SF', 'F']);
     expect(shows.flatMap((s) => s.matches).length).toBe(res.reduce((n, r) => n + r.ties.length, 0));
+  });
+});
+
+describe('urutan babak', () => {
+  it('kualifikasi → grup → babak utama; QF bukan babak kualifikasi', () => {
+    const order = ['Q1', 'Q2', 'G', 'R64', 'R32', 'R16', 'QF', 'SF', 'F'] as const;
+    expect(order.map(roundOrder)).toEqual([...order.map(roundOrder)].sort((a, b) => a - b));
+    expect(order.map(roundOrder).every(Number.isFinite)).toBe(true);
   });
 });

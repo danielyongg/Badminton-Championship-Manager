@@ -14,7 +14,7 @@ export interface RoundShow { tournamentId: string; round: MatchRound; phase: 'pe
 export type RoundHook = (r: RoundShow) => Promise<void> | null;
 
 /** Urutan babak global: kualifikasi → grup → R256 … F. */
-export const roundOrder = (r: MatchRound) => (r === 'G' ? 50 : r.startsWith('Q') ? Number(r.slice(1)) : 100 - ROUNDS.indexOf(r as Round));
+export const roundOrder = (r: MatchRound) => (r === 'G' ? 50 : /^Q\d/.test(r) ? Number(r.slice(1)) : 100 - ROUNDS.indexOf(r as Round));
 
 export function roundGate(tournamentId: string, keys: readonly string[], hook?: RoundHook) {
   type Waiting = RoundMatch & { round: MatchRound; play: () => PlayResult | Promise<PlayResult>; resolve: (r: PlayResult) => void };

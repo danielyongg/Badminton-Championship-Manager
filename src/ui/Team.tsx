@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { hostCityId, isHeld, weekOf, lineupStrength, teamFormatsIn, teamStrengths, type TeamResult, type TeamStrength, type TeamTie } from '../engine/season';
 import { ageAt, currentAbility } from '../engine/generator';
 import { AD_HOC, adHocEntrants, adHocId, autoLineup, autoSquad, lineupError, rankOrder, squadError, squadPool, type Lineup, type TeamEntrant } from '../engine/team';
 import { isDoubles, isJuniorFormat, type Discipline, type TeamFormat } from '../engine/types';
+import { mainRoundName } from '../engine/knockout';
 import { dataName, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, useGame } from './game';
 import { LiveDraw } from './LiveDraw';
@@ -270,7 +271,34 @@ function standingsOf(r: TeamResult) {
   }).sort((a, b) => b.wins - a.wins || b.gameDiff - a.gameDiff));
 }
 
-export function FinalsResult({ r }: { r: TeamResult }) {
+/** Hasil kejuaraan beregu di halaman turnamen: tab format (putra/putri/campuran) lalu tab Grup / Knockout. */
+export function TeamResults({ results }: { results: TeamResult[] }) {
+  const [f, setF] = useState(results[0]?.format);
+  const r = results.find((x) => x.format === f) ?? results[0];
+  const hasGroups = !!r?.groups;
+  // Default: knockout begitu bagan gugur ada (fase grup selesai), selain itu grup.
+  const [stage, setStage] = useState<'groups' | 'knockout'>();
+  const shown = stage ?? (hasGroups && !r.bracket?.length && !r.ties.some((x) => x.round !== 'G') ? 'groups' : 'knockout');
+  if (!r) return null;
+  return (
+    <>
+      {results.length > 1 && (
+        <nav className="controls">
+          {results.map((x) => <button key={x.format} aria-pressed={x.format === r.format} onClick={() => setF(x.format)}>{formatName(x.format, x.eventId)}</button>)}
+        </nav>
+      )}
+      {hasGroups && (
+        <nav className="controls subnav">
+          <button aria-pressed={shown === 'groups'} onClick={() => setStage('groups')}>{t('groupStage')}</button>
+          <button aria-pressed={shown === 'knockout'} onClick={() => setStage('knockout')}>{t('knockout')}</button>
+        </nav>
+      )}
+      <FinalsResult key={r.format} r={r} stage={hasGroups ? shown : 'knockout'} />
+    </>
+  );
+}
+
+export function FinalsResult({ r, stage }: { r: TeamResult; stage?: 'groups' | 'knockout' }) {
   const { game } = useGame();
   const champion = winnerOf(r);
   const name = (c: string) => dataName(game.world.countries.find((x) => x.id === c)?.name) ?? c;
@@ -289,12 +317,12 @@ export function FinalsResult({ r }: { r: TeamResult }) {
     <section className="card">
       {open && <TieDetail r={r} tie={open} name={name} onClose={() => setOpen(undefined)} />}
       <h3>{formatName(r.format, r.eventId)} — {t('champion')}: {champion ? name(champion) : '—'}</h3>
-      {r.drawSteps && <button onClick={() => setReplay(true)}>{t('draw_replay')}</button>}
+      {r.drawSteps && stage !== 'knockout' && <button onClick={() => setReplay(true)}>{t('draw_replay')}</button>}
       {replay && r.drawSteps && (
         <LiveDraw replay title={`${eventName(game.ruleset, r.eventId, r.year)} · ${formatName(r.format, r.eventId)}`} show={{ steps: r.drawSteps, groups: r.groups?.length }}
           name={name} mine={(c) => c === managed} onClose={() => setReplay(false)} />
       )}
-      {r.groups && (
+      {r.groups && stage !== 'knockout' && (
         <div className="groups">{standingsOf(r).map((s, gi) => (
           <div key={gi}>
           <table>
@@ -310,11 +338,39 @@ export function FinalsResult({ r }: { r: TeamResult }) {
           </div>
         ))}</div>
       )}
-      <h4>{t('knockout')}</h4>
-      <div className="bracket">{(ko.some((x) => x.round === 'R16') ? ['R16', 'QF', 'SF', 'F'] : ['QF', 'SF', 'F']).map((round) => (
-        <div key={round} className="round">{ko.filter((x) => x.round === round).map(tieBox)}</div>
-      ))}</div>
+      {stage !== 'groups' && <>
+        {!stage && <h4>{t('knockout')}</h4>}
+        {r.bracket?.length ? <KnockoutBracket r={r} name={name} tieBox={tieBox} />
+        : ko.length ? (
+          // Save lama tanpa bagan: susun dari pertandingan yang sudah dimainkan.
+          <div className="bracket">{(ko.some((x) => x.round === 'R16') ? ['R16', 'QF', 'SF', 'F'] : ['QF', 'SF', 'F']).map((round) => (
+            <div key={round} className="round">{ko.filter((x) => x.round === round).map(tieBox)}</div>
+          ))}</div>
+        ) : <p className="hint">{t('knockoutPending')}</p>}
+      </>}
     </section>
+  );
+}
+
+/**
+ * Bagan gugur beregu dari posisi bagan: pasangan laga tampil begitu babaknya dimulai (sebelum dimainkan), skor setelah selesai.
+ * Babak yang belum dimulai: kolom kosong "—".
+ */
+function KnockoutBracket({ r, name, tieBox }: { r: TeamResult; name: (c: string) => string; tieBox: (x: TeamTie, i: number) => ReactNode }) {
+  const rounds = r.bracket!;
+  const cols = rounds.at(-1)!.length > 1 ? [...rounds, []] : rounds;
+  const slot = (c: string | null | undefined, r0: boolean) => c ? <div><Flag id={c} />{name(c)}</div> : <div className="muted">{r0 ? t('bye') : '—'}</div>;
+  return (
+    <div className="bracket">{cols.slice(0, -1).map((field, i) => (
+      <div key={i} className="round">
+        <small className="muted-text">{mainRoundName(field.length, i)}</small>
+        {Array.from({ length: Math.ceil(field.length / 2) }, (_, k) => {
+          const a = field[2 * k], b = field[2 * k + 1];
+          const tie = a && b && r.ties.find((x) => x.round !== 'G' && x.sides.includes(a) && x.sides.includes(b));
+          return tie ? tieBox(tie, k) : <div key={k} className="match">{slot(a, i === 0)}{slot(b, i === 0)}</div>;
+        })}
+      </div>
+    ))}</div>
   );
 }
 
