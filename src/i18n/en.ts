@@ -361,6 +361,7 @@ export const en: Record<TextKey, string> = {
   tournamentDetails: 'Tournament details',
   schedule: 'Schedule',
   tabLive: 'Tournament',
+  startDraw: 'Start the draw',
   draw_skipEvent: 'Skip draw',
   draw_replay: 'Replay draw',
   draw_topHalf: 'Top half',

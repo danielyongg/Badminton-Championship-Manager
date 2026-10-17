@@ -5,6 +5,8 @@ import { DISCIPLINES, type Discipline, type TeamFormat } from '../engine/types';
 import { dataName, t } from '../i18n';
 import { Flag } from './Flag';
 import { EntryTable } from './Entries';
+import { EntryLists } from './EventViews';
+import type { EntriesShow } from '../engine/tournament';
 import { entrantLabel, eventName, saveGame, teamLabel, tierLabel, useGame } from './game';
 import { formatName } from './Team';
 
@@ -144,6 +146,34 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
           {!(done && final) && <button onClick={onSkipEvent}>{t('simEvent')}</button>}
           {onDetails && <button onClick={onDetails}>{t('tournamentDetails')}</button>}
         </div>
+    </section>
+  );
+}
+
+/** Daftar entry semua nomor turnamen (tab per nomor), sebelum undian dimulai. */
+export function EntriesScreen({ show, onDraw, onSkipDraw }: { show: EntriesShow; onDraw: () => void; onSkipDraw: () => void }) {
+  const { game } = useGame();
+  const { state, ruleset } = game;
+  const managed = state.career?.countryId;
+  const [d, setD] = useState(show.lists[0]?.discipline);
+  const list = show.lists.find((x) => x.discipline === d);
+  const label = (id: string) => { const l = entrantLabel(state, id); return `${l.name} (${l.country})`; };
+  const mine = (id: string) => entrantLabel(state, id).country === managed;
+  return (
+    <section className="card hub">
+      <h3>{eventName(ruleset, show.tournamentId, state.date.year)} · {t('entryList')}</h3>
+      <nav className="controls subnav">
+        {show.lists.map((x) => (
+          <button key={x.discipline} aria-pressed={x.discipline === d} onClick={() => setD(x.discipline)}>
+            {x.discipline}{[...x.entry.main, ...x.entry.wildcards, ...x.entry.qualifying].some((c) => c.countryId === managed) && <span className="mine"> ●</span>}
+          </button>
+        ))}
+      </nav>
+      {list && <EntryLists key={d} entry={list.entry} name={label} mine={mine} />}
+      <div className="controls roundbar">
+        <button className="primary" onClick={onDraw}>{t('startDraw')} →</button>
+        <button onClick={onSkipDraw}>{t('draw_skipEvent')}</button>
+      </div>
     </section>
   );
 }

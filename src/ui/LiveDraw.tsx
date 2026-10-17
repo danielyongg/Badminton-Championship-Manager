@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { bowlAt, phaseOf, replayDraw } from '../engine/drawReplay';
-import type { Candidate, EntryList } from '../engine/entry';
+import type { Candidate } from '../engine/entry';
 import type { DrawStep } from '../engine/types';
 import { t } from '../i18n';
-import { EntryLists, RoundColumns, stepText } from './EventViews';
+import { RoundColumns, stepText } from './EventViews';
 import { Flag } from './Flag';
 
 // Live drawing (gaya Football Manager): mangkuk pot di kiri, bagan / grup di kanan terisi langkah demi langkah.
@@ -11,7 +11,7 @@ import { Flag } from './Flag';
 const SPEEDS = { slow: 1500, normal: 700, fast: 200 } as const;
 const SEED_POTS = [[1, 2], [3, 4], [5, 8], [9, 16], [17, 32]];
 
-export interface DrawShowData { steps: DrawStep[]; size?: number; groups?: number; entry?: EntryList; qualSections?: (Candidate | null)[][] }
+export interface DrawShowData { steps: DrawStep[]; size?: number; groups?: number; qualSections?: (Candidate | null)[][] }
 
 function phaseLabel(phase: string) {
   if (phase.startsWith('seed')) { const [a, b] = SEED_POTS[Number(phase.slice(4))] ?? [0, 0]; return t('draw_potSeeds', { a, b }); }
@@ -25,8 +25,8 @@ export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay
   onClose: () => void; onSkipEvent?: () => void; replay?: boolean; page?: boolean;
 }) {
   const { steps } = show;
-  // Sebelum undian babak utama: daftar entry, lalu bagan kualifikasi (bila ada).
-  const stages = [...(show.entry ? ['entry'] : []), ...(show.qualSections?.length ? ['qual'] : []), 'draw'] as const;
+  // Sebelum undian babak utama: bagan kualifikasi (bila ada).
+  const stages = [...(show.qualSections?.length ? ['qual'] : []), 'draw'] as const;
   const [stage, setStage] = useState(0);
   const [idx, setIdx] = useState(0); // jumlah langkah yang sudah diumumkan
   const [running, setRunning] = useState(true);
@@ -73,17 +73,15 @@ export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay
     const who2 = { name, mine };
     return wrap(
         <>
-          <h3>{title} · {stages[stage] === 'entry' ? t('entryList') : t('qualDraw')}</h3>
-          {stages[stage] === 'entry'
-            ? <EntryLists entry={show.entry!} {...who2} />
-            : show.qualSections!.map((sec, i) => (
-              <div key={i}>
-                <h4>{t('section')} {i + 1}</h4>
-                <RoundColumns rounds={[sec.map((c) => c?.id ?? null)]} matches={[]} {...who2} />
-              </div>
-            ))}
+          <h3>{title} · {t('qualDraw')}</h3>
+          {show.qualSections!.map((sec, i) => (
+            <div key={i}>
+              <h4>{t('section')} {i + 1}</h4>
+              <RoundColumns rounds={[sec.map((c) => c?.id ?? null)]} matches={[]} {...who2} />
+            </div>
+          ))}
           <div className="controls roundbar">
-            <button className="primary" onClick={() => setStage(stage + 1)}>{stages[stage + 1] === 'qual' ? t('qualDraw') : t('mainDraw')} →</button>
+            <button className="primary" onClick={() => setStage(stage + 1)}>{t('mainDraw')} →</button>
             {onSkipEvent && <button onClick={() => { onSkipEvent(); onClose(); }}>{t('draw_skipEvent')}</button>}
           </div>
         </>

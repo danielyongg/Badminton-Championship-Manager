@@ -46,9 +46,17 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
     const id = 'thailand-masters';
     const log: string[] = [];
     let drawn = 0;
+    const listed: string[][] = [];
     const state = await weekOf(5, (s) => ({
       chooseEvent: choose([id]),
-      draw: (d) => { drawn++; expect(d.entry!.qualifying.length).toBeGreaterThan(0); expect(d.qualSections!.length).toBe(d.entry!.qualifierSlots); return null; },
+      // Daftar entry kelima nomor sekaligus, sebelum undian mana pun.
+      entries: (e) => { expect(drawn).toBe(0); listed.push(e.lists.map((x) => x.discipline)); return Promise.resolve(); },
+      draw: (d) => {
+        drawn++;
+        const entry = listed.length && s.eventRecords.find((r) => r.tournamentId === id && r.discipline === d.discipline)!.entry;
+        expect(entry && d.qualSections!.length).toBe(entry && entry.qualifierSlots);
+        return null;
+      },
       round: (r) => {
         if (r.phase !== 'pending') return null;
         log.push(r.round);
@@ -60,6 +68,7 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
       },
     }));
     expect(drawn).toBeGreaterThan(0);
+    expect(listed).toEqual([['MS', 'WS', 'MD', 'WD', 'XD']]);
     expect(log.indexOf('Q1')).toBeGreaterThanOrEqual(0);
     expect(log.indexOf('Q1')).toBeLessThan(log.indexOf('R32'));
     // Catatan akhir: satu per nomor, bagan lengkap sampai juara.

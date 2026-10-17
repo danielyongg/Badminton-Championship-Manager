@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { matchConfigFor, simulateMatch, type MatchResult } from '../engine/match';
-import type { DrawHook, DrawShow, LiveHook, LiveRequest } from '../engine/tournament';
+import type { DrawHook, DrawShow, EntriesHook, EntriesShow, LiveHook, LiveRequest } from '../engine/tournament';
 import { CHALLENGE_DEADLINE_WEEK, CHALLENGE_PENALTY, CHALLENGE_REWARD, challengeProgress, goalProgress, goalWeight } from '../engine/career';
 import { ageAt } from '../engine/generator';
 import { hostCityId, isHeld, openTo, teamFormatsIn, weekOf, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
@@ -27,7 +27,7 @@ import { currentAbility } from '../engine/generator';
 import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
 import { TournamentView } from './TournamentView';
 import { MatchLink } from './MatchDetail';
-import { RoundScreen, rowKey, WeekScreen, type WeekAsk } from './WeekFlow';
+import { EntriesScreen, RoundScreen, rowKey, WeekScreen, type WeekAsk } from './WeekFlow';
 
 type Tab = 'dashboard' | 'squad' | 'entries' | 'team' | 'world' | 'federation' | 'editor' | 'settings';
 
@@ -72,6 +72,9 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   const [drawAsk, setDrawAsk] = useState<{ d: DrawShow; resolve: () => void }>();
   const skipDraw = useRef(false);
   const drawHook: DrawHook = (d) => (skipDraw.current ? null : new Promise<void>((resolve) => setDrawAsk({ d, resolve })));
+  // Daftar entry semua nomor sebelum undian ("Lewati drawing" = langsung ke jadwal).
+  const [entriesAsk, setEntriesAsk] = useState<{ e: EntriesShow; resolve: () => void }>();
+  const entriesHook: EntriesHook = (e) => (skipDraw.current ? null : new Promise<void>((resolve) => setEntriesAsk({ e, resolve })));
   // Layar babak: sebelum (pasangan laga) & sesudah (skor). "Simulasikan sisa babak" berlaku sampai babak berikutnya.
   const [roundAsk, setRoundAsk] = useState<{ show: RoundShow; resolve: () => void }>();
   const skipRound = useRef(false);
@@ -130,7 +133,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
     for (let i = 0; i < weeks && !stop.current; i++) {
       if (weeks > 1) setSimWeek(state.date.week);
       // Maju beberapa minggu = serba otomatis; 1 minggu = pilih turnamen yang dimainkan per babak.
-      await advance(game, 1, weeks > 1 || !managed ? {} : { chooseEvent, round: roundHook, live: hook, team: teamHook, draw: drawHook });
+      await advance(game, 1, weeks > 1 || !managed ? {} : { chooseEvent, round: roundHook, live: hook, team: teamHook, draw: drawHook, entries: entriesHook });
       // Beri kesempatan browser menggambar ulang & menerima klik (Berhenti) di antara minggu → UI tidak membeku.
       await new Promise((r) => setTimeout(r, 0));
     }
@@ -161,6 +164,11 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
         <button aria-pressed={hubTab === 'details'} onClick={() => setHubTab('details')}>{t('tournamentDetails')}</button>
       </nav>
       {hubTab === 'details' ? <TournamentView key={playing} id={playing} year={state.date.year} onOpenPlayer={open} onBack={() => setHubTab('schedule')} />
+      : entriesAsk ? (
+        <EntriesScreen key={entriesAsk.e.tournamentId} show={entriesAsk.e}
+          onDraw={() => { setEntriesAsk(undefined); entriesAsk.resolve(); }}
+          onSkipDraw={() => { skipDraw.current = true; setEntriesAsk(undefined); entriesAsk.resolve(); }} />
+      )
       : drawAsk ? (
         <LiveDraw page key={`${drawAsk.d.tournamentId}-${drawAsk.d.discipline}`} show={drawAsk.d}
           title={`${eventName(game.ruleset, drawAsk.d.tournamentId, state.date.year)}${drawAsk.d.discipline ? ` · ${drawAsk.d.discipline}` : ''}`}

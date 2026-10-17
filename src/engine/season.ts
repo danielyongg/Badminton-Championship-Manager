@@ -2,7 +2,7 @@ import { makeChallenges, seasonGoals, seasonReport } from './career';
 import { contingentOf, inContingent, lockContingents } from './contingent';
 import { olympicField } from './olympics';
 import { applySevereInjury, developQuarter, newJuniors, retirementChance, rollInjury } from './development';
-import { applyCountryQuota, type Candidate } from './entry';
+import { applyCountryQuota, type Candidate, type EntryList } from './entry';
 import { ageAt, currentAbility, generateWorld, isJuniorAge, isPratama } from './generator';
 import { absWeek, computeRace, computeRanking, knockoutResults, rankMap } from './ranking';
 import { makeRng, shuffle, type Rng } from './rng';
@@ -10,7 +10,7 @@ import type { Standing } from './groups';
 import { each, type MatchRound, type PlayFn } from './knockout';
 import { juniorEntries, juniorTeamEntrants } from './junior';
 import { AD_HOC, adHocEntrants, autoLineup, rankOrder, autoSquad, lineupError, playTie, runTeamEvent, squadError, squadPool, type Lineup, type TeamEntrant } from './team';
-import { runEvent, simPlay, toRecord, type DrawHook, type EventRecord, type LiveHook } from './tournament';
+import { runEvent, simPlay, toRecord, type DrawHook, type EntriesHook, type EntriesShow, type EventRecord, type LiveHook } from './tournament';
 import { roundGate, type RoundHook } from './gate';
 import { makeScouting, recruit, SCOUTING_DEADLINE_WEEK, type Scouting } from './scouting';
 import {
@@ -385,7 +385,7 @@ export type ChooseEvent = (req: { week: number; events: { id: string; kind: 'ind
  * interaktif per babak (gerbang babak; `draw`, `round`, `live`, `team` aktif), sisanya otomatis tanpa hook.
  * Tanpa `chooseEvent`: semua turnamen berurutan dengan hook yang diberikan.
  */
-export interface WeekHooks { live?: LiveHook; team?: TeamHook; draw?: DrawHook; round?: RoundHook; chooseEvent?: ChooseEvent }
+export interface WeekHooks { live?: LiveHook; team?: TeamHook; draw?: DrawHook; entries?: EntriesHook; round?: RoundHook; chooseEvent?: ChooseEvent }
 
 /** Satu minggu kalender. Hook yang mengembalikan Promise membuat simulasi menunggu keputusan di UI. */
 export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rng: Rng, hooks: WeekHooks = {}) {
@@ -436,6 +436,19 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     const gate = gated ? roundGate(event.id, DISCIPLINES, h.round) : undefined;
     const draw: DrawHook | undefined = gate && h.draw ? (d) => gate.serial(async () => { await h.draw!(d); }) : h.draw;
     const ds = DISCIPLINES.filter((d) => tier.drawSize[d] > 0 && entries.get(event.id)!.get(d)!.length >= 2);
+    // Daftar entry semua nomor ditampilkan sekaligus: tiap nomor menunggu sampai entry nomor terakhir diterima & daftarnya ditutup.
+    const lists: EntriesShow['lists'] = [];
+    let listed: () => void = () => {};
+    const allListed = new Promise<void>((r) => { listed = r; });
+    const onEntries = (d: Discipline) => gate && h.entries ? async (entry: EntryList) => {
+      lists.push({ discipline: d, entry });
+      if (lists.length === ds.length) {
+        lists.sort((a, b) => DISCIPLINES.indexOf(a.discipline) - DISCIPLINES.indexOf(b.discipline));
+        await gate.serial(async () => { await h.entries!({ tournamentId: event.id, lists }); });
+        listed();
+      }
+      await allListed;
+    } : undefined;
     const runs = await each(gated, ds, (d) => {
       let candidates = entries.get(event.id)!.get(d)!;
       if (tier.countryQuota) candidates = applyCountryQuota(candidates, tier.countryQuota);
@@ -446,7 +459,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
         state.eventRecords = state.eventRecords.filter((r) => !(r.tournamentId === event.id && r.year === year && r.discipline === d));
         state.eventRecords.push(rec);
       };
-      return runEvent({ tournament: event, discipline: d, year, hostCountryId: city.countryId, candidates, ruleset: rs, rng, play, onDraw: draw, parallel: gated, onRecord });
+      return runEvent({ tournament: event, discipline: d, year, hostCountryId: city.countryId, candidates, ruleset: rs, rng, play, onDraw: draw, onEntries: onEntries(d), parallel: gated, onRecord });
     });
     ds.forEach((d, i) => {
       const run = runs[i];

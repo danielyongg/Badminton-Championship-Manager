@@ -28,10 +28,13 @@ export interface DrawShow {
   steps: DrawStep[];
   size?: number;
   groups?: number;
-  /** Bagan gugur: daftar entry & bagan kualifikasi (ditampilkan sebelum undian babak utama). */
-  entry?: EntryList;
+  /** Bagan gugur: bagan kualifikasi (ditampilkan sebelum undian babak utama). */
   qualSections?: (Candidate | null)[][];
 }
+/** Daftar entry semua nomor satu turnamen (ditampilkan sekaligus sebelum undian). */
+export interface EntriesShow { tournamentId: string; lists: { discipline: Discipline; entry: EntryList }[] }
+/** Kembalikan Promise (selesai saat daftar ditutup) untuk menampilkan daftar entry, atau null untuk langsung lanjut. */
+export type EntriesHook = (e: EntriesShow) => Promise<void> | null;
 /** Kembalikan Promise (selesai saat undian ditutup) untuk menampilkan undian, atau null untuk langsung lanjut. */
 export type DrawHook = (d: DrawShow) => Promise<void> | null;
 
@@ -40,6 +43,8 @@ export async function runEvent(opts: {
   candidates: Candidate[]; ruleset: Ruleset; rng: Rng; play: PlayFn; onDraw?: DrawHook;
   /** Laga satu babak dimulai bersamaan (untuk gerbang babak). */
   parallel?: boolean;
+  /** Dipanggil setelah entry diterima, sebelum undian (menunggu daftar entry semua nomor ditampilkan). */
+  onEntries?: (entry: EntryList) => Promise<void>;
   /** Catatan sementara setelah undian; diisi terus selama turnamen berjalan (bagan gugur saja). */
   onRecord?: (rec: EventRecord) => void;
 }): Promise<EventRun> {
@@ -57,6 +62,7 @@ export async function runEvent(opts: {
     .map((c) => c.id);
 
   const entry = acceptEntries(candidates, wildcardIds, tier, size, ruleset, rng);
+  await opts.onEntries?.(entry);
   const gs = tier.groupStage?.[discipline];
   if (gs) {
     // Fase grup: tanpa kualifikasi; semua yang diterima (langsung + wildcard) masuk undian pot.
@@ -83,7 +89,7 @@ export async function runEvent(opts: {
   const rec: EventRecord = { tournamentId: tournament.id, year: opts.year, discipline, entry, qualRounds, steps: draw.steps, slots: draw.slots, rounds: [slotField(draw.slots)] };
   qualSections.forEach((sec, i) => qualRounds[i].push(sec.map((c) => c?.id ?? null)));
   opts.onRecord?.(rec);
-  await opts.onDraw?.({ tournamentId: tournament.id, discipline, entrants: drawEntrants.map((e) => e.id), steps: draw.steps, size: draw.slots.length, entry, qualSections });
+  await opts.onDraw?.({ tournamentId: tournament.id, discipline, entrants: drawEntrants.map((e) => e.id), steps: draw.steps, size: draw.slots.length, qualSections });
 
   qualRounds.forEach((r) => { r.length = 0; }); // diisi ulang babak demi babak oleh playKnockout
   const qualResults = await each(parallel, qualSections, (sec, i) => playKnockout(sec.map((c) => c?.id ?? null), opts.play, qualRoundName, parallel, qualRounds[i]));

@@ -361,6 +361,7 @@ const id = {
   tournamentDetails: 'Detail turnamen',
   schedule: 'Jadwal',
   tabLive: 'Turnamen',
+  startDraw: 'Mulai undian',
   draw_skipEvent: 'Lewati drawing',
   draw_replay: 'Putar ulang undian',
   draw_topHalf: 'Paruh atas',
