@@ -305,6 +305,8 @@ td.strong { font-weight: 700; }
   .roundlist button.rowtoggle { min-height: 32px; padding: 4px 10px; font-size: .8rem; }
   .plan-cell { padding: 10px 6px; }
   td a[href], .drow a[href] { display: inline-block; padding: 6px 0; }
+  .pname { display: block; padding: 4px 0; } /* pasangan di HP: satu nama per baris, "/" menempel di nama pertama */
+  .pname a[href] { display: inline; padding: 0; } /* "/" mengikuti kata terakhir, tidak turun sendiri */
   /* Menu tab yang bisa digeser: tepi kanan memudar sebagai petunjuk masih ada tab lain. */
   main > nav.controls { padding-right: 36px; mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
   /* Papan skor Live Match muat selebar HP. */

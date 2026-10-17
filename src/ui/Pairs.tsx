@@ -85,7 +85,7 @@ export function Pairs({ onOpen, juniors = false }: { onOpen: (id: string) => voi
             <tbody>{list.map((p) => (
               <tr key={p.id}>
                 <td>{p.playerIds.map((id, i) => (
-                  <span key={id}>{i > 0 && ' / '}<a href="#" onClick={(e) => { e.preventDefault(); onOpen(id); }}>{players.get(id)!.name}</a></span>
+                  <span key={id} className="pname"><a href="#" onClick={(e) => { e.preventDefault(); onOpen(id); }}>{players.get(id)!.name}</a>{i < p.playerIds.length - 1 && '\u00a0/ '}</span>
                 ))}<span className="m-only"> <span className="chip sector">{p.discipline}</span>{status(p, true)}</span></td>
                 <td className="m-hide"><span className="chip sector">{p.discipline}</span></td>
                 <td className="m-hide">{status(p, false)}</td>
