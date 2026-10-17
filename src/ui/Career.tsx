@@ -180,8 +180,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
       : roundAsk ? (
         <RoundScreen key={`${roundAsk.show.tournamentId}-${roundAsk.show.round}`} show={roundAsk.show} skipped={skipRows.current}
           tab={roundTab.current} onTab={(k) => { roundTab.current = k; }} onSkipRest={() => { skipRound.current = true; }} onSkipEvent={skipTournament}
-          onNext={() => { if (roundAsk.show.phase !== 'pending') setRoundAsk(undefined); roundAsk.resolve(); }}
-          onDetails={() => setHubTab('details')} />
+          onNext={() => { if (roundAsk.show.phase !== 'pending') setRoundAsk(undefined); roundAsk.resolve(); }} />
       )
       : <section className="card hub"><p className="muted">…</p></section>}
     </div>

@@ -92,12 +92,41 @@ export function GroupView({ rec, ...who }: ViewProps) {
   );
 }
 
-/** Daftar unggulan (format grup: urutan pot = peringkat). */
+/** Daftar unggulan: nomor unggulan, peserta, posisi di bagan (format grup: urutan pot = peringkat). */
 export function SeedsView({ rec, ...who }: ViewProps) {
-  const ids = rec.groups
-    ? [...rec.entry.main, ...rec.entry.wildcards].sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9)).map((c) => c.id)
-    : rec.slots.filter((s) => s.seed).sort((a, b) => a.seed! - b.seed!).map((s) => s.entrant!);
-  return <ol>{ids.map((id) => <li key={id}><Who id={id} {...who} /></li>)}</ol>;
+  if (rec.groups) {
+    const ids = [...rec.entry.main, ...rec.entry.wildcards].sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9)).map((c) => c.id);
+    return <ol>{ids.map((id) => <li key={id}><Who id={id} {...who} /></li>)}</ol>;
+  }
+  return (
+    <table className="drawboard seeds"><tbody>
+      {rec.slots.filter((s) => s.seed).sort((a, b) => a.seed! - b.seed!).map((s) => (
+        <tr key={s.pos} className={who.mine?.(s.entrant!) ? 'sel' : undefined}>
+          <td className="num muted-text">[{s.seed}]</td><td><Who id={s.entrant} {...who} /></td><td className="num muted-text">{t('position')} {s.pos}</td>
+        </tr>
+      ))}
+    </tbody></table>
+  );
+}
+
+/** Hasil undian bagan gugur: posisi demi posisi (unggulan, Q, WC, bye), dibagi paruh atas & bawah. */
+export function DrawResultView({ rec, ...who }: ViewProps) {
+  const half = rec.slots.length / 2;
+  const rows = (from: number, to: number) => (
+    <table className="drawboard"><tbody>{rec.slots.slice(from, to).map((s) => (
+      <tr key={s.pos} className={s.entrant && who.mine?.(s.entrant) ? 'sel' : undefined}>
+        <td className="num muted-text">{s.pos}</td>
+        <td className="muted-text">{s.seed ? `[${s.seed}]` : s.qualifier ? '[Q]' : s.wildcard ? '[WC]' : ''}</td>
+        <td>{s.bye ? <span className="muted">{t('bye')}</span> : s.entrant ? <Who id={s.entrant} {...who} /> : <span className="muted">{t('qualifying')}</span>}</td>
+      </tr>
+    ))}</tbody></table>
+  );
+  return (
+    <div className="halves">
+      <div><h4>{t('draw_topHalf')}</h4>{rows(0, half)}</div>
+      <div><h4>{t('draw_bottomHalf')}</h4>{rows(half, rec.slots.length)}</div>
+    </div>
+  );
 }
 
 /** Teks satu langkah undian, dengan id peserta diganti nama. */
@@ -141,8 +170,11 @@ export function RoundColumns({ rounds, matches, tag, pending, ...who }: WhoProps
   rounds: (string | null)[][]; matches: Match[]; tag?: (id?: string | null) => string; pending?: (pos: number) => string | undefined;
 }) {
   const cols = rounds.at(-1)!.length > 1 ? [...rounds, []] : rounds; // babak yang belum dimulai: kolom tanpa pemenang
+  // Kosong di babak pertama = bye (atau menunggu lolosan kualifikasi); di babak berikutnya = laga belum dimainkan.
   const side = (id: string | null, r: number, pos: number) =>
-    !id && r === 0 && pending?.(pos) ? <span className="muted">{pending(pos)}</span> : <Who id={id} {...who} suffix={tag?.(id)} />;
+    id ? <Who id={id} {...who} suffix={tag?.(id)} />
+    : r > 0 ? <span className="muted">—</span>
+    : pending?.(pos) ? <span className="muted">{pending(pos)}</span> : <Who id={id} {...who} />;
   return (
     <div className="bracket">
       {cols.slice(0, -1).map((field, r) => (

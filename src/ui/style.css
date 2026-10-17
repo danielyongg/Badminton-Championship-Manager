@@ -399,3 +399,16 @@ td.strong { font-weight: 700; }
 .seg button[aria-pressed=true] { background: var(--accent-soft); color: var(--accent-strong); box-shadow: none; border-color: var(--accent); position: relative; }
 .announce { margin: 4px 0 8px; }
 @media (max-width: 700px) { .seg button { font-size: 13px; padding: 2px 8px; min-height: 34px; } .announce { font-size: 1rem; } }
+/* Bilah bawah (jadwal, undian, entry): dua tombol sebaris sama lebar (lebih dari itu membungkus), teks panjang membungkus di dalam tombol. */
+.roundbar { display: flex; flex-wrap: wrap; gap: 8px; }
+.roundbar > button { flex: 1 1 140px; min-width: 0; white-space: normal; line-height: 1.2; }
+.roundbar > :not(button) { flex: 1 1 100%; }
+@media (max-width: 700px) { .roundbar button { min-height: 44px; font-size: 14px; padding: 4px 8px; } }
+/* Info turnamen: fakta ringkas dalam grid (2 kolom di HP). */
+.evinfo h2 { margin: 4px 0 8px; font-size: 1.3rem; text-transform: none; letter-spacing: 0; color: var(--fg); }
+.facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 16px; margin: 0; }
+.facts dt { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.facts dd { margin: 0; font-weight: 600; }
+.seeds { max-width: 560px; margin-bottom: 12px; }
+.entrylist .chip { font-size: .72rem; }
+.entrylist td:nth-child(2) { white-space: normal; }

@@ -73,10 +73,8 @@ export const rowKey = (m: RoundMatch) => `${m.key}:${m.sides.join('-')}`;
  * kecuali barisnya di-Skip. `tab`: tab terakhir yang dipilih (disimpan pemanggil antar babak).
  * `skipped`: kunci baris yang di-Skip (diubah langsung; pemanggil membacanya saat giliran laga itu).
  */
-export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkipRest, onSkipEvent, onDetails }: {
+export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkipRest, onSkipEvent }: {
   show: RoundShow; tab?: string; onTab: (k: string) => void; skipped: Set<string>; onNext: () => void; onSkipRest: () => void; onSkipEvent: () => void;
-  /** Buka tab detail turnamen (entry, undian, bagan). */
-  onDetails?: () => void;
 }) {
   const { game } = useGame();
   const { state, ruleset, world } = game;
@@ -144,7 +142,6 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
             ? <button onClick={onSkipRest}>{t('simRound')}</button>
             : <button className="primary" onClick={onNext}>{!done ? t('playRound') : final ? t('doneEvent') : t('nextRound')}</button>}
           {!(done && final) && <button onClick={onSkipEvent}>{t('simEvent')}</button>}
-          {onDetails && <button onClick={onDetails}>{t('tournamentDetails')}</button>}
         </div>
     </section>
   );
