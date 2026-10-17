@@ -84,8 +84,10 @@ export const rowKey = (m: RoundMatch) => `${m.key}:${m.sides.join('-')}`;
  * kecuali barisnya di-Skip. `tab`: tab terakhir yang dipilih (disimpan pemanggil antar babak).
  * `skipped`: kunci baris yang di-Skip (diubah langsung; pemanggil membacanya saat giliran laga itu).
  */
-export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkipRest, onSkipEvent }: {
+export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkipRest, onSkipEvent, onDetails }: {
   show: RoundShow; tab?: string; onTab: (k: string) => void; skipped: Set<string>; onNext: () => void; onSkipRest: () => void; onSkipEvent: () => void;
+  /** Buka halaman turnamen (entry, undian, bagan); layar babak disembunyikan, bisa dibuka lagi dari bilah bawah. */
+  onDetails?: () => void;
 }) {
   const { game } = useGame();
   const { state, ruleset, world } = game;
@@ -111,7 +113,8 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   useEffect(() => { box.current?.querySelector('tr.current')?.scrollIntoView({ block: 'nearest' }); }, [show.current]);
   // ✕: pop-up disembunyikan (turnamen dijeda di layar ini) agar tab lain bisa dibuka; bilah bawah untuk kembali.
   const [hidden, setHidden] = useState(false);
-  const title = `${eventName(ruleset, show.tournamentId, state.date.year)} · ${show.round === 'G' ? t('roundG') : show.round}`;
+  const roundName = show.round === 'G' ? t('roundG') : show.round.startsWith('Q') ? `${t('qualifying')} R${show.round.slice(1)}` : show.round;
+  const title = `${eventName(ruleset, show.tournamentId, state.date.year)} · ${roundName}`;
   if (hidden)
     return (
       <div className="livebar card">
@@ -164,6 +167,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
             ? <button onClick={onSkipRest}>{t('simRound')}</button>
             : <button className="primary" onClick={onNext}>{!done ? t('playRound') : final ? t('doneEvent') : t('nextRound')}</button>}
           {!(done && final) && <button onClick={onSkipEvent}>{t('simEvent')}</button>}
+          {onDetails && !team && <button onClick={() => { setHidden(true); onDetails(); }}>{t('tournamentDetails')}</button>}
         </div>
       </div>
     </div>

@@ -28,6 +28,9 @@ export interface DrawShow {
   steps: DrawStep[];
   size?: number;
   groups?: number;
+  /** Bagan gugur: daftar entry & bagan kualifikasi (ditampilkan sebelum undian babak utama). */
+  entry?: EntryList;
+  qualSections?: (Candidate | null)[][];
 }
 /** Kembalikan Promise (selesai saat undian ditutup) untuk menampilkan undian, atau null untuk langsung lanjut. */
 export type DrawHook = (d: DrawShow) => Promise<void> | null;
@@ -37,6 +40,8 @@ export async function runEvent(opts: {
   candidates: Candidate[]; ruleset: Ruleset; rng: Rng; play: PlayFn; onDraw?: DrawHook;
   /** Laga satu babak dimulai bersamaan (untuk gerbang babak). */
   parallel?: boolean;
+  /** Catatan sementara setelah undian; diisi terus selama turnamen berjalan (bagan gugur saja). */
+  onRecord?: (rec: EventRecord) => void;
 }): Promise<EventRun> {
   const { tournament, discipline, ruleset, rng, candidates, parallel } = opts;
   const tier = ruleset.tiers.find((t) => t.id === tournament.tierId)!;
@@ -74,11 +79,18 @@ export async function runEvent(opts: {
   const drawEntrants = [...entry.main, ...entry.wildcards.map((w) => ({ ...w, wildcard: true }))]
     .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
   const draw = makeDraw(drawEntrants, entry.qualifierSlots, tier.grade, ruleset, rng);
-  await opts.onDraw?.({ tournamentId: tournament.id, discipline, entrants: drawEntrants.map((e) => e.id), steps: draw.steps, size: draw.slots.length });
+  const qualRounds = qualSections.map(() => [] as (EntrantId | null)[][]);
+  const rec: EventRecord = { tournamentId: tournament.id, year: opts.year, discipline, entry, qualRounds, steps: draw.steps, slots: draw.slots, rounds: [slotField(draw.slots)] };
+  qualSections.forEach((sec, i) => qualRounds[i].push(sec.map((c) => c?.id ?? null)));
+  opts.onRecord?.(rec);
+  await opts.onDraw?.({ tournamentId: tournament.id, discipline, entrants: drawEntrants.map((e) => e.id), steps: draw.steps, size: draw.slots.length, entry, qualSections });
 
-  const qualResults = await each(parallel, qualSections, (sec) => playKnockout(sec.map((c) => c?.id ?? null), opts.play, qualRoundName, parallel));
+  qualRounds.forEach((r) => { r.length = 0; }); // diisi ulang babak demi babak oleh playKnockout
+  const qualResults = await each(parallel, qualSections, (sec, i) => playKnockout(sec.map((c) => c?.id ?? null), opts.play, qualRoundName, parallel, qualRounds[i]));
   const slots = fillQualifiers(draw.slots, qualResults.map((r) => r.rounds.at(-1)![0]), rng);
-  const main = await playKnockout(slotField(slots), opts.play, undefined, parallel);
+  rec.slots = slots;
+  rec.rounds = [];
+  const main = await playKnockout(slotField(slots), opts.play, undefined, parallel, rec.rounds);
   return { entry, qualSections, qualResults, draw, slots, main };
 }
 

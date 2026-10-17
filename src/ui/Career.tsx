@@ -163,7 +163,8 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
       </header>
       {roundAsk && <RoundScreen key={`${roundAsk.show.tournamentId}-${roundAsk.show.round}`} show={roundAsk.show} skipped={skipRows.current}
         tab={roundTab.current} onTab={(k) => { roundTab.current = k; }} onSkipRest={() => { skipRound.current = true; }} onSkipEvent={skipTournament}
-        onNext={() => { if (roundAsk.show.phase !== 'pending') setRoundAsk(undefined); roundAsk.resolve(); }} />}
+        onNext={() => { if (roundAsk.show.phase !== 'pending') setRoundAsk(undefined); roundAsk.resolve(); }}
+        onDetails={() => openEvent(roundAsk.show.tournamentId, state.date.year)} />}
       {live && (
         <LiveMatch
           key={`${live.req.tournamentId}-${live.req.entrants.join('-')}-${live.req.round}`}

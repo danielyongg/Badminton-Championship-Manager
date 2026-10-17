@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { bowlAt, phaseOf, replayDraw } from '../engine/drawReplay';
+import type { Candidate, EntryList } from '../engine/entry';
 import type { DrawStep } from '../engine/types';
 import { t } from '../i18n';
-import { stepText } from './EventViews';
+import { EntryLists, RoundColumns, stepText } from './EventViews';
 import { Flag } from './Flag';
 
 // Live drawing (gaya Football Manager): mangkuk pot di kiri, bagan / grup di kanan terisi langkah demi langkah.
@@ -10,7 +11,7 @@ import { Flag } from './Flag';
 const SPEEDS = { slow: 1500, normal: 700, fast: 200 } as const;
 const SEED_POTS = [[1, 2], [3, 4], [5, 8], [9, 16], [17, 32]];
 
-export interface DrawShowData { steps: DrawStep[]; size?: number; groups?: number }
+export interface DrawShowData { steps: DrawStep[]; size?: number; groups?: number; entry?: EntryList; qualSections?: (Candidate | null)[][] }
 
 function phaseLabel(phase: string) {
   if (phase.startsWith('seed')) { const [a, b] = SEED_POTS[Number(phase.slice(4))] ?? [0, 0]; return t('draw_potSeeds', { a, b }); }
@@ -23,6 +24,9 @@ export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay
   onClose: () => void; onSkipEvent?: () => void; replay?: boolean;
 }) {
   const { steps } = show;
+  // Sebelum undian babak utama: daftar entry, lalu bagan kualifikasi (bila ada).
+  const stages = [...(show.entry ? ['entry'] : []), ...(show.qualSections?.length ? ['qual'] : []), 'draw'] as const;
+  const [stage, setStage] = useState(0);
   const [idx, setIdx] = useState(0); // jumlah langkah yang sudah diumumkan
   const [running, setRunning] = useState(true);
   const [speed, setSpeed] = useState<keyof typeof SPEEDS>('normal');
@@ -30,12 +34,13 @@ export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay
   // Posisi yang baru diisi digeser ke tengah layar (undian 128 posisi tidak muat satu layar, terutama di HP).
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => { box.current?.querySelector('.flash')?.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, [idx]);
+  const drawing = stages[stage] === 'draw';
 
   useEffect(() => {
-    if (!running || done) return;
+    if (!drawing || !running || done) return;
     const id = setTimeout(() => setIdx((i) => i + 1), SPEEDS[speed]);
     return () => clearTimeout(id);
-  }, [running, done, idx, speed]);
+  }, [drawing, running, done, idx, speed]);
 
   const board = replayDraw(steps, idx);
   const last = steps[idx - 1];
@@ -59,6 +64,29 @@ export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay
       })}</tbody>
     </table>
   );
+
+  if (!drawing) {
+    const who2 = { name, mine };
+    return (
+      <div className="modal" role="dialog" aria-label={t('draw_title')}>
+        <div className="live card">
+          <h3>{title} · {stages[stage] === 'entry' ? t('entryList') : t('qualDraw')}</h3>
+          {stages[stage] === 'entry'
+            ? <EntryLists entry={show.entry!} {...who2} />
+            : show.qualSections!.map((sec, i) => (
+              <div key={i}>
+                <h4>{t('section')} {i + 1}</h4>
+                <RoundColumns rounds={[sec.map((c) => c?.id ?? null)]} matches={[]} {...who2} />
+              </div>
+            ))}
+          <div className="controls roundbar">
+            <button className="primary" onClick={() => setStage(stage + 1)}>{stages[stage + 1] === 'qual' ? t('qualDraw') : t('mainDraw')} →</button>
+            {onSkipEvent && <button onClick={() => { onSkipEvent(); onClose(); }}>{t('draw_skipEvent')}</button>}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="modal" role="dialog" aria-label={t('draw_title')} ref={box}>

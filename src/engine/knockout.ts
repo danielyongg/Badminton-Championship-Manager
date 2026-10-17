@@ -18,14 +18,19 @@ export interface KnockoutResult {
   reached: Map<EntrantId, MatchRound | 'W'>; // babak terakhir yang dimainkan (kalah di sana) atau 'W'
 }
 
-/** `parallel`: semua laga satu babak dimulai bersamaan (gerbang babak mengumpulkannya sebelum dimainkan). */
-export async function playKnockout(field: (EntrantId | null)[], play: PlayFn, nameOf = mainRoundName, parallel = false): Promise<KnockoutResult> {
-  const rounds = [field];
+/**
+ * `parallel`: semua laga satu babak dimulai bersamaan (gerbang babak mengumpulkannya sebelum dimainkan).
+ * `rounds`: larik yang diisi selama bagan berjalan (halaman turnamen bisa dibuka di tengah turnamen); babak berikutnya
+ * ditambahkan saat dimulai dan terisi pemenang satu per satu.
+ */
+export async function playKnockout(field: (EntrantId | null)[], play: PlayFn, nameOf = mainRoundName, parallel = false, rounds: (EntrantId | null)[][] = []): Promise<KnockoutResult> {
+  rounds.push(field);
   const reached = new Map<EntrantId, MatchRound | 'W'>();
   let cur = field;
   for (let i = 0; cur.length > 1; i++) {
     const name = nameOf(cur.length, i);
     const next: (EntrantId | null)[] = [];
+    rounds.push(next);
     const pending: Promise<void>[] = [];
     for (let k = 0; k < cur.length; k += 2) {
       const a = cur[k], b = cur[k + 1], at = next.length;
@@ -37,7 +42,6 @@ export async function playKnockout(field: (EntrantId | null)[], play: PlayFn, na
       } else next.push(a ?? b); // bye / walkover: maju tanpa bertanding
     }
     await Promise.all(pending);
-    rounds.push(next);
     cur = next;
   }
   if (cur[0]) reached.set(cur[0], 'W');
@@ -45,10 +49,10 @@ export async function playKnockout(field: (EntrantId | null)[], play: PlayFn, na
 }
 
 /** Jalankan `f` untuk tiap elemen: bersamaan (gerbang babak) atau berurutan (jalur otomatis, urutan RNG tetap). */
-export async function each<T, R>(parallel: boolean | undefined, xs: T[], f: (x: T) => Promise<R>): Promise<R[]> {
-  if (parallel) return Promise.all(xs.map(f));
+export async function each<T, R>(parallel: boolean | undefined, xs: T[], f: (x: T, i: number) => Promise<R>): Promise<R[]> {
+  if (parallel) return Promise.all(xs.map((x, i) => f(x, i)));
   const out: R[] = [];
-  for (const x of xs) out.push(await f(x));
+  for (const [i, x] of xs.entries()) out.push(await f(x, i));
   return out;
 }
 

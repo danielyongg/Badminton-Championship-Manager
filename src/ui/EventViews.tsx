@@ -27,6 +27,11 @@ export function Who({ id, name, mine, onOpen, suffix = '' }: WhoProps & { id?: s
 }
 
 export function EntryView({ rec, ...who }: ViewProps) {
+  return <EntryLists entry={rec.entry} {...who} />;
+}
+
+/** Daftar entry: diterima langsung, wildcard, kualifikasi, cadangan. */
+export function EntryLists({ entry, ...who }: WhoProps & { entry: EventRecord['entry'] }) {
   const list = (title: string, items: Candidate[]) => (
     <details open={items.length > 0 && items.length < 40}>
       <summary>{title} ({items.length})</summary>
@@ -35,10 +40,10 @@ export function EntryView({ rec, ...who }: ViewProps) {
   );
   return (
     <>
-      {list(t('directEntry'), rec.entry.main)}
-      {list(t('wildcard'), rec.entry.wildcards)}
-      {list(t('qualifying'), rec.entry.qualifying)}
-      {list(t('reserves'), rec.entry.reserves)}
+      {list(t('directEntry'), entry.main)}
+      {list(t('wildcard'), entry.wildcards)}
+      {list(t('qualifying'), entry.qualifying)}
+      {list(t('reserves'), entry.reserves)}
     </>
   );
 }
@@ -52,7 +57,7 @@ export function QualView({ rec, matches, ...who }: ViewProps) {
   if (!rec.qualRounds.length) return <p>{t('noQualifying')}</p>;
   return <>{rec.qualRounds.map((rounds, i) => (
     <div key={i}>
-      <h4>{t('section')} {i + 1} → <Who id={rounds.at(-1)![0]} {...who} /></h4>
+      <h4>{t('section')} {i + 1}{winnerOf(rounds) && <> → <Who id={winnerOf(rounds)} {...who} /></>}</h4>
       <RoundColumns rounds={rounds} matches={matches} {...who} />
     </div>
   ))}</>;
@@ -90,33 +95,51 @@ export function DrawStepsView({ rec, name, count }: ViewProps & { count?: number
   return <ol>{rec.steps.slice(0, count ?? rec.steps.length).map((s, i) => <li key={i}>{stepText(s, name)}</li>)}</ol>;
 }
 
+/** Pemenang bagan; kosong selama bagan belum selesai. */
+const winnerOf = (rounds: (string | null)[][]) => (rounds.at(-1)!.length === 1 ? rounds.at(-1)![0] : null);
+
+/** Bagan utama; kualifikasi (bila ada) ditampilkan di atasnya. Posisi qualifier yang belum terisi bertuliskan "Kualifikasi". */
 export function BracketView({ rec, matches, ...who }: ViewProps) {
   const tag = (id?: string | null) => {
     const s = rec.slots.find((x) => x.entrant === id);
     return s?.seed ? ` [${s.seed}]` : s?.qualifier ? ' [Q]' : s?.wildcard ? ' [WC]' : '';
   };
-  const champ = rec.rounds.at(-1)![0];
+  const champ = winnerOf(rec.rounds);
   return (
     <>
-      <p><b>{t('champion')}:</b> <Who id={champ} {...who} suffix={tag(champ)} /></p>
-      <RoundColumns rounds={rec.rounds} matches={matches} {...who} tag={tag} />
+      {champ && <p><b>{t('champion')}:</b> <Who id={champ} {...who} suffix={tag(champ)} /></p>}
+      {rec.qualRounds.length > 0 && (
+        <details>
+          <summary>{t('qualifying')} ({rec.qualRounds.length})</summary>
+          <QualView rec={rec} matches={matches} {...who} />
+        </details>
+      )}
+      <RoundColumns rounds={rec.rounds} matches={matches} {...who} tag={tag} pending={(i) => (rec.slots[i]?.qualifier ? t('qualifying') : undefined)} />
     </>
   );
 }
 
-/** Bagan: satu kolom per babak, kotak pertandingan berisi dua nama + skor. */
-function RoundColumns({ rounds, matches, tag, ...who }: WhoProps & { rounds: (string | null)[][]; matches: Match[]; tag?: (id?: string | null) => string }) {
+/**
+ * Bagan: satu kolom per babak, kotak pertandingan berisi dua nama + skor. Bagan yang sedang berjalan: babak terakhir
+ * terisi sebagian. `pending`: teks untuk posisi babak pertama yang belum terisi (mis. menunggu lolosan kualifikasi).
+ */
+export function RoundColumns({ rounds, matches, tag, pending, ...who }: WhoProps & {
+  rounds: (string | null)[][]; matches: Match[]; tag?: (id?: string | null) => string; pending?: (pos: number) => string | undefined;
+}) {
+  const cols = rounds.at(-1)!.length > 1 ? [...rounds, []] : rounds; // babak yang belum dimulai: kolom tanpa pemenang
+  const side = (id: string | null, r: number, pos: number) =>
+    !id && r === 0 && pending?.(pos) ? <span className="muted">{pending(pos)}</span> : <Who id={id} {...who} suffix={tag?.(id)} />;
   return (
     <div className="bracket">
-      {rounds.slice(0, -1).map((field, r) => (
+      {cols.slice(0, -1).map((field, r) => (
         <div className="round" key={r}>
           {Array.from({ length: field.length / 2 }, (_, k) => {
-            const a = field[2 * k], b = field[2 * k + 1], w = rounds[r + 1][k];
+            const a = field[2 * k], b = field[2 * k + 1], w = cols[r + 1][k];
             const m = matchOf(matches, a, b);
             return (
               <div className={`match${a && who.mine?.(a) || b && who.mine?.(b) ? ' mine' : ''}`} key={k}>
-                <div className={w && w === a ? 'win' : ''}><Who id={a} {...who} suffix={tag?.(a)} /></div>
-                <div className={w && w === b ? 'win' : ''}><Who id={b} {...who} suffix={tag?.(b)} /></div>
+                <div className={w && w === a ? 'win' : ''}>{side(a, r, 2 * k)}</div>
+                <div className={w && w === b ? 'win' : ''}>{side(b, r, 2 * k + 1)}</div>
                 <small>{m && a && <MatchLink m={m} name={who.name} title={who.eventTitle}>{scoreText(m, a)}</MatchLink>}</small>
               </div>
             );

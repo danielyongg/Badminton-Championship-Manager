@@ -42,6 +42,32 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
     }
   });
 
+  it('turnamen dengan kualifikasi: entry & bagan kualifikasi di undian, babak Q sebelum R32, catatan terisi selama turnamen', async () => {
+    const id = 'thailand-masters';
+    const log: string[] = [];
+    let drawn = 0;
+    const state = await weekOf(5, (s) => ({
+      chooseEvent: choose([id]),
+      draw: (d) => { drawn++; expect(d.entry!.qualifying.length).toBeGreaterThan(0); expect(d.qualSections!.length).toBe(d.entry!.qualifierSlots); return null; },
+      round: (r) => {
+        if (r.phase !== 'pending') return null;
+        log.push(r.round);
+        const recs = s.eventRecords.filter((x) => x.tournamentId === id && x.year === 2026);
+        expect(recs.length).toBeGreaterThan(0);
+        if (r.round === 'R32') for (const rec of recs) expect(rec.qualRounds.every((q) => q.at(-1)!.length === 1)).toBe(true); // kualifikasi selesai
+        if (r.round === 'R16') for (const rec of recs) expect(rec.rounds[1].length).toBe(16); // R32 sudah terisi di catatan
+        return null;
+      },
+    }));
+    expect(drawn).toBeGreaterThan(0);
+    expect(log.indexOf('Q1')).toBeGreaterThanOrEqual(0);
+    expect(log.indexOf('Q1')).toBeLessThan(log.indexOf('R32'));
+    // Catatan akhir: satu per nomor, bagan lengkap sampai juara.
+    const recs = state.eventRecords.filter((x) => x.tournamentId === id && x.year === 2026);
+    expect(new Set(recs.map((r) => r.discipline)).size).toBe(recs.length);
+    for (const rec of recs) expect(rec.rounds.at(-1)!.length).toBe(1);
+  });
+
   it('langsung "Lewati semua" (null) = sama persis dengan jalur otomatis', async () => {
     const a = await weekOf(2, () => ({ chooseEvent: () => Promise.resolve(null) }));
     const b = await weekOf(2);

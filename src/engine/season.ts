@@ -441,12 +441,19 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
       if (tier.countryQuota) candidates = applyCountryQuota(candidates, tier.countryQuota);
       const sim = simPlay({ players, pairs, cfg: rs.match, rng, tournamentId: event.id, year, discipline: d, matches: state.matches, live: h.live });
       const play = gate ? gate.wrap(d, sim) : sim;
-      return runEvent({ tournament: event, discipline: d, year, hostCountryId: city.countryId, candidates, ruleset: rs, rng, play, onDraw: draw, parallel: gated });
+      // Catatan sementara sejak undian: halaman turnamen bisa dibuka selagi turnamen dimainkan.
+      const onRecord = (rec: EventRecord) => {
+        state.eventRecords = state.eventRecords.filter((r) => !(r.tournamentId === event.id && r.year === year && r.discipline === d));
+        state.eventRecords.push(rec);
+      };
+      return runEvent({ tournament: event, discipline: d, year, hostCountryId: city.countryId, candidates, ruleset: rs, rng, play, onDraw: draw, parallel: gated, onRecord });
     });
     ds.forEach((d, i) => {
       const run = runs[i];
       (tier.junior ? state.juniorResults : state.results).push(...knockoutResults(run.main, run.slots, event, tier, d, state.date, rs));
-      state.eventRecords.push(toRecord(event.id, year, d, run));
+      const rec = toRecord(event.id, year, d, run);
+      const live = state.eventRecords.find((r) => r.tournamentId === event.id && r.year === year && r.discipline === d);
+      if (live) Object.assign(live, rec); else state.eventRecords.push(rec);
       awardPrizes(state, event, tier, d, run.main.reached, pairs);
       state.champions.push({ tournamentId: event.id, year, discipline: d, winner: run.main.rounds.at(-1)![0]! });
     });
