@@ -84,6 +84,10 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
     ? { name: dataName(world.countries.find((c) => c.id === id)?.name) ?? id, country: id }
     : entrantLabel(state, id);
   const keys = [...new Set(show.matches.map((m) => m.key))];
+  // Nomor unggulan di turnamen ini (dari hasil undian nomor itu); beregu tanpa unggulan.
+  const seedOf = (key: string, id: string) => state.eventRecords
+    .find((r) => r.tournamentId === show.tournamentId && r.year === state.date.year && r.discipline === key)?.slots.find((x) => x.entrant === id)?.seed;
+  const seedTag = (key: string, id: string) => { const n = seedOf(key, id); return n ? <small className="seed"> [{n}]</small> : null; };
   const isMine = (id: string) => label(id).country === managed;
   const mineKeys = new Set(show.matches.filter((m) => m.sides.some(isMine)).map((m) => m.key));
   const [picked, pick] = useState(lastTab);
@@ -125,9 +129,9 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
             const k = rowKey(m);
             return (
               <tr key={k} className={[mine && 'mine-row', m === current && 'current'].filter(Boolean).join(' ') || undefined}>
-                <td className={w === 0 ? 'win' : undefined}><Flag id={sides[0].country} />{sides[0].name}</td>
+                <td className={w === 0 ? 'win' : undefined}><Flag id={sides[0].country} />{sides[0].name}{seedTag(m.key, m.sides[0])}</td>
                 <td className="muted-text">vs</td>
-                <td className={w === 1 ? 'win' : undefined}><Flag id={sides[1].country} />{sides[1].name}</td>
+                <td className={w === 1 ? 'win' : undefined}><Flag id={sides[1].country} />{sides[1].name}{seedTag(m.key, m.sides[1])}</td>
                 <td className="num">{score || (m === current ? '…'
                   : mine && !done && <button className="rowtoggle" title={t('rowToggleHint')} onClick={() => toggle(k)}>{skipped.has(k) ? `⏭ ${t('rowSkip')}` : `▶ ${t('rowLive')}`}</button>)}</td>
               </tr>

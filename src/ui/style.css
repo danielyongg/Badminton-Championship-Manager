@@ -414,3 +414,4 @@ td.strong { font-weight: 700; }
 .seeds { max-width: 560px; margin-bottom: 12px; }
 .entrylist .chip { font-size: .72rem; }
 .entrylist td:nth-child(2) { white-space: normal; }
+.seed { color: var(--muted); font-weight: 600; white-space: nowrap; }
