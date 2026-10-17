@@ -379,3 +379,13 @@ td.strong { font-weight: 700; }
 }
 /* Halaman turnamen yang dimainkan (dulu pop-up): kepala undian tidak menempel karena menu tab sudah menempel di atas. */
 .hub .drawhead { position: static; margin: 0 0 8px; padding: 0 0 4px; }
+/* Daftar entry: judul bagian + jumlah, tabel ringkas (urutan, atlet, negara, ranking). */
+.entrylist { margin-bottom: 12px; }
+.entrylist summary { font-weight: 600; padding: 6px 0; cursor: pointer; }
+.entrylist .count { display: inline-block; min-width: 1.8em; margin-left: 6px; padding: 0 6px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-strong); font-size: .8rem; text-align: center; }
+.entrylist table { width: 100%; max-width: 560px; }
+.entrylist td { padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.entrylist td:first-child { width: 2.2em; }
+.entrylist td:nth-child(3) { width: 3em; font-size: .85rem; }
+.entrylist td:last-child { width: 4em; }
+@media (max-width: 700px) { .entrylist table { display: table; } }

@@ -30,12 +30,26 @@ export function EntryView({ rec, ...who }: ViewProps) {
   return <EntryLists entry={rec.entry} {...who} />;
 }
 
-/** Daftar entry: diterima langsung, wildcard, kualifikasi, cadangan. */
+/**
+ * Daftar entry: diterima langsung, wildcard, kualifikasi, cadangan. Tabel ringkas: urutan, atlet, negara, ranking;
+ * baris negara sendiri disorot. Cadangan (bisa sangat panjang) tertutup dulu.
+ */
 export function EntryLists({ entry, ...who }: WhoProps & { entry: EventRecord['entry'] }) {
-  const list = (title: string, items: Candidate[]) => (
-    <details open={items.length > 0 && items.length < 40}>
-      <summary>{title} ({items.length})</summary>
-      <ol>{items.map((c) => <li key={c.id}><Who id={c.id} {...who} /> — {c.rank ? `#${c.rank}` : '—'}</li>)}</ol>
+  // ponytail: nama tampilan sebagian pemanggil berakhiran " (KODE)"; negara sudah punya kolom sendiri.
+  const short = (id: string) => who.name(id).replace(/ \([A-Z]{3}\)$/, '');
+  const list = (title: string, items: Candidate[], open = true) => items.length > 0 && (
+    <details className="entrylist" open={open}>
+      <summary>{title} <span className="count">{items.length}</span></summary>
+      <table>
+        <tbody>{items.map((c, i) => (
+          <tr key={c.id} className={who.mine?.(c.id) ? 'sel' : undefined}>
+            <td className="num muted-text">{i + 1}</td>
+            <td><Who id={c.id} {...who} name={short} /></td>
+            <td className="muted-text">{c.countryId}</td>
+            <td className="num">{c.rank ? `#${c.rank}` : '—'}</td>
+          </tr>
+        ))}</tbody>
+      </table>
     </details>
   );
   return (
@@ -43,7 +57,7 @@ export function EntryLists({ entry, ...who }: WhoProps & { entry: EventRecord['e
       {list(t('directEntry'), entry.main)}
       {list(t('wildcard'), entry.wildcards)}
       {list(t('qualifying'), entry.qualifying)}
-      {list(t('reserves'), entry.reserves)}
+      {list(t('reserves'), entry.reserves, false)}
     </>
   );
 }
