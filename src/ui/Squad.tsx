@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { dissolvePair, potentialStars, promoteJunior, recallPlayer, releasePlayer } from '../engine/career';
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { headToHead } from '../engine/match';
@@ -230,115 +230,250 @@ export function TierPrefs({ id }: { id: string }) {
   );
 }
 
+type ProfileTab = 'summary' | 'events' | 'matches' | 'h2h';
+
+/**
+ * Profil atlet: kartu identitas (selalu tampil) + sub-tab Ringkasan (statistik, ranking, atribut, cedera),
+ * Turnamen & Committed, Riwayat laga, H2H & pasangan.
+ */
 export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBack: () => void; onOpen: (id: string) => void; onOpenEvent?: (id: string, year: number) => void }) {
-  const { game, changed } = useGame();
+  const { game, changed, version } = useGame();
   const { state, ruleset } = game;
   const p: Player | undefined = lookup(state).players.get(id);
   const counts = useMatchCounts();
+  const [tab, setTab] = useState<ProfileTab>('summary');
+  const [matchYear, setMatchYear] = useState<number | 'all'>('all');
+  const [shown, setShown] = useState(30);
+  const pairs = useMemo(() => state.pairs.filter((x) => x.playerIds.includes(id)), [version, id]);
+  const singles: Discipline = p?.gender === 'F' ? 'WS' : 'MS';
+  // Ranking dunia saat ini: tunggal + tiap pasangan aktif.
+  const ranks = useMemo(() => {
+    const now = absWeek(state.date);
+    return new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.results, d, now, ruleset))]));
+  }, [version, ruleset]);
   if (!p) return <p><button onClick={onBack}>← {t('back')}</button></p>;
 
-  const pairs = state.pairs.filter((x) => x.playerIds.includes(id));
   const sides = new Set([id, ...pairs.map((x) => x.id)]);
   const mine = state.matches.filter((m) => m.sides.some((s) => sides.has(s)));
-  const recent = mine.slice(-15).reverse();
+  const myIdx = (m: (typeof mine)[number]) => (sides.has(m.sides[0]) ? 0 : 1);
+  const won = (m: (typeof mine)[number]) => m.winner === myIdx(m);
   const eventName = (eid: string, year?: number) => eventNameOf(ruleset, eid, year) ?? eid;
-  const singles: Discipline = p.gender === 'M' ? 'MS' : 'WS';
+  const { year } = state.date;
+  const season = mine.filter((m) => m.year === year);
+  const titles = state.champions.filter((c) => sides.has(c.winner));
+  const activePairs = pairs.filter((x) => !x.dissolved);
+  const openOpp = (opp: string) => onOpen(lookup(state).pairs.get(opp)?.playerIds[0] ?? opp);
+  const evLink = (eid: string, y: number) => onOpenEvent
+    ? <a href="#" onClick={(e) => { e.preventDefault(); onOpenEvent(eid, y); }}>{eventName(eid, y)}</a> : eventName(eid, y);
+  const fact = (k: string, v: ReactNode) => <div><dt>{k}</dt><dd>{v}</dd></div>;
+  const rankOf = (d: Discipline, entrant: string) => ranks.get(d)?.get(entrant);
 
-  // H2H tunggal: lawan yang paling sering dihadapi.
+  // Turnamen yang diikuti per musim: hasil terbaik per nomor (juara, babak tersingkir, atau masih bertanding).
+  const events = new Map<string, { eid: string; y: number; week: number; res: { d: Discipline; r: string; champ: boolean }[] }>();
+  for (const m of mine) {
+    const k = `${m.year}:${m.tournamentId}`;
+    const ev = events.get(k) ?? { eid: m.tournamentId, y: m.year, week: 0, res: [] };
+    const w = won(m);
+    // Beregu: hasil tim negaranya (partai individu tidak menentukan babak tersingkir).
+    const team = state.teamResults.find((x) => x.eventId === m.tournamentId && x.year === m.year && x.teams.includes(p.countryId) && x.ties.some((tie) => tie.matchIds?.includes(m.id)));
+    const reached = team && (team.reached[p.countryId] ?? 'G');
+    const r = team
+      ? { d: m.discipline, r: reached === 'W' ? t('champion') : reached === 'G' ? t('roundG') : reached!, champ: reached === 'W' }
+      : { d: m.discipline, r: w ? (m.round === 'F' ? t('champion') : t('stillIn')) : m.round, champ: w && m.round === 'F' };
+    ev.res = [...ev.res.filter((x) => x.d !== m.discipline), r];
+    events.set(k, ev);
+  }
+  const evYears = [...new Set([...events.values()].map((e) => e.y))].sort((a, b) => b - a);
+  const matchYears = [...new Set(mine.map((m) => m.year))].sort((a, b) => b - a);
+  const list = mine.filter((m) => matchYear === 'all' || m.year === matchYear).reverse();
+
   const opponents = new Map<string, number>();
-  for (const m of mine) if (m.sides.includes(id)) { const o = m.sides[0] === id ? m.sides[1] : m.sides[0]; opponents.set(o, (opponents.get(o) ?? 0) + 1); }
-  const h2h = [...opponents].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([o]) => ({ o, rec: headToHead(mine, id, o) }));
+  for (const m of mine) { const o = m.sides[1 - myIdx(m)]; opponents.set(o, (opponents.get(o) ?? 0) + 1); }
+  const h2h = [...opponents].sort((a, b) => b[1] - a[1]).slice(0, 15).map(([o]) => {
+    const own = mine.find((m) => m.sides.includes(o))!.sides[myIdx(mine.find((m) => m.sides.includes(o))!)];
+    return { o, rec: headToHead(mine, own, o) };
+  });
+  const wl = (ms: typeof mine) => { const w = ms.filter(won).length; return `${w}–${ms.length - w}`; };
 
   return (
     <section>
       <p><button onClick={onBack}>← {t('back')}</button></p>
-      <h2>{p.name} <small>(<Flag id={p.countryId} />{p.countryId}, {p.gender}, {p.hand})</small></h2>
-      <p>
-        {t('age')} {ageAt(p.birth, state.date)} · {t('ability')} <b>{currentAbility(p.attrs)}</b>{arrow(p.caDelta)} ·
-        {' '}{t('potential')} <span className="stars">{starText(potentialStars(p, state.date, counts.get(p.id) ?? 0))}</span> ·
-        {' '}{t('fatigue')} <FatigueBar value={p.fatigue} />
-        {p.retired !== undefined && <> · {t('retired')} {p.retired}</>}
-        {p.released !== undefined && <> · <span className="tag muted-tag">{t('releasedTag', { year: p.released })}</span></>}
-        {' · '}{t('prizeMoney')}: {usd(state.earnings[state.date.year]?.[p.id] ?? 0)} {t('thisSeason')} / {usd(Object.values(state.earnings).reduce((s, y) => s + (y[p.id] ?? 0), 0))} {t('career')}
-      </p>
-      {p.countryId === state.career?.countryId && p.retired === undefined && (
-        <p>{p.released === undefined
-          ? <button className="btn-danger" onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id); changed(); void saveGame(game); } }}>{t('release')}</button>
-          : <button onClick={() => { recallPlayer(state, p.id); changed(); void saveGame(game); }}>{t('recall')}</button>}</p>
-      )}
-      {p.injury && <p className={`injury-now${isBadInjury(p.injury) ? ' strong' : ''}`}>✚ {injuryText(p.injury, state.date)}</p>}
-      <AttrChart p={p} date={state.date} />
-      <div className="split">
-        <div className="scroll">
-          <h3>{t('attributes')}</h3>
-          <table>
-            <thead><tr><th></th>{p.attrHistory.map((h) => <th key={h.year}>{h.year}</th>)}<th>{t('now')}</th></tr></thead>
-            <tbody>
-              {ATTRS.map((a) => (
-                <tr key={a}><td>{t(a)}</td>{p.attrHistory.map((h) => <td className="num" key={h.year}>{Math.round(h.attrs[a])}</td>)}<td className="num"><b>{Math.round(p.attrs[a])}</b></td></tr>
+      {/* Kartu identitas: selalu tampil di atas sub-tab. */}
+      <section className="card evinfo">
+        <h2>{p.name}</h2>
+        <dl className="facts">
+          {fact(t('country'), <><Flag id={p.countryId} />{p.countryId} · {p.gender} · {p.hand}</>)}
+          {fact(t('age'), ageAt(p.birth, state.date))}
+          {fact(t('ability'), <>{currentAbility(p.attrs)}{arrow(p.caDelta)}</>)}
+          {fact(t('potential'), <span className="stars">{starText(potentialStars(p, state.date, counts.get(p.id) ?? 0))}</span>)}
+          {fact(t('fatigue'), <FatigueBar value={p.fatigue} />)}
+          {fact(t('status'), p.retired !== undefined ? `${t('retired')} ${p.retired}`
+            : p.released !== undefined ? <span className="tag muted-tag">{t('releasedTag', { year: p.released })}</span>
+            : p.injury ? <span className={`badge danger${isBadInjury(p.injury) ? ' strong' : ''}`}>✚ {t('injury')}</span>
+            : <span className="badge good">{t('fit')}</span>)}
+        </dl>
+        {p.injury && <p className={`injury-now${isBadInjury(p.injury) ? ' strong' : ''}`}>✚ {injuryText(p.injury, state.date)}</p>}
+        {p.countryId === state.career?.countryId && p.retired === undefined && (
+          <p>{p.released === undefined
+            ? <button className="btn-danger" onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id); changed(); void saveGame(game); } }}>{t('release')}</button>
+            : <button onClick={() => { recallPlayer(state, p.id); changed(); void saveGame(game); }}>{t('recall')}</button>}</p>
+        )}
+      </section>
+      <nav className="controls">
+        {(['summary', 'events', 'matches', 'h2h'] as const).map((x) => (
+          <button key={x} aria-pressed={tab === x} onClick={() => setTab(x)}>{t(({ summary: 'profSummary', events: 'profEvents', matches: 'profMatches', h2h: 'profH2H' } as const)[x])}</button>
+        ))}
+      </nav>
+
+      {tab === 'summary' && <>
+        <div className="split">
+          <section className="card">
+            <h3>{t('seasonStats')} {year}</h3>
+            <dl className="facts">
+              {fact(t('profRecord'), wl(season))}
+              {fact(t('titlesYear', { y: year }), titles.filter((c) => c.year === year).length)}
+              {fact(t('profTitlesAll'), titles.length)}
+              {fact(t('prizeMoney'), <>{usd(state.earnings[year]?.[p.id] ?? 0)} <small className="muted-text">/ {usd(Object.values(state.earnings).reduce((x, y) => x + (y[p.id] ?? 0), 0))} {t('career')}</small></>)}
+            </dl>
+          </section>
+          <section className="card">
+            <h3>{t('profRanks')}</h3>
+            <table><tbody>
+              <tr><td><span className="chip">{singles}</span></td><td>{p.name}</td><td className="num">{rankOf(singles, id) ? `#${rankOf(singles, id)}` : '—'}</td></tr>
+              {activePairs.map((x) => (
+                <tr key={x.id}><td><span className="chip">{x.discipline}</span></td>
+                  <td>{x.playerIds.filter((pid) => pid !== id).map((pid) => <a key={pid} href="#" onClick={(e) => { e.preventDefault(); onOpen(pid); }}>{lookup(state).players.get(pid)?.name}</a>)}{x.trial && <> <span className="tag">{t('trialPair')}</span></>}</td>
+                  <td className="num">{rankOf(x.discipline, x.id) ? `#${rankOf(x.discipline, x.id)}` : '—'}</td></tr>
               ))}
-              <tr><td><b>{t('ability')}</b></td>{p.attrHistory.map((h) => <td className="num" key={h.year}>{currentAbility(h.attrs)}</td>)}<td className="num"><b>{currentAbility(p.attrs)}</b></td></tr>
-            </tbody>
-          </table>
+            </tbody></table>
+          </section>
+        </div>
+        <AttrChart p={p} date={state.date} />
+        <div className="split">
+          <div className="scroll">
+            <h3>{t('attributes')}</h3>
+            <table>
+              <thead><tr><th></th>{p.attrHistory.map((h) => <th key={h.year}>{h.year}</th>)}<th>{t('now')}</th></tr></thead>
+              <tbody>
+                {ATTRS.map((a) => (
+                  <tr key={a}><td>{t(a)}</td>{p.attrHistory.map((h) => <td className="num" key={h.year}>{Math.round(h.attrs[a])}</td>)}<td className="num"><b>{Math.round(p.attrs[a])}</b></td></tr>
+                ))}
+                <tr><td><b>{t('ability')}</b></td>{p.attrHistory.map((h) => <td className="num" key={h.year}>{currentAbility(h.attrs)}</td>)}<td className="num"><b>{currentAbility(p.attrs)}</b></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <h3>{t('injuryHistory')}</h3>
+            {!p.injuryHistory?.length ? <p className="hint">{t('injuryHistoryNone')}</p> : (
+              <table>
+                <tbody>{[...p.injuryHistory].reverse().map((h, i) => (
+                  <tr key={i}>
+                    <td>{t('weekShort')}{h.week} {h.year}</td>
+                    <td><span className={`badge danger${h.level === 'severe' || h.level === 'critical' ? ' strong' : ''}`}>{t(`injLevel_${h.level}` as TextKey)}</span></td>
+                    <td>{t(`inj_${h.type}` as TextKey)}</td>
+                    <td className="num">{h.weeks} {h.weeks === 1 ? t('week').toLowerCase() : t('weeks')}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      </>}
+
+      {tab === 'events' && <div className="split">
+        <div>
+          {evYears.length === 0 ? <p className="hint">{t('profNoEvents')}</p> : evYears.map((y) => (
+            <section key={y} className="card">
+              <h3>{t('profEventsYear', { y })} <span className="muted-text">({[...events.values()].filter((e) => e.y === y).length})</span></h3>
+              <table><tbody>{[...events.values()].filter((e) => e.y === y).reverse().map((e) => (
+                <tr key={e.eid}>
+                  <td>{evLink(e.eid, e.y)}</td>
+                  <td>{e.res.map((r) => (
+                    <span key={r.d} className="evres"><span className="chip">{r.d}</span> <span className={r.champ ? 'up' : 'muted-text'}>{r.champ ? '🏆 ' : ''}{r.r}</span></span>
+                  ))}</td>
+                </tr>
+              ))}</tbody></table>
+            </section>
+          ))}
         </div>
         <aside>
-          <h3>{t('viewCommitted')} {state.commitmentsYear ?? state.date.year}</h3>
-          {(() => {
-            const tc = [id, ...pairs.filter((x) => !x.dissolved).map((x) => x.id)].filter((e) => state.commitments[e]?.length);
-            return tc.length === 0 ? <p className="hint">{t('tcNone')}</p> : tc.map((e) => (
-              <p key={e}><b>{e === id ? singles : pairs.find((x) => x.id === e)!.discipline}</b> <CommitmentChips state={state} ruleset={ruleset} entrantId={e} /></p>
-            ));
-          })()}
-          <h3>{t('rankHistory')} ({singles})</h3>
-          <RankChart history={rankFromSnapshots(state, id, singles)} />
-          {pairs.filter((x) => !x.dissolved).map((x) => (
-            <div key={x.id}>
-              <h4>{x.discipline}: {entrantLabel(state, x.id).name}</h4>
-              <RankChart history={rankFromSnapshots(state, x.id, x.discipline)} />
-            </div>
-          ))}
+          <section className="card">
+            <h3>{t('viewCommitted')} {state.commitmentsYear ?? year}</h3>
+            {(() => {
+              const tc = [id, ...activePairs.map((x) => x.id)].filter((e) => state.commitments[e]?.length);
+              return tc.length === 0 ? <p className="hint">{t('tcNone')}</p> : tc.map((e) => (
+                <p key={e}><b>{e === id ? singles : pairs.find((x) => x.id === e)!.discipline}</b> <CommitmentChips state={state} ruleset={ruleset} entrantId={e} /></p>
+              ));
+            })()}
+          </section>
+          <section className="card">
+            <h3>{t('rankHistory')} ({singles})</h3>
+            <RankChart history={rankFromSnapshots(state, id, singles)} />
+            {activePairs.map((x) => (
+              <div key={x.id}>
+                <h4>{x.discipline}: {entrantLabel(state, x.id).name}</h4>
+                <RankChart history={rankFromSnapshots(state, x.id, x.discipline)} />
+              </div>
+            ))}
+          </section>
         </aside>
-      </div>
-      <h3>{t('recentMatches')}</h3>
-      <div className="scroll">
-        <table className="recent">
-          <tbody>{recent.map((m) => {
-            const i = sides.has(m.sides[0]) ? 0 : 1;
-            const opp = m.sides[1 - i];
+      </div>}
+
+      {tab === 'matches' && <>
+        <nav className="controls subnav">
+          {(['all', ...matchYears] as const).map((y) => (
+            <button key={y} aria-pressed={matchYear === y} onClick={() => { setMatchYear(y); setShown(30); }}>
+              {y === 'all' ? t('all') : y} <span className="muted-text">{wl(y === 'all' ? mine : mine.filter((m) => m.year === y))}</span>
+            </button>
+          ))}
+        </nav>
+        {list.length === 0 ? <p className="hint">{t('profNoEvents')}</p> : (
+          <div className="mlist">{list.slice(0, shown).map((m) => {
+            const i = myIdx(m), opp = m.sides[1 - i];
             return (
-              <tr key={m.id}>
-                <td className="num">{m.year}</td><td>{onOpenEvent ? <a href="#" onClick={(e) => { e.preventDefault(); onOpenEvent(m.tournamentId, m.year); }}>{eventName(m.tournamentId, m.year)}</a> : eventName(m.tournamentId, m.year)}</td><td>{m.discipline} {m.round}</td>
-                <td><a href="#" onClick={(e) => { e.preventDefault(); onOpen(lookup(state).pairs.get(opp)?.playerIds[0] ?? opp); }}>{entrantLabel(state, opp).name} ({entrantLabel(state, opp).country})</a></td>
-                <td><MatchLink m={m} name={(x) => entrantLabel(state, x).name} title={eventName(m.tournamentId, m.year)}>{m.scores.map(([a, b]) => (i === 0 ? `${a}-${b}` : `${b}-${a}`)).join(', ')}</MatchLink></td>
-                <td className={m.winner === i ? 'up' : 'down'}>{m.winner === i ? t('won') : t('lost')}</td>
-              </tr>
+              <div key={m.id} className={`mrow ${won(m) ? 'w' : 'l'}`}>
+                <span className={`badge ${won(m) ? 'good' : 'danger'}`}>{won(m) ? 'W' : 'L'}</span>
+                <div className="grow">
+                  <div><a href="#" onClick={(e) => { e.preventDefault(); openOpp(opp); }}><Flag id={entrantLabel(state, opp).country} />{entrantLabel(state, opp).name}</a></div>
+                  <small className="muted-text">{evLink(m.tournamentId, m.year)} · {m.year} · {m.discipline} {m.round}</small>
+                </div>
+                <MatchLink m={m} name={(x) => entrantLabel(state, x).name} title={eventName(m.tournamentId, m.year)}>
+                  {m.scores.map(([a, b]) => (i === 0 ? `${a}-${b}` : `${b}-${a}`)).join(' ')}{m.walkover ? ' w/o' : m.retired ? ' ret.' : ''}
+                </MatchLink>
+              </div>
             );
-          })}</tbody>
-        </table>
-      </div>
-      <h3>{t('injuryHistory')}</h3>
-      {!p.injuryHistory?.length ? <p className="hint">{t('injuryHistoryNone')}</p> : (
-        <div className="scroll">
-          <table style={{ maxWidth: 640 }}>
-            <tbody>{[...p.injuryHistory].reverse().map((h, i) => (
-              <tr key={i}>
-                <td>{t('weekShort')}{h.week} {h.year}</td>
-                <td><span className={`badge danger${h.level === 'severe' || h.level === 'critical' ? ' strong' : ''}`}>{t(`injLevel_${h.level}` as TextKey)}</span></td>
-                <td>{t(`inj_${h.type}` as TextKey)}</td>
-                <td className="num">{h.weeks} {h.weeks === 1 ? t('week').toLowerCase() : t('weeks')}</td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
-      )}
-      {h2h.length > 0 && (
-        <>
+          })}</div>
+        )}
+        {list.length > shown && <p><button onClick={() => setShown(shown + 30)}>{t('showMore')} ({list.length - shown})</button></p>}
+      </>}
+
+      {tab === 'h2h' && <div className="split">
+        <section className="card">
           <h3>{t('h2h')}</h3>
-          <table style={{ maxWidth: 480 }}>
-            <tbody>{h2h.map(({ o, rec }) => <tr key={o}><td>{entrantLabel(state, o).name} ({entrantLabel(state, o).country})</td><td className="num">{rec[0]} – {rec[1]}</td></tr>)}</tbody>
-          </table>
-        </>
-      )}
+          {h2h.length === 0 ? <p className="hint">{t('profNoEvents')}</p> : (
+            <table><tbody>{h2h.map(({ o, rec }) => (
+              <tr key={o}>
+                <td><a href="#" onClick={(e) => { e.preventDefault(); openOpp(o); }}><Flag id={entrantLabel(state, o).country} />{entrantLabel(state, o).name}</a></td>
+                <td className={`num h2h ${rec[0] > rec[1] ? 'ahead' : rec[0] < rec[1] ? 'behind' : ''}`}>{rec[0]} – {rec[1]}</td>
+              </tr>
+            ))}</tbody></table>
+          )}
+        </section>
+        <section className="card">
+          <h3>{t('profPartners')}</h3>
+          {pairs.length === 0 ? <p className="hint">—</p> : (
+            <table><tbody>{[...pairs].reverse().map((x) => (
+              <tr key={x.id} className={x.dissolved ? 'muted-text' : undefined}>
+                <td><span className="chip">{x.discipline}</span></td>
+                <td>{x.playerIds.filter((pid) => pid !== id).map((pid) => <a key={pid} href="#" onClick={(e) => { e.preventDefault(); onOpen(pid); }}>{lookup(state).players.get(pid)?.name}</a>)}
+                  {x.trial && <> <span className="tag">{t('trialPair')}</span></>}{x.dissolved && <> <span className="tag muted-tag">{t('profDissolved')}</span></>}</td>
+                <td className="num" title={t('chemistry')}>{Math.round(x.chemistry)}</td>
+                <td className="num" title={t('matchesTogether')}>{x.matchesTogether}</td>
+              </tr>
+            ))}</tbody></table>
+          )}
+        </section>
+      </div>}
     </section>
   );
 }

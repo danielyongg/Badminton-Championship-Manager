@@ -431,3 +431,13 @@ td.strong { font-weight: 700; }
 .live { max-width: 100%; min-width: 0; }
 .tiehead { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 14px; }
 .live .close { top: 10px; right: 10px; }
+/* Profil: riwayat laga sebagai daftar ringkas (W/L, lawan, turnamen, skor) & hasil per nomor. */
+.mlist { display: grid; gap: 0; max-width: 760px; }
+.mrow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.mrow .grow { flex: 1; min-width: 0; }
+.mrow .badge { min-width: 1.6em; text-align: center; }
+.mrow > a { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.evres { display: inline-block; margin: 0 10px 2px 0; white-space: nowrap; }
+.h2h { font-weight: 600; white-space: nowrap; }
+.h2h.ahead { color: var(--accent-strong); }
+.h2h.behind { color: var(--danger); }
