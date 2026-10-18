@@ -36,7 +36,7 @@ export function Ranking({ ruleset, world, seed }: { ruleset: Ruleset; world: Wor
   );
 }
 
-/** Ranking dunia & Race, kalender & juara, Top Committed, perkembangan atlet — untuk satu SeasonState. */
+/** Ranking dunia & Race (sub-tab per nomor), kalender & juara per tahun, daftar semua turnamen — untuk satu SeasonState. */
 export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOpenEvent }: {
   state: SeasonState; ruleset: Ruleset; world: World; version: number; onOpenPlayer?: (id: string) => void; onOpenEvent?: (id: string, year: number) => void;
 }) {
@@ -44,9 +44,10 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
   const [mode, setMode] = useState<'world' | 'race' | 'junior' | 'olympic'>('world');
   const og = nextOlympics(ruleset, state.date.year);
   const [selected, setSelected] = useState<string>();
-  const [view, setView] = useState<'ranking' | 'calendar' | 'committed' | 'players'>('ranking');
+  const [view, setView] = useState<'ranking' | 'calendar' | 'events'>('ranking');
   const [calYear, setCalYear] = useState(shownYear(state));
-  const calYears = [...new Set([shownYear(state), ...state.champions.map((c) => c.year)])].sort((a, b) => b - a);
+  // Kalender: musim lalu (juara) sampai 3 musim ke depan (turnamen baru / edisi berikutnya ikut terlihat).
+  const calYears = [...new Set([...Array.from({ length: 4 }, (_, i) => state.date.year + 3 - i), shownYear(state), ...state.champions.map((c) => c.year)])].sort((a, b) => b - a);
   const now = absWeek(state.date);
   // Riwayat: ranking per minggu lampau (musim ini & musim lalu), dihitung ulang dari hasil yang sudah ada saat itu.
   const [asOf, setAsOf] = useState<number>();
@@ -90,27 +91,25 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
 
   return (
     <section>
+      <nav className="controls">
+        {(['ranking', 'calendar', 'events'] as const).map((v) => (
+          <button key={v} aria-pressed={view === v} onClick={() => setView(v)}>{t(({ ranking: 'viewRanking', calendar: 'viewCalendar', events: 'viewEvents' } as const)[v])}</button>
+        ))}
+      </nav>
+      {view === 'ranking' && (
+        <nav className="controls subnav">
+          {DISCIPLINES.map((d) => <button key={d} aria-pressed={d === discipline} onClick={() => { setDiscipline(d); setSelected(undefined); }}>{d}</button>)}
+        </nav>
+      )}
       <div className="controls">
-        <label>{t('view')}
-          <select value={view} onChange={(e) => setView(e.target.value as typeof view)}>
-            <option value="ranking">{t('viewRanking')}</option>
-            <option value="calendar">{t('viewCalendar')}</option>
-            <option value="committed">{t('viewCommitted')}</option>
-            <option value="players">{t('viewPlayers')}</option>
-          </select>
-        </label>
-        {view === 'calendar' ? (
+        {view === 'calendar' && (
           <label>{t('year')}
             <select value={calYear} onChange={(e) => setCalYear(Number(e.target.value))}>
               {calYears.map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
           </label>
-        ) : <>
-        <label>{t('discipline')}
-          <select value={discipline} onChange={(e) => { setDiscipline(e.target.value as Discipline); setSelected(undefined); }}>
-            {DISCIPLINES.map((d) => <option key={d}>{d}</option>)}
-          </select>
-        </label>
+        )}
+        {view === 'ranking' && <>
         <label>{t('rankingType')}
           <select value={mode} onChange={(e) => { setMode(e.target.value as typeof mode); setSelected(undefined); }}>
             <option value="world">{t('worldRanking')}</option>
@@ -133,18 +132,17 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
         )}
         </>}
       </div>
-      {lastChampions.length > 0 && (
+      {view === 'ranking' && lastChampions.length > 0 && (
         <p><b>{t('lastWeekChampions')}:</b> {lastChampions.map((c) => `${eventName(c.tournamentId)} ${c.discipline}: ${name(c.winner).name}`).join(' · ')}</p>
       )}
       {view === 'calendar' && <Calendar state={state} ruleset={ruleset} world={world} year={calYear} short={(id) => name(id).name} onOpenEvent={onOpenEvent} />}
-      {view === 'committed' && <Committed state={state} ruleset={ruleset} label={(id) => name(id).name} />}
-      {view === 'players' && <Development state={state} world={world} onOpen={onOpenPlayer} />}
+      {view === 'events' && <EventDirectory state={state} ruleset={ruleset} world={world} onOpenEvent={onOpenEvent} />}
       {view === 'ranking' && olympic && og && (
         <p className="hint">{t(olympic.projected ? 'olympicHintProjected' : 'olympicHint', { from: og.year - 1, to: og.year, n: olympic.field.size })}</p>
       )}
       {view === 'ranking' && <div className="split">
-        <div className="scroll">
-          <table>
+        <div>
+          <table className="fit">
             <thead><tr><th className="num" title={prevRank ? t('rankMoveHint') : undefined}>#</th><th>{t('name')}</th><th className="hide-sm">{t('country')}</th><th className="num">{t('points')}</th><th className="num hide-sm">{t('tournaments')}</th>{olympic && <th className="hide-sm">{t('olympicQualified')}</th>}</tr></thead>
             <tbody>
               {rows.slice(0, 100).map((r) => (
@@ -309,113 +307,42 @@ export function CommitmentChips({ state, ruleset, entrantId }: { state: SeasonSt
   );
 }
 
-function Committed({ state, ruleset, label }: { state: SeasonState; ruleset: Ruleset; label: (id: string) => string }) {
-  const managed = state.career?.countryId ?? null;
-  const [onlyMine, setOnlyMine] = useState(!!managed);
-  const tc = ruleset.topCommitted;
-  const name = (id: string) => eventNameOf(ruleset, id) ?? id;
-  const country = (id: string) => entrantLabel(state, id).country;
-  const disciplineOf = (id: string): Discipline => state.pairs.find((p) => p.id === id)?.discipline
-    ?? (state.players.find((p) => p.id === id)?.gender === 'F' ? 'WS' : 'MS');
-  const entrants = Object.keys(state.commitments).filter((id) => !onlyMine || country(id) === managed);
-  const rule = Object.entries(tc.mustPlay).map(([tier, n]) => `${tier}: ${n === 'all' ? t('tc_all') : n}`).join(' · ');
-  const violations = state.violations.filter((v) => !onlyMine || v.countryId === managed);
+/**
+ * Daftar semua turnamen di ruleset (termasuk yang tidak digelar tiap tahun / baru mulai tahun depan), per tier:
+ * frekuensi, edisi berikutnya (tahun, minggu, tuan rumah) & juara terakhir. Klik → halaman turnamen.
+ */
+function EventDirectory({ state, ruleset, world, onOpenEvent }: { state: SeasonState; ruleset: Ruleset; world: World; onOpenEvent?: (id: string, year: number) => void }) {
+  const { year, week } = state.date;
+  const city = new Map(world.cities.map((c) => [c.id, c]));
+  const all = [...ruleset.calendar.map((e) => ({ e, tier: e.tierId })), ...ruleset.team.events.map((e) => ({ e, tier: e.countries ? 'MSG' : 'TEAM' }))];
+  const next = (e: (typeof all)[number]['e']) => {
+    for (let y = year; y < year + 12; y++) if (isHeld(e, y) && (y > year || weekOf(e, y) >= week)) return y;
+    return undefined;
+  };
+  const tiers = [...new Set(all.map((x) => x.tier))];
+  const tierName = (id: string) => (id === 'TEAM' ? t('teamShort') : id === 'MSG' ? tierLabel(id) : dataName(ruleset.tiers.find((x) => x.id === id)?.name) ?? id);
+  const freq = (e: (typeof all)[number]['e']) => (!e.everyYears ? t('everyYear') : e.everyYears.invert ? t('mostYears', { n: e.everyYears.interval }) : t('everyNYears', { n: e.everyYears.interval }));
   return (
-    <>
-      <p className="hint">{t('tcHelp', { s: tc.singles, d: tc.doubles, rule, y: state.commitmentsYear ?? state.date.year })}</p>
-      <div className="controls">
-        {managed && <label style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} /> {t('tcOnlyMine')}</label>}
-        <span className="tc-legend"><span className="tc done">✓ {t('tc_done')}</span> <span className="tc missed">✗ {t('tc_missed')}</span> <span className="tc excused">{t('tc_excused')}</span> <span className="tc upcoming">{t('tc_upcoming')}</span></span>
-      </div>
-      {DISCIPLINES.map((d) => {
-        const list = entrants.filter((id) => disciplineOf(id) === d);
-        if (list.length === 0) return null;
-        return (
-          <div key={d} className="scroll">
-            <h4>{d}</h4>
-            <table>
-              <thead><tr><th>{t('name')}</th><th className="num">{t('progress')}</th><th>{t('requiredEvents')}</th></tr></thead>
-              <tbody>{list.map((id) => {
-                const st = commitmentStatus(state, ruleset, id);
-                const done = st.filter((c) => c.status === 'done').length;
-                const missed = st.filter((c) => c.status === 'missed').length;
-                return (
-                  <tr key={id} className={country(id) === managed ? 'sel' : ''}>
-                    <td><Flag id={country(id)} />{label(id)}</td>
-                    <td className="num">{done}/{st.length}{missed > 0 && <span className="down"> · ✗{missed}</span>}</td>
-                    <td><CommitmentChips state={state} ruleset={ruleset} entrantId={id} /></td>
-                  </tr>
-                );
-              })}</tbody>
-            </table>
-          </div>
-        );
-      })}
-      <h3>{t('violations')} <small className="muted-text">({violations.length})</small></h3>
-      {violations.length === 0 ? <p className="hint">{t('none')}</p> : (
-        <div className="scroll">
-          <table>
-            <tbody>{violations.map((v, i) => (
-              <tr key={i}><td>{v.year}</td><td><Flag id={v.countryId} />{label(v.entrantId)}</td><td>{name(v.tournamentId)}</td></tr>
-            ))}</tbody>
-          </table>
-        </div>
-      )}
-    </>
-  );
-}
-
-const arrow = (d?: number) => (!d ? '' : d > 0 ? ` ▲${d}` : ` ▼${-d}`);
-
-/** Perkembangan atlet satu negara: CA dengan panah perubahan kuartal terakhir, dan riwayat atribut per musim. */
-function Development({ state, world, onOpen }: { state: SeasonState; world: World; onOpen?: (id: string) => void }) {
-  const [countryId, setCountryId] = useState('INA');
-  const [showRetired, setShowRetired] = useState(false);
-  const [selected, setSelected] = useState<Player>();
-  const list = state.players
-    .filter((p) => p.countryId === countryId && (showRetired || p.retired === undefined))
-    .sort((a, b) => currentAbility(b.attrs) - currentAbility(a.attrs));
-  return (
-    <>
-      <div className="controls">
-        <label>{t('country')}
-          <select value={countryId} onChange={(e) => { setCountryId(e.target.value); setSelected(undefined); }}>
-            {world.countries.map((c) => <option key={c.id} value={c.id}>{dataName(c.name)}</option>)}
-          </select>
-        </label>
-        <label style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <input type="checkbox" checked={showRetired} onChange={(e) => setShowRetired(e.target.checked)} />{t('showRetired')}
-        </label>
-      </div>
-      <div className="split">
-        <div className="scroll">
-          <table>
-            <thead><tr><th>{t('name')}</th><th>{t('gender')}</th><th>{t('age')}</th><th>{t('ability')}</th><th>{t('potential')}</th><th>{t('status')}</th></tr></thead>
-            <tbody>{list.map((p) => (
-              <tr key={p.id} onClick={() => (onOpen ? onOpen(p.id) : setSelected(p))} className={selected?.id === p.id ? 'sel' : ''} style={{ cursor: 'pointer' }}>
-                <td>{p.name}</td><td>{p.gender}</td>
-                <td className="num">{ageAt(p.birth, state.date)}</td>
-                <td className="num">{currentAbility(p.attrs)}<span className={p.caDelta! > 0 ? 'up' : 'down'}>{arrow(p.caDelta)}</span></td>
-                <td className="stars">{'★'.repeat(Math.max(1, Math.round(p.pa / 20)))}</td>
-                <td>{p.retired !== undefined ? `${t('retired')} ${p.retired}` : ''}</td>
+    <>{tiers.map((tier) => (
+      <section key={tier} className="card">
+        <h3>{tierName(tier)} <span className="muted-text">({all.filter((x) => x.tier === tier).length})</span></h3>
+        <table className="fit"><tbody>{all.filter((x) => x.tier === tier)
+          .map((x) => ({ ...x, y: next(x.e) }))
+          .sort((a, b) => (a.y ?? 9999) - (b.y ?? 9999) || (a.y ? weekOf(a.e, a.y) - weekOf(b.e, b.y!) : 0))
+          .map(({ e, y }) => {
+            const host = y ? city.get(hostCityId(e, y)) : undefined;
+            const last = state.champions.filter((c) => c.tournamentId === e.id).at(-1)?.year ?? state.teamResults.filter((r) => r.eventId === e.id).at(-1)?.year;
+            return (
+              <tr key={e.id}>
+                <td>
+                  {onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, last ?? y ?? year); }}>{eventNameOf(ruleset, e.id, y ?? year)}</a> : eventNameOf(ruleset, e.id, y ?? year)}
+                  <br /><small className="muted-text">{freq(e)}{host && <> · <Flag id={host.countryId} />{dataName(host.name)}</>}</small>
+                </td>
+                <td className="num">{y ? <>{y}<br /><small className="muted-text">{t('weekShort')}{weekOf(e, y)}</small></> : '—'}</td>
               </tr>
-            ))}</tbody>
-          </table>
-        </div>
-        {selected && (
-          <aside className="scroll">
-            <h3>{selected.name}</h3>
-            <table>
-              <thead><tr><th></th>{selected.attrHistory.map((h) => <th key={h.year}>{h.year}</th>)}<th>{t('now')}</th></tr></thead>
-              <tbody>{ATTRS.map((a) => (
-                <tr key={a}><td>{t(a)}</td>{selected.attrHistory.map((h) => <td className="num" key={h.year}>{Math.round(h.attrs[a])}</td>)}<td className="num"><b>{Math.round(selected.attrs[a])}</b></td></tr>
-              ))}
-              <tr><td><b>{t('ability')}</b></td>{selected.attrHistory.map((h) => <td className="num" key={h.year}>{currentAbility(h.attrs)}</td>)}<td className="num"><b>{currentAbility(selected.attrs)}</b></td></tr>
-              </tbody>
-            </table>
-          </aside>
-        )}
-      </div>
-    </>
+            );
+          })}</tbody></table>
+      </section>
+    ))}</>
   );
 }
