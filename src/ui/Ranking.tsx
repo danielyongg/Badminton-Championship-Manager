@@ -10,6 +10,7 @@ import { dataName, numLocale, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName as eventNameOf, teamLabel, tierLabel } from './game';
 import { Flag } from './Flag';
 import { formatName, winnerOf } from './Team';
+import { NationsTable, Records } from './WorldRecords';
 
 /** Lab: dunia simulasi sendiri dengan tombol maju minggu, menampilkan SeasonViews. */
 export function Ranking({ ruleset, world, seed }: { ruleset: Ruleset; world: World; seed: number }) {
@@ -44,7 +45,7 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
   const [mode, setMode] = useState<'world' | 'race' | 'junior' | 'olympic'>('world');
   const og = nextOlympics(ruleset, state.date.year);
   const [selected, setSelected] = useState<string>();
-  const [view, setView] = useState<'ranking' | 'calendar' | 'events'>('ranking');
+  const [view, setView] = useState<'ranking' | 'calendar' | 'events' | 'nations' | 'records'>('ranking');
   const [calYear, setCalYear] = useState(shownYear(state));
   // Kalender: musim lalu (juara) sampai 3 musim ke depan (turnamen baru / edisi berikutnya ikut terlihat).
   const calYears = [...new Set([...Array.from({ length: 4 }, (_, i) => state.date.year + 3 - i), shownYear(state), ...state.champions.map((c) => c.year)])].sort((a, b) => b - a);
@@ -92,8 +93,8 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
   return (
     <section>
       <nav className="controls">
-        {(['ranking', 'calendar', 'events'] as const).map((v) => (
-          <button key={v} aria-pressed={view === v} onClick={() => setView(v)}>{t(({ ranking: 'viewRanking', calendar: 'viewCalendar', events: 'viewEvents' } as const)[v])}</button>
+        {(['ranking', 'calendar', 'events', 'nations', 'records'] as const).map((v) => (
+          <button key={v} aria-pressed={view === v} onClick={() => setView(v)}>{t(({ ranking: 'viewRanking', calendar: 'viewCalendar', events: 'viewEvents', nations: 'viewNations', records: 'viewRecords' } as const)[v])}</button>
         ))}
       </nav>
       {view === 'ranking' && (
@@ -136,6 +137,8 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
         <p><b>{t('lastWeekChampions')}:</b> {lastChampions.map((c) => `${eventName(c.tournamentId)} ${c.discipline}: ${name(c.winner).name}`).join(' · ')}</p>
       )}
       {view === 'calendar' && <Calendar state={state} ruleset={ruleset} world={world} year={calYear} short={(id) => name(id).name} onOpenEvent={onOpenEvent} />}
+      {view === 'nations' && <NationsTable state={state} ruleset={ruleset} world={world} />}
+      {view === 'records' && <Records state={state} ruleset={ruleset} world={world} onOpenPlayer={onOpenPlayer} />}
       {view === 'events' && <EventDirectory state={state} ruleset={ruleset} world={world} onOpenEvent={onOpenEvent} />}
       {view === 'ranking' && olympic && og && (
         <p className="hint">{t(olympic.projected ? 'olympicHintProjected' : 'olympicHint', { from: og.year - 1, to: og.year, n: olympic.field.size })}</p>
