@@ -267,6 +267,8 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
     ? <a href="#" onClick={(e) => { e.preventDefault(); onOpenEvent(eid, y); }}>{eventName(eid, y)}</a> : eventName(eid, y);
   const fact = (k: string, v: ReactNode) => <div><dt>{k}</dt><dd>{v}</dd></div>;
   const rankOf = (d: Discipline, entrant: string) => ranks.get(d)?.get(entrant);
+  // Nomor tunggal hanya ditampilkan bila pernah main tunggal atau punya ranking tunggal (spesialis ganda: tidak).
+  const playsSingles = rankOf(singles, id) !== undefined || mine.some((m) => m.sides.includes(id));
 
   // Turnamen yang diikuti per musim: hasil terbaik per nomor (juara, babak tersingkir, atau masih bertanding).
   const events = new Map<string, { eid: string; y: number; week: number; res: { d: Discipline; r: string; champ: boolean }[] }>();
@@ -339,7 +341,8 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           <section className="card">
             <h3>{t('profRanks')}</h3>
             <table className="fit"><tbody>
-              <tr><td><span className="chip">{singles}</span></td><td>{p.name}</td><td className="num">{rankOf(singles, id) ? `#${rankOf(singles, id)}` : '—'}</td></tr>
+              {playsSingles && <tr><td><span className="chip">{singles}</span></td><td>{p.name}</td><td className="num">{rankOf(singles, id) ? `#${rankOf(singles, id)}` : '—'}</td></tr>}
+              {!playsSingles && activePairs.length === 0 && <tr><td className="muted-text">{t('profNoEvents')}</td></tr>}
               {activePairs.map((x) => (
                 <tr key={x.id}><td><span className="chip">{x.discipline}</span></td>
                   <td>{x.playerIds.filter((pid) => pid !== id).map((pid) => <a key={pid} href="#" onClick={(e) => { e.preventDefault(); onOpen(pid); }}>{lookup(state).players.get(pid)?.name}</a>)}{x.trial && <> <span className="tag">{t('trialPair')}</span></>}</td>
@@ -407,8 +410,8 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
             })()}
           </section>
           <section className="card">
-            <h3>{t('rankHistory')} ({singles})</h3>
-            <RankChart history={rankFromSnapshots(state, id, singles)} />
+            <h3>{t('rankHistory')}</h3>
+            {playsSingles && <><h4>{singles}</h4><RankChart history={rankFromSnapshots(state, id, singles)} /></>}
             {activePairs.map((x) => (
               <div key={x.id}>
                 <h4>{x.discipline}: {entrantLabel(state, x.id).name}</h4>
