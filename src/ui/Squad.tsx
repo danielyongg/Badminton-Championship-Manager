@@ -338,7 +338,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           </section>
           <section className="card">
             <h3>{t('profRanks')}</h3>
-            <table><tbody>
+            <table className="fit"><tbody>
               <tr><td><span className="chip">{singles}</span></td><td>{p.name}</td><td className="num">{rankOf(singles, id) ? `#${rankOf(singles, id)}` : '—'}</td></tr>
               {activePairs.map((x) => (
                 <tr key={x.id}><td><span className="chip">{x.discipline}</span></td>
@@ -385,7 +385,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           {evYears.length === 0 ? <p className="hint">{t('profNoEvents')}</p> : evYears.map((y) => (
             <section key={y} className="card">
               <h3>{t('profEventsYear', { y })} <span className="muted-text">({[...events.values()].filter((e) => e.y === y).length})</span></h3>
-              <table><tbody>{[...events.values()].filter((e) => e.y === y).reverse().map((e) => (
+              <table className="fit"><tbody>{[...events.values()].filter((e) => e.y === y).reverse().map((e) => (
                 <tr key={e.eid}>
                   <td>{evLink(e.eid, e.y)}</td>
                   <td>{e.res.map((r) => (
@@ -451,7 +451,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         <section className="card">
           <h3>{t('h2h')}</h3>
           {h2h.length === 0 ? <p className="hint">{t('profNoEvents')}</p> : (
-            <table><tbody>{h2h.map(({ o, rec }) => (
+            <table className="fit"><tbody>{h2h.map(({ o, rec }) => (
               <tr key={o}>
                 <td><a href="#" onClick={(e) => { e.preventDefault(); openOpp(o); }}><Flag id={entrantLabel(state, o).country} />{entrantLabel(state, o).name}</a></td>
                 <td className={`num h2h ${rec[0] > rec[1] ? 'ahead' : rec[0] < rec[1] ? 'behind' : ''}`}>{rec[0]} – {rec[1]}</td>
@@ -462,7 +462,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         <section className="card">
           <h3>{t('profPartners')}</h3>
           {pairs.length === 0 ? <p className="hint">—</p> : (
-            <table><tbody>{[...pairs].reverse().map((x) => (
+            <table className="fit"><tbody>{[...pairs].reverse().map((x) => (
               <tr key={x.id} className={x.dissolved ? 'muted-text' : undefined}>
                 <td><span className="chip">{x.discipline}</span></td>
                 <td>{x.playerIds.filter((pid) => pid !== id).map((pid) => <a key={pid} href="#" onClick={(e) => { e.preventDefault(); onOpen(pid); }}>{lookup(state).players.get(pid)?.name}</a>)}

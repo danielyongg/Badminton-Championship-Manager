@@ -441,3 +441,8 @@ td.strong { font-weight: 700; }
 .h2h { font-weight: 600; white-space: nowrap; }
 .h2h.ahead { color: var(--accent-strong); }
 .h2h.behind { color: var(--danger); }
+/* Tabel ringkas (profil): pas selebar layar di HP, nama panjang membungkus, kolom angka tetap terlihat. */
+table.fit { width: 100%; }
+@media (max-width: 700px) { table.fit { display: table; } }
+table.fit td:not(.num) { white-space: normal; overflow-wrap: anywhere; }
+table.fit td.num { white-space: nowrap; }
