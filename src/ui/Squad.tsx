@@ -462,7 +462,9 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         <section className="card">
           <h3>{t('profPartners')}</h3>
           {pairs.length === 0 ? <p className="hint">—</p> : (
-            <table className="fit"><tbody>{[...pairs].reverse().map((x) => (
+            <table className="fit">
+              <thead><tr><th></th><th>{t('partner')}</th><th className="num">{t('chemistry')}</th><th className="num">{t('matchesShort')}</th></tr></thead>
+              <tbody>{[...pairs].reverse().map((x) => (
               <tr key={x.id} className={x.dissolved ? 'muted-text' : undefined}>
                 <td><span className="chip">{x.discipline}</span></td>
                 <td>{x.playerIds.filter((pid) => pid !== id).map((pid) => <a key={pid} href="#" onClick={(e) => { e.preventDefault(); onOpen(pid); }}>{lookup(state).players.get(pid)?.name}</a>)}

@@ -377,6 +377,7 @@ export const en: Record<TextKey, string> = {
   profSummary: 'Summary', profEvents: 'Tournaments & Committed', profMatches: 'Match history', profH2H: 'H2H & partners',
   profRecord: 'Won–lost', profTitlesAll: 'Career titles', profRanks: 'Current world ranking', profEventsYear: 'Tournaments {y}',
   profNoEvents: 'No matches yet.', profPartners: 'Partners', profDissolved: 'split', showMore: 'Show more', fit: 'Fit',
+  partner: 'Partner', matchesShort: 'Matches',
   draw_skipEvent: 'Skip draw',
   draw_replay: 'Replay draw',
   draw_topHalf: 'Top half',

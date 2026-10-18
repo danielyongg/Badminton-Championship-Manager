@@ -377,6 +377,7 @@ const id = {
   profSummary: 'Ringkasan', profEvents: 'Turnamen & Committed', profMatches: 'Riwayat laga', profH2H: 'H2H & pasangan',
   profRecord: 'Menang–kalah', profTitlesAll: 'Gelar karier', profRanks: 'Ranking dunia saat ini', profEventsYear: 'Turnamen {y}',
   profNoEvents: 'Belum ada laga.', profPartners: 'Pasangan', profDissolved: 'berpisah', showMore: 'Tampilkan lebih banyak', fit: 'Fit',
+  partner: 'Partner', matchesShort: 'Laga',
   draw_skipEvent: 'Lewati drawing',
   draw_replay: 'Putar ulang undian',
   draw_topHalf: 'Paruh atas',
