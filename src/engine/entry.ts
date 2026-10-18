@@ -7,6 +7,8 @@ export interface Candidate {
   id: EntrantId;
   countryId: string;
   rank?: number; // undefined = belum punya ranking
+  /** Pemain tanpa ranking: urutan prioritas dari federasinya (kemampuan); undefined = tidak diketahui. */
+  strength?: number;
 }
 
 export interface EntryList {
@@ -22,11 +24,14 @@ export function qualifierSlots(tier: Tier, drawSize: number, ruleset: Ruleset) {
   return tier.qualifyingPerSlot > 0 ? Math.floor(drawSize / ruleset.qualifierRatio[String(tier.grade) as '1']) : 0;
 }
 
-/** Urut ranking; ranking sama (atau sama-sama tanpa ranking) → diundi. */
+/**
+ * Urut ranking. Tanpa ranking: di bawah semua yang berperingkat, diurutkan menurut prioritas federasi (kemampuan)
+ * seperti urutan nasional yang dikirim federasi; sisanya (sama) diundi.
+ */
 export function sortByRank(cands: Candidate[], rng: Rng): Candidate[] {
   return cands
     .map((c) => ({ c, lot: rng() }))
-    .sort((a, b) => (a.c.rank ?? Infinity) - (b.c.rank ?? Infinity) || a.lot - b.lot)
+    .sort((a, b) => (a.c.rank ?? Infinity) - (b.c.rank ?? Infinity) || (b.c.strength ?? 0) - (a.c.strength ?? 0) || a.lot - b.lot)
     .map((x) => x.c);
 }
 

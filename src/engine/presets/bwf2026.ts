@@ -313,10 +313,12 @@ export const BWF_2026: Ruleset = {
     rankRange: {
       OG: [1, 9999], WC: [1, 9999], WTF: [1, 9999], MSG: [1, 9999],
       S1000: [1, 64], S750: [1, 64], S500: [1, 100], S300: [1, 160], S100: [10, 260],
-      IC: [25, 400], IS: [40, 9999], FS: [60, 9999],
+      // Grade 3 diisi pemain di luar papan atas (pemain peringkat 40-an tidak turun di Future Series). ASUMSI: kalibrasi
+      IC: [50, 9999], IS: [100, 9999], FS: [150, 9999],
     },
     playProb: { OG: 1, WC: 1, WTF: 1, MSG: 1, S1000: 0.95, S750: 0.85, S500: 0.65, S300: 0.5, S100: 0.55, IC: 0.5, IS: 0.5, FS: 0.5 },
     restAbove: 45,
+    awayGrade3: 0.15, // ASUMSI: sebagian besar peserta IC/IS/FS berasal dari benua tuan rumah
   },
   // Perkembangan & penuaan, diproses tiap kuartal (13 minggu). Nilai dari spesifikasi; sisanya ASUMSI kalibrasi.
   development: {

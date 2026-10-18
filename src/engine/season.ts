@@ -317,6 +317,12 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
   const pratama = new Set(state.players.filter((p) => p.countryId === state.managedCountryId && p.released === undefined && isPratama(p, state.date)).map((p) => p.id));
   const released = releasedIds(state);
   const mine = (e: Entrant) => isManaged(state, released, e);
+  const conf = new Map(world?.countries.map((c) => [c.id, c.confederation as string]));
+  const confOf = (country: string) => conf.get(country);
+  const hostCity = new Map(world?.cities.map((c) => [c.id, c.countryId]));
+  const hostCountryOf = (ev: TournamentDef) => hostCity.get(hostCityId(ev, state.date.year)) ?? '';
+  const playerById = new Map(state.players.map((p) => [p.id, p]));
+  const strengthOf = (e: Entrant) => e.playerIds.reduce((sum, id) => sum + currentAbility(playerById.get(id)!.attrs), 0) / e.playerIds.length;
 
   const wtf = events.find((e) => e.tierId === 'WTF');
   if (wtf)
@@ -358,12 +364,15 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
     if (!choice && !decision && !e.trial) { // pasangan percobaan tidak pernah didaftarkan AI
       const tired = Math.max(...e.playerIds.map((id) => fatigue.get(id)!));
       const prefs = mine(e) ? state.tierPrefs?.[e.id] : undefined;
-      const ev = aiEventChoice(options, rs, rank, prefs);
+      // IC/IS/FS: AI terutama mendaftar di benuanya sendiri (sesekali ke luar).
+      const local = !world || rng() < (rs.ai.awayGrade3 ?? 1) ? options
+        : options.filter((ev) => tierOf(rs, ev).grade !== 3 || confOf(hostCountryOf(ev)) === confOf(e.countryId));
+      const ev = aiEventChoice(local, rs, rank, prefs);
       // prioritas manajer: selalu diikuti (kecuali lelah); tanpa prioritas: peluang ikut per tier & kelelahan
       if (ev && tired <= rs.ai.restAbove && (prefs?.length || rng() < (rs.ai.playProb[ev.tierId] ?? 0.5) * (1 - tired / 150))) choice = ev;
     }
     if (!choice) continue;
-    entries.get(choice.id)!.get(d)!.push({ id: e.id, countryId: e.countryId, rank });
+    entries.get(choice.id)!.get(d)!.push({ id: e.id, countryId: e.countryId, rank, ...(rank === undefined && { strength: strengthOf(e) }) });
     e.playerIds.forEach((id) => { playerEvent.set(id, choice.id); playerDisc.add(`${id}:${d}`); });
   }
   return entries;

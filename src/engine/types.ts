@@ -192,6 +192,8 @@ export interface AiConfig {
   playProb: Record<TierId, number>;
   /** Kelelahan di atas nilai ini → istirahat (kecuali turnamen wajib). */
   restAbove: number;
+  /** Peluang AI mau mendaftar IC/IS/FS (grade 3) di luar konfederasinya sendiri; selain itu hanya di benuanya. */
+  awayGrade3: number;
 }
 
 export interface MatchConfig {

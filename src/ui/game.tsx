@@ -90,6 +90,11 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
     for (const p of blob.state.players) if (played.has(p.id)) p.promoted = true;
     blob.state.juniorPromotion = true;
   }
+  // Save sebelum rentang entry AI grade 3 yang realistis: rentang bawaan lama IC/IS/FS diganti preset (ubahan Editor dibiarkan).
+  const range = blob.ruleset.ai?.rankRange;
+  const OLD = { IC: [25, 400], IS: [40, 9999], FS: [60, 9999] } as const;
+  if (range) for (const k of ['IC', 'IS', 'FS'] as const)
+    if (range[k]?.[0] === OLD[k][0] && range[k]?.[1] === OLD[k][1] && preset.ai.rankRange[k]) range[k] = [...preset.ai.rankRange[k]];
   return { meta, state: blob.state, ruleset: withDefaults(blob.ruleset, preset), world: blob.world, rng: makeRng(blob.rngState) };
 }
 
