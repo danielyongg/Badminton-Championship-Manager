@@ -112,12 +112,7 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
           <button key={v} aria-pressed={view === v} onClick={() => setView(v)}>{t(({ ranking: 'viewRanking', calendar: 'viewCalendar', events: 'viewEvents', nations: 'viewNations', records: 'viewRecords' } as const)[v])}</button>
         ))}
       </nav>
-      {view === 'ranking' && (
-        <nav className="controls subnav">
-          {DISCIPLINES.map((d) => <button key={d} aria-pressed={d === discipline} onClick={() => { setDiscipline(d); setSelected(undefined); }}>{d}</button>)}
-        </nav>
-      )}
-      <div className="controls">
+      <div className={`controls${view === 'ranking' ? ' pair' : ''}`}>
         {view === 'calendar' && (
           <label>{t('year')}
             <select value={calYear} onChange={(e) => setCalYear(Number(e.target.value))}>
@@ -149,7 +144,20 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
         </>}
       </div>
       {view === 'ranking' && lastChampions.length > 0 && (
-        <p><b>{t('lastWeekChampions')}:</b> {lastChampions.map((c) => `${eventName(c.tournamentId)} ${c.discipline}: ${name(c.winner).name}`).join(' · ')}</p>
+        // Juara minggu lalu: satu blok per turnamen, satu baris per nomor (bendera + nama).
+        <section className="champs">
+          <h4>{t('lastWeekChampions')}</h4>
+          <div className="champs-grid">
+            {[...new Set(lastChampions.map((c) => c.tournamentId))].map((tid) => (
+              <div key={tid}>
+                <b>{eventName(tid)}</b>
+                {lastChampions.filter((c) => c.tournamentId === tid).map((c) => (
+                  <div key={c.discipline} className="drow rank"><span className="chip">{c.discipline}</span><span className="grow"><span><Flag id={name(c.winner).country} />{name(c.winner).name}</span></span></div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </section>
       )}
       {view === 'calendar' && <Calendar state={state} ruleset={ruleset} world={world} year={calYear} short={(id) => name(id).name} onOpenEvent={onOpenEvent} />}
       {view === 'nations' && <NationsTable state={state} ruleset={ruleset} world={world} />}
@@ -160,6 +168,9 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
       )}
       {view === 'ranking' && <div className="split">
         <div ref={tableTop}>
+          <nav className="controls subnav">
+            {DISCIPLINES.map((d) => <button key={d} aria-pressed={d === discipline} onClick={() => { setDiscipline(d); setSelected(undefined); }}>{d}</button>)}
+          </nav>
           {pager(false)}
           <table className="fit">
             <thead><tr><th className="num" title={prevRank ? t('rankMoveHint') : undefined}>#</th><th>{t('name')}</th><th className="hide-sm">{t('country')}</th><th className="num">{t('points')}</th><th className="num hide-sm">{t('tournaments')}</th>{olympic && <th className="hide-sm">{t('olympicQualified')}</th>}</tr></thead>
