@@ -83,7 +83,6 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
           const past = weekOf(e, year) < week;
           const team = teamIds.has(e.id);
           const tier = 'tierId' in e ? e.tierId : '';
-          const junior = !team && !!ruleset.tiers.find((x) => x.id === tier)?.junior; // junior: diisi manajer atau otomatis
           const auto = !team && (tier === 'WTF' || tier === 'OG'); // Finals & Olimpiade: otomatis
           return (
             <tr key={e.id} className={past ? 'muted-text' : undefined}>
@@ -91,7 +90,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
               <td><a href="#" onClick={(x) => { x.preventDefault(); if (past || auto) onOpenEvent?.(e.id, year); else setOpen(e.id); }}>{team ? eventName(ruleset, e.id, year) : dataName(e.name)}</a></td>
               <td><span className="chip">{team ? teamLabel(e) : ruleset.tiers.find((x) => x.id === tier)?.junior && scope !== 'junior' ? t('juniorShort') : tierLabel(tier)}</span></td>
               <td className="hide-sm">{city(hostCityId(e, year))}</td>
-              <td>{past ? t('finished') : auto || (junior && !submitted(e.id)) ? t('auto')
+              <td>{past ? t('finished') : auto ? t('auto')
                 : submitted(e.id) ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>}</td>
             </tr>
           );
@@ -217,7 +216,7 @@ function LastChampions() {
  * junior otomatis dari turnamen sebelumnya). Main = pasti ikut & didahulukan dalam kuota; Otomatis = dipilih AI
  * (ranking junior lalu kemampuan); sisa kuota ganda diisi pasangan otomatis.
  */
-function JuniorEntryTable({ ev }: { ev: TournamentDef }) {
+export function JuniorEntryTable({ ev }: { ev: TournamentDef }) {
   const { game, version, changed } = useGame();
   const { state, ruleset } = game;
   const country = state.career!.countryId!;

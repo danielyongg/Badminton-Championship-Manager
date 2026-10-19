@@ -4,7 +4,7 @@ import type { RoundMatch, RoundShow } from '../engine/gate';
 import { DISCIPLINES, type Discipline, type TeamFormat } from '../engine/types';
 import { dataName, t } from '../i18n';
 import { Flag } from './Flag';
-import { EntryTable } from './Entries';
+import { EntryTable, JuniorEntryTable } from './Entries';
 import { EntryLists } from './EventViews';
 import type { EntriesShow } from '../engine/tournament';
 import { entrantLabel, eventName, saveGame, teamLabel, tierLabel, useGame } from './game';
@@ -27,7 +27,10 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
   if (editing) return (
     <section className="card hub">
       <h3>{eventName(ruleset, editing, year)} · {t('entryStatus')}</h3>
-      <EntryTable week={ask.week} eventId={editing} />
+      {(() => {
+        const ev = ruleset.calendar.find((e) => e.id === editing);
+        return ev && ruleset.tiers.find((x) => x.id === ev.tierId)?.junior ? <JuniorEntryTable ev={ev} /> : <EntryTable week={ask.week} eventId={editing} />;
+      })()}
       <div className="controls roundbar">
         <button className="primary" onClick={() => { (state.entriesSubmitted ??= {})[`${year}:${editing}`] = true; changed(); void saveGame(game); setEditing(undefined); }}>{t('submitEntries')}</button>
         <button onClick={() => setEditing(undefined)}>← {t('back')}</button>
@@ -40,8 +43,8 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
         <ul className="weeklist">{ask.events.map(({ id, kind }) => {
           const ev = kind === 'team' ? ruleset.team.events.find((e) => e.id === id)! : ruleset.calendar.find((e) => e.id === id)!;
           const tier = 'tierId' in ev ? ruleset.tiers.find((x) => x.id === ev.tierId) : undefined;
-          // Junior & Finals: entry otomatis. Beregu: skuad dipilih di pop-up bila belum di-submit.
-          const auto = kind === 'team' || tier?.junior || tier?.id === 'WTF' || tier?.id === 'OG';
+          // Finals & Olimpiade: entry otomatis. Beregu: skuad dipilih di pop-up bila belum di-submit. Junior: diisi seperti senior.
+          const auto = kind === 'team' || tier?.id === 'WTF' || tier?.id === 'OG';
           const submitted = state.entriesSubmitted?.[`${year}:${id}`];
           const done = ask.played.includes(id);
           return (
@@ -145,7 +148,10 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
                 <td className="muted-text">vs</td>
                 <td className={w === 1 ? 'win' : undefined}><Flag id={sides[1].country} />{sides[1].name}{seedTag(m.key, m.sides[1])}</td>
                 <td className="num">{score || (m === current ? '…'
-                  : mine && !done && <button className="rowtoggle" title={t('rowToggleHint')} onClick={() => toggle(k)}>{skipped.has(k) ? `⏭ ${t('rowSkip')}` : `▶ ${t('rowLive')}`}</button>)}</td>
+                  : mine && !done && <button className="rowtoggle" title={t('rowToggleHint')} aria-label={t(skipped.has(k) ? 'rowSkip' : 'rowLive')} onClick={() => toggle(k)}>
+                    {/* HP: ikon saja agar muat di kolom skor; teks di layar lebar. */}
+                    {skipped.has(k) ? '⏭' : '▶'}<span className="hide-sm"> {t(skipped.has(k) ? 'rowSkip' : 'rowLive')}</span>
+                  </button>)}</td>
               </tr>
             );
           })}</tbody>
