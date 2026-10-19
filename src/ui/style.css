@@ -39,6 +39,10 @@ a { color: inherit; text-decoration-color: color-mix(in srgb, currentColor 35%, 
 a:hover { color: var(--accent-strong); text-decoration-color: currentColor; }
 h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: .01em; margin: 0 0 12px; }
 h2, h3, h4 { font-weight: 600; }
+/* Skala judul seragam: h2 judul halaman, h3 judul bagian, h4 label kecil (di dalam kartu, h2/h3 juga jadi label). */
+h2 { font-size: 1.2rem; }
+h3 { font-size: 1.05rem; margin: 8px 0; }
+h4 { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .swatch { display: inline-block; width: 12px; height: 4px; border-radius: 2px; vertical-align: middle; }
 
 /* Kontrol */
@@ -107,7 +111,8 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .champs h4 { margin: 0; }
 .champs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px 24px; }
 .champs-grid b { display: block; margin: 8px 0 0; }
-.controls.subnav button[aria-pressed] { font-size: .85rem; padding: 2px 10px; }
+/* Semua sub-tab (selain menu tab utama), tingkat berapa pun: ukuran sama. */
+nav.controls:not(.maintabs) button[aria-pressed] { font-size: .85rem; padding: 2px 10px; }
 .scroll { overflow-x: auto; }
 
 /* Tabel */
@@ -217,7 +222,7 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .settings-form { display: grid; gap: 10px; max-width: 560px; }
 .settings-form label { display: grid; grid-template-columns: 200px minmax(0, 1fr); align-items: center; gap: 12px; }
 @media (max-width: 700px) { .settings-form label { grid-template-columns: minmax(0, 1fr); gap: 4px; } }
-main > nav.controls { gap: 2px; border-bottom: 1px solid var(--line); }
+nav.maintabs { gap: 2px; border-bottom: 1px solid var(--line); }
 
 /* Bagan */
 .bracket { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; }
@@ -284,13 +289,13 @@ td.strong { font-weight: 700; }
   body { padding: calc(12px + env(safe-area-inset-top)) 12px 12px; }
   .shell { position: static; margin: -12px -12px 12px; padding: 8px 12px; }
   /* Menu tab melekat tepat di bawah bilah status; bayangan menutup celah di atasnya dengan warna permukaan. */
-  main > nav.controls { top: env(safe-area-inset-top); box-shadow: 0 calc(-1 * env(safe-area-inset-top)) 0 var(--surface); }
+  nav.maintabs { top: env(safe-area-inset-top); box-shadow: 0 calc(-1 * env(safe-area-inset-top)) 0 var(--surface); }
   .newgame { display: grid; grid-template-columns: 1fr 1fr; align-items: end; }
   .newgame label:nth-of-type(-n+2) { grid-column: 1 / -1; }
   .newgame label > input, .newgame label > select, .newgame input[type=number] { width: 100%; height: 44px; }
   .newgame button { grid-column: 1 / -1; justify-self: start; }
-  main > nav.controls { position: sticky; z-index: 2; background: var(--surface); flex-wrap: nowrap; overflow-x: auto; margin: 0 -12px 12px; padding: 0 12px; }
-  main > nav.controls button { flex: none; }
+  nav.maintabs { position: sticky; z-index: 2; background: var(--surface); flex-wrap: nowrap; overflow-x: auto; margin: 0 -12px 12px; padding: 0 12px; }
+  nav.maintabs button { flex: none; }
   button, select, input { min-height: 36px; font-size: 16px; }
   input[type=checkbox], input[type=radio] { min-height: 0; width: 18px; height: 18px; }
   /* Header ringkas: tombol lebih kecil agar muat 2 baris. */
@@ -318,7 +323,7 @@ td.strong { font-weight: 700; }
   .pname { display: block; padding: 4px 0; } /* pasangan di HP: satu nama per baris, "/" menempel di nama pertama */
   .pname a[href] { display: inline; padding: 0; } /* "/" mengikuti kata terakhir, tidak turun sendiri */
   /* Menu tab yang bisa digeser: tepi kanan memudar sebagai petunjuk masih ada tab lain. */
-  main > nav.controls { padding-right: 36px; mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+  nav.maintabs { padding-right: 36px; mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
   /* Papan skor Live Match muat selebar HP. */
   .board td { padding: 4px 4px; }
   .board td:nth-child(2) { min-width: 0; white-space: normal; }
@@ -349,16 +354,15 @@ td.strong { font-weight: 700; }
   td { padding-top: 6px; padding-bottom: 6px; }
   .drow { padding: 7px 0; }
   .card { padding: 8px 10px; }
-  h2 { font-size: 1.2rem; }
   /* Kolom sekunder disembunyikan di HP agar kolom penting (status, poin) tidak terpotong. */
   .hide-sm { display: none; }
   .show-sm { display: inline; }
   .callist td:nth-child(2) { white-space: normal; }
   .squadlist { max-height: none; } /* tanpa gulir bersarang di HP */
   /* Sub-tab (turnamen: Turnamen/Juara, nomor, Entry/Kualifikasi/Drawing/Bagan, Skuad Senior/Junior…): satu baris ringkas, geser bila perlu. */
-  nav.controls:not(main > nav) { flex-wrap: nowrap; overflow-x: auto; gap: 0; margin-bottom: 8px; scrollbar-width: none; }
-  nav.controls:not(main > nav) button { flex: none; min-height: 34px; font-size: 14px; padding: 2px 10px; }
-  nav.controls:not(main > nav) > .count { flex: none; padding-left: 6px; }
+  nav.controls:not(.maintabs) { flex-wrap: nowrap; overflow-x: auto; gap: 0; margin-bottom: 8px; scrollbar-width: none; }
+  nav.controls:not(.maintabs) button { flex: none; min-height: 34px; font-size: 14px; padding: 2px 10px; }
+  nav.controls:not(.maintabs) > .count { flex: none; padding-left: 6px; }
   .recent td:nth-child(2), .recent td:nth-child(4) { white-space: normal; } /* laga terakhir: turnamen & lawan turun baris, skor tetap terlihat */
 }
 

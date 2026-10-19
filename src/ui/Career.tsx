@@ -228,7 +228,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
           format={teamAsk.format} round={teamAsk.round} opponent={teamAsk.opponent} pool={teamAsk.pool} squad={teamAsk.squad} suggested={teamAsk.suggested}
           onDone={(v) => { setTeamAsk(undefined); teamAsk.resolve(v); }} onAuto={() => { autoRest.current.add(teamAsk.format); }} />
       )}
-      <nav className="controls">
+      <nav className="controls maintabs">
         {hubOn && <button aria-pressed={showHub} onClick={() => { setHubAway(false); setProfileId(undefined); setEventView(undefined); }}>🏸 {t('tabLive')}</button>}
         {tabs.map((x) => <button key={x} aria-pressed={!showHub && tab === x && !profileId && !eventView} onClick={() => { setTab(x); setHubAway(true); setProfileId(undefined); setEventView(undefined); }}>{t(tabLabel[x])}</button>)}
       </nav>
