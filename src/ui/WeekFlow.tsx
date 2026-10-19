@@ -119,7 +119,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
             ))}
           </nav>
         )}
-        {!done && mineRows.length > 1 && (
+        {!done && mineRows.length > 0 && (
           <div className="drawctl">
             <span className="seg">
               <button aria-pressed={mineRows.every((k) => !skipped.has(k))} onClick={() => setAll(false)}>▶ {t('liveAll')}</button>
