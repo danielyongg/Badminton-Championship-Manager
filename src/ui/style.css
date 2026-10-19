@@ -372,7 +372,7 @@ td.strong { font-weight: 700; }
 .roundlist td { overflow: hidden; text-overflow: ellipsis; }
 .roundlist tr.mine-row td { background: var(--accent-soft); }
 .roundlist td.win { font-weight: 700; }
-@media (max-width: 600px) { .roundlist td { white-space: normal; } .roundlist col.side { width: auto; } .roundlist col.score { width: 6em; } }
+@media (max-width: 600px) { .roundlist td { white-space: normal; overflow-wrap: anywhere; } /* nama panjang tetap utuh terlihat, tidak terpotong "…" */ .roundlist col.side { width: auto; } .roundlist col.score { width: 6em; } }
 .roundbar { position: sticky; bottom: 0; z-index: 2; background: var(--surface); padding: 10px 0; border-top: 1px solid var(--line); }
 .roundlist tr.current td { background: var(--gold-soft); }
 .roundlist .game { display: block; white-space: nowrap; }
