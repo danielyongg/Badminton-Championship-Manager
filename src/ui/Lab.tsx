@@ -33,7 +33,7 @@ export function Lab({ onBack }: { onBack: () => void }) {
   return (
     <main>
       <h1>{t('lab')}</h1>
-      <nav className="controls">
+      <nav className="controls maintabs">
         <button onClick={onBack}>← {t('mainMenu')}</button>
         <button aria-pressed={tab === 'players'} onClick={() => setTab('players')}>{t('tabPlayers')}</button>
         <button aria-pressed={tab === 'match'} onClick={() => setTab('match')}>{t('tabMatch')}</button>
