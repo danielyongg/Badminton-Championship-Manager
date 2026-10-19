@@ -9,7 +9,7 @@ permissions:
   pages: write
   id-token: write
 concurrency:
-  group: pages
+  group: pages-deploy # diganti dari "pages": run #172 tersangkut memegang grup lama (19 Okt 2026)
   cancel-in-progress: true
 jobs:
   deploy:
