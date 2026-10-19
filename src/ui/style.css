@@ -181,6 +181,8 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .drow > .pts { flex: none; font-variant-numeric: tabular-nums; font-size: .82rem; color: var(--muted); }
 .drow > .delta { flex: none; min-width: 2.4em; text-align: right; }
 .drow > .badge:first-child { min-width: 2.2em; text-align: center; }
+/* Baris ranking satu baris: nomor, nama (tautan ber-padding di HP), poin & perubahan sejajar di tengah. */
+.drow.rank { align-items: center; }
 .badge.danger { background: var(--danger-soft); color: var(--danger); }
 .badge.danger.strong { background: var(--danger); color: var(--surface); }
 .goals { list-style: none; margin: 0; padding: 0; }

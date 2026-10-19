@@ -586,7 +586,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
         {top10.length === 0 ? <p className="hint">—</p> : top10.map((r) => {
           const mine = entrantLabel(state, r.id).country === managed;
           return (
-            <div key={r.id} className={`drow${mine ? ' mine-row' : ''}`}>
+            <div key={r.id} className={`drow rank${mine ? ' mine-row' : ''}`}>
               <span className="badge">{r.rank}</span>
               <span className="grow">
                 <a href="#" onClick={(e) => { e.preventDefault(); onOpen(state.pairs.find((p) => p.id === r.id)?.playerIds[0] ?? r.id); }}><Flag id={r.id} />{entrantLabel(state, r.id).name}</a>
