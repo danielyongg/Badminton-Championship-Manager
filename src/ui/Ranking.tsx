@@ -103,7 +103,6 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
     const d = before - rank;
     return d ? <span className={d > 0 ? 'up' : 'down'}>{d > 0 ? '▲' : '▼'}{Math.abs(d)}</span> : <span className="muted-text">–</span>;
   };
-  const lastChampions = state.champions.filter((c) => c.year === state.date.year && ruleset.calendar.find((e) => e.id === c.tournamentId)?.week === state.date.week - 1);
 
   return (
     <section>
@@ -143,22 +142,6 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
         )}
         </>}
       </div>
-      {view === 'ranking' && lastChampions.length > 0 && (
-        // Juara minggu lalu: satu blok per turnamen, satu baris per nomor (bendera + nama).
-        <section className="champs">
-          <h4>{t('lastWeekChampions')}</h4>
-          <div className="champs-grid">
-            {[...new Set(lastChampions.map((c) => c.tournamentId))].map((tid) => (
-              <div key={tid}>
-                <b>{eventName(tid)}</b>
-                {lastChampions.filter((c) => c.tournamentId === tid).map((c) => (
-                  <div key={c.discipline} className="drow rank"><span className="chip">{c.discipline}</span><span className="grow"><span><Flag id={name(c.winner).country} />{name(c.winner).name}</span></span></div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
       {view === 'calendar' && <Calendar state={state} ruleset={ruleset} world={world} year={calYear} short={(id) => name(id).name} onOpenEvent={onOpenEvent} />}
       {view === 'nations' && <NationsTable state={state} ruleset={ruleset} world={world} />}
       {view === 'records' && <Records state={state} ruleset={ruleset} world={world} onOpenPlayer={onOpenPlayer} />}
