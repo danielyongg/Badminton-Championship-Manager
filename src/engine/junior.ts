@@ -37,12 +37,15 @@ export function juniorEntries(
     const free = (id: string) => manual[id] === undefined || manual[id] === ev.id;
     // Atlet yang sudah terdaftar di turnamen junior lain minggu ini tidak ikut lagi.
     const elsewhere = new Set(busy);
+    // Pilihan manajer (atlet tunggal / pasangan) untuk turnamen ini: selalu ikut & didahulukan dalam kuota negara.
+    const forced = new Set(Object.keys(manual).filter((id) => manual[id] === ev.id));
+    const forcedPlayers = new Set([...forced].flatMap((id) => state.pairs.find((x) => x.id === id)?.playerIds ?? [id]));
     // Turnamen opsional (Grand Prix/Challenge/Series), sekali per atlet per turnamen: istirahat bila lelah, peluang ikut
     // per tier, dan turnamen lokal sebagian besar diikuti atlet dari benua tuan rumah. Kejuaraan dunia/kontinental &
     // pilihan manajer: selalu ikut.
     const optional = play < 1 || local;
     const wants = new Map<string, boolean>();
-    const joins = (p: Player) => !optional || manual[p.id] === ev.id || (wants.get(p.id) ?? wants.set(p.id, p.fatigue <= rs.ai.restAbove
+    const joins = (p: Player) => !optional || forcedPlayers.has(p.id) || (wants.get(p.id) ?? wants.set(p.id, p.fatigue <= rs.ai.restAbove
       && rng() < play && (!local || conf.get(p.countryId) === hostConf(ev) || rng() < rs.ai.awayGrade3)).get(p.id)!);
     const eligible = (p: Player) => p.retired === undefined && !p.injury && isJuniorAge(p, state.date) && !elsewhere.has(p.id)
       && (!ev.confederation || conf.get(p.countryId) === ev.confederation) && free(p.id) && joins(p);
@@ -51,13 +54,13 @@ export function juniorEntries(
       if (!tier.drawSize[d]) { byD.set(d, []); continue; }
       const cap = isDoubles(d) ? quota.doubles : quota.singles;
       const list: { id: string; countryId: string; playerIds: string[] }[] = isDoubles(d)
-        ? juniorPairs(state, d as 'MD' | 'WD' | 'XD', eligible, free, cap, created, rng)
+        ? juniorPairs(state, d as 'MD' | 'WD' | 'XD', eligible, free, forced, cap, created, rng)
         : state.players.filter((p) => p.gender === (d === 'MS' ? 'M' : 'F') && eligible(p))
           .sort((a, b) => Number(a.focus === 'D') - Number(b.focus === 'D')) // spesialis tunggal didahulukan
           .map((p) => ({ id: p.id, countryId: p.countryId, playerIds: [p.id] }));
       const strength = (e: { playerIds: string[] }) => e.playerIds.reduce((s, id) => s + ca(id), 0);
       const rank = ranks.get(d)!;
-      const sorted = list.sort((a, b) => (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity) || strength(b) - strength(a));
+      const sorted = list.sort((a, b) => Number(forced.has(b.id)) - Number(forced.has(a.id)) || (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity) || strength(b) - strength(a));
       const per = new Map<string, number>();
       const picked = sorted.filter((e) => {
         const n = per.get(e.countryId) ?? 0;
@@ -77,13 +80,14 @@ export function juniorEntries(
 /** Pasangan junior satu nomor: pasangan aktif yang kedua atletnya U19, lalu sisa junior dipasangkan otomatis per negara. */
 function juniorPairs(
   state: JuniorState, d: 'MD' | 'WD' | 'XD', eligible: (p: Player) => boolean, free: (id: string) => boolean,
-  cap: number, created: Pair[], rng: Rng,
+  forced: Set<string>, cap: number, created: Pair[], rng: Rng,
 ) {
   const players = new Map(state.players.map((p) => [p.id, p]));
   const ok = (id: string) => { const p = players.get(id); return !!p && eligible(p); };
   const existing = state.pairs.filter((p) => p.discipline === d && !p.dissolved && !p.trial && (!p.adHoc || p.junior)
     && p.playerIds.every(ok) && free(p.id));
-  const out = existing.filter((p) => !p.junior).map((p) => ({ id: p.id, countryId: players.get(p.playerIds[0])!.countryId, playerIds: [...p.playerIds] }));
+  // Pasangan nyata, dan pasangan junior otomatis yang dipilih manajer untuk turnamen ini.
+  const out = existing.filter((p) => !p.junior || forced.has(p.id)).map((p) => ({ id: p.id, countryId: players.get(p.playerIds[0])!.countryId, playerIds: [...p.playerIds] }));
   const used = new Set(out.flatMap((e) => e.playerIds));
   const byCountry = new Map<string, Player[]>();
   for (const p of state.players) if (eligible(p) && !used.has(p.id)) byCountry.set(p.countryId, [...(byCountry.get(p.countryId) ?? []), p]);
