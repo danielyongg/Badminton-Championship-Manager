@@ -160,6 +160,7 @@ const id = {
   mainPair: 'Utama',
   pratama: 'Pratama', utama: 'Utama', promote: 'Promosikan', squadLevel: 'Pelatnas', pratamaHint: 'Junior pratama tidak didaftarkan otomatis ke turnamen senior (entry manual tetap bisa). Promosikan ke pelatnas utama agar ikut sirkuit senior; di usia 19 otomatis menjadi senior.',
   juniorRanking: 'Ranking junior dunia', juniorShort: 'Junior',
+  juniorRankEmpty: 'Belum ada turnamen junior yang dimainkan musim ini. Ranking junior hanya dihitung dari turnamen junior (U19), bukan turnamen senior; terisi setelah {name} (minggu {w}).',
   dissolve: 'Bubarkan',
   confirmDissolve: 'Bubarkan pasangan ini? Ranking pasangan hilang (pasangan baru mulai dari 0).',
   formPair: 'Bentuk pasangan baru',

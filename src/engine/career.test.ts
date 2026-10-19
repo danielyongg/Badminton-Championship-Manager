@@ -177,7 +177,12 @@ describe('promosi junior (pelatnas pratama → utama)', () => {
     const ids = new Set(pratama().map((p) => p.id));
     const sides = (m: { sides: string[] }) => m.sides.flatMap((s) => state.pairs.find((x) => x.id === s)?.playerIds ?? [s]);
     for (let i = 0; i < 6; i++) await playWeek(state, rs, WORLD, rng);
-    expect(state.matches.some((m) => sides(m).some((id) => ids.has(id)))).toBe(false);
+    // Hanya yang masih pratama sampai akhir (yang berulang tahun ke-19 di tengah jalan boleh didaftarkan AI).
+    const still = new Set(pratama().map((p) => p.id).filter((id) => ids.has(id)));
+    expect(still.size).toBeGreaterThan(0);
+    // Turnamen junior (U19) boleh; turnamen senior tidak.
+    const junior = new Set(rs.calendar.filter((e) => rs.tiers.find((x) => x.id === e.tierId)?.junior).map((e) => e.id));
+    expect(state.matches.some((m) => !junior.has(m.tournamentId) && sides(m).some((id) => still.has(id)))).toBe(false);
     // Junior AI tetap bermain di sirkuit senior.
     const aiJuniors = new Set(state.players.filter((p) => p.countryId !== 'INA' && isJuniorAge(p, state.date)).map((p) => p.id));
     expect(state.matches.some((m) => sides(m).some((id) => aiJuniors.has(id)))).toBe(true);

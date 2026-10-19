@@ -160,6 +160,7 @@ export const en: Record<TextKey, string> = {
   mainPair: 'Main',
   pratama: 'Development', utama: 'First team', promote: 'Promote', squadLevel: 'Squad level', pratamaHint: 'Development juniors are not entered in senior tournaments automatically (manual entry still works). Promote them to the first team to join the senior circuit; at 19 they become seniors automatically.',
   juniorRanking: 'World junior ranking', juniorShort: 'Junior',
+  juniorRankEmpty: 'No junior tournaments have been played this season yet. The junior ranking counts junior (U19) events only, not senior ones; it fills after {name} (week {w}).',
   dissolve: 'Split',
   confirmDissolve: 'Split this pair? The pair ranking is lost (a new pair starts from 0).',
   formPair: 'Form a new pair',

@@ -94,8 +94,11 @@ describe('Thomas, Uber & Sudirman Cup', () => {
       // Tiap konfederasi terwakili (juara kontinental lolos), termasuk Afrika & Oseania.
       const conf = new Map(WORLD.countries.map((c) => [c.id, c.confederation]));
       expect(new Set(r.teams.map((c) => conf.get(c)))).toEqual(new Set(['BA', 'BE', 'BAM', 'BCA', 'BO']));
-      for (const c of state.teamResults.filter((x) => x.confederation && x.format === r.format))
-        expect(r.teams).toContain(Object.keys(c.reached).find((k) => c.reached[k] === 'W'));
+      // Juara kontinental lolos; bila timnya tak bisa turun (cedera), diganti tim dari konfederasi yang sama.
+      for (const c of state.teamResults.filter((x) => x.confederation && x.format === r.format)) {
+        const champ = Object.keys(c.reached).find((k) => c.reached[k] === 'W')!;
+        if (!r.teams.includes(champ)) expect(r.teams.some((t) => c.teams.includes(t))).toBe(true);
+      }
       // Juara grup & runner-up yang sama tidak bertemu di QF.
       for (const t of r.ties.filter((x) => x.round === 'QF'))
         expect(r.groups!.some((g) => g.includes(t.sides[0]) && g.includes(t.sides[1]))).toBe(false);

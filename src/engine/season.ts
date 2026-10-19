@@ -735,11 +735,19 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
   const gate = gated ? roundGate(ev.id, formats, h.round) : undefined;
   const draw: DrawHook | undefined = gate && h.draw ? (d) => gate.serial(async () => { await h.draw!(d); }) : h.draw;
   const conf = new Map(world.countries.map((c) => [c.id, c.confederation as string]));
-  /** Peserta final: daftar yang sudah ditetapkan (tim yang kini tak bisa turun diganti tim ranking berikutnya), atau dihitung sekarang. */
+  /**
+   * Peserta final: daftar yang sudah ditetapkan (tim yang kini tak bisa turun diganti tim berikutnya dari konfederasi
+   * yang sama, lalu ranking berikutnya), atau dihitung sekarang.
+   */
   const finalsField = (format: TeamFormat, all: TeamStrength[]) => {
     const fixed = state.teamQualifiers?.[`${year}:${format}`];
     if (!fixed) return finalsTeams(state, rs, format, city.countryId, all, finals.teams, conf);
-    const picked = new Set(fixed.filter((c) => all.some((t) => t.countryId === c)));
+    const can = (c: string) => all.some((t) => t.countryId === c);
+    const picked = new Set(fixed.filter(can));
+    for (const c of fixed.filter((x) => !can(x))) {
+      const next = all.find((t) => !picked.has(t.countryId) && conf.get(t.countryId) === conf.get(c));
+      if (next) picked.add(next.countryId);
+    }
     for (const t of all) if (picked.size < finals.teams) picked.add(t.countryId);
     return all.filter((t) => picked.has(t.countryId)).map((t) => t.countryId);
   };
