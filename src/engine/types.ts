@@ -223,6 +223,14 @@ export interface MatchConfig {
   serviceEvent: { base: number; perMissingServe: number }; // peluang poin servis per rally
   /** Momentum (−1..1) bergeser tiap poin; sisi yang sedang unggul momentum mendapat bonus duel kecil. */
   momentum: { decay: number; weight: number };
+  /**
+   * Morale atlet (`Player.form`, −10..+10) → bonus/penalti semua atribut: positif × `up`, negatif × `down`.
+   * Berubah setelah tiap laga: `k` × (hasil − peluang menang menurut selisih ability, skala `scale`); juara/finalis
+   * dapat bonus; tiap minggu dikali `weeklyDecay` (kembali ke Normal).
+   */
+  morale: { up: number; down: number; scale: number; k: number; titleBonus: number; finalBonus: number; weeklyDecay: number };
+  /** Kondisi hari itu: bonus/penalti acak semua atribut per sisi per laga (simpangan baku). */
+  dayForm: { sd: number };
   strategies: Record<Strategy, StrategyEffect>;
   /** Sistem skor baru mulai tahun tertentu (BWF 3×15 mulai 2027): menggantikan poin, batas, interval, poin kritis & pemanasan. */
   newScoring?: { fromYear: number; pointsToWin: number; cap: number; intervalAt: number; pressureFrom: number; warmupPoints: number };
@@ -274,7 +282,7 @@ export interface Player {
   birth: GameDate;
   attrs: Attrs;
   pa: number; // potensi tersembunyi 1–100
-  form: number; // -10..+10
+  form: number; // morale −10..+10 (lihat MatchConfig.morale; nama lama dipertahankan agar save tetap cocok)
   fatigue: number; // 0..100
   /** `type` = jenis cedera (kunci teks `inj_{type}`); `severe` hanya ada di save lama (diganti `level` saat dimuat). */
   injury?: { weeksLeft: number; level: InjuryLevel; type: string; severe?: boolean };

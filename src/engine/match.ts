@@ -41,10 +41,16 @@ const PHYSICAL: Attr[] = ['speed', 'stamina', 'smash', 'defense'];
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
 const logistic = (x: number) => 1 / (1 + Math.exp(-x));
 
-function sideAttrs(side: SideInput, cfg: MatchConfig): Attrs {
+/** Tingkat morale (−10..+10) untuk tampilan. */
+export const MORALE_TIERS = ['veryLow', 'low', 'normal', 'high', 'veryHigh'] as const;
+export const moraleTier = (m: number) => MORALE_TIERS[m >= 6 ? 4 : m >= 2 ? 3 : m > -2 ? 2 : m > -6 ? 1 : 0];
+/** Bonus/penalti atribut dari morale: naik sedikit bila tinggi, turun penuh bila rendah. */
+export const moraleEffect = (m: number, cfg: MatchConfig) => m * (m >= 0 ? cfg.morale.up : cfg.morale.down);
+
+function sideAttrs(side: SideInput, cfg: MatchConfig, day = 0): Attrs {
   const ps = side.players;
   const bonus = ps.length > 1 ? ((side.chemistry ?? 50) - 50) * cfg.chemistryWeight : 0;
-  const form = ps.reduce((s, p) => s + p.form, 0) / ps.length;
+  const form = ps.reduce((s, p) => s + moraleEffect(p.form, cfg), 0) / ps.length + day;
   return Object.fromEntries(
     ATTRS.map((a) => [a, ps.reduce((s, p) => s + p.attrs[a], 0) / ps.length + form + bonus]),
   ) as Attrs;
@@ -54,8 +60,8 @@ export function createMatch(sides: [SideInput, SideInput], cfg: MatchConfig, rng
   const start = (s: SideInput) => clamp(100 - Math.max(...s.players.map((p) => p.fatigue)) * cfg.energy.fatigueToStart, 0, 100);
   return {
     sides: [
-      { attrs: sideAttrs(sides[0], cfg), energy: start(sides[0]), strategy: 'balanced' },
-      { attrs: sideAttrs(sides[1], cfg), energy: start(sides[1]), strategy: 'balanced' },
+      { attrs: sideAttrs(sides[0], cfg, normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[0]), strategy: 'balanced' },
+      { attrs: sideAttrs(sides[1], cfg, normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[1]), strategy: 'balanced' },
     ],
     games: [],
     score: [0, 0],
