@@ -90,7 +90,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   // Nomor unggulan di turnamen ini (dari hasil undian nomor itu); beregu tanpa unggulan.
   const seedOf = (key: string, id: string) => state.eventRecords
     .find((r) => r.tournamentId === show.tournamentId && r.year === state.date.year && r.discipline === key)?.slots.find((x) => x.entrant === id)?.seed;
-  const seedTag = (key: string, id: string) => { const n = seedOf(key, id); return n ? <small className="seed"> [{n}]</small> : null; };
+  const seedTag = (key: string, id: string) => { const n = seedOf(key, id); return n ? <> <small className="seed">[{n}]</small></> : null; }; // spasi di luar: unggulan boleh turun baris
   const isMine = (id: string) => label(id).country === managed;
   const mineKeys = new Set(show.matches.filter((m) => m.sides.some(isMine)).map((m) => m.key));
   const [picked, pick] = useState(lastTab);
