@@ -19,7 +19,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   const { year, week } = state.date;
   const [open, setOpen] = useState<string>();
   const [showPast, setShowPast] = useState(false); // turnamen yang sudah selesai disembunyikan dulu (minggu ini langsung terlihat)
-  const [view, setView] = useState<'calendar' | 'plan'>('calendar');
+  const [view, setView] = useState<'calendar' | 'plan' | 'champions'>('calendar');
   const submit = (id: string) => { (state.entriesSubmitted ??= {})[`${year}:${id}`] = true; changed(); void saveGame(game); setOpen(undefined); };
   const teamEv = open && ruleset.team.events.find((e) => e.id === open);
   if (teamEv) return (
@@ -50,12 +50,13 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
     <nav className="controls subnav">
       <button aria-pressed={view === 'calendar'} onClick={() => setView('calendar')}>{t('calendarTab')}</button>
       <button aria-pressed={view === 'plan'} onClick={() => setView('plan')}>{t('seasonPlan')}</button>
+      <button aria-pressed={view === 'champions'} onClick={() => setView('champions')}>{t('lastWeekChampions')}</button>
     </nav>
   );
   if (view === 'plan') return <>{nav}<SeasonPlan /></>;
+  if (view === 'champions') return <>{nav}<LastChampions /></>;
   return (
     <>{nav}
-    <LastChampions />
     <div className="scroll">
       {pastCount > 0 && <p><button onClick={() => setShowPast(!showPast)}>{showPast ? t('hidePast') : t('showPast', { n: pastCount })}</button></p>}
       <table className="callist">
@@ -163,16 +164,15 @@ function SeasonPlan() {
 }
 
 /** Tabel entry satu minggu; `eventId`: hanya atlet/pasangan di nomor yang dipertandingkan turnamen itu. */
-/** Juara minggu lalu: satu blok per turnamen, satu baris per nomor (bendera + nama). */
+/** Sub-tab juara minggu lalu: satu blok per turnamen, satu baris per nomor (bendera + nama). */
 function LastChampions() {
   const { game } = useGame();
   const { state, ruleset } = game;
   const { year, week } = state.date;
   const last = state.champions.filter((c) => c.year === year && ruleset.calendar.find((e) => e.id === c.tournamentId)?.week === week - 1);
-  if (!last.length) return null;
+  if (!last.length) return <p className="hint">—</p>;
   return (
     <section className="champs">
-      <h4>{t('lastWeekChampions')}</h4>
       <div className="champs-grid">
         {[...new Set(last.map((c) => c.tournamentId))].map((tid) => (
           <div key={tid}>
