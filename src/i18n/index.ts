@@ -159,7 +159,7 @@ const id = {
   tierPrefsFree: 'Otomatis', tierPrefs: 'Prioritas tier', tierPrefsHint: 'Tier yang diikuti saat entry otomatis: tier tertinggi yang menyala selalu didaftarkan (kecuali lelah/cedera). Otomatis (tidak ada yang menyala) = AI memilih menurut ranking & peluang seperti biasa.', sector: 'Sektor', manageSectors: 'Atur sektor', singlesHint: 'Ikut nomor tunggal (tanpa centang = spesialis ganda, tidak didaftarkan otomatis di tunggal)', pairsHint: 'Ikut nomor ganda (tanpa centang = tidak muncul di form bentuk pasangan; pasangannya dibubarkan)',
   mainPair: 'Utama',
   pratama: 'Pratama', utama: 'Utama', promote: 'Promosikan', squadLevel: 'Pelatnas', pratamaHint: 'Junior pratama tidak didaftarkan otomatis ke turnamen senior (entry manual tetap bisa). Promosikan ke pelatnas utama agar ikut sirkuit senior; di usia 19 otomatis menjadi senior.',
-  juniorRanking: 'Ranking junior dunia', juniorShort: 'Junior',
+  juniorRanking: 'Ranking junior dunia', juniorShort: 'Junior', seniorShort: 'Senior',
   juniorRankEmpty: 'Belum ada turnamen junior yang dimainkan musim ini. Ranking junior hanya dihitung dari turnamen junior (U19), bukan turnamen senior; terisi setelah {name} (minggu {w}).',
   dissolve: 'Bubarkan',
   confirmDissolve: 'Bubarkan pasangan ini? Ranking pasangan hilang (pasangan baru mulai dari 0).',

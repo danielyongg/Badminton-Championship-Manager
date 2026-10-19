@@ -3,7 +3,7 @@ import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { entrantsFor, hostCityId, openTo, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
 import { autoSquad, squadError, squadPool } from '../engine/team';
 import { contingentOf, inContingent, lockWeek } from '../engine/contingent';
-import { DISCIPLINES, isDoubles, type Discipline, type TeamFormat, type TournamentDef } from '../engine/types';
+import { DISCIPLINES, isDoubles, isJuniorFormat, type Discipline, type TeamFormat, type TournamentDef } from '../engine/types';
 import { dataName, t } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, teamLabel, tierLabel, useGame } from './game';
 import { FatigueBar } from './Squad';
@@ -20,6 +20,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   const [open, setOpen] = useState<string>();
   const [showPast, setShowPast] = useState(false); // turnamen yang sudah selesai disembunyikan dulu (minggu ini langsung terlihat)
   const [view, setView] = useState<'calendar' | 'plan' | 'champions'>('calendar');
+  const [scope, setScope] = useState<'all' | 'senior' | 'junior'>('all'); // kalender: semua / senior / junior (U19)
   const submit = (id: string) => { (state.entriesSubmitted ??= {})[`${year}:${id}`] = true; changed(); void saveGame(game); setOpen(undefined); };
   const teamEv = open && ruleset.team.events.find((e) => e.id === open);
   if (teamEv) return (
@@ -43,6 +44,10 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   const submitted = (id: string) => state.entriesSubmitted?.[`${year}:${id}`];
   const teamIds = new Set(ruleset.team.events.map((e) => e.id));
   const all = [...ruleset.calendar, ...ruleset.team.events].filter((e) => isHeld(e, year) && (!state.managedCountryId || openTo(e, state.managedCountryId, game.world))) // hanya event yang terbuka untuk negara manajer
+   .filter((e) => {
+     const junior = teamIds.has(e.id) ? !!('formats' in e && e.formats?.some(isJuniorFormat)) : !!ruleset.tiers.find((x) => x.id === ('tierId' in e ? e.tierId : ''))?.junior;
+     return scope === 'all' || (scope === 'junior') === junior;
+   })
    .sort((a, b) => weekOf(a, year) - weekOf(b, year));
   const pastCount = all.filter((e) => weekOf(e, year) < week).length;
   const list = showPast ? all : all.filter((e) => weekOf(e, year) >= week);
@@ -57,6 +62,11 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   if (view === 'champions') return <>{nav}<LastChampions /></>;
   return (
     <>{nav}
+    <nav className="controls subnav">
+      {(['all', 'senior', 'junior'] as const).map((x) => (
+        <button key={x} aria-pressed={scope === x} onClick={() => setScope(x)}>{t(({ all: 'all', senior: 'seniorShort', junior: 'juniorShort' } as const)[x])}</button>
+      ))}
+    </nav>
     <div className="scroll">
       {pastCount > 0 && <p><button onClick={() => setShowPast(!showPast)}>{showPast ? t('hidePast') : t('showPast', { n: pastCount })}</button></p>}
       <table className="callist">
@@ -70,7 +80,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
             <tr key={e.id} className={past ? 'muted-text' : undefined}>
               <td className="num">{weekOf(e, year)}</td>
               <td><a href="#" onClick={(x) => { x.preventDefault(); if (past || auto) onOpenEvent?.(e.id, year); else setOpen(e.id); }}>{team ? eventName(ruleset, e.id, year) : dataName(e.name)}</a></td>
-              <td><span className="chip">{team ? teamLabel(e) : ruleset.tiers.find((x) => x.id === tier)?.junior ? t('juniorShort') : tierLabel(tier)}</span></td>
+              <td><span className="chip">{team ? teamLabel(e) : ruleset.tiers.find((x) => x.id === tier)?.junior && scope !== 'junior' ? t('juniorShort') : tierLabel(tier)}</span></td>
               <td className="hide-sm">{city(hostCityId(e, year))}</td>
               <td>{past ? t('finished') : auto ? t('auto')
                 : submitted(e.id) ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>}</td>

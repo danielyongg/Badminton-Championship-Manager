@@ -159,7 +159,7 @@ export const en: Record<TextKey, string> = {
   tierPrefsFree: 'Auto', tierPrefs: 'Tier priority', tierPrefsHint: 'Tiers used by automatic entry: the highest highlighted tier is always entered (unless tired/injured). Auto (none highlighted) = AI chooses by ranking & chance as usual.', sector: 'Sector', manageSectors: 'Set sectors', singlesHint: 'Plays singles (unchecked = doubles specialist, not entered in singles automatically)', pairsHint: 'Plays doubles (unchecked = not listed in the form-pair form; their pairs are split)',
   mainPair: 'Main',
   pratama: 'Development', utama: 'First team', promote: 'Promote', squadLevel: 'Squad level', pratamaHint: 'Development juniors are not entered in senior tournaments automatically (manual entry still works). Promote them to the first team to join the senior circuit; at 19 they become seniors automatically.',
-  juniorRanking: 'World junior ranking', juniorShort: 'Junior',
+  juniorRanking: 'World junior ranking', juniorShort: 'Junior', seniorShort: 'Senior',
   juniorRankEmpty: 'No junior tournaments have been played this season yet. The junior ranking counts junior (U19) events only, not senior ones; it fills after {name} (week {w}).',
   dissolve: 'Split',
   confirmDissolve: 'Split this pair? The pair ranking is lost (a new pair starts from 0).',
