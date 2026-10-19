@@ -3,11 +3,11 @@ import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { entrantsFor, hostCityId, openTo, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
 import { autoSquad, squadError, squadPool } from '../engine/team';
 import { contingentOf, inContingent, lockWeek } from '../engine/contingent';
-import { DISCIPLINES, isDoubles, type Discipline, type TeamFormat, type TournamentDef } from '../engine/types';
+import { DISCIPLINES, isDoubles, isJuniorFormat, type Discipline, type TeamFormat, type TournamentDef } from '../engine/types';
 import { dataName, t } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, teamLabel, tierLabel, useGame } from './game';
 import { FatigueBar } from './Squad';
-import { isPratama } from '../engine/generator';
+import { isJuniorAge, isPratama } from '../engine/generator';
 import { formatName, SquadPicker } from './Team';
 import { Flag } from './Flag';
 import { plannableEvents, planWeek, type PlanCell } from '../engine/plan';
@@ -20,6 +20,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   const [open, setOpen] = useState<string>();
   const [showPast, setShowPast] = useState(false); // turnamen yang sudah selesai disembunyikan dulu (minggu ini langsung terlihat)
   const [view, setView] = useState<'calendar' | 'plan' | 'champions'>('calendar');
+  const [scope, setScope] = useState<'all' | 'senior' | 'junior'>('all'); // kalender: semua / senior / junior (U19)
   const submit = (id: string) => { (state.entriesSubmitted ??= {})[`${year}:${id}`] = true; changed(); void saveGame(game); setOpen(undefined); };
   const teamEv = open && ruleset.team.events.find((e) => e.id === open);
   if (teamEv) return (
@@ -30,6 +31,14 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
     </>
   );
   const ev = open && ruleset.calendar.find((e) => e.id === open);
+  if (ev && ruleset.tiers.find((x) => x.id === ev.tierId)?.junior) return (
+    <>
+      <p><button onClick={() => setOpen(undefined)}>← {t('back')}</button></p>
+      <h3>{t('week')} {weekOf(ev, year)} · {dataName(ev.name)} <small className="muted-text">{tierLabel(ev.tierId)}</small></h3>
+      <JuniorEntryTable ev={ev} />
+      <p><button className="primary" onClick={() => submit(ev.id)}>{t('submitEntries')}</button></p>
+    </>
+  );
   if (ev) return (
     <>
       <p><button onClick={() => setOpen(undefined)}>← {t('back')}</button></p>
@@ -43,6 +52,10 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   const submitted = (id: string) => state.entriesSubmitted?.[`${year}:${id}`];
   const teamIds = new Set(ruleset.team.events.map((e) => e.id));
   const all = [...ruleset.calendar, ...ruleset.team.events].filter((e) => isHeld(e, year) && (!state.managedCountryId || openTo(e, state.managedCountryId, game.world))) // hanya event yang terbuka untuk negara manajer
+   .filter((e) => {
+     const junior = teamIds.has(e.id) ? !!('formats' in e && e.formats?.some(isJuniorFormat)) : !!ruleset.tiers.find((x) => x.id === ('tierId' in e ? e.tierId : ''))?.junior;
+     return scope === 'all' || (scope === 'junior') === junior;
+   })
    .sort((a, b) => weekOf(a, year) - weekOf(b, year));
   const pastCount = all.filter((e) => weekOf(e, year) < week).length;
   const list = showPast ? all : all.filter((e) => weekOf(e, year) >= week);
@@ -57,6 +70,11 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   if (view === 'champions') return <>{nav}<LastChampions /></>;
   return (
     <>{nav}
+    <nav className="controls subnav">
+      {(['all', 'senior', 'junior'] as const).map((x) => (
+        <button key={x} aria-pressed={scope === x} onClick={() => setScope(x)}>{t(({ all: 'all', senior: 'seniorShort', junior: 'juniorShort' } as const)[x])}</button>
+      ))}
+    </nav>
     <div className="scroll">
       {pastCount > 0 && <p><button onClick={() => setShowPast(!showPast)}>{showPast ? t('hidePast') : t('showPast', { n: pastCount })}</button></p>}
       <table className="callist">
@@ -65,14 +83,15 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
           const past = weekOf(e, year) < week;
           const team = teamIds.has(e.id);
           const tier = 'tierId' in e ? e.tierId : '';
-          const auto = !team && (tier === 'WTF' || tier === 'OG' || ruleset.tiers.find((x) => x.id === tier)?.junior); // junior, Finals & Olimpiade: otomatis
+          const junior = !team && !!ruleset.tiers.find((x) => x.id === tier)?.junior; // junior: diisi manajer atau otomatis
+          const auto = !team && (tier === 'WTF' || tier === 'OG'); // Finals & Olimpiade: otomatis
           return (
             <tr key={e.id} className={past ? 'muted-text' : undefined}>
               <td className="num">{weekOf(e, year)}</td>
               <td><a href="#" onClick={(x) => { x.preventDefault(); if (past || auto) onOpenEvent?.(e.id, year); else setOpen(e.id); }}>{team ? eventName(ruleset, e.id, year) : dataName(e.name)}</a></td>
-              <td><span className="chip">{team ? teamLabel(e) : ruleset.tiers.find((x) => x.id === tier)?.junior ? t('juniorShort') : tierLabel(tier)}</span></td>
+              <td><span className="chip">{team ? teamLabel(e) : ruleset.tiers.find((x) => x.id === tier)?.junior && scope !== 'junior' ? t('juniorShort') : tierLabel(tier)}</span></td>
               <td className="hide-sm">{city(hostCityId(e, year))}</td>
-              <td>{past ? t('finished') : auto ? t('auto')
+              <td>{past ? t('finished') : auto || (junior && !submitted(e.id)) ? t('auto')
                 : submitted(e.id) ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>}</td>
             </tr>
           );
@@ -114,6 +133,9 @@ function SeasonPlan() {
     void saveGame(game);
   };
   const short = (id: string) => { const ev = ruleset.calendar.find((e) => e.id === id)!; return `${tierLabel(ev.tierId)} ${dataName(ev.name).split(' ')[0]}`; };
+  // Turnamen junior minggu itu yang terbuka untuk negara manajer: hanya ditawarkan bila semua atlet peserta masih U19.
+  const juniorEvents = (w: number) => ruleset.calendar.filter((ev) => weekOf(ev, year) === w && isHeld(ev, year) && ruleset.tiers.find((x) => x.id === ev.tierId)?.junior
+    && (!state.managedCountryId || openTo(ev, state.managedCountryId, game.world)));
   const label = (c: PlanCell) => c.eventId === 'rest' ? t('rest') : c.eventId ? short(c.eventId) : '—';
 
   if (!weeks.length) return <p>{t('noEvents')}</p>;
@@ -139,7 +161,9 @@ function SeasonPlan() {
                 const injured = e.playerIds.some((id) => (players.get(id)?.injury?.weeksLeft ?? 0) > w - week);
                 if (injured) return <td key={w} title={t('injury')}>🩹</td>;
                 const c = plan.get(w)!.get(e.id) ?? { eventId: null, kind: 'auto' as const };
-                const offered = plannableEvents(ruleset, year, w, state.managedCountryId).filter((ev) => ruleset.tiers.find((x) => x.id === ev.tierId)!.drawSize[e.d] > 0);
+                const offered = [...plannableEvents(ruleset, year, w, state.managedCountryId),
+                  ...(e.playerIds.every((id) => { const p = players.get(id); return !!p && isJuniorAge(p, { year, week: w }); }) ? juniorEvents(w) : [])]
+                  .filter((ev) => ruleset.tiers.find((x) => x.id === ev.tierId)!.drawSize[e.d] > 0);
                 const shown = c.kind === 'manual' ? label(c) : c.kind === 'required' ? `⭐ ${label(c)}` : t('tierPrefsFree');
                 // Sel menampilkan pilihan manual / turnamen wajib / "Otomatis"; select transparan di atasnya untuk mengubah.
                 return (
@@ -185,6 +209,86 @@ function LastChampions() {
         ))}
       </div>
     </section>
+  );
+}
+
+/**
+ * Entry turnamen junior negara manajer: atlet U19 per nomor (tunggal) & pasangan yang kedua atletnya U19 (termasuk pasangan
+ * junior otomatis dari turnamen sebelumnya). Main = pasti ikut & didahulukan dalam kuota; Otomatis = dipilih AI
+ * (ranking junior lalu kemampuan); sisa kuota ganda diisi pasangan otomatis.
+ */
+function JuniorEntryTable({ ev }: { ev: TournamentDef }) {
+  const { game, version, changed } = useGame();
+  const { state, ruleset } = game;
+  const country = state.career!.countryId!;
+  const { year } = state.date;
+  const w = weekOf(ev, year);
+  const tier = ruleset.tiers.find((x) => x.id === ev.tierId)!;
+  const key = weekKey({ year, week: w });
+  const decisions = state.manualEntries[key] ?? {};
+  const { players } = lookup(state);
+  const ranks = useMemo(() => {
+    const now = absWeek(state.date);
+    return new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.juniorResults ?? [], d, now, ruleset))]));
+  }, [version, state, ruleset]);
+  const set = (id: string, value: string) => {
+    const next = { ...decisions };
+    if (value === 'auto') delete next[id]; else next[id] = value;
+    state.manualEntries[key] = next;
+    changed();
+    void saveGame(game);
+  };
+  const junior = (id: string) => { const p = players.get(id); return !!p && p.countryId === country && p.retired === undefined && p.released === undefined && isJuniorAge(p, { year, week: w }); };
+  const rows = DISCIPLINES.filter((d) => tier.drawSize[d] > 0).flatMap((d) => (isDoubles(d)
+    ? state.pairs.filter((p) => p.discipline === d && !p.dissolved && !p.trial && p.playerIds.every(junior)).map((p) => ({ id: p.id, playerIds: p.playerIds }))
+    : state.players.filter((p) => p.gender === (d === 'MS' ? 'M' : 'F') && junior(p.id)).map((p) => ({ id: p.id, playerIds: [p.id] })))
+    .map((e) => ({ ...e, d, rank: ranks.get(d)!.get(e.id) }))
+    .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9)));
+  const sectors = DISCIPLINES.filter((d) => tier.drawSize[d] > 0);
+  const [picked, setSector] = useState<Discipline>();
+  const sector = picked && sectors.includes(picked) ? picked : sectors[0];
+  const quota = tier.junior!.quota;
+  const chosen = (d: Discipline) => rows.filter((e) => e.d === d && decisions[e.id] === ev.id).length;
+  const other = (v?: string) => v && v !== 'rest' && v !== ev.id ? ruleset.calendar.find((x) => x.id === v) : undefined;
+  return (
+    <>
+      <p className="hint">{t('juniorEntryHelp', { s: quota.singles, d: quota.doubles })}</p>
+      <nav className="controls subnav">
+        {sectors.map((d) => (
+          <button key={d} aria-pressed={d === sector} onClick={() => setSector(d)}>
+            {d} <span className="muted-text">{chosen(d)}/{isDoubles(d) ? quota.doubles : quota.singles}</span>
+          </button>
+        ))}
+      </nav>
+      {chosen(sector) > (isDoubles(sector) ? quota.doubles : quota.singles) && <p className="hint">⚠ {t('juniorOverQuota')}</p>}
+      {rows.every((e) => e.d !== sector) ? <p className="hint">{t(isDoubles(sector) ? 'juniorNoPairs' : 'juniorNone')}</p> : (
+        <div className="scroll">
+          <table>
+            <thead><tr><th>{t('name')}</th><th className="num">{t('rank')}</th><th className="hide-sm">{t('fatigue')}</th><th>{t('tournament')}</th></tr></thead>
+            <tbody>{rows.filter((e) => e.d === sector).map((e) => {
+              const injured = e.playerIds.some((id) => players.get(id)?.injury);
+              const tired = Math.max(...e.playerIds.map((id) => players.get(id)?.fatigue ?? 0));
+              const elsewhere = other(decisions[e.id]);
+              return (
+                <tr key={e.id}>
+                  <td><span className="chip">{e.d}</span> {entrantLabel(state, e.id).name}</td>
+                  <td className="num">{e.rank ?? '—'}</td>
+                  <td className="hide-sm"><FatigueBar value={tired} /></td>
+                  <td>{injured ? `🩹 ${t('injury')}` : (
+                    <select value={decisions[e.id] ?? 'auto'} onChange={(x) => set(e.id, x.target.value)}>
+                      <option value="auto">{t('auto')}</option>
+                      <option value={ev.id}>{t('juniorPlay')}</option>
+                      {elsewhere && <option value={elsewhere.id}>{dataName(elsewhere.name)}</option>}
+                      <option value="rest">{t('rest')}</option>
+                    </select>
+                  )}</td>
+                </tr>
+              );
+            })}</tbody>
+          </table>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -274,6 +378,8 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
                       <select value={decisions[e.id] ?? 'auto'} onChange={(ev) => set(e.id, ev.target.value)}>
                         <option value="auto">{e.trial ? t('notEntered') : t('auto')}</option>
                         {offered.map((ev) => <option key={ev.id} value={ev.id}>{dataName(ev.name)}</option>)}
+                        {/* Dipilih untuk turnamen junior minggu ini (diatur dari entry turnamen junior). */}
+                        {ruleset.calendar.filter((ev) => ev.id === decisions[e.id] && !offered.includes(ev)).map((ev) => <option key={ev.id} value={ev.id}>{dataName(ev.name)}</option>)}
                         <option value="rest">{t('rest')}</option>
                       </select>
                     )}</td>

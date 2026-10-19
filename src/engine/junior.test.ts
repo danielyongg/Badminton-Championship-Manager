@@ -5,7 +5,8 @@ import { BWF_2027 } from './presets/bwf2027';
 import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
 import { makeRng } from './rng';
-import { entrantsFor, newSeason, playWeek } from './season';
+import { entrantsFor, newSeason, playWeek, weekKey } from './season';
+import { currentAbility } from './generator';
 import { isDoubles, type Discipline } from './types';
 
 const rs = BWF_2026;
@@ -80,4 +81,21 @@ describe('spesialis ganda', () => {
     expect(juniorTeamEntrants(state, 'MS').some((e) => d.has(e.id))).toBe(false);
     expect(teamStrengths(state, rs, 'thomas').some((s) => s.pool.MS?.some((e) => d.has(e.id)))).toBe(false);
   });
+  it('entry manual manajer: "Main" pasti ikut walau lemah (didahulukan dalam kuota), "Istirahat" tidak ikut', async () => {
+    const state = newSeason(WORLD, rs, 7, undefined, 'INA');
+    const rng = makeRng(7);
+    const ev = juniorEvents().find((e) => e.tierId === 'JGP')!;
+    while (state.date.week < ev.week) await playWeek(state, rs, WORLD, rng);
+    const date = { year: 2026, week: ev.week };
+    const ina = state.players.filter((p) => p.countryId === 'INA' && p.gender === 'M' && !p.injury && p.retired === undefined && isJuniorAge(p, date))
+      .sort((a, b) => currentAbility(b.attrs) - currentAbility(a.attrs));
+    expect(ina.length).toBeGreaterThan(rs.tiers.find((t) => t.id === ev.tierId)!.junior!.quota.singles);
+    const [best] = ina, weakest = ina.at(-1)!;
+    state.manualEntries[weekKey(date)] = { [weakest.id]: ev.id, [best.id]: 'rest' };
+    await playWeek(state, rs, WORLD, rng);
+    const rec = state.eventRecords.find((r) => r.tournamentId === ev.id && r.discipline === 'MS')!;
+    const entered = [...rec.entry.main, ...rec.entry.qualifying, ...rec.entry.reserves].map((c) => c.id);
+    expect(entered).toContain(weakest.id);
+    expect(entered).not.toContain(best.id);
+  }, 60000);
 });
