@@ -9,6 +9,7 @@ import { entrantLabel, eventName, lookup, saveGame, teamLabel, tierLabel, useGam
 import { FatigueBar } from './Squad';
 import { isPratama } from '../engine/generator';
 import { formatName, SquadPicker } from './Team';
+import { Flag } from './Flag';
 import { plannableEvents, planWeek, type PlanCell } from '../engine/plan';
 
 /** Kalender & entry: daftar jadwal turnamen musim ini + status entry; klik turnamen → isi entry-nya. */
@@ -54,6 +55,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   if (view === 'plan') return <>{nav}<SeasonPlan /></>;
   return (
     <>{nav}
+    <LastChampions />
     <div className="scroll">
       {pastCount > 0 && <p><button onClick={() => setShowPast(!showPast)}>{showPast ? t('hidePast') : t('showPast', { n: pastCount })}</button></p>}
       <table className="callist">
@@ -161,6 +163,31 @@ function SeasonPlan() {
 }
 
 /** Tabel entry satu minggu; `eventId`: hanya atlet/pasangan di nomor yang dipertandingkan turnamen itu. */
+/** Juara minggu lalu: satu blok per turnamen, satu baris per nomor (bendera + nama). */
+function LastChampions() {
+  const { game } = useGame();
+  const { state, ruleset } = game;
+  const { year, week } = state.date;
+  const last = state.champions.filter((c) => c.year === year && ruleset.calendar.find((e) => e.id === c.tournamentId)?.week === week - 1);
+  if (!last.length) return null;
+  return (
+    <section className="champs">
+      <h4>{t('lastWeekChampions')}</h4>
+      <div className="champs-grid">
+        {[...new Set(last.map((c) => c.tournamentId))].map((tid) => (
+          <div key={tid}>
+            <b>{eventName(ruleset, tid, year)}</b>
+            {last.filter((c) => c.tournamentId === tid).map((c) => {
+              const w = entrantLabel(state, c.winner);
+              return <div key={c.discipline} className="drow rank"><span className="chip">{c.discipline}</span><span className="grow"><span><Flag id={w.country} />{w.name}</span></span></div>;
+            })}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function EntryTable({ week: w, eventId }: { week: number; eventId?: string }) {
   const { game, version, changed } = useGame();
   const { state, ruleset } = game;
