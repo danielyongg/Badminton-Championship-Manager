@@ -28,8 +28,8 @@ export interface DrawShow {
   steps: DrawStep[];
   size?: number;
   groups?: number;
-  /** Bagan gugur: bagan kualifikasi (ditampilkan sebelum undian babak utama). */
-  qualSections?: (Candidate | null)[][];
+  /** Bagan kualifikasi per nomor (ditampilkan sebelum undian babak utama); turnamen dimainkan: semua nomor di undian pertama. */
+  quals?: { discipline: Discipline; sections: (Candidate | null)[][] }[];
 }
 /** Daftar entry semua nomor satu turnamen (ditampilkan sekaligus sebelum undian). */
 export interface EntriesShow { tournamentId: string; lists: { discipline: Discipline; entry: EntryList }[] }
@@ -89,7 +89,7 @@ export async function runEvent(opts: {
   const rec: EventRecord = { tournamentId: tournament.id, year: opts.year, discipline, entry, qualRounds, steps: draw.steps, slots: draw.slots, rounds: [slotField(draw.slots)] };
   qualSections.forEach((sec, i) => qualRounds[i].push(sec.map((c) => c?.id ?? null)));
   opts.onRecord?.(rec);
-  await opts.onDraw?.({ tournamentId: tournament.id, discipline, entrants: drawEntrants.map((e) => e.id), steps: draw.steps, size: draw.slots.length, qualSections });
+  await opts.onDraw?.({ tournamentId: tournament.id, discipline, entrants: drawEntrants.map((e) => e.id), steps: draw.steps, size: draw.slots.length, quals: qualSections.length ? [{ discipline, sections: qualSections }] : [] });
 
   qualRounds.forEach((r) => { r.length = 0; }); // diisi ulang babak demi babak oleh playKnockout
   const qualResults = await each(parallel, qualSections, (sec, i) => playKnockout(sec.map((c) => c?.id ?? null), opts.play, qualRoundName, parallel, qualRounds[i]));

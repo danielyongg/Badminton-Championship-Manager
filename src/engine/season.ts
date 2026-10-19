@@ -10,7 +10,7 @@ import type { Standing } from './groups';
 import { each, type MatchRound, type PlayFn } from './knockout';
 import { juniorEntries, juniorTeamEntrants } from './junior';
 import { AD_HOC, adHocEntrants, autoLineup, rankOrder, autoSquad, lineupError, playTie, runTeamEvent, squadError, squadPool, type Lineup, type TeamEntrant } from './team';
-import { runEvent, simPlay, toRecord, type DrawHook, type EntriesHook, type EntriesShow, type EventRecord, type LiveHook } from './tournament';
+import { runEvent, simPlay, toRecord, type DrawHook, type DrawShow, type EntriesHook, type EntriesShow, type EventRecord, type LiveHook } from './tournament';
 import { roundGate, type RoundHook } from './gate';
 import { makeScouting, recruit, SCOUTING_DEADLINE_WEEK, type Scouting } from './scouting';
 import {
@@ -445,8 +445,21 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     const city = cities.get(hostCityId(event, year))!;
     const firstMatch = state.matches.length;
     const gate = gated ? roundGate(event.id, DISCIPLINES, h.round) : undefined;
-    const draw: DrawHook | undefined = gate && h.draw ? (d) => gate.serial(async () => { await h.draw!(d); }) : h.draw;
     const ds = DISCIPLINES.filter((d) => tier.drawSize[d] > 0 && entries.get(event.id)!.get(d)!.length >= 2);
+    // Undian semua nomor dikumpulkan dulu: bagan kualifikasi kelima nomor tampil sekaligus, lalu undian babak utama per nomor.
+    const shows: DrawShow[] = [];
+    let drawn: () => void = () => {};
+    const allDrawn = new Promise<void>((r) => { drawn = r; });
+    const draw: DrawHook | undefined = gate && h.draw ? async (d) => {
+      shows.push(d);
+      if (shows.length === ds.length) {
+        shows.sort((a, b) => DISCIPLINES.indexOf(a.discipline!) - DISCIPLINES.indexOf(b.discipline!));
+        const quals = shows.flatMap((s) => s.quals ?? []);
+        for (const [i, s] of shows.entries()) await gate.serial(async () => { await h.draw!({ ...s, quals: i ? [] : quals }); });
+        drawn();
+      }
+      await allDrawn;
+    } : h.draw;
     // Daftar entry semua nomor ditampilkan sekaligus: tiap nomor menunggu sampai entry nomor terakhir diterima & daftarnya ditutup.
     const lists: EntriesShow['lists'] = [];
     let listed: () => void = () => {};
