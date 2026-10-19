@@ -429,6 +429,11 @@ td.strong { font-weight: 700; }
 .seeds { max-width: 560px; margin-bottom: 12px; }
 .entrylist .chip { font-size: .72rem; }
 .entrylist td:nth-child(2) { white-space: normal; }
+/* Morale: hijau = tinggi, merah = rendah. */
+.morale { white-space: nowrap; font-weight: 600; }
+.morale-veryHigh, .morale-high { color: var(--accent-strong); }
+.morale-normal { color: var(--muted); }
+.morale-low, .morale-veryLow { color: var(--danger); }
 .seed { color: var(--muted); font-weight: 600; white-space: nowrap; }
 /* Ranking: perubahan peringkat kecil di samping nomor peringkat (tabel tetap muat di HP). */
 .rankcell { white-space: nowrap; }

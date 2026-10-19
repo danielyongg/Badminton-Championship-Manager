@@ -63,8 +63,7 @@ export function developQuarter(p: Player, cfg: DevelopmentConfig, ctx: QuarterCo
   // 4) Batas: atribut 1–100 dan CA tidak pernah melampaui PA.
   capToPa(p);
 
-  // 5) Form bergeser acak tiap kuartal.
-  p.form = clamp(p.form * 0.5 + normal(rng, 0, 3), -10, 10);
+  // 5) Morale (`form`) tidak lagi acak: diatur hasil laga & pulih tiap minggu (lihat updateMorale di season.ts).
   p.caDelta = currentAbility(p.attrs) - Math.round(before);
 }
 

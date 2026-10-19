@@ -399,6 +399,31 @@ export type ChooseEvent = (req: { week: number; events: { id: string; kind: 'ind
 export interface WeekHooks { live?: LiveHook; team?: TeamHook; draw?: DrawHook; entries?: EntriesHook; round?: RoundHook; chooseEvent?: ChooseEvent }
 
 /** Satu minggu kalender. Hook yang mengembalikan Promise membuat simulasi menunggu keputusan di UI. */
+/**
+ * Morale setelah laga minggu ini: tiap laga menggeser morale atlet sebesar k × (hasil − peluang menang menurut
+ * selisih ability), jadi kemenangan atas lawan lebih kuat menaikkan banyak & kekalahan dari lawan lebih lemah
+ * menurunkan banyak. Juara (& finalis turnamen individu) mendapat bonus.
+ */
+function updateMorale(state: SeasonState, rs: Ruleset, fromMatch: number, fromChampion: number) {
+  const cfg = rs.match.morale;
+  const players = new Map(state.players.map((p) => [p.id, p]));
+  const pairs = new Map(state.pairs.map((p) => [p.id, p]));
+  const members = (id: string) => (pairs.get(id)?.playerIds ?? [id]).map((x) => players.get(x)).filter((p): p is Player => !!p);
+  const ability = (ps: Player[]) => ps.reduce((s, p) => s + currentAbility(p.attrs), 0) / Math.max(1, ps.length);
+  const add = (ps: Player[], d: number) => { for (const p of ps) p.form = Math.max(-10, Math.min(10, p.form + d)); };
+  for (const m of state.matches.slice(fromMatch)) {
+    if (m.walkover) continue;
+    const sides = m.sides.map(members);
+    if (sides.some((ps) => !ps.length)) continue;
+    const p0 = 1 / (1 + Math.exp((ability(sides[1]) - ability(sides[0])) / cfg.scale)); // peluang sisi 0 menang
+    const d = cfg.k * ((m.winner === 0 ? 1 : 0) - p0);
+    add(sides[0], d);
+    add(sides[1], -d);
+    if (m.round === 'F') add(sides[1 - m.winner], cfg.finalBonus);
+  }
+  for (const c of state.champions.slice(fromChampion)) add(members(c.winner), cfg.titleBonus);
+}
+
 export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rng: Rng, hooks: WeekHooks = {}) {
   const { year, week } = state.date;
   if (state.commitmentsYear !== year) startYear(state, rs, rng, world);
@@ -418,7 +443,9 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   for (const p of state.players) {
     p.fatigue = Math.max(0, p.fatigue - rs.fatigue.recoveryPerWeek);
     if (p.injury && --p.injury.weeksLeft <= 0) p.injury = undefined;
+    p.form *= rs.match.morale.weeklyDecay; // morale perlahan kembali ke Normal
   }
+  const weekMatches = state.matches.length, weekChampions = state.champions.length;
   const isJunior = (e: TournamentDef) => !!tierOf(rs, e).junior;
   // Pilihan pertama diminta sebelum entry dihitung: manajer masih bisa mengisi entry dari layar minggu.
   const all = [...events.map((e) => ({ id: e.id, kind: 'individual' as const })), ...teamEvents.map((e) => ({ id: e.id, kind: 'team' as const }))];
@@ -508,6 +535,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   }
   for (const e of all) if (!played.includes(e.id)) await playAny(e.id, hooks.chooseEvent ? {} : hooks, false);
   lockFinalsQualifiers(state, rs, world, true); // kejuaraan kontinental minggu ini selesai → peserta final langsung ditetapkan
+  updateMorale(state, rs, weekMatches, weekChampions);
 
   // Top Committed: absen dari turnamen wajib minggu ini = pelanggaran (cedera dikecualikan mulai Fase 7).
   for (const event of events)

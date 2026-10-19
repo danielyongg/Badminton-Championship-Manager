@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { dissolvePair, potentialStars, promoteJunior, recallPlayer, releasePlayer } from '../engine/career';
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
-import { headToHead } from '../engine/match';
+import { headToHead, moraleTier } from '../engine/match';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { rankFromSnapshots } from '../engine/season';
 import { ATTRS, DISCIPLINES, type Attr, type Discipline, type GameDate, type Player } from '../engine/types';
@@ -86,6 +86,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
     { key: 'age', label: 'age', num: true, value: (p) => ageAt(p.birth, state.date) },
     { key: 'ability', label: 'ability', num: true, value: (p) => currentAbility(p.attrs), desc: true },
     { key: 'potential', label: 'potential', value: starsOf, desc: true },
+    { key: 'morale', label: 'morale', value: (p) => p.form, desc: true },
     { key: 'fatigue', label: 'fatigue', value: (p) => p.fatigue, desc: true, mHide: true },
     // Status: siap / lelah (di atas batas istirahat AI) / cedera (detail saat kursor diarahkan).
     { key: 'status', label: 'status', value: (p) => (p.injury ? 2 + p.injury.weeksLeft / 100 : p.fatigue > ruleset.ai.restAbove ? 1 : 0), desc: true },
@@ -146,6 +147,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               <td className="num">{ageAt(p.birth, state.date)}</td>
               <td className="num">{currentAbility(p.attrs)}<span className={p.caDelta! > 0 ? 'up' : 'down'}>{arrow(p.caDelta)}</span></td>
               <td className="stars">{starText(starsOf(p))}</td>
+              <td><MoraleTag value={p.form} short /></td>
               <td className="m-hide"><FatigueBar value={p.fatigue} /></td>
               <td>{p.injury
                 ? <span className={`badge danger${isBadInjury(p.injury) ? ' strong' : ''}`} title={injuryText(p.injury, state.date)}>✚ {t('injury')}</span>
@@ -236,6 +238,14 @@ type ProfileTab = 'summary' | 'events' | 'matches' | 'h2h';
  * Profil atlet: kartu identitas (selalu tampil) + sub-tab Ringkasan (statistik, ranking, atribut, cedera),
  * Turnamen & Committed, Riwayat laga, H2H & pasangan.
  */
+const MORALE_ICON = { veryHigh: '▲▲', high: '▲', normal: '–', low: '▼', veryLow: '▼▼' } as const;
+/** Morale atlet (5 tingkat); `short` = ikon saja (tabel), nama tingkat sebagai keterangan. */
+export function MoraleTag({ value, short }: { value: number; short?: boolean }) {
+  const tier = moraleTier(value);
+  const label = t(`morale_${tier}` as TextKey);
+  return <span className={`morale morale-${tier}`} title={label}>{MORALE_ICON[tier]}{!short && ` ${label}`}</span>;
+}
+
 export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBack: () => void; onOpen: (id: string) => void; onOpenEvent?: (id: string, year: number) => void }) {
   const { game, changed, version } = useGame();
   const { state, ruleset } = game;
@@ -307,6 +317,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           {fact(t('country'), <><Flag id={p.countryId} />{p.countryId} · {p.gender} · {p.hand}</>)}
           {fact(t('age'), ageAt(p.birth, state.date))}
           {fact(t('ability'), <>{currentAbility(p.attrs)}{arrow(p.caDelta)}</>)}
+          {fact(t('morale'), <MoraleTag value={p.form} />)}
           {fact(t('potential'), <span className="stars">{starText(potentialStars(p, state.date, counts.get(p.id) ?? 0))}</span>)}
           {fact(t('fatigue'), <FatigueBar value={p.fatigue} />)}
           {fact(t('status'), p.retired !== undefined ? `${t('retired')} ${p.retired}`
