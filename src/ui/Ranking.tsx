@@ -37,6 +37,8 @@ export function Ranking({ ruleset, world, seed }: { ruleset: Ruleset; world: Wor
   );
 }
 
+const PAGE = 100;
+
 /** Ranking dunia & Race (sub-tab per nomor), kalender & juara per tahun, daftar semua turnamen — untuk satu SeasonState. */
 export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOpenEvent }: {
   state: SeasonState; ruleset: Ruleset; world: World; version: number; onOpenPlayer?: (id: string) => void; onOpenEvent?: (id: string, year: number) => void;
@@ -65,6 +67,19 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
     ...olympicRanking(state, ruleset, discipline, og.year),
     field: new Map(olympicField(state, ruleset, discipline, og.year, world).map((c) => [c.id, c.via])),
   } : undefined), [version, discipline, mode, ruleset]);
+  // Tabel ranking per halaman 100 (1–100, 101–200, …); kembali ke halaman 1 saat nomor / jenis / minggu diganti.
+  const [page, setPage] = useState(0);
+  useEffect(() => setPage(0), [discipline, mode, asOf]);
+  const tableTop = useRef<HTMLDivElement>(null);
+  const pager = (bottom: boolean) => rows.length > PAGE && (
+    <nav className="controls subnav">
+      {Array.from({ length: Math.ceil(rows.length / PAGE) }, (_, i) => (
+        <button key={i} aria-pressed={i === page} onClick={() => { setPage(i); if (bottom) tableTop.current?.scrollIntoView({ block: 'start' }); }}>
+          {i * PAGE + 1}–{Math.min((i + 1) * PAGE, rows.length)}
+        </button>
+      ))}
+    </nav>
+  );
   const qualified = (id: string) => olympic?.field.has(id) && (
     <span className="badge good">✓{olympic.field.get(id) !== 'rank' ? ` ${t(olympic.field.get(id) === 'host' ? 'olympicHost' : 'olympicContinent')}` : ''}</span>
   );
@@ -144,11 +159,12 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
         <p className="hint">{t(olympic.projected ? 'olympicHintProjected' : 'olympicHint', { from: og.year - 1, to: og.year, n: olympic.field.size })}</p>
       )}
       {view === 'ranking' && <div className="split">
-        <div>
+        <div ref={tableTop}>
+          {pager(false)}
           <table className="fit">
             <thead><tr><th className="num" title={prevRank ? t('rankMoveHint') : undefined}>#</th><th>{t('name')}</th><th className="hide-sm">{t('country')}</th><th className="num">{t('points')}</th><th className="num hide-sm">{t('tournaments')}</th>{olympic && <th className="hide-sm">{t('olympicQualified')}</th>}</tr></thead>
             <tbody>
-              {rows.map((r) => (
+              {rows.slice(page * PAGE, (page + 1) * PAGE).map((r) => (
                 <tr key={r.entrantId} onClick={() => setSelected(r.entrantId)} className={selected === r.entrantId ? 'sel' : ''} style={{ cursor: 'pointer' }}>
                   <td className="num rankcell">{r.rank} <small>{move(r.entrantId, r.rank)}</small></td><td><span className="show-sm"><Flag id={name(r.entrantId).country} /></span>{name(r.entrantId).name}{olympic && <span className="show-sm"> {qualified(r.entrantId)}</span>}</td><td className="hide-sm"><Flag id={name(r.entrantId).country} />{name(r.entrantId).country}</td>
                   <td className="num">{r.points.toLocaleString(numLocale())}</td><td className="num hide-sm">{r.tournamentsPlayed}</td>
@@ -157,6 +173,7 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
               ))}
             </tbody>
           </table>
+          {pager(true)}
         </div>
         {selected && <Detail id={selected} label={name(selected).name} state={state} discipline={discipline} ruleset={ruleset} eventName={eventName} junior={mode === 'junior'} />}
       </div>}
