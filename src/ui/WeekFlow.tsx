@@ -140,7 +140,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
             // Beregu: jumlah partai dimenangkan; individu: skor per game.
             const score = !m.result ? '' : team
               ? `${m.result.scores.filter(([x, y]) => x > y).length}–${m.result.scores.filter(([x, y]) => x < y).length}`
-              : m.result.scores.map(([x, y]) => `${x}-${y}`).join(' ');
+              : m.result.scores.map(([x, y], i) => <span key={i} className="game">{x}-{y}</span>); // satu game per baris
             const k = rowKey(m);
             return (
               <tr key={k} className={[mine && 'mine-row', m === current && 'current'].filter(Boolean).join(' ') || undefined}>

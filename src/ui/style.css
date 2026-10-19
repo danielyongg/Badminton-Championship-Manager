@@ -375,6 +375,7 @@ td.strong { font-weight: 700; }
 @media (max-width: 600px) { .roundlist td { white-space: normal; } .roundlist col.side { width: auto; } .roundlist col.score { width: 6em; } }
 .roundbar { position: sticky; bottom: 0; z-index: 2; background: var(--surface); padding: 10px 0; border-top: 1px solid var(--line); }
 .roundlist tr.current td { background: var(--gold-soft); }
+.roundlist .game { display: block; white-space: nowrap; }
 .roundlist .rowtoggle { font-size: .75rem; padding: 1px 8px; min-height: 0; white-space: nowrap; }
 @media (max-width: 600px) {
   /* Live drawing grup: dua grup per baris agar semua grup terlihat tanpa banyak menggulir. */
