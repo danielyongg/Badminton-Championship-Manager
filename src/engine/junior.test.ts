@@ -12,11 +12,12 @@ const rs = BWF_2026;
 const juniorEvents = (r = rs) => r.calendar.filter((e) => r.tiers.find((t) => t.id === e.tierId)?.junior);
 
 describe('turnamen junior', () => {
-  it('ada di kalender 2026 & 2027+: 5 kontinental (minggu 28) + Kejuaraan Dunia Junior (minggu 41)', () => {
+  it('ada di kalender 2026 & 2027+: 5 kontinental (minggu 28) + Kejuaraan Dunia Junior (minggu 41) + junior internasional terbuka sepanjang musim', () => {
     for (const r of [BWF_2026, BWF_2027]) {
       const js = juniorEvents(r);
       expect(js.filter((e) => e.week === 28 && e.confederation).map((e) => e.confederation).sort()).toEqual(['BA', 'BAM', 'BCA', 'BE', 'BO']);
       expect(js.filter((e) => e.week === 41 && !e.confederation)).toHaveLength(1);
+      expect(js.filter((e) => e.week < 28 && !e.confederation).length).toBeGreaterThanOrEqual(3); // ranking junior terisi sebelum kejuaraan kontinental
     }
   });
 
@@ -62,7 +63,9 @@ describe('turnamen junior', () => {
     const auto = state.pairs.filter((p) => p.junior);
     expect(auto.length).toBeGreaterThan(0);
     expect(auto.every((p) => p.adHoc && !entrantsFor(state, p.discipline).some((e) => e.id === p.id))).toBe(true);
-    expect(auto.every((p) => p.playerIds.every((id) => isJuniorAge(players.get(id)!, { year: 2026, week: 28 })))).toBe(true);
+    // Pasangan otomatis dibentuk saat turnamen junior pertama yang diikuti: kedua atlet U19 pada minggu itu.
+    const firstWeek = Math.min(...juniorEvents().map((e) => e.week));
+    expect(auto.every((p) => p.playerIds.every((id) => isJuniorAge(players.get(id)!, { year: 2026, week: firstWeek })))).toBe(true);
   }, 60000);
 });
 

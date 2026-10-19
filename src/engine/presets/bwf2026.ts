@@ -134,6 +134,15 @@ export const TIERS_2026: Tier[] = [
     qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
     junior: { quota: { singles: 4, doubles: 3 } },
   },
+  {
+    // ASUMSI: turnamen junior internasional terbuka (gaya Junior International Series) sepanjang musim; draw kecil, poin di bawah kejuaraan kontinental.
+    id: 'JIS', name: 'Junior International Series', grade: 3,
+    points: [3000, 2550, 2100, 1650, 1200, 750, 300, 150, 0],
+    prizeUsd: 0, prizeSplit: NO_PRIZE,
+    drawSize: { MS: 32, WS: 32, MD: 16, WD: 16, XD: 16 },
+    qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
+    junior: { quota: { singles: 2, doubles: 1 } },
+  },
 ];
 // ASUMSI: S1000/S750 tanpa babak kualifikasi (draw 32 diisi dari ranking); kualifikasi mulai S500.
 
@@ -231,6 +240,13 @@ export const CALENDAR_2026: TournamentDef[] = [
   { id: 'panam-junior', name: 'Pan Am Junior Championships', cityId: 'lima', week: 28, tierId: 'JC2', prizeUsd: 0, confederation: 'BAM' },
   { id: 'africa-junior', name: 'African Junior Championships', cityId: 'lagos', week: 28, tierId: 'JC2', prizeUsd: 0, confederation: 'BCA' },
   { id: 'oceania-junior', name: 'Oceania Junior Championships', cityId: 'sydney', week: 28, tierId: 'JC2', prizeUsd: 0, confederation: 'BO' },
+  // ASUMSI: turnamen junior internasional terbuka, tersebar sepanjang musim (minggu & kota disederhanakan).
+  { id: 'dutch-junior', name: 'Dutch Junior International', cityId: 'almere', week: 9, tierId: 'JIS', prizeUsd: 0 },
+  { id: 'german-junior', name: 'German Junior International', cityId: 'mulheim', week: 13, tierId: 'JIS', prizeUsd: 0 },
+  { id: 'india-junior', name: 'India Junior International', cityId: 'lucknow', week: 17, tierId: 'JIS', prizeUsd: 0 },
+  { id: 'indonesia-junior', name: 'Indonesia Junior International', cityId: 'jakarta', week: 21, tierId: 'JIS', prizeUsd: 0 },
+  { id: 'malaysia-junior', name: 'Malaysia Junior International', cityId: 'kuala-lumpur', week: 34, tierId: 'JIS', prizeUsd: 0 },
+  { id: 'thailand-junior', name: 'Thailand Junior International', cityId: 'bangkok', week: 37, tierId: 'JIS', prizeUsd: 0 },
   { id: 'world-junior', name: 'BWF World Junior Championships', cityId: 'guwahati', week: 41, tierId: 'WJC', prizeUsd: 0 },
 ];
 

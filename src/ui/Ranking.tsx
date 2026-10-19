@@ -71,6 +71,9 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
   const [page, setPage] = useState(0);
   useEffect(() => setPage(0), [discipline, mode, asOf]);
   const tableTop = useRef<HTMLDivElement>(null);
+  // Ranking junior kosong: turnamen junior berikutnya musim ini (poin junior hanya dari turnamen junior).
+  const nextJunior = ruleset.calendar.filter((e) => isHeld(e, state.date.year) && ruleset.tiers.find((x) => x.id === e.tierId)?.junior && weekOf(e, state.date.year) >= state.date.week)
+    .sort((a, b) => weekOf(a, state.date.year) - weekOf(b, state.date.year))[0];
   const pager = (bottom: boolean) => rows.length > PAGE && (
     <nav className="controls subnav">
       {Array.from({ length: Math.ceil(rows.length / PAGE) }, (_, i) => (
@@ -146,6 +149,9 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
       {view === 'nations' && <NationsTable state={state} ruleset={ruleset} world={world} />}
       {view === 'records' && <Records state={state} ruleset={ruleset} world={world} onOpenPlayer={onOpenPlayer} />}
       {view === 'events' && <EventDirectory state={state} ruleset={ruleset} world={world} onOpenEvent={onOpenEvent} />}
+      {view === 'ranking' && mode === 'junior' && rows.length === 0 && nextJunior && (
+        <p className="hint">{t('juniorRankEmpty', { name: eventName(nextJunior.id), w: weekOf(nextJunior, state.date.year) })}</p>
+      )}
       {view === 'ranking' && olympic && og && (
         <p className="hint">{t(olympic.projected ? 'olympicHintProjected' : 'olympicHint', { from: og.year - 1, to: og.year, n: olympic.field.size })}</p>
       )}
