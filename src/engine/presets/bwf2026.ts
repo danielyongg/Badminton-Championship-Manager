@@ -134,14 +134,31 @@ export const TIERS_2026: Tier[] = [
     qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
     junior: { quota: { singles: 4, doubles: 3 } },
   },
+  // ASUMSI: turnamen junior internasional (gaya BWF Junior International Grand Prix / Challenge / Series). Poin di bawah
+  // kejuaraan kontinental; Challenge & Series sebagian besar diikuti atlet dari benua tuan rumah (`local`).
   {
-    // ASUMSI: turnamen junior internasional terbuka (gaya Junior International Series) sepanjang musim; draw kecil, poin di bawah kejuaraan kontinental.
-    id: 'JIS', name: 'Junior International Series', grade: 3,
+    id: 'JGP', name: 'Junior International Grand Prix', grade: 3,
+    points: [4500, 3825, 3150, 2475, 1800, 1125, 450, 225, 0],
+    prizeUsd: 0, prizeSplit: NO_PRIZE,
+    drawSize: { MS: 64, WS: 64, MD: 32, WD: 32, XD: 32 },
+    qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
+    junior: { quota: { singles: 3, doubles: 2 }, play: 0.8 },
+  },
+  {
+    id: 'JIC', name: 'Junior International Challenge', grade: 3,
     points: [3000, 2550, 2100, 1650, 1200, 750, 300, 150, 0],
     prizeUsd: 0, prizeSplit: NO_PRIZE,
     drawSize: { MS: 32, WS: 32, MD: 16, WD: 16, XD: 16 },
     qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
-    junior: { quota: { singles: 2, doubles: 1 } },
+    junior: { quota: { singles: 2, doubles: 1 }, play: 0.6, local: true },
+  },
+  {
+    id: 'JIS', name: 'Junior International Series', grade: 3,
+    points: [1800, 1530, 1260, 990, 720, 450, 180, 90, 0],
+    prizeUsd: 0, prizeSplit: NO_PRIZE,
+    drawSize: { MS: 32, WS: 32, MD: 16, WD: 16, XD: 16 },
+    qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
+    junior: { quota: { singles: 2, doubles: 1 }, play: 0.5, local: true },
   },
 ];
 // ASUMSI: S1000/S750 tanpa babak kualifikasi (draw 32 diisi dari ranking); kualifikasi mulai S500.
@@ -240,13 +257,27 @@ export const CALENDAR_2026: TournamentDef[] = [
   { id: 'panam-junior', name: 'Pan Am Junior Championships', cityId: 'lima', week: 28, tierId: 'JC2', prizeUsd: 0, confederation: 'BAM' },
   { id: 'africa-junior', name: 'African Junior Championships', cityId: 'lagos', week: 28, tierId: 'JC2', prizeUsd: 0, confederation: 'BCA' },
   { id: 'oceania-junior', name: 'Oceania Junior Championships', cityId: 'sydney', week: 28, tierId: 'JC2', prizeUsd: 0, confederation: 'BO' },
-  // ASUMSI: turnamen junior internasional terbuka, tersebar sepanjang musim (minggu & kota disederhanakan).
-  { id: 'dutch-junior', name: 'Dutch Junior International', cityId: 'almere', week: 9, tierId: 'JIS', prizeUsd: 0 },
-  { id: 'german-junior', name: 'German Junior International', cityId: 'mulheim', week: 13, tierId: 'JIS', prizeUsd: 0 },
-  { id: 'india-junior', name: 'India Junior International', cityId: 'lucknow', week: 17, tierId: 'JIS', prizeUsd: 0 },
-  { id: 'indonesia-junior', name: 'Indonesia Junior International', cityId: 'jakarta', week: 21, tierId: 'JIS', prizeUsd: 0 },
-  { id: 'malaysia-junior', name: 'Malaysia Junior International', cityId: 'kuala-lumpur', week: 34, tierId: 'JIS', prizeUsd: 0 },
-  { id: 'thailand-junior', name: 'Thailand Junior International', cityId: 'bangkok', week: 37, tierId: 'JIS', prizeUsd: 0 },
+  // ASUMSI: turnamen junior internasional sepanjang musim (nama, kota & minggu disederhanakan; satu turnamen junior per minggu,
+  // tidak sepekan dengan kejuaraan kontinental (28), Suhandinata Cup (40) & Kejuaraan Dunia Junior (41)).
+  { id: 'bulgarian-junior', name: 'Bulgarian Junior International', cityId: 'sofia', week: 5, tierId: 'JIS', prizeUsd: 0 },
+  { id: 'danish-junior', name: 'Danish Junior Cup', cityId: 'odense', week: 7, tierId: 'JIC', prizeUsd: 0 },
+  { id: 'dutch-junior', name: 'Dutch Junior International', cityId: 'almere', week: 10, tierId: 'JGP', prizeUsd: 0 },
+  { id: 'german-junior', name: 'German Junior International', cityId: 'mulheim', week: 11, tierId: 'JGP', prizeUsd: 0 },
+  { id: 'czech-junior', name: 'Czech Junior International', cityId: 'brno', week: 13, tierId: 'JIS', prizeUsd: 0 },
+  { id: 'irish-junior', name: 'Irish Junior International', cityId: 'dublin', week: 15, tierId: 'JIC', prizeUsd: 0 },
+  { id: 'peru-junior', name: 'Peru Junior International', cityId: 'lima', week: 17, tierId: 'JIS', prizeUsd: 0 },
+  { id: 'thailand-junior', name: 'Thailand Junior International', cityId: 'bangkok', week: 19, tierId: 'JIC', prizeUsd: 0 },
+  { id: 'turkey-junior', name: 'Turkey Junior International', cityId: 'istanbul', week: 21, tierId: 'JIS', prizeUsd: 0 },
+  { id: 'jaya-raya-junior', name: 'Jaya Raya Junior Grand Prix', cityId: 'jakarta', week: 23, tierId: 'JGP', prizeUsd: 0 },
+  { id: 'singapore-junior', name: 'Singapore Junior International', cityId: 'singapore', week: 25, tierId: 'JIC', prizeUsd: 0 },
+  { id: 'brazil-junior', name: 'Brazil Junior International', cityId: 'sao-paulo', week: 26, tierId: 'JIS', prizeUsd: 0 },
+  { id: 'india-junior', name: 'India Junior International', cityId: 'lucknow', week: 31, tierId: 'JGP', prizeUsd: 0 },
+  { id: 'australian-junior', name: 'Australian Junior International', cityId: 'sydney', week: 33, tierId: 'JIC', prizeUsd: 0 },
+  { id: 'malaysia-junior', name: 'Malaysia Junior International', cityId: 'kuala-lumpur', week: 35, tierId: 'JGP', prizeUsd: 0 },
+  { id: 'south-africa-junior', name: 'South Africa Junior International', cityId: 'johannesburg', week: 38, tierId: 'JIS', prizeUsd: 0 },
+  { id: 'vietnam-junior', name: 'Vietnam Junior International', cityId: 'ho-chi-minh', week: 44, tierId: 'JIC', prizeUsd: 0 },
+  { id: 'korea-junior', name: 'Korea Junior International', cityId: 'suwon', week: 45, tierId: 'JGP', prizeUsd: 0 },
+  { id: 'philippines-junior', name: 'Philippines Junior International', cityId: 'manila', week: 48, tierId: 'JIS', prizeUsd: 0 },
   { id: 'world-junior', name: 'BWF World Junior Championships', cityId: 'guwahati', week: 41, tierId: 'WJC', prizeUsd: 0 },
 ];
 

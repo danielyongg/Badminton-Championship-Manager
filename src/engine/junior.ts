@@ -30,12 +30,22 @@ export function juniorEntries(
   const abil = new Map(state.players.map((p) => [p.id, currentAbility(p.attrs)]));
   const ca = (id: string) => abil.get(id)!;
 
+  const hostConf = (ev: TournamentDef) => conf.get(world.cities.find((c) => c.id === ev.cityId)?.countryId ?? '');
   for (const ev of events) {
     const tier = rs.tiers.find((x) => x.id === ev.tierId)!;
-    const quota = tier.junior!.quota;
+    const { quota, play = 1, local } = tier.junior!;
     const free = (id: string) => manual[id] === undefined || manual[id] === ev.id;
-    const eligible = (p: Player) => p.retired === undefined && !p.injury && isJuniorAge(p, state.date)
-      && (!ev.confederation || conf.get(p.countryId) === ev.confederation) && free(p.id);
+    // Atlet yang sudah terdaftar di turnamen junior lain minggu ini tidak ikut lagi.
+    const elsewhere = new Set(busy);
+    // Turnamen opsional (Grand Prix/Challenge/Series), sekali per atlet per turnamen: istirahat bila lelah, peluang ikut
+    // per tier, dan turnamen lokal sebagian besar diikuti atlet dari benua tuan rumah. Kejuaraan dunia/kontinental &
+    // pilihan manajer: selalu ikut.
+    const optional = play < 1 || local;
+    const wants = new Map<string, boolean>();
+    const joins = (p: Player) => !optional || manual[p.id] === ev.id || (wants.get(p.id) ?? wants.set(p.id, p.fatigue <= rs.ai.restAbove
+      && rng() < play && (!local || conf.get(p.countryId) === hostConf(ev) || rng() < rs.ai.awayGrade3)).get(p.id)!);
+    const eligible = (p: Player) => p.retired === undefined && !p.injury && isJuniorAge(p, state.date) && !elsewhere.has(p.id)
+      && (!ev.confederation || conf.get(p.countryId) === ev.confederation) && free(p.id) && joins(p);
     const byD = new Map<Discipline, Candidate[]>();
     for (const d of DISCIPLINES) {
       if (!tier.drawSize[d]) { byD.set(d, []); continue; }
