@@ -110,7 +110,8 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   return (
     <section className="card hub" ref={box}>
         <h3>{title}</h3>
-        {keys.length > 1 && (
+        {/* Individu: nomor selalu terlihat, juga saat babak hanya berisi satu nomor (mis. R64 hanya MS). */}
+        {(keys.length > 1 || !team) && (
           <nav className="controls subnav">
             {keys.map((k) => (
               <button key={k} aria-pressed={k === tab} disabled={playing && k !== tab} onClick={() => setTab(k)}>
