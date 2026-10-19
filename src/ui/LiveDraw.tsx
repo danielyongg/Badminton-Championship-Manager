@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { bowlAt, phaseOf, replayDraw } from '../engine/drawReplay';
 import type { Candidate } from '../engine/entry';
-import type { DrawStep } from '../engine/types';
+import type { Discipline, DrawStep } from '../engine/types';
 import { t } from '../i18n';
 import { RoundColumns, stepText } from './EventViews';
 import { Flag } from './Flag';
@@ -11,7 +11,7 @@ import { Flag } from './Flag';
 const SPEEDS = { slow: 1500, normal: 700, fast: 200 } as const;
 const SEED_POTS = [[1, 2], [3, 4], [5, 8], [9, 16], [17, 32]];
 
-export interface DrawShowData { steps: DrawStep[]; size?: number; groups?: number; qualSections?: (Candidate | null)[][] }
+export interface DrawShowData { steps: DrawStep[]; size?: number; groups?: number; quals?: { discipline: Discipline; sections: (Candidate | null)[][] }[] }
 
 function phaseLabel(phase: string) {
   if (phase.startsWith('seed')) { const [a, b] = SEED_POTS[Number(phase.slice(4))] ?? [0, 0]; return t('draw_potSeeds', { a, b }); }
@@ -20,14 +20,16 @@ function phaseLabel(phase: string) {
 }
 
 /** `page`: tampil di halaman turnamen (bukan pop-up); putar ulang undian tetap pop-up. */
-export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay, page }: {
-  title: string; show: DrawShowData; name: (id: string) => string; mine: (id: string) => boolean;
+export function LiveDraw({ title, qualTitle, show, name, mine, onClose, onSkipEvent, replay, page }: {
+  title: string; qualTitle?: string; show: DrawShowData; name: (id: string) => string; mine: (id: string) => boolean;
   onClose: () => void; onSkipEvent?: () => void; replay?: boolean; page?: boolean;
 }) {
   const { steps } = show;
-  // Sebelum undian babak utama: bagan kualifikasi (bila ada).
-  const stages = [...(show.qualSections?.length ? ['qual'] : []), 'draw'] as const;
+  // Sebelum undian babak utama: bagan kualifikasi semua nomor (tab per nomor, bila ada).
+  const quals = show.quals ?? [];
+  const stages = [...(quals.length ? ['qual'] : []), 'draw'] as const;
   const [stage, setStage] = useState(0);
+  const [qd, setQd] = useState(quals[0]?.discipline);
   const [idx, setIdx] = useState(0); // jumlah langkah yang sudah diumumkan
   const [running, setRunning] = useState(true);
   const [speed, setSpeed] = useState<keyof typeof SPEEDS>('normal');
@@ -73,8 +75,17 @@ export function LiveDraw({ title, show, name, mine, onClose, onSkipEvent, replay
     const who2 = { name, mine };
     return wrap(
         <>
-          <h3>{title} · {t('qualDraw')}</h3>
-          {show.qualSections!.map((sec, i) => (
+          <h3>{qualTitle ?? title} · {t('qualDraw')}</h3>
+          {quals.length > 1 && (
+            <nav className="controls subnav">
+              {quals.map((q) => (
+                <button key={q.discipline} aria-pressed={q.discipline === qd} onClick={() => setQd(q.discipline)}>
+                  {q.discipline}{q.sections.flat().some((c) => c && mine(c.id)) && <span className="mine"> ●</span>}
+                </button>
+              ))}
+            </nav>
+          )}
+          {quals.find((q) => q.discipline === qd)!.sections.map((sec, i) => (
             <div key={i}>
               <h4>{t('section')} {i + 1}</h4>
               <RoundColumns rounds={[sec.map((c) => c?.id ?? null)]} matches={[]} {...who2} />

@@ -47,14 +47,16 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
     const log: string[] = [];
     let drawn = 0;
     const listed: string[][] = [];
+    const quals: string[] = [];
     const state = await weekOf(5, (s) => ({
       chooseEvent: choose([id]),
       // Daftar entry kelima nomor sekaligus, sebelum undian mana pun.
       entries: (e) => { expect(drawn).toBe(0); listed.push(e.lists.map((x) => x.discipline)); return Promise.resolve(); },
+      // Bagan kualifikasi kelima nomor sekaligus di undian pertama; undian berikutnya tanpa kualifikasi.
       draw: (d) => {
-        drawn++;
-        const entry = listed.length && s.eventRecords.find((r) => r.tournamentId === id && r.discipline === d.discipline)!.entry;
-        expect(entry && d.qualSections!.length).toBe(entry && entry.qualifierSlots);
+        if (drawn++) expect(d.quals).toEqual([]);
+        else for (const q of d.quals!) expect(q.sections.length).toBe(s.eventRecords.find((r) => r.tournamentId === id && r.discipline === q.discipline)!.entry.qualifierSlots);
+        quals.push(...(d.quals ?? []).map((q) => q.discipline));
         return null;
       },
       round: (r) => {
@@ -67,7 +69,8 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
         return null;
       },
     }));
-    expect(drawn).toBeGreaterThan(0);
+    expect(drawn).toBe(5);
+    expect(quals).toEqual(['MS', 'WS', 'MD', 'WD', 'XD']);
     expect(listed).toEqual([['MS', 'WS', 'MD', 'WD', 'XD']]);
     expect(log.indexOf('Q1')).toBeGreaterThanOrEqual(0);
     expect(log.indexOf('Q1')).toBeLessThan(log.indexOf('R32'));

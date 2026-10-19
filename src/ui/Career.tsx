@@ -172,6 +172,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
       : drawAsk ? (
         <LiveDraw page key={`${drawAsk.d.tournamentId}-${drawAsk.d.discipline}`} show={drawAsk.d}
           title={`${eventName(game.ruleset, drawAsk.d.tournamentId, state.date.year)}${drawAsk.d.discipline ? ` · ${drawAsk.d.discipline}` : ''}`}
+          qualTitle={eventName(game.ruleset, drawAsk.d.tournamentId, state.date.year)}
           name={(id) => (drawAsk.d.discipline ? `${entrantLabel(state, id).name} (${entrantLabel(state, id).country})` : nameOfCountry(id))}
           mine={(id) => (drawAsk.d.discipline ? entrantLabel(state, id).country === managed : id === managed)}
           onClose={() => { setDrawAsk(undefined); drawAsk.resolve(); }}
