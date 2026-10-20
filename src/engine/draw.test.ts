@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeDraw, opponentPos, seedPositionGroups, type DrawEntrant } from './draw';
-import { acceptEntries, qualifyingSections, type Candidate } from './entry';
+import { acceptEntries, qualifyingSections, sortByRank, type Candidate } from './entry';
 import { fillQualifiers, playKnockout, slotField } from './knockout';
 import { BWF_2026 } from './presets/bwf2026';
 import { makeRng } from './rng';
@@ -134,6 +134,29 @@ describe('entry & kualifikasi', () => {
     expect(secs[0][1]).toBeNull();
     expect(secs[1][1]).toBeNull();
     expect(secs.flat().filter(Boolean)).toHaveLength(14);
+  });
+});
+
+describe('aturan grade 3 (GCR)', () => {
+  it('12.6: tanpa ranking bergiliran per negara (nomor 1 nasional semua negara dulu)', () => {
+    const c = (id: string, countryId: string, strength: number): Candidate => ({ id, countryId, strength });
+    const out = sortByRank([c('a1', 'A', 90), c('a2', 'A', 85), c('a3', 'A', 80), c('b1', 'B', 50), c('c1', 'C', 40), { id: 'r', countryId: 'A', rank: 300 }], makeRng(2));
+    expect(out[0].id).toBe('r');
+    expect(new Set(out.slice(1, 4).map((x) => x.id))).toEqual(new Set(['a1', 'b1', 'c1']));
+    expect(out.slice(4).map((x) => x.id)).toEqual(['a2', 'a3']);
+  });
+
+  it('12.4: dua teratas tiap negara di seksi kualifikasi berbeda, sesama negara tidak bertemu di R1', () => {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const list: Candidate[] = Array.from({ length: 32 }, (_, i) => ({ id: `q${i + 1}`, countryId: ['X', 'Y', 'Z', 'W'][i % 4], rank: i + 1 }));
+      const secs = qualifyingSections(list, 8, 4, makeRng(seed), true);
+      const sectionOf = (id: string) => secs.findIndex((s) => s.some((c) => c?.id === id));
+      for (const k of ['X', 'Y', 'Z', 'W']) {
+        const [first, second] = list.filter((c) => c.countryId === k);
+        expect(sectionOf(first.id)).not.toBe(sectionOf(second.id));
+      }
+      for (const sec of secs) for (let p = 0; p < 4; p += 2) expect(sec[p]!.countryId).not.toBe(sec[p + 1]!.countryId);
+    }
   });
 });
 

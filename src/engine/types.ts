@@ -35,6 +35,8 @@ export interface Tier {
   groupStage?: Partial<Record<Discipline, GroupStage>>; // nomor yang tidak disebut = knockout murni
   wildcards: number;
   zeroPointsForR1WildcardLoss: boolean;
+  /** GCR 7.11 (Grade 3): wildcard tuan rumah hanya bila negara tuan rumah tidak punya wakil di bagan utama nomor itu. */
+  wildcardOnlyIfHostAbsent?: boolean;
   /** Kuota per negara (Kejuaraan Dunia/Olimpiade): `base`, atau s/d `max` bila semua di top `topRank`. */
   countryQuota?: { base: number; max: number; topRank: number };
   /**

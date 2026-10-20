@@ -25,14 +25,20 @@ export function qualifierSlots(tier: Tier, drawSize: number, ruleset: Ruleset) {
 }
 
 /**
- * Urut ranking. Tanpa ranking: di bawah semua yang berperingkat, diurutkan menurut prioritas federasi (kemampuan)
- * seperti urutan nasional yang dikirim federasi; sisanya (sama) diundi.
+ * Urut ranking (ranking sama → diundi). Tanpa ranking (GCR 12.6): di bawah semua yang berperingkat, bergiliran per negara —
+ * nomor 1 nasional (prioritas federasi = kemampuan) semua negara diundi, lalu nomor 2 semua negara, dan seterusnya.
  */
 export function sortByRank(cands: Candidate[], rng: Rng): Candidate[] {
-  return cands
-    .map((c) => ({ c, lot: rng() }))
-    .sort((a, b) => (a.c.rank ?? Infinity) - (b.c.rank ?? Infinity) || (b.c.strength ?? 0) - (a.c.strength ?? 0) || a.lot - b.lot)
-    .map((x) => x.c);
+  const lot = new Map(cands.map((c) => [c.id, rng()]));
+  const byLot = (a: Candidate, b: Candidate) => lot.get(a.id)! - lot.get(b.id)!;
+  const ranked = cands.filter((c) => c.rank !== undefined).sort((a, b) => a.rank! - b.rank! || byLot(a, b));
+  const national = new Map<string, Candidate[]>();
+  for (const c of cands) if (c.rank === undefined) national.set(c.countryId, [...(national.get(c.countryId) ?? []), c]);
+  const level = new Map<EntrantId, number>();
+  for (const list of national.values())
+    list.sort((a, b) => (b.strength ?? 0) - (a.strength ?? 0) || byLot(a, b)).forEach((c, i) => level.set(c.id, i));
+  const unranked = cands.filter((c) => c.rank === undefined).sort((a, b) => level.get(a.id)! - level.get(b.id)! || byLot(a, b));
+  return [...ranked, ...unranked];
 }
 
 export function acceptEntries(
@@ -62,7 +68,7 @@ export function acceptEntries(
  * (posisi teratas); bila kurang peserta, bye diberikan ke unggulan dulu.
  * ASUMSI: unggulan kualifikasi = satu per seksi, sisanya diundi bebas.
  */
-export function qualifyingSections(entries: Candidate[], slots: number, perSlot: number, rng: Rng): (Candidate | null)[][] {
+export function qualifyingSections(entries: Candidate[], slots: number, perSlot: number, rng: Rng, separate = false): (Candidate | null)[][] {
   const sections: (Candidate | null)[][] = Array.from({ length: slots }, () => Array(perSlot).fill(null));
   const seeds = entries.slice(0, slots);
   const rest = entries.slice(slots);
@@ -79,7 +85,49 @@ export function qualifyingSections(entries: Candidate[], slots: number, perSlot:
   free.splice(free.length - Math.max(0, byes), Math.max(0, byes));
   const shuffled = rest.map((c) => ({ c, k: rng() })).sort((a, b) => a.k - b.k);
   shuffled.forEach(({ c }, i) => { const [s, p] = free[i]; sections[s][p] = c; });
+  if (separate) separateCountries(sections, entries);
   return sections;
+}
+
+/**
+ * Grade 3 (GCR 12.4, dianjurkan): dua entri teratas tiap negara di seksi berbeda, dan sebisa mungkin sesama negara
+ * tidak bertemu di babak pertama kualifikasi. Unggulan seksi & bye tidak dipindah.
+ */
+function separateCountries(sections: (Candidate | null)[][], entries: Candidate[]) {
+  const topTwo = new Map<string, EntrantId[]>();
+  for (const e of entries) {
+    const l = topTwo.get(e.countryId) ?? [];
+    if (l.length < 2) topTwo.set(e.countryId, [...l, e.id]);
+  }
+  const conflicts = () => {
+    let n = 0;
+    const sectionOf = new Map<EntrantId, number>();
+    sections.forEach((sec, i) => {
+      sec.forEach((c) => c && sectionOf.set(c.id, i));
+      for (let p = 0; p + 1 < sec.length; p += 2) if (sec[p] && sec[p + 1] && sec[p]!.countryId === sec[p + 1]!.countryId) n++;
+    });
+    for (const [x, y] of topTwo.values()) if (y && sectionOf.get(x) === sectionOf.get(y)) n++;
+    return n;
+  };
+  const movable = sections.flatMap((sec, s) => sec.map((_, p) => [s, p] as const).filter(([, p]) => p > 0 && sec[p]));
+  const swap = ([s1, p1]: readonly [number, number], [s2, p2]: readonly [number, number]) =>
+    ([sections[s1][p1], sections[s2][p2]] = [sections[s2][p2], sections[s1][p1]]);
+  // ponytail: perbaikan rakus seperti pemisahan di bagan utama (draw.ts); cukup untuk kualifikasi ≤ 64 peserta.
+  let current = conflicts();
+  for (let round = 0; current > 0 && round < 50; round++) {
+    let improved = false;
+    for (const a of movable) {
+      for (const b of movable) {
+        if (a === b) continue;
+        swap(a, b);
+        const c = conflicts();
+        if (c < current) { current = c; improved = true; break; }
+        swap(a, b);
+      }
+      if (current === 0) break;
+    }
+    if (!improved) break;
+  }
 }
 
 /**

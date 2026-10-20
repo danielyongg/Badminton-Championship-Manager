@@ -52,10 +52,12 @@ export async function runEvent(opts: {
   const tier = ruleset.tiers.find((t) => t.id === tournament.tierId)!;
   const size = tier.drawSize[discipline];
 
-  // Wildcard tuan rumah: entri terbaik dari negara tuan rumah yang tidak lolos langsung.
+  // Wildcard tuan rumah: entri terbaik dari negara tuan rumah yang tidak lolos langsung
+  // (GCR 7.11, `wildcardOnlyIfHostAbsent`: hanya bila tuan rumah belum punya wakil di bagan utama nomor itu).
   const prelim = acceptEntries(candidates, [], tier, size, ruleset, rng);
   const direct = new Set(prelim.main.map((c) => c.id));
-  const wildcardIds = candidates
+  const hostInMain = prelim.main.some((c) => c.countryId === opts.hostCountryId);
+  const wildcardIds = tier.wildcardOnlyIfHostAbsent && hostInMain ? [] : candidates
     .filter((c) => c.countryId === opts.hostCountryId && !direct.has(c.id))
     .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity))
     .slice(0, tier.wildcards)
@@ -81,7 +83,7 @@ export async function runEvent(opts: {
     return { entry, qualSections: [], qualResults: [], draw: { slots, steps: drawn.steps }, slots, main, groups: { groups, standings, steps: drawn.steps } };
   }
 
-  const qualSections = entry.qualifierSlots ? qualifyingSections(entry.qualifying, entry.qualifierSlots, tier.qualifyingPerSlot, rng) : [];
+  const qualSections = entry.qualifierSlots ? qualifyingSections(entry.qualifying, entry.qualifierSlots, tier.qualifyingPerSlot, rng, tier.grade === 3) : [];
   const drawEntrants = [...entry.main, ...entry.wildcards.map((w) => ({ ...w, wildcard: true }))]
     .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
   const draw = makeDraw(drawEntrants, entry.qualifierSlots, tier.grade, ruleset, rng);

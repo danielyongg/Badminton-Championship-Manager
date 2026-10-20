@@ -84,19 +84,19 @@ export const TIERS_2026: Tier[] = [
     id: 'IC', name: 'International Challenge', grade: 3,
     points: [4000, 3400, 2800, 2200, 1520, 920, 360, 170, 70],
     prizeUsd: 20000, prizeSplit: PRIZE_SPLIT, // ASUMSI: nilai hadiah tipikal
-    drawSize: draws(64, 32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: false,
+    drawSize: draws(64, 32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: true, wildcardOnlyIfHostAbsent: true, // GCR 7.11
   },
   {
     id: 'IS', name: 'International Series', grade: 3,
     points: [2500, 2130, 1750, 1370, 920, 550, 210, 100, 40],
     prizeUsd: 8000, prizeSplit: PRIZE_SPLIT,
-    drawSize: draws(32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: false,
+    drawSize: draws(32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: true, wildcardOnlyIfHostAbsent: true, // GCR 7.11
   },
   {
     id: 'FS', name: 'Future Series', grade: 3,
     points: [1700, 1420, 1170, 920, 600, 350, 130, 60, 20],
     prizeUsd: 5000, prizeSplit: PRIZE_SPLIT,
-    drawSize: draws(32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: false,
+    drawSize: draws(32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: true, wildcardOnlyIfHostAbsent: true, // GCR 7.11
   },
   // Multi-event (Asian Games, SEA Games, Pan Am, European, African & Commonwealth Games): tanpa poin ranking BWF
   // & tanpa hadiah; peserta hanya negara anggota (`countries`). ASUMSI: 32 tunggal / 16 ganda, maks 2 per negara.
