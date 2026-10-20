@@ -375,7 +375,7 @@ export const en: Record<TextKey, string> = {
   rankMoveHint: 'Change since last week’s ranking',
   groupStage: 'Group stage',
   knockoutPending: 'The knockout draw appears once the group stage is finished.',
-  profSummary: 'Summary', profEvents: 'Tournaments & Committed', profMatches: 'Match history', profH2H: 'H2H & partners',
+  profSummary: 'Summary', profTitles: 'Titles', profTitlesNone: 'No titles yet.', profEvents: 'Tournaments & Committed', profMatches: 'Match history', profH2H: 'H2H & partners',
   profRecord: 'Won–lost', profTitlesAll: 'Career titles', profRanks: 'Current world ranking', profEventsYear: 'Tournaments {y}',
   profNoEvents: 'No matches yet.', profPartners: 'Partners', profDissolved: 'split', showMore: 'Show more', fit: 'Fit',
   partner: 'Partner', matchesShort: 'Matches',

@@ -5,8 +5,9 @@ import { headToHead, moraleTier } from '../engine/match';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { rankFromSnapshots } from '../engine/season';
 import { ATTRS, DISCIPLINES, type Attr, type Discipline, type GameDate, type Player } from '../engine/types';
-import { numLocale, t, type TextKey } from '../i18n';
-import { entrantLabel, eventName as eventNameOf, lookup, saveGame, useGame } from './game';
+import { dataName, numLocale, t, type TextKey } from '../i18n';
+import { entrantLabel, eventName as eventNameOf, lookup, saveGame, TIER_GROUPS, TierBadge, tierGroup, useGame } from './game';
+import { formatName } from './Team';
 import { Pairs } from './Pairs';
 import { CommitmentChips, RankChart } from './Ranking';
 import { Flag } from './Flag';
@@ -232,7 +233,7 @@ export function TierPrefs({ id }: { id: string }) {
   );
 }
 
-type ProfileTab = 'summary' | 'events' | 'matches' | 'h2h';
+type ProfileTab = 'summary' | 'titles' | 'events' | 'matches' | 'h2h';
 
 /**
  * Profil atlet: kartu identitas (selalu tampil) + sub-tab Ringkasan (statistik, ranking, atribut, cedera),
@@ -305,6 +306,22 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
     const own = mine.find((m) => m.sides.includes(o))!.sides[myIdx(mine.find((m) => m.sides.includes(o))!)];
     return { o, rec: headToHead(mine, own, o) };
   });
+  const mineIds = new Set(mine.map((m) => m.id));
+  // Gelar karier: individu + beregu (tim negaranya juara, atlet di skuad atau ikut bermain); urut tier tertinggi, lalu tahun terbaru.
+  const titleRows = [
+    ...titles.map((c) => ({ y: c.year, eid: c.tournamentId, tierId: ruleset.calendar.find((e) => e.id === c.tournamentId)?.tierId, team: undefined as object | undefined,
+      what: c.discipline as string, partner: lookup(state).pairs.get(c.winner)?.playerIds.find((x) => x !== id) })),
+    ...state.teamResults.filter((r) => r.reached[p.countryId] === 'W' && (r.squads[p.countryId]?.includes(id) || r.ties.some((tie) => tie.matchIds?.some((mid) => mineIds.has(mid)))))
+      .map((r) => ({ y: r.year, eid: r.eventId, tierId: undefined, team: ruleset.team.events.find((e) => e.id === r.eventId) ?? {}, what: formatName(r.format, r.eventId), partner: undefined })),
+  ];
+  const titleOrder = (x: (typeof titleRows)[number]) => {
+    const tier = ruleset.tiers.find((tt) => tt.id === x.tierId);
+    return TIER_GROUPS.indexOf(tierGroup(tier, x.team)) * 100 + (tier ? ruleset.tiers.indexOf(tier) : 1.5); // beregu setelah Kejuaraan Dunia
+  };
+  titleRows.sort((a, b) => titleOrder(a) - titleOrder(b) || b.y - a.y);
+  // Ringkasan per tier; Grade 1 per jenis (Kejuaraan Dunia, Olimpiade, beregu, ...) agar bisa dibedakan.
+  const titleKey = (x: (typeof titleRows)[number]) => x.tierId ?? 'team';
+  const titleKeyLabel = (x: (typeof titleRows)[number]) => x.team ? t('teamShort') : dataName(ruleset.tiers.find((tt) => tt.id === x.tierId)?.name) ?? x.tierId;
   const wl = (ms: typeof mine) => { const w = ms.filter(won).length; return `${w}–${ms.length - w}`; };
 
   return (
@@ -333,8 +350,8 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         )}
       </section>
       <nav className="controls">
-        {(['summary', 'events', 'matches', 'h2h'] as const).map((x) => (
-          <button key={x} aria-pressed={tab === x} onClick={() => setTab(x)}>{t(({ summary: 'profSummary', events: 'profEvents', matches: 'profMatches', h2h: 'profH2H' } as const)[x])}</button>
+        {(['summary', 'titles', 'events', 'matches', 'h2h'] as const).map((x) => (
+          <button key={x} aria-pressed={tab === x} onClick={() => setTab(x)}>{t(({ summary: 'profSummary', titles: 'profTitles', events: 'profEvents', matches: 'profMatches', h2h: 'profH2H' } as const)[x])}</button>
         ))}
       </nav>
 
@@ -393,6 +410,25 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           </div>
         </div>
       </>}
+
+      {tab === 'titles' && <section className="card">
+        <h3>{t('profTitlesAll')} <span className="muted-text">({titleRows.length})</span></h3>
+        {titleRows.length === 0 ? <p className="hint">{t('profTitlesNone')}</p> : <>
+          <p className="title-counts">{[...new Set(titleRows.map(titleKey))].map((k) => {
+            const x = titleRows.find((r) => titleKey(r) === k)!;
+            const n = titleRows.filter((r) => titleKey(r) === k).length;
+            return <span key={k}>{tierGroup(ruleset.tiers.find((tt) => tt.id === x.tierId), x.team) === 'g1'
+              ? <span className="tierb g1"><b>{titleKeyLabel(x)}</b></span> : <TierBadge tierId={x.tierId} team={x.team} />} ×{n}</span>;
+          })}</p>
+          <table className="fit"><tbody>{titleRows.map((x, i) => (
+            <tr key={i}>
+              <td className="title-badge"><TierBadge tierId={x.tierId} team={x.team} /></td>
+              <td>{evLink(x.eid, x.y)} <span className="muted-text">{x.y}</span><br /><small><span className="chip">{x.what}</span>
+                {x.partner && <> + <a href="#" onClick={(e) => { e.preventDefault(); onOpen(x.partner!); }}>{lookup(state).players.get(x.partner)?.name}</a></>}</small></td>
+            </tr>
+          ))}</tbody></table>
+        </>}
+      </section>}
 
       {tab === 'events' && <div className="split">
         <div>

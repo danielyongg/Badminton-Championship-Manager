@@ -7,7 +7,7 @@ import { BWF_2026 } from '../engine/presets/bwf2026';
 import { dataName, t } from '../i18n';
 import { makeRng, type Rng } from '../engine/rng';
 import { playWeek, teamFormatsIn, type SeasonState, type WeekHooks } from '../engine/season';
-import { isJuniorFormat, type Ruleset, type SaveMeta, type World } from '../engine/types';
+import { isJuniorFormat, type Ruleset, type Tier, type SaveMeta, type World } from '../engine/types';
 
 // Satu permainan aktif (save yang sedang dimainkan). Engine mengubah `state` di tempat; `version` memicu render ulang.
 
@@ -146,15 +146,20 @@ export function lookup(state: SeasonState) {
 export const tierLabel = (id: string) => (id === 'MSG' ? t('multiEvent') : id);
 /** Kode tier junior seperti di kalender BWF (Junior International Grand Prix = IGP, dst.). */
 const JUNIOR_CODE: Record<string, string> = { JGP: 'IGP', JIC: 'IC', JIS: 'IS', JC2: 'JC' };
+/** Kelompok tier untuk tampilan, urut dari yang tertinggi (lihat TierBadge). */
+export const TIER_GROUPS = ['g1', 'g2', 'g3', 'junior'] as const;
+export const tierGroup = (tier?: Tier, team?: object): (typeof TIER_GROUPS)[number] =>
+  team || tier?.id === 'WJC' || (tier?.grade === 1 && tier.id !== 'WTF') ? 'g1' : tier?.junior ? 'junior' : tier?.grade === 3 ? 'g3' : 'g2';
 /**
  * Badge tier: kelompok kecil (Grade 1/2/3/Junior) di atas kode besar, warna per kelompok.
  * Grade 1 = Major Events BWF (Kejuaraan Dunia senior & junior, Olimpiade, multi-event, beregu); WTF ikut Grade 2 bersama World Tour.
  */
 export function TierBadge({ tierId, team }: { tierId?: string; team?: object }) {
   const tier = useGame().game.ruleset.tiers.find((x) => x.id === tierId);
-  const [group, label, code] = team || tier?.id === 'WJC' || (tier?.grade === 1 && tier.id !== 'WTF') ? ['g1', t('gradeN', { n: 1 }), t('major')]
-    : tier?.junior ? ['junior', t('juniorShort'), JUNIOR_CODE[tier.id] ?? tier.id]
-    : ['g' + (tier?.grade === 3 ? 3 : 2), t('gradeN', { n: tier?.grade === 3 ? 3 : 2 }), tierId ?? ''];
+  const group = tierGroup(tier, team);
+  const [label, code] = group === 'g1' ? [t('gradeN', { n: 1 }), t('major')]
+    : group === 'junior' ? [t('juniorShort'), JUNIOR_CODE[tier!.id] ?? tier!.id]
+    : [t('gradeN', { n: group === 'g3' ? 3 : 2 }), tierId ?? ''];
   return <span className={`tierb ${group}`} title={tier ? dataName(tier.name) : undefined}><small>{label}</small><b>{code}</b></span>;
 }
 /** Label event beregu: beregu multi-event (Asian Games Team dll.) ikut tier "Multi-event", selain itu "Tim". */

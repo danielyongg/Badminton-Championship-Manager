@@ -288,6 +288,10 @@ td.strong { font-weight: 700; }
 .tierb.g1 { background: var(--gold-soft); color: var(--gold); }
 .tierb.g3 { background: var(--blue-soft); color: var(--blue); }
 .tierb.junior { background: var(--violet-soft); color: var(--violet); }
+.title-counts { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.title-badge { width: 1%; }
+.title-badge .tierb { width: 4.4em; }
+.title-counts > span { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; }
 .drow .tierb { flex: none; min-width: 2.6em; margin-top: 2px; }
 .upcoming .drow .tierb { width: 4.4em; }
 .chip.opp { background: var(--danger-soft); color: var(--danger); }
