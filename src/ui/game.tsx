@@ -147,17 +147,21 @@ export const tierLabel = (id: string) => (id === 'MSG' ? t('multiEvent') : id);
 /** Kode tier junior seperti di kalender BWF (Junior International Grand Prix = IGP, dst.). */
 const JUNIOR_CODE: Record<string, string> = { JGP: 'IGP', JIC: 'IC', JIS: 'IS', JC2: 'JC' };
 /** Kelompok tier untuk tampilan, urut dari yang tertinggi (lihat TierBadge). */
-export const TIER_GROUPS = ['g1', 'g2', 'g3', 'junior'] as const;
-export const tierGroup = (tier?: Tier, team?: object): (typeof TIER_GROUPS)[number] =>
-  team || tier?.id === 'WJC' || (tier?.grade === 1 && tier.id !== 'WTF') ? 'g1' : tier?.junior ? 'junior' : tier?.grade === 3 ? 'g3' : 'g2';
+export const TIER_GROUPS = ['g1', 'msg', 'g2', 'g3', 'junior'] as const;
+type TeamLike = { countries?: string[]; games?: true };
+/** Multi-sport Games: Olimpiade & multi-event (Asian Games, SEA Games, ...), individu maupun beregu. */
+export const tierGroup = (tier?: Tier, team?: TeamLike): (typeof TIER_GROUPS)[number] =>
+  tier?.id === 'OG' || tier?.id === 'MSG' || team?.countries || team?.games ? 'msg'
+    : team || tier?.id === 'WJC' || (tier?.grade === 1 && tier.id !== 'WTF') ? 'g1' : tier?.junior ? 'junior' : tier?.grade === 3 ? 'g3' : 'g2';
 /**
  * Badge tier: kelompok kecil (Grade 1/2/3/Junior) di atas kode besar, warna per kelompok.
- * Grade 1 = Major Events BWF (Kejuaraan Dunia senior & junior, Olimpiade, multi-event, beregu); WTF ikut Grade 2 bersama World Tour.
+ * Grade 1 = Major Events BWF (Kejuaraan Dunia senior & junior, beregu); Multi-sport Games terpisah; WTF ikut Grade 2 bersama World Tour.
  */
-export function TierBadge({ tierId, team }: { tierId?: string; team?: object }) {
+export function TierBadge({ tierId, team }: { tierId?: string; team?: TeamLike }) {
   const tier = useGame().game.ruleset.tiers.find((x) => x.id === tierId);
   const group = tierGroup(tier, team);
-  const [label, code] = group === 'g1' ? [t('gradeN', { n: 1 }), t('major')]
+  const [label, code] = group === 'msg' ? [t('multiSport'), t('msgGames')]
+    : group === 'g1' ? [t('gradeN', { n: 1 }), t('major')]
     : group === 'junior' ? [t('juniorShort'), JUNIOR_CODE[tier!.id] ?? tier!.id]
     : [t('gradeN', { n: group === 'g3' ? 3 : 2 }), tierId ?? ''];
   return <span className={`tierb ${group}`} title={tier ? dataName(tier.name) : undefined}><small>{label}</small><b>{code}</b></span>;

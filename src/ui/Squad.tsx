@@ -309,7 +309,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
   const mineIds = new Set(mine.map((m) => m.id));
   // Gelar karier: individu + beregu (tim negaranya juara, atlet di skuad atau ikut bermain); urut tier tertinggi, lalu tahun terbaru.
   const titleRows = [
-    ...titles.map((c) => ({ y: c.year, eid: c.tournamentId, tierId: ruleset.calendar.find((e) => e.id === c.tournamentId)?.tierId, team: undefined as object | undefined,
+    ...titles.map((c) => ({ y: c.year, eid: c.tournamentId, tierId: ruleset.calendar.find((e) => e.id === c.tournamentId)?.tierId, team: undefined as { countries?: string[]; games?: true } | undefined,
       what: c.discipline as string, partner: lookup(state).pairs.get(c.winner)?.playerIds.find((x) => x !== id) })),
     ...state.teamResults.filter((r) => r.reached[p.countryId] === 'W' && (r.squads[p.countryId]?.includes(id) || r.ties.some((tie) => tie.matchIds?.some((mid) => mineIds.has(mid)))))
       .map((r) => ({ y: r.year, eid: r.eventId, tierId: undefined, team: ruleset.team.events.find((e) => e.id === r.eventId) ?? {}, what: formatName(r.format, r.eventId), partner: undefined })),
@@ -319,8 +319,8 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
     return TIER_GROUPS.indexOf(tierGroup(tier, x.team)) * 100 + (tier ? ruleset.tiers.indexOf(tier) : 1.5); // beregu setelah Kejuaraan Dunia
   };
   titleRows.sort((a, b) => titleOrder(a) - titleOrder(b) || b.y - a.y);
-  // Ringkasan per tier; Grade 1 per jenis (Kejuaraan Dunia, Olimpiade, beregu, ...) agar bisa dibedakan.
-  const titleKey = (x: (typeof titleRows)[number]) => x.tierId ?? 'team';
+  // Ringkasan per tier; Multi-sport Games digabung; Grade 1 lain per jenis (Kejuaraan Dunia, beregu, ...) agar bisa dibedakan.
+  const titleKey = (x: (typeof titleRows)[number]) => tierGroup(ruleset.tiers.find((tt) => tt.id === x.tierId), x.team) === 'msg' ? 'msg' : x.tierId ?? 'team';
   const titleKeyLabel = (x: (typeof titleRows)[number]) => x.team ? t('teamShort') : dataName(ruleset.tiers.find((tt) => tt.id === x.tierId)?.name) ?? x.tierId;
   const wl = (ms: typeof mine) => { const w = ms.filter(won).length; return `${w}–${ms.length - w}`; };
 

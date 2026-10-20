@@ -129,7 +129,7 @@ const id = {
   goal_titles: 'Jumlah gelar',
   goal_top10: 'Atlet/pasangan di top 10 dunia',
   goal_team: 'Hasil beregu',
-  major: 'Major', gradeN: 'Grade {n}', multiEvent: 'Multi-event', olympicRanking: 'Ranking Olimpiade {y}', olympicQualified: 'Lolos',
+  major: 'Major', multiSport: 'Multi-sport', msgGames: 'Games', gradeN: 'Grade {n}', multiEvent: 'Multi-event', olympicRanking: 'Ranking Olimpiade {y}', olympicQualified: 'Lolos',
   olympicHint: 'Periode kualifikasi: Mei {from} – April {to} (hanya poin dalam periode ini). ✓ = lolos ({n} tempat): maks 2 per negara bila keduanya top 16 (tunggal) / top 8 (ganda), wakil tiap benua, tempat tuan rumah (tunggal).',
   olympicHintProjected: 'Periode kualifikasi (Mei {from} – April {to}) belum dimulai: perkiraan dari ranking dunia saat ini. ✓ = lolos ({n} tempat) bila kualifikasi ditutup sekarang.',
   olympicHost: 'tuan rumah', olympicContinent: 'benua', goal_medals: 'Medali {event}', goal_gold: 'Emas {event}', goal_olympic: 'Wakil lolos Olimpiade {y}', goal_olympicLater: 'dinilai {y}',
