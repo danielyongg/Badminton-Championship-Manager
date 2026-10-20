@@ -7,7 +7,7 @@ import { BWF_2026 } from '../engine/presets/bwf2026';
 import { dataName, t } from '../i18n';
 import { makeRng, type Rng } from '../engine/rng';
 import { playWeek, teamFormatsIn, type SeasonState, type WeekHooks } from '../engine/season';
-import { isJuniorFormat, type Ruleset, type TeamFormat, type SaveMeta, type World } from '../engine/types';
+import { isJuniorFormat, type Ruleset, type SaveMeta, type World } from '../engine/types';
 
 // Satu permainan aktif (save yang sedang dimainkan). Engine mengubah `state` di tempat; `version` memicu render ulang.
 
@@ -148,13 +148,12 @@ export const tierLabel = (id: string) => (id === 'MSG' ? t('multiEvent') : id);
 const JUNIOR_CODE: Record<string, string> = { JGP: 'IGP', JIC: 'IC', JIS: 'IS', JC2: 'JC' };
 /**
  * Badge tier: kelompok kecil (Grade 1/2/3/Junior) di atas kode besar, warna per kelompok.
- * Grade 1 = Major Events BWF (Kejuaraan Dunia, Olimpiade, multi-event, beregu); WTF ikut Grade 2 bersama World Tour.
+ * Grade 1 = Major Events BWF (Kejuaraan Dunia senior & junior, Olimpiade, multi-event, beregu); WTF ikut Grade 2 bersama World Tour.
  */
-export function TierBadge({ tierId, team }: { tierId?: string; team?: { formats?: TeamFormat[] } }) {
+export function TierBadge({ tierId, team }: { tierId?: string; team?: object }) {
   const tier = useGame().game.ruleset.tiers.find((x) => x.id === tierId);
-  const [group, label, code] = team?.formats?.some(isJuniorFormat) ? ['junior', t('juniorShort'), t('teamShort')]
+  const [group, label, code] = team || tier?.id === 'WJC' || (tier?.grade === 1 && tier.id !== 'WTF') ? ['g1', t('gradeN', { n: 1 }), t('majorEvents')]
     : tier?.junior ? ['junior', t('juniorShort'), JUNIOR_CODE[tier.id] ?? tier.id]
-    : team || (tier?.grade === 1 && tier.id !== 'WTF') ? ['g1', t('gradeN', { n: 1 }), t('majorEvents')]
     : ['g' + (tier?.grade === 3 ? 3 : 2), t('gradeN', { n: tier?.grade === 3 ? 3 : 2 }), tierId ?? ''];
   return <span className={`tierb ${group}`} title={tier ? dataName(tier.name) : undefined}><small>{label}</small><b>{code}</b></span>;
 }
