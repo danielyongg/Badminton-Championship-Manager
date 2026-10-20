@@ -126,7 +126,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
       {juniorCols && view !== 'pairs' && <p className="hint">{t('pratamaHint')}</p>}
       {view === 'pairs' && !released ? <Pairs onOpen={onOpen} juniors={juniors} /> : (
       <div className="scroll">
-        <table>
+        <table className="squadtable">
           <thead><tr>{COLS.map((c) => (
             <th key={c.key} className={`sortable${c.num ? ' num' : ''}${c.mHide ? ' m-hide' : ''}`} aria-sort={sort.key === c.key ? (sort.desc ? 'descending' : 'ascending') : undefined}
               onClick={() => setSort(sort.key === c.key ? { key: c.key, desc: !sort.desc } : { key: c.key, desc: !!c.desc })}>

@@ -497,5 +497,12 @@ table.fit td.num { white-space: nowrap; }
   /* Dashboard: kolom mengalir (atas → bawah) agar kartu beda tinggi tidak meninggalkan lubang. */
   .dash { display: block; columns: 2; column-gap: 16px; }
   .dash > * { break-inside: avoid; margin: 0 0 16px; display: inline-block; width: 100%; box-sizing: border-box; }
+  /* Skuad: kolom nama menempel; tabel bergeser di dalam wadahnya bila lebih lebar dari isi. */
+  .squadtable th:first-child, .squadtable td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); }
+  .squadtable th:first-child { z-index: 2; }
+  .squadtable .sectors { gap: 4px 8px; margin-right: 6px; }
+  /* Kotak pilihan di luar tabel tidak melebar penuh. */
+  .page .controls select { width: auto; max-width: 320px; }
+  .page .controls.pair { grid-template-columns: repeat(2, minmax(0, 320px)); }
 }
 @media (min-width: 1280px) { .dash { columns: 3; } }
