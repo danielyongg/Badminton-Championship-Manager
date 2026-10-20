@@ -154,6 +154,7 @@ export const en: Record<TextKey, string> = {
   weeksShort: '{n} wk', returnsWeek: 'back in week {w}',
   singlesRank: 'Singles rank',
   bwfRank: 'BWF rank',
+  fullRanking: 'View full ranking',
   bwfRankNow: 'Current BWF ranking',
   pair: 'Pair',
   tierPrefsFree: 'Auto', tierPrefs: 'Tier priority', tierPrefsHint: 'Tiers used by automatic entry: the highest highlighted tier is always entered (unless tired/injured). Auto (none highlighted) = AI chooses by ranking & chance as usual.', sector: 'Sector', manageSectors: 'Set sectors', singlesHint: 'Plays singles (unchecked = doubles specialist, not entered in singles automatically)', pairsHint: 'Plays doubles (unchecked = not listed in the form-pair form; their pairs are split)',

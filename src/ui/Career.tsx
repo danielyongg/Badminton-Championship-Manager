@@ -36,6 +36,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   const { state, world } = game;
   const managed = state.career?.countryId ?? null;
   const [tab, setTab] = useState<Tab>('dashboard');
+  const [worldD, setWorldD] = useState<Discipline>('MS'); // nomor awal World → Ranking (tombol ranking lengkap di dashboard)
   const [profileId, setProfileId] = useState<string>();
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [busy, setBusy] = useState(false);
@@ -250,7 +251,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
             </div>
           </section>
         )
-        : tab === 'dashboard' ? <Dashboard onOpen={open} onOpenEvent={openEvent} />
+        : tab === 'dashboard' ? <Dashboard onOpen={open} onOpenEvent={openEvent} onFullRanking={(d) => { setWorldD(d); setTab('world'); window.scrollTo(0, 0); }} />
         : tab === 'squad' ? <Squad onOpen={open} />
         : tab === 'entries' ? <Entries onOpenEvent={openEvent} />
         : tab === 'team' ? <Team />
@@ -258,7 +259,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
           <Editor data={{ ruleset: game.ruleset, world, players: state.players, pairs: state.pairs }} mode="save" date={state.date} country={managed ?? undefined}
             onChange={() => { changed(); persistSoon(); }} toolbar={<button onClick={exportSave}>{t('export')}</button>} />
         )
-        : tab === 'world' ? <SeasonViews state={state} ruleset={game.ruleset} world={world} version={version} onOpenPlayer={open} onOpenEvent={openEvent} />
+        : tab === 'world' ? <SeasonViews key={worldD} initialDiscipline={worldD} state={state} ruleset={game.ruleset} world={world} version={version} onOpenPlayer={open} onOpenEvent={openEvent} />
         : <Federation onChanged={() => { changed(); void persist(); }} onOpen={open} onOpenEvent={openEvent} />}
     </main>
   );
@@ -448,7 +449,7 @@ function ScoutingCard() {
   );
 }
 
-function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOpenEvent: (id: string, year: number) => void }) {
+function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string) => void; onOpenEvent: (id: string, year: number) => void; onFullRanking: (d: Discipline) => void }) {
   const { game } = useGame();
   const { state, ruleset, world } = game;
   const managed = state.career?.countryId;
@@ -521,7 +522,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
           <GoalTable goals={lastReport.goals} year={lastReport.year} />
         </section>
       )}
-      <section className="card">
+      <section className="card upcoming">
         <h3>{t('upcoming')}</h3>
         {upcoming.length === 0 ? <p>—</p> : [...byWeek].map(([w, list]) => (
           <div key={w} className="dlist">
@@ -529,7 +530,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
             {list.map((e) => (
               <div key={e.id} className="drow">
                 <span className="chip">{ruleset.tiers.find((x) => x.id === e.tierId)?.junior ? t('juniorShort') : tierLabel(e.tierId)}</span>
-                <span className="grow"><b>{eventName(ruleset, e.id, year)}</b> <small className="muted-text">{city(hostCityId(e, year))}</small></span>
+                <span className="grow"><b>{eventName(ruleset, e.id, year)}</b><small className="muted-text">{city(hostCityId(e, year))}</small></span>
               </div>
             ))}
           </div>
@@ -596,6 +597,7 @@ function Dashboard({ onOpen, onOpenEvent }: { onOpen: (id: string) => void; onOp
             </div>
           );
         })}
+        <p><button onClick={() => onFullRanking(rankD)}>{t('fullRanking')} ›</button></p>
       </section>
       {managed && injured.length > 0 && (
         <section className="card">

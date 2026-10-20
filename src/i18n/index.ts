@@ -154,6 +154,7 @@ const id = {
   weeksShort: '{n} mg', returnsWeek: 'kembali minggu {w}',
   singlesRank: 'Rank tunggal',
   bwfRank: 'BWF rank',
+  fullRanking: 'Lihat ranking lengkap',
   bwfRankNow: 'Ranking BWF saat ini',
   pair: 'Pasangan',
   tierPrefsFree: 'Otomatis', tierPrefs: 'Prioritas tier', tierPrefsHint: 'Tier yang diikuti saat entry otomatis: tier tertinggi yang menyala selalu didaftarkan (kecuali lelah/cedera). Otomatis (tidak ada yang menyala) = AI memilih menurut ranking & peluang seperti biasa.', sector: 'Sektor', manageSectors: 'Atur sektor', singlesHint: 'Ikut nomor tunggal (tanpa centang = spesialis ganda, tidak didaftarkan otomatis di tunggal)', pairsHint: 'Ikut nomor ganda (tanpa centang = tidak muncul di form bentuk pasangan; pasangannya dibubarkan)',

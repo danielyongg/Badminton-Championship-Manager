@@ -182,6 +182,9 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .dlist h4 a { color: inherit; }
 .drow { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); }
 .drow:last-child { border-bottom: none; }
+/* Turnamen mendatang: kolom tier selebar label terpanjang (MULTI-EVENT), kota di baris kedua. */
+.upcoming .drow .chip { width: 7.4em; }
+.upcoming .drow small { display: block; }
 .drow .chip { flex: none; min-width: 2.6em; text-align: center; margin-top: 2px; }
 .drow .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .drow .grow:has(> b) { display: block; }

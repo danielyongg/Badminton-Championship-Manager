@@ -40,10 +40,10 @@ export function Ranking({ ruleset, world, seed }: { ruleset: Ruleset; world: Wor
 const PAGE = 100;
 
 /** Ranking dunia & Race (sub-tab per nomor), kalender & juara per tahun, daftar semua turnamen — untuk satu SeasonState. */
-export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOpenEvent }: {
-  state: SeasonState; ruleset: Ruleset; world: World; version: number; onOpenPlayer?: (id: string) => void; onOpenEvent?: (id: string, year: number) => void;
+export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOpenEvent, initialDiscipline = 'MS' }: {
+  initialDiscipline?: Discipline; state: SeasonState; ruleset: Ruleset; world: World; version: number; onOpenPlayer?: (id: string) => void; onOpenEvent?: (id: string, year: number) => void;
 }) {
-  const [discipline, setDiscipline] = useState<Discipline>('MS');
+  const [discipline, setDiscipline] = useState<Discipline>(initialDiscipline);
   const [mode, setMode] = useState<'world' | 'race' | 'junior' | 'olympic'>('world');
   const og = nextOlympics(ruleset, state.date.year);
   const [selected, setSelected] = useState<string>();
