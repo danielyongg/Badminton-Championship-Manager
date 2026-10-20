@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { ageAt, currentAbility, generateWorld, TEAM_MIN_PER_GENDER } from './generator';
-import { normalizePack, presetPack, PRESETS, validatePack, type DataPack } from './pack';
+import { normalizePack, presetPack, PRESETS, syncOfficialCalendar, validatePack, type DataPack } from './pack';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
-import { newSeason, teamStrengths } from './season';
-import { ATTRS, type Player } from './types';
+import { isHeld, newSeason, teamStrengths, weekOf } from './season';
+import { ATTRS, type Player, type TournamentDef } from './types';
 
 /** Paket penuh: preset + atlet fiktif yang sudah diedit (seperti hasil "Salin untuk diedit"). */
 function fullPack(): DataPack {
@@ -99,5 +99,20 @@ describe('paket data (Editor, import/export)', () => {
     // Tiap atlet paling banyak satu pasangan aktif per nomor (dulu pasangan berisi spesialis tunggal tidak terhitung).
     const slots = state.pairs.filter((p) => !p.dissolved && !p.trial).flatMap((p) => p.playerIds.map((id) => `${p.discipline}:${id}`));
     expect(new Set(slots).size).toBe(slots.length);
+  });
+});
+
+describe('syncOfficialCalendar (save lama → kalender resmi)', () => {
+  const t = (id: string, week: number, tierId = 'IC', extra = {}): TournamentDef => ({ id, name: id, cityId: 'lima', week, tierId, prizeUsd: 0, ...extra });
+  it('musim berjalan tetap; minggu/tier baru musim depan; turnamen baru mulai tahun depan; yang hilang berhenti tahun ini', () => {
+    const saved = [t('peru-ic', 14), t('lingshui-masters', 15, 'S100'), t('asia-junior', 28, 'JC')];
+    const preset = [t('peru-ic', 43), t('swedish-is', 3, 'IS'), t('philippine-open', 15, 'S100', { years: { from: 2027 }, weeks: { 2027: 15, 2028: 7 } })];
+    syncOfficialCalendar(saved, preset, 2026);
+    const get = (id: string) => saved.find((e) => e.id === id)!;
+    expect([weekOf(get('peru-ic'), 2026), weekOf(get('peru-ic'), 2027)]).toEqual([14, 43]);
+    expect([isHeld(get('lingshui-masters'), 2026), isHeld(get('lingshui-masters'), 2027)]).toEqual([true, false]);
+    expect([isHeld(get('swedish-is'), 2026), isHeld(get('swedish-is'), 2027)]).toEqual([false, true]);
+    expect(get('philippine-open').weeks).toEqual({ 2027: 15, 2028: 7 });
+    expect(get('asia-junior').week).toBe(28); // junior tidak disentuh
   });
 });

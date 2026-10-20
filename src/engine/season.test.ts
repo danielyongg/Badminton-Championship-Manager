@@ -81,12 +81,12 @@ describe('satu musim penuh (BWF 2026)', () => {
     }
   });
 
-  it('atlet top bermain jumlah turnamen yang realistis (±10–26, cedera bisa mengurangi)', async () => {
+  it('atlet top bermain jumlah turnamen yang realistis (±10–28 termasuk beregu & multi-event, cedera bisa mengurangi)', async () => {
     for (const r of startRanking.slice(0, 10)) {
       const n = eventsOf(r.entrantId).size;
       const longInjury = state.players.find((p) => p.id === r.entrantId)?.injuryHistory?.some((h) => h.year === 2026 && h.weeks >= 12);
       if (!longInjury) expect(n, r.entrantId).toBeGreaterThanOrEqual(10); // cedera panjang boleh di bawah 10
-      expect(n, r.entrantId).toBeLessThanOrEqual(26);
+      expect(n, r.entrantId).toBeLessThanOrEqual(28); // tahun Asian Games: +4 event beregu/multi-event
     }
   });
 
@@ -239,10 +239,12 @@ it('kalender musim baru: tahun resmi tetap, tahun berikutnya bergeser ±1 minggu
 
 it('negara manajer hanya bisa memilih event yang terbuka untuknya (kontinental benua lain & multi-event non-anggota disimulasikan)', async () => {
   const rs = structuredClone(BWF_2026);
-  const state = newSeason(WORLD, rs, 3, { year: 2026, week: 7 }, 'INA');
+  const state = newSeason(WORLD, rs, 3, { year: 2026, week: 6 }, 'INA');
   state.managedCountryId = 'INA';
-  let offered: string[] = [];
-  await playWeek(state, rs, WORLD, makeRng(1), { chooseEvent: (req) => { offered = req.events.map((e) => e.id); return Promise.resolve(null); } });
+  const offered: string[] = [];
+  const rng = makeRng(1);
+  for (let i = 0; i < 2; i++) // minggu 6 (Asia) & 7 (Eropa)
+    await playWeek(state, rs, WORLD, rng, { chooseEvent: (req) => { offered.push(...req.events.map((e) => e.id)); return Promise.resolve(null); } });
   expect(offered).toContain('asia-team');
   expect(offered).not.toContain('europe-team');
   expect(state.teamResults.some((r) => r.eventId === 'europe-team')).toBe(true); // tetap dimainkan otomatis

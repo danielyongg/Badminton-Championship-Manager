@@ -109,8 +109,9 @@ export interface TeamResult {
 
 export const weekKey = (d: GameDate) => `${d.year}-${d.week}`;
 
-export const isHeld = (e: { everyYears?: TournamentDef['everyYears']; skipYears?: number[] }, year: number) =>
-  (!e.everyYears || (year % e.everyYears.interval === e.everyYears.offset) !== !!e.everyYears.invert) && !e.skipYears?.includes(year);
+export const isHeld = (e: { everyYears?: TournamentDef['everyYears']; skipYears?: number[]; years?: TournamentDef['years'] }, year: number) =>
+  (!e.everyYears || (year % e.everyYears.interval === e.everyYears.offset) !== !!e.everyYears.invert) && !e.skipYears?.includes(year)
+  && year >= (e.years?.from ?? -Infinity) && year <= (e.years?.to ?? Infinity);
 
 /** Kota tuan rumah event di tahun tertentu: `hosts` (asli) → `rotation` (bergilir) → `cityId`. */
 export const hostCityId = (e: Pick<TournamentDef, 'cityId' | 'hosts' | 'rotation'>, year: number) =>
@@ -350,8 +351,10 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
   // Satu atlet: satu turnamen per minggu, dan satu pasangan per nomor (pasangan utama ATAU percobaan).
   const playerDisc = new Set<string>();
   const all = DISCIPLINES.flatMap((d) => entrantsFor(state, d).map((e) => ({ e, d })));
+  // Lalu entrant Top Committed yang wajib main minggu ini, agar nomor lain atletnya tidak lebih dulu mengikatnya ke turnamen lain.
   const isManual = (x: { e: Entrant }) => mine(x.e) && manual[x.e.id] !== undefined;
-  for (const { e, d } of [...all.filter(isManual), ...all.filter((x) => !isManual(x))]) {
+  const isCommitted = (x: { e: Entrant }) => !isManual(x) && events.some((ev) => state.commitments[x.e.id]?.includes(ev.id));
+  for (const { e, d } of [...all.filter(isManual), ...all.filter(isCommitted), ...all.filter((x) => !isManual(x) && !isCommitted(x))]) {
     const taken = [wtf, og].some((x) => x && entries.get(x.id)!.get(d)!.some((c) => c.id === e.id));
     if (taken || e.playerIds.some((id) => injured.has(id) || playerDisc.has(`${id}:${d}`))) continue;
     const rank = ranks.get(d)!.get(e.id);

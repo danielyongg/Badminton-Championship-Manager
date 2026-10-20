@@ -281,13 +281,13 @@ describe('Thomas, Uber & Sudirman Cup', () => {
   it('line-up manajer dipakai; line-up tidak sah diganti otomatis', async () => {
     const state = newSeason(WORLD, BWF_2026, 6, undefined, 'INA');
     const rng = makeRng(6);
-    while (state.date.week < 18) await playWeek(state, BWF_2026, WORLD, rng, {}); // line-up disusun tepat sebelum putaran final (ranking & cedera minggu itu)
+    while (state.date.week < 17) await playWeek(state, BWF_2026, WORLD, rng, {}); // line-up disusun tepat sebelum putaran final (ranking & cedera minggu itu)
     const ina = teamStrengths(state, BWF_2026, 'thomas').find((t) => t.countryId === 'INA')!;
     const fourth = ina.pool.MS[3].id; // tunggal ke-4 tidak masuk line-up otomatis
     expect(ina.lineup).not.toContain(fourth);
     state.teamLineups.thomas = [fourth, ...ina.lineup.slice(1)];
     state.teamLineups.uber = [null, null, null, null, null];
-    while (state.date.week < 19) await playWeek(state, BWF_2026, WORLD, rng, {});
+    while (state.date.week < 18) await playWeek(state, BWF_2026, WORLD, rng, {});
     const ms = state.matches.filter((m) => m.tournamentId === 'thomas-uber-cup' && m.discipline === 'MS' && m.sides.includes(fourth));
     expect(ms.length).toBeGreaterThanOrEqual(3); // setiap laga grup
     expect(state.matches.some((m) => m.tournamentId === 'thomas-uber-cup' && m.discipline === 'WS' && m.sides.some((s) => s.startsWith('INA')))).toBe(true);

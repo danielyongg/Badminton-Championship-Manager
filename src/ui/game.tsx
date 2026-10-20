@@ -2,7 +2,7 @@ import { WORLD } from '../engine/presets/world';
 import { createContext, useContext } from 'react';
 import { INJURY_TYPES } from '../engine/development';
 import { writeSave } from '../db/saves';
-import { PRESETS, withDefaults } from '../engine/pack';
+import { PRESETS, syncOfficialCalendar, withDefaults } from '../engine/pack';
 import { BWF_2026 } from '../engine/presets/bwf2026';
 import { dataName, t } from '../i18n';
 import { makeRng, type Rng } from '../engine/rng';
@@ -71,6 +71,8 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
     // Save sebelum kalender per tahun: jadwal resmi preset untuk tahun-tahun yang belum dimainkan.
     for (const [y, w] of Object.entries(p?.weeks ?? {})) if (Number(y) > blob.state.date.year && e.weeks?.[y] === undefined) (e.weeks ??= {})[y] = w;
   }
+  // Save sebelum kalender resmi BWF (World Tour 2026–28 & Continental Circuit 2026): berlaku mulai musim depan.
+  if (PRESETS.some((r) => r.id === blob.ruleset.id)) syncOfficialCalendar(blob.ruleset.calendar, preset.calendar, blob.state.date.year);
   // Save sebelum Suhandinata Cup: tambahkan event beregu junior dari preset.
   for (const e of preset.team.events.filter((x) => x.formats?.some(isJuniorFormat))) {
     const saved = blob.ruleset.team.events.find((y) => y.id === e.id);

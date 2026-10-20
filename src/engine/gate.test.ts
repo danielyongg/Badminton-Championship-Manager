@@ -124,7 +124,7 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
     const lineups: string[] = [];
     const shows: RoundShow[] = [];
     const liveTies: number[] = []; // hasil sementara (halaman turnamen) saat tiap babak dimulai
-    const state = await weekOf(18, (s) => ({
+    const state = await weekOf(17, (s) => ({
       chooseEvent: choose(['thomas-uber-cup']),
       team: { squad: () => null, lineup: (req) => { lineups.push(`${req.format}:${req.round}`); return Promise.resolve(req.suggested); } },
       round: (r) => {
