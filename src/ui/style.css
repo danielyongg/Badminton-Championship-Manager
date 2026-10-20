@@ -474,3 +474,24 @@ table.fit { width: 100%; }
 @media (max-width: 700px) { table.fit { display: table; } }
 table.fit td:not(.num) { white-space: normal; overflow-wrap: anywhere; }
 table.fit td.num { white-space: nowrap; }
+
+/* ===== Laptop (≥1024px): bilah atas + menu samping + isi rata tengah. HP (≤700px) tidak terpengaruh. ===== */
+.page { min-width: 0; }
+@media (min-width: 701px) and (max-width: 1023px) {
+  .page { max-width: 1200px; margin: 0 auto; }
+}
+@media (min-width: 1024px) {
+  body { padding: 0; }
+  main:has(> .shell) { display: grid; grid-template-columns: 200px minmax(0, 1fr); grid-template-rows: auto 1fr; min-height: 100vh; }
+  main > .shell { grid-column: 1 / -1; margin: 0; padding: 10px 24px; display: flex; align-items: center; gap: 16px; }
+  main > .shell .title b { font-size: 1.2rem; }
+  main > .shell .meta { margin-right: auto; }
+  main > .shell .advbar { display: flex; gap: 8px; align-items: center; }
+  main > .shell .advbar .simulating { display: inline-flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--muted); }
+  main > .shell .menu-btn { position: fixed; left: 12px; bottom: 16px; width: 176px; z-index: 3; }
+  nav.maintabs { grid-column: 1; grid-row: 2; position: sticky; top: var(--shell-h, 53px); align-self: start; height: calc(100vh - var(--shell-h, 53px)); box-sizing: border-box;
+    flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 2px; margin: 0; padding: 12px 12px 72px; border-bottom: none; border-right: 1px solid var(--line); background: var(--surface); overflow-y: auto; }
+  nav.maintabs button { text-align: left; padding: 8px 12px; border-radius: 6px; font-size: .95rem; }
+  nav.maintabs button[aria-pressed=true] { box-shadow: inset 3px 0 var(--accent); background: var(--accent-soft); color: var(--accent-strong); }
+  main > .page { grid-column: 2; grid-row: 2; width: 100%; max-width: 1200px; margin: 0 auto; padding: 20px 24px 40px; box-sizing: border-box; }
+}

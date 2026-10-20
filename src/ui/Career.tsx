@@ -233,6 +233,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
         {hubOn && <button aria-pressed={showHub} onClick={() => { setHubAway(false); setProfileId(undefined); setEventView(undefined); }}>🏸 {t('tabLive')}</button>}
         {tabs.map((x) => <button key={x} aria-pressed={!showHub && tab === x && !profileId && !eventView} onClick={() => { setTab(x); setHubAway(true); setProfileId(undefined); setEventView(undefined); }}>{t(tabLabel[x])}</button>)}
       </nav>
+      <div className="page">
       {hubOn && !showHub && (
         <div className="livebar card">
           🏸 <b>{hubTitle}</b>
@@ -261,6 +262,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
         )
         : tab === 'world' ? <SeasonViews key={worldD} initialDiscipline={worldD} state={state} ruleset={game.ruleset} world={world} version={version} onOpenPlayer={open} onOpenEvent={openEvent} />
         : <Federation onChanged={() => { changed(); void persist(); }} onOpen={open} onOpenEvent={openEvent} />}
+      </div>
     </main>
   );
 }
