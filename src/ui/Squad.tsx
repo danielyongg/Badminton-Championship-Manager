@@ -5,7 +5,7 @@ import { headToHead, moraleTier } from '../engine/match';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { rankFromSnapshots } from '../engine/season';
 import { ATTRS, DISCIPLINES, type Attr, type Discipline, type GameDate, type Player } from '../engine/types';
-import { dataName, numLocale, t, type TextKey } from '../i18n';
+import { numLocale, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName as eventNameOf, lookup, saveGame, TIER_GROUPS, TierBadge, tierGroup, useGame } from './game';
 import { formatName } from './Team';
 import { Pairs } from './Pairs';
@@ -319,9 +319,11 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
     return TIER_GROUPS.indexOf(tierGroup(tier, x.team)) * 100 + (tier ? ruleset.tiers.indexOf(tier) : 1.5); // beregu setelah Kejuaraan Dunia
   };
   titleRows.sort((a, b) => titleOrder(a) - titleOrder(b) || b.y - a.y);
-  // Ringkasan per tier; Multi-sport Games digabung; Grade 1 lain per jenis (Kejuaraan Dunia, beregu, ...) agar bisa dibedakan.
-  const titleKey = (x: (typeof titleRows)[number]) => tierGroup(ruleset.tiers.find((tt) => tt.id === x.tierId), x.team) === 'msg' ? 'msg' : x.tierId ?? 'team';
-  const titleKeyLabel = (x: (typeof titleRows)[number]) => x.team ? t('teamShort') : dataName(ruleset.tiers.find((tt) => tt.id === x.tierId)?.name) ?? x.tierId;
+  // Ringkasan per badge: Grade 1 (Major) & Multi-sport Games digabung, selain itu per tier.
+  const titleKey = (x: (typeof titleRows)[number]) => {
+    const g = tierGroup(ruleset.tiers.find((tt) => tt.id === x.tierId), x.team);
+    return g === 'g1' || g === 'msg' ? g : x.tierId ?? 'team';
+  };
   const wl = (ms: typeof mine) => { const w = ms.filter(won).length; return `${w}–${ms.length - w}`; };
 
   return (
@@ -417,8 +419,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           <p className="title-counts">{[...new Set(titleRows.map(titleKey))].map((k) => {
             const x = titleRows.find((r) => titleKey(r) === k)!;
             const n = titleRows.filter((r) => titleKey(r) === k).length;
-            return <span key={k}>{tierGroup(ruleset.tiers.find((tt) => tt.id === x.tierId), x.team) === 'g1'
-              ? <span className="tierb g1"><b>{titleKeyLabel(x)}</b></span> : <TierBadge tierId={x.tierId} team={x.team} />} ×{n}</span>;
+            return <span key={k}><TierBadge tierId={x.tierId} team={x.team} /> ×{n}</span>;
           })}</p>
           <table className="fit"><tbody>{titleRows.map((x, i) => (
             <tr key={i}>
