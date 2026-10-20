@@ -437,6 +437,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
               <h3>{t('profEventsYear', { y })} <span className="muted-text">({[...events.values()].filter((e) => e.y === y).length})</span></h3>
               <table className="fit"><tbody>{[...events.values()].filter((e) => e.y === y).reverse().map((e) => (
                 <tr key={e.eid}>
+                  <td className="title-badge"><TierBadge tierId={ruleset.calendar.find((c) => c.id === e.eid)?.tierId} team={ruleset.team.events.find((c) => c.id === e.eid)} /></td>
                   <td>{evLink(e.eid, e.y)}</td>
                   <td>{e.res.map((r) => (
                     <span key={r.d} className="evres"><span className="chip">{r.d}</span> <span className={r.champ ? 'up' : 'muted-text'}>{r.champ ? '🏆 ' : ''}{r.r}</span></span>
