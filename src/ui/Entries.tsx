@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
-import { entrantsFor, hostCityId, openTo, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
+import { entrantsFor, hostCityId, openTo, type SeasonState, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
 import { autoSquad, squadError, squadPool } from '../engine/team';
 import { contingentOf, inContingent, lockWeek } from '../engine/contingent';
-import { DISCIPLINES, isDoubles, isJuniorFormat, type Discipline, type TeamFormat, type TournamentDef } from '../engine/types';
+import { DISCIPLINES, isDoubles, isJuniorFormat, type Discipline, type Ruleset, type TeamFormat, type TournamentDef, type World } from '../engine/types';
 import { dataName, t } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, teamLabel, tierLabel, useGame } from './game';
 import { FatigueBar } from './Squad';
@@ -12,42 +12,14 @@ import { formatName, SquadPicker } from './Team';
 import { Flag } from './Flag';
 import { plannableEvents, planWeek, type PlanCell } from '../engine/plan';
 
-/** Kalender & entry: daftar jadwal turnamen musim ini + status entry; klik turnamen → isi entry-nya. */
+/** Kalender & entry: daftar jadwal turnamen musim ini + status entry; klik turnamen → halaman turnamen (form entry di bawahnya). */
 export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: number) => void }) {
   const { game, changed } = useGame();
   const { state, ruleset } = game;
   const { year, week } = state.date;
-  const [open, setOpen] = useState<string>();
   const [showPast, setShowPast] = useState(false); // turnamen yang sudah selesai disembunyikan dulu (minggu ini langsung terlihat)
   const [view, setView] = useState<'calendar' | 'plan' | 'champions'>('calendar');
   const [scope, setScope] = useState<'all' | 'senior' | 'junior'>('all'); // kalender: semua / senior / junior (U19)
-  const submit = (id: string) => { (state.entriesSubmitted ??= {})[`${year}:${id}`] = true; changed(); void saveGame(game); setOpen(undefined); };
-  const teamEv = open && ruleset.team.events.find((e) => e.id === open);
-  if (teamEv) return (
-    <>
-      <p><button onClick={() => setOpen(undefined)}>← {t('back')}</button></p>
-      <h3>{t('week')} {weekOf(teamEv, year)} · {eventName(ruleset, teamEv.id, year)} <small className="muted-text">{teamLabel(teamEv)}</small></h3>
-      <TeamSquads eventId={teamEv.id} formats={teamEv.formats ?? teamFormatsIn(ruleset, year)} onSubmit={() => submit(teamEv.id)} />
-    </>
-  );
-  const ev = open && ruleset.calendar.find((e) => e.id === open);
-  if (ev && ruleset.tiers.find((x) => x.id === ev.tierId)?.junior) return (
-    <>
-      <p><button onClick={() => setOpen(undefined)}>← {t('back')}</button></p>
-      <h3>{t('week')} {weekOf(ev, year)} · {dataName(ev.name)} <small className="muted-text">{tierLabel(ev.tierId)}</small></h3>
-      <JuniorEntryTable ev={ev} />
-      <p><button className="primary" onClick={() => submit(ev.id)}>{t('submitEntries')}</button></p>
-    </>
-  );
-  if (ev) return (
-    <>
-      <p><button onClick={() => setOpen(undefined)}>← {t('back')}</button></p>
-      <h3>{t('week')} {weekOf(ev, year)} · {dataName(ev.name)} <small className="muted-text">{tierLabel(ev.tierId)}</small></h3>
-      <EntryRules ev={ev} />
-      <EntryTable week={weekOf(ev, year)} eventId={ev.id} />
-      <p><button className="primary" onClick={() => submit(ev.id)}>{t('submitEntries')}</button></p>
-    </>
-  );
   const city = (id: string) => dataName(game.world.cities.find((c) => c.id === id)?.name);
   const submitted = (id: string) => state.entriesSubmitted?.[`${year}:${id}`];
   const teamIds = new Set(ruleset.team.events.map((e) => e.id));
@@ -87,7 +59,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
           return (
             <tr key={e.id} className={past ? 'muted-text' : undefined}>
               <td className="num">{weekOf(e, year)}</td>
-              <td><a href="#" onClick={(x) => { x.preventDefault(); if (past || auto) onOpenEvent?.(e.id, year); else setOpen(e.id); }}>{team ? eventName(ruleset, e.id, year) : dataName(e.name)}</a></td>
+              <td><a href="#" onClick={(x) => { x.preventDefault(); onOpenEvent?.(e.id, year); }}>{team ? eventName(ruleset, e.id, year) : dataName(e.name)}</a></td>
               <td><span className="chip">{team ? teamLabel(e) : ruleset.tiers.find((x) => x.id === tier)?.junior && scope !== 'junior' ? t('juniorShort') : tierLabel(tier)}</span></td>
               <td className="hide-sm">{city(hostCityId(e, year))}</td>
               <td>{past ? t('finished') : auto ? t('auto')
@@ -98,6 +70,35 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
       </table>
     </div>
     </>
+  );
+}
+
+/** Turnamen musim ini yang entry-nya diisi manajer: belum lewat, terbuka untuk negaranya, bukan WTF/Olimpiade (otomatis). */
+export function canEnter(state: SeasonState, rs: Ruleset, world: World, id: string, year: number) {
+  const e = rs.calendar.find((x) => x.id === id) ?? rs.team.events.find((x) => x.id === id);
+  const tier = e && 'tierId' in e ? e.tierId : '';
+  return !!e && !!state.managedCountryId && year === state.date.year && isHeld(e, year) && weekOf(e, year) >= state.date.week
+    && tier !== 'WTF' && tier !== 'OG' && openTo(e, state.managedCountryId, world);
+}
+
+/** Form entry satu turnamen (individu, junior, atau skuad beregu) + tombol submit; tampil di halaman turnamen. */
+export function EntryPanel({ id }: { id: string }) {
+  const { game, changed } = useGame();
+  const { state, ruleset } = game;
+  const { year } = state.date;
+  const done = state.entriesSubmitted?.[`${year}:${id}`];
+  const submit = () => { (state.entriesSubmitted ??= {})[`${year}:${id}`] = true; changed(); void saveGame(game); };
+  const status = done ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>;
+  const button = <p><button className="primary" onClick={submit}>{t('submitEntries')}</button></p>;
+  const teamEv = ruleset.team.events.find((e) => e.id === id);
+  const ev = ruleset.calendar.find((e) => e.id === id);
+  return (
+    <section className="card">
+      <h3>{t('entryStatus')} {status}</h3>
+      {teamEv ? <TeamSquads eventId={id} formats={teamEv.formats ?? teamFormatsIn(ruleset, year)} onSubmit={submit} />
+      : ev && ruleset.tiers.find((x) => x.id === ev.tierId)?.junior ? <><JuniorEntryTable ev={ev} />{button}</>
+      : ev && <><EntryRules ev={ev} /><EntryTable week={weekOf(ev, year)} eventId={id} />{button}</>}
+    </section>
   );
 }
 

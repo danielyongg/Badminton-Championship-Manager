@@ -8,6 +8,7 @@ import { LiveDraw } from './LiveDraw';
 import { formatName, TeamResults, winnerOf } from './Team';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
+import { canEnter, EntryPanel } from './Entries';
 
 // Halaman turnamen di karier: entry, kualifikasi/grup, undian, bagan untuk tiap nomor (data 2 musim terakhir).
 
@@ -70,7 +71,7 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
       {page === 'winners' ? <Winners id={id} year={year} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
       : page === 'history' ? <WinnersHistory id={id} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
       : page === 'participants' ? <Participants id={id} year={year} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
-      : team.length > 0 ? <TeamResults results={team} /> : played.length === 0 ? <p>{t('notPlayedYet')}</p> : (
+      : team.length > 0 ? <TeamResults results={team} /> : played.length === 0 ? (canEnter(state, ruleset, world, id, year) ? <EntryPanel id={id} /> : <p>{t('notPlayedYet')}</p>) : (
         <>
           {/* Bagian (entry, kualifikasi, undian, bagan) dulu, lalu nomor sebagai sub-tab. */}
           {records.length > 0 && (
