@@ -10,7 +10,8 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Kalender 2026**: minggu & hadiah mendekati HSBC BWF World Tour 2026, plus beberapa turnamen Grade 3 fiktif-generik agar pemain peringkat bawah punya tempat bertanding.
 - **Kejuaraan Dunia** digelar tiap tahun kecuali tahun Olimpiade; kota tetap New Delhi (ubah di Editor).
 - **Olimpiade**: tunggal 16 grup × 3 (juara grup ke R16), ganda 4 grup × 4 (2 teratas ke QF).
-- **Preset 2027**: tabel poin & hadiah sama dengan 2026. Tunggal Super 1000: 48 pemain, 16 grup × 3 → R16. Kejuaraan Dunia: MS 16 grup × 4, nomor lain 16 grup × 3 → R16. Lingshui & Odisha Masters dihapus agar tepat 8 Super 100.
+- **Preset 2027**: tabel poin & hadiah sama dengan 2026. Tunggal Super 1000: 48 pemain, 16 grup × 3 → R16. Kejuaraan Dunia: MS 16 grup × 4, nomor lain 16 grup × 3 → R16. Super 100 yang tidak ada lagi di kalender 2027 (Ruichang, Baoji, Lingshui, Korea Masters, Guwahati, Odisha) berhenti setelah 2026 (`years.to`).
+- **Kalender resmi BWF**: World Tour 2026–2028 dan Continental Circuit 2026 mengikuti kalender BWF (hanya turnamen di negara yang ada di game). Continental Circuit 2027 baru sebagian diumumkan BWF (per 20 Okt 2026): yang sudah diumumkan memakai minggu resmi 2027, termasuk 5 event baru (kota TBC: Indonesia → Jakarta, Korea → Suwon & Iksan); sisanya, dan seluruh 2028 (belum ada event di negara game), mengikuti minggu 2026 ±1. Singapore IC 2027 (minggu 31) dianggap edisi kedua 2026.
 - **Generator**: atlet senior dibagi bergantian fokus tunggal/ganda untuk membentuk pasangan awal; kurva usia awal sederhana (kurva sebenarnya di Fase 6).
 
 ## Fase 2 — Mesin pertandingan

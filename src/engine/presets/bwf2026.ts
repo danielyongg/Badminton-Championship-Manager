@@ -356,9 +356,28 @@ export const OFFICIAL_WEEKS: Record<string, [number, number]> = {
   'world-championships': [28, 34],
 };
 const OFFICIAL_HOSTS: Record<string, Record<string, string>> = { 'us-open': { 2027: 'los-angeles' }, 'china-open': { 2027: 'chengdu', 2028: 'chengdu' } };
+/**
+ * Continental Circuit 2027 yang sudah diumumkan BWF (kalender 20 Okt 2026, belum lengkap): minggu resmi 2027.
+ * Yang belum diumumkan (dan semua 2028) tetap mengikuti minggu 2026 lewat `scheduleYear` (ASUMSI).
+ */
+const CONTINENTAL_WEEKS_2027: Record<string, number> = {
+  'vietnam-ic': 11, 'polish-ic': 11, 'brazil-is': 12, 'phuket-ic': 21, 'valence-ic': 23,
+  // ASUMSI: satu-satunya Singapore IC 2027 yang sudah diumumkan (minggu 31) = edisi kedua 2026 (minggu 34).
+  'singapore-ic-2': 31, 'south-australia-is': 32, 'melbourne-fs': 33, 'sydney-ic': 41,
+  'indonesia-ic': 12, 'dutch-is': 13, 'north-harbour-fs': 15, 'korea-ic': 35, 'korea-ic-2': 43,
+};
+CALENDAR_2026.push(
+  // Continental Circuit baru di kalender 2027. ASUMSI: kota yang masih TBC → Jakarta (Indonesia), Suwon & Iksan (Korea).
+  t('indonesia-ic', 'Indonesia International Challenge', 'jakarta', 12, 'IC', IC, { years: { from: 2027 } }),
+  t('dutch-is', 'Dutch International', 'almelo', 13, 'IS', IS, { years: { from: 2027 } }),
+  t('north-harbour-fs', 'North Harbour Future Series', 'auckland', 15, 'FS', FS, { years: { from: 2027 } }),
+  t('korea-ic', 'Korea International Challenge', 'suwon', 35, 'IC', IC, { years: { from: 2027 } }),
+  t('korea-ic-2', 'Korea International Challenge II', 'iksan', 43, 'IC', IC, { years: { from: 2027 } }),
+);
 for (const e of CALENDAR_2026) {
   const w = OFFICIAL_WEEKS[e.id];
   if (w) e.weeks = { 2027: w[0], 2028: w[1] };
+  if (CONTINENTAL_WEEKS_2027[e.id]) e.weeks = { ...e.weeks, 2027: CONTINENTAL_WEEKS_2027[e.id] };
   if (OFFICIAL_HOSTS[e.id]) e.hosts = { ...e.hosts, ...OFFICIAL_HOSTS[e.id] };
 }
 

@@ -62,6 +62,15 @@ it('kalender resmi BWF 2026: 4/6/9/10/9 World Tour (Abu Dhabi dibatalkan), mingg
   expect(count(BWF_2026, 'IC') + count(BWF_2026, 'IS') + count(BWF_2026, 'FS')).toBe(59);
 });
 
+it('Continental Circuit 2027: minggu resmi yang sudah diumumkan, event baru mulai 2027, preset 2027 ikut minggu 2027', () => {
+  const ev = (rs: typeof BWF_2026, id: string) => rs.calendar.find((e) => e.id === id)!;
+  expect(['vietnam-ic', 'phuket-ic', 'sydney-ic', 'swedish-is'].map((id) => [weekOf(ev(BWF_2026, id), 2026), weekOf(ev(BWF_2026, id), 2027)]))
+    .toEqual([[13, 11], [24, 21], [42, 41], [3, 3]]);
+  expect([isHeld(ev(BWF_2026, 'korea-ic'), 2026), weekOf(ev(BWF_2026, 'korea-ic'), 2027)]).toEqual([false, 35]);
+  expect(ev(BWF_2027, 'phuket-ic').week).toBe(21);
+  expect(count(BWF_2026, 'IC', 2027) + count(BWF_2026, 'IS', 2027) + count(BWF_2026, 'FS', 2027)).toBe(64);
+});
+
 it('ukuran draw default 2026: S300–S1000 = 32, S100 = 48 MS', () => {
   const tier = (id: string) => BWF_2026.tiers.find((t) => t.id === id)!;
   for (const id of ['S1000', 'S750', 'S500', 'S300']) expect(Object.values(tier(id).drawSize)).toEqual([32, 32, 32, 32, 32]);

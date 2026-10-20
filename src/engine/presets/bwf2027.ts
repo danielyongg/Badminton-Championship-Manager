@@ -35,7 +35,10 @@ const calendar: TournamentDef[] = CALENDAR_2026.map((e) => {
   const official = OFFICIAL_WEEKS[e.id];
   return {
     ...e, tierId, prizeUsd: tierId === e.tierId && e.prizeUsd ? e.prizeUsd : prizeOf(tierId),
-    ...(official && { week: official[0], weeks: { 2027: official[0], 2028: official[1] } }),
+    // `weeks` disalin agar jadwal per tahun preset 2026 tidak ikut tertulis ke preset ini.
+    // Continental Circuit yang minggu 2027-nya resmi: tahun-tahun berikutnya mengikuti minggu 2027 (ASUMSI).
+    ...(official ? { week: official[0], weeks: { 2027: official[0], 2028: official[1] } }
+      : { week: e.weeks?.[2027] ?? e.week, weeks: e.weeks && { ...e.weeks } }),
     ...(e.id === 'us-open' && { cityId: 'los-angeles' }), ...(e.id === 'china-open' && { cityId: 'chengdu' }),
   };
 });

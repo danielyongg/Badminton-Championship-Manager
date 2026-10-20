@@ -149,6 +149,7 @@ export const WORLD: World = {
     { id: 'ceske-budejovice', countryId: 'CZE', name: 'České Budějovice', venue: 'Sportovní hala', lat: 48.97, lon: 14.47 },
     { id: 'prague', countryId: 'CZE', name: 'Praha', venue: 'Hala Královka', lat: 50.09, lon: 14.4 },
     { id: 'bolzano', countryId: 'ITA', name: 'Bolzano', venue: 'PalaResia', lat: 46.5, lon: 11.35 },
+    { id: 'almelo', countryId: 'NED', name: 'Almelo', venue: 'Sporthal Het Bolwerk', lat: 52.36, lon: 6.66 },
     { id: 's-hertogenbosch', countryId: 'NED', name: "'s-Hertogenbosch", venue: 'Maaspoort', lat: 51.7, lon: 5.3 },
     { id: 'sandefjord', countryId: 'NOR', name: 'Sandefjord', venue: 'Bugårdshallen', lat: 59.13, lon: 10.22 },
     { id: 'ankara', countryId: 'TUR', name: 'Ankara', venue: 'Ankara Sports Hall', lat: 39.93, lon: 32.86 },
