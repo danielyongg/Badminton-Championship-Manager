@@ -152,7 +152,7 @@ const JUNIOR_CODE: Record<string, string> = { JGP: 'IGP', JIC: 'IC', JIS: 'IS', 
  */
 export function TierBadge({ tierId, team }: { tierId?: string; team?: object }) {
   const tier = useGame().game.ruleset.tiers.find((x) => x.id === tierId);
-  const [group, label, code] = team || tier?.id === 'WJC' || (tier?.grade === 1 && tier.id !== 'WTF') ? ['g1', t('gradeN', { n: 1 }), t('majorEvents')]
+  const [group, label, code] = team || tier?.id === 'WJC' || (tier?.grade === 1 && tier.id !== 'WTF') ? ['g1', t('gradeN', { n: 1 }), t('major')]
     : tier?.junior ? ['junior', t('juniorShort'), JUNIOR_CODE[tier.id] ?? tier.id]
     : ['g' + (tier?.grade === 3 ? 3 : 2), t('gradeN', { n: tier?.grade === 3 ? 3 : 2 }), tierId ?? ''];
   return <span className={`tierb ${group}`} title={tier ? dataName(tier.name) : undefined}><small>{label}</small><b>{code}</b></span>;
