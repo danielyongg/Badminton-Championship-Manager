@@ -121,6 +121,10 @@ th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line
 th { position: sticky; top: 0; background: var(--surface); color: var(--muted); font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
 th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
 tr.sel { background: var(--accent-soft); }
+/* Ranking: atlet/pasangan negara manajer hijau & tebal; baris terpilih abu-abu agar tidak tertukar. */
+.ranktable tr.mine-row td { background: var(--accent-soft); }
+.ranktable tr.mine-row td:nth-child(2) { font-weight: 700; color: var(--accent-strong); }
+.ranktable tr.sel td { background: var(--line); }
 .stars { color: var(--gold); letter-spacing: -1px; }
 .up { color: var(--accent-strong); font-size: .8em; }
 .down { color: var(--danger); font-size: .8em; }

@@ -161,11 +161,11 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
             {DISCIPLINES.map((d) => <button key={d} aria-pressed={d === discipline} onClick={() => { setDiscipline(d); setSelected(undefined); }}>{d}</button>)}
           </nav>
           {pager(false)}
-          <table className="fit">
+          <table className="fit ranktable">
             <thead><tr><th className="num" title={prevRank ? t('rankMoveHint') : undefined}>#</th><th>{t('name')}</th><th className="hide-sm">{t('country')}</th><th className="num">{t('points')}</th><th className="num hide-sm">{t('tournaments')}</th>{olympic && <th className="hide-sm">{t('olympicQualified')}</th>}</tr></thead>
             <tbody>
               {rows.slice(page * PAGE, (page + 1) * PAGE).map((r) => (
-                <tr key={r.entrantId} onClick={() => setSelected(r.entrantId)} className={selected === r.entrantId ? 'sel' : ''} style={{ cursor: 'pointer' }}>
+                <tr key={r.entrantId} onClick={() => setSelected(r.entrantId)} className={[selected === r.entrantId && 'sel', name(r.entrantId).country === state.managedCountryId && 'mine-row'].filter(Boolean).join(' ') || undefined} style={{ cursor: 'pointer' }}>
                   <td className="num rankcell">{r.rank} <small>{move(r.entrantId, r.rank)}</small></td><td><span className="show-sm"><Flag id={name(r.entrantId).country} /></span>{name(r.entrantId).name}{olympic && <span className="show-sm"> {qualified(r.entrantId)}</span>}</td><td className="hide-sm"><Flag id={name(r.entrantId).country} />{name(r.entrantId).country}</td>
                   <td className="num">{r.points.toLocaleString(numLocale())}</td><td className="num hide-sm">{r.tournamentsPlayed}</td>
                   {olympic && <td className="hide-sm">{qualified(r.entrantId)}</td>}
