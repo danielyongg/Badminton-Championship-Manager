@@ -26,20 +26,11 @@ const TIER_OF_EVENT_2027: Record<string, string> = {
   'german-open': 'S500', 'denmark-open': 'S1000', 'hong-kong-open': 'S750', 'singapore-open': 'S500', 'taipei-open': 'S300',
   'hylo-open': 'S300', 'syed-modi': 'S100',
 };
-// Tidak ada di kalender 2027.
-const DROPPED_2027 = new Set(['ruichang-masters', 'lingshui-masters', 'al-ain-masters', 'korea-masters', 'guwahati-masters', 'odisha-masters']);
-// Super 100 baru 2027. ASUMSI: kota yang masih TBC di kalender resmi.
-const ADDED_2027: TournamentDef[] = [
-  { id: 'philippine-open', name: 'Philippine Open', cityId: 'manila', week: 15, tierId: 'S100', prizeUsd: 0 },
-  { id: 'china-s100', name: 'China Super 100', cityId: 'ruichang', week: 25, tierId: 'S100', prizeUsd: 0 },
-  { id: 'malaysia-s100', name: 'Malaysia Super 100', cityId: 'kuala-lumpur', week: 42, tierId: 'S100', prizeUsd: 0 },
-  { id: 'indonesia-s100-2', name: 'Indonesia Super 100 II', cityId: 'jakarta', week: 49, tierId: 'S100', prizeUsd: 0 },
-];
-
 const tiers: Tier[] = TIERS_2026.map((tier) => ({ ...tier, ...TIER_CHANGES[tier.id] }));
 const prizeOf = (tierId: string) => tiers.find((x) => x.id === tierId)!.prizeUsd;
 
-const calendar: TournamentDef[] = [...CALENDAR_2026.filter((e) => !DROPPED_2027.has(e.id)), ...ADDED_2027].map((e) => {
+// Turnamen yang hanya ada di kalender tahun tertentu diatur `years` di CALENDAR_2026 (mis. Ruichang s/d 2026, Philippine Open mulai 2027).
+const calendar: TournamentDef[] = CALENDAR_2026.map((e) => {
   const tierId = TIER_OF_EVENT_2027[e.id] ?? e.tierId;
   const official = OFFICIAL_WEEKS[e.id];
   return {

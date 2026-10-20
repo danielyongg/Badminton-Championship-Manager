@@ -109,8 +109,9 @@ export interface TeamResult {
 
 export const weekKey = (d: GameDate) => `${d.year}-${d.week}`;
 
-export const isHeld = (e: { everyYears?: TournamentDef['everyYears']; skipYears?: number[] }, year: number) =>
-  (!e.everyYears || (year % e.everyYears.interval === e.everyYears.offset) !== !!e.everyYears.invert) && !e.skipYears?.includes(year);
+export const isHeld = (e: { everyYears?: TournamentDef['everyYears']; skipYears?: number[]; years?: TournamentDef['years'] }, year: number) =>
+  (!e.everyYears || (year % e.everyYears.interval === e.everyYears.offset) !== !!e.everyYears.invert) && !e.skipYears?.includes(year)
+  && year >= (e.years?.from ?? -Infinity) && year <= (e.years?.to ?? Infinity);
 
 /** Kota tuan rumah event di tahun tertentu: `hosts` (asli) → `rotation` (bergilir) → `cityId`. */
 export const hostCityId = (e: Pick<TournamentDef, 'cityId' | 'hosts' | 'rotation'>, year: number) =>

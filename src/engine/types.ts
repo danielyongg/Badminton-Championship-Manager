@@ -71,6 +71,8 @@ export interface TournamentDef {
   contingent?: { M: number; F: number };
   /** Tahun yang tidak digelar walau sesuai `everyYears` (mis. Commonwealth Games 2026 tanpa badminton). */
   skipYears?: number[];
+  /** Rentang tahun digelar (inklusif): turnamen baru (`from`) atau yang sudah tidak ada di kalender resmi (`to`). */
+  years?: { from?: number; to?: number };
 }
 
 export interface AgeBand {

@@ -448,5 +448,5 @@ export const DATA_EN: Record<string, string> = {
   Polandia: 'Poland', Ceko: 'Czech Republic', Ukraina: 'Ukraine', Turki: 'Türkiye', Norwegia: 'Norway',
   Italia: 'Italy', Kanada: 'Canada', 'Amerika Serikat': 'United States', Brasil: 'Brazil', Meksiko: 'Mexico',
   Mesir: 'Egypt', 'Afrika Selatan': 'South Africa', Aljazair: 'Algeria', 'Selandia Baru': 'New Zealand',
-  Kairo: 'Cairo', 'Kejuaraan Dunia': 'World Championships', 'Kejuaraan Dunia BWF': 'BWF World Championships', Olimpiade: 'Olympics',
+  Kairo: 'Cairo', Aljir: 'Algiers', Praha: 'Prague', 'Kejuaraan Dunia': 'World Championships', 'Kejuaraan Dunia BWF': 'BWF World Championships', Olimpiade: 'Olympics',
 };

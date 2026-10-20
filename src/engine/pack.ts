@@ -22,6 +22,31 @@ export interface DataPack {
 export const PRESETS = [BWF_2026, BWF_2027];
 export const CONFEDERATIONS: Confederation[] = ['BA', 'BE', 'BAM', 'BCA', 'BO'];
 
+const OFFICIAL_TIERS = new Set(['WTF', 'S1000', 'S750', 'S500', 'S300', 'S100', 'IC', 'IS', 'FS']);
+
+/**
+ * Save lama → kalender resmi preset (World Tour & Continental Circuit), tanpa mengubah musim berjalan (`year`):
+ * minggu & kota tahun ini dipatok, lalu minggu/tier/kota/nama preset berlaku; turnamen baru mulai tahun depan;
+ * turnamen yang tidak ada lagi di preset berhenti setelah tahun ini. Tier baru langsung berlaku (tidak per tahun).
+ */
+export function syncOfficialCalendar(saved: TournamentDef[], preset: TournamentDef[], year: number) {
+  const official = (e: TournamentDef) => OFFICIAL_TIERS.has(e.tierId);
+  const later = <T,>(m: Record<string, T> | undefined) => Object.fromEntries(Object.entries(m ?? {}).filter(([y]) => Number(y) > year)) as Record<string, T>;
+  for (const e of saved.filter(official)) {
+    const p = preset.find((x) => x.id === e.id);
+    if (!p) { e.years = { ...e.years, to: Math.min(e.years?.to ?? year, year) }; continue; }
+    if (p.week === e.week && p.tierId === e.tierId && p.cityId === e.cityId && p.name === e.name && !p.years) continue;
+    (e.weeks ??= {})[year] ??= e.week;
+    (e.hosts ??= {})[year] ??= e.rotation?.length ? e.rotation[year % e.rotation.length] : e.cityId;
+    Object.assign(e, { week: p.week, tierId: p.tierId, cityId: p.cityId, name: p.name, prizeUsd: p.prizeUsd });
+    e.hosts = { ...e.hosts, ...later(p.hosts) };
+    e.weeks = { ...e.weeks, ...later(p.weeks) };
+    if (p.years) e.years = { ...p.years, from: p.years.from && Math.max(p.years.from, year + 1) };
+  }
+  for (const p of preset.filter((x) => official(x) && !saved.some((e) => e.id === x.id)))
+    saved.push({ ...structuredClone(p), years: { ...p.years, from: Math.max(p.years?.from ?? year + 1, year + 1) }, weeks: later(p.weeks), hosts: later(p.hosts) });
+}
+
 /** Paket bawaan (hanya-baca): preset ruleset + dunia bawaan + atlet asli (kekurangan diisi atlet fiktif saat New Game). */
 export const presetPack = (rs: Ruleset): DataPack =>
   ({ id: `preset-${rs.id}`, name: rs.name, updatedAt: 0, ruleset: rs, world: WORLD, ...realRoster(rs.startYear) });

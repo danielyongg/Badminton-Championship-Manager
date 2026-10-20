@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { ROUNDS } from '../types';
 import { BWF_2026 } from './bwf2026';
 import { BWF_2027 } from './bwf2027';
-import { hostCityId } from '../season';
+import { hostCityId, isHeld, weekOf } from '../season';
 import { realRoster } from './realPlayers';
 import { WORLD } from './world';
 
-const count = (rs: typeof BWF_2026, tier: string) => rs.calendar.filter((e) => e.tierId === tier).length;
+const count = (rs: typeof BWF_2026, tier: string, year = rs.startYear) => rs.calendar.filter((e) => e.tierId === tier && isHeld(e, year)).length;
 
 describe.each([BWF_2026, BWF_2027])('preset $name', (rs) => {
   it('tiap tier punya 9 kolom poin & hadiah, poin menurun', () => {
@@ -49,6 +49,17 @@ it('struktur World Tour 2027: 5/5/9/8/8, Syed Modi S100, Denmark S1000', () => {
   const tierOf = (id: string) => BWF_2027.calendar.find((e) => e.id === id)!.tierId;
   expect(tierOf('syed-modi')).toBe('S100');
   expect(tierOf('denmark-open')).toBe('S1000');
+});
+
+it('kalender resmi BWF 2026: 4/6/9/10/9 World Tour (Abu Dhabi dibatalkan), minggu sesuai kolom WEEK BWF', () => {
+  expect(['S1000', 'S750', 'S500', 'S300', 'S100'].map((t) => count(BWF_2026, t))).toEqual([4, 6, 9, 10, 9]);
+  const week = (id: string, y: number) => weekOf(BWF_2026.calendar.find((e) => e.id === id)!, y);
+  expect([week('hong-kong-open', 2026), week('korea-open', 2026), week('taipei-open', 2026), week('world-tour-finals', 2026)]).toEqual([47, 45, 31, 50]);
+  expect([week('syed-modi', 2027), week('indonesia-s100-2', 2027), week('indonesia-s100-2', 2028)]).toEqual([31, 38, 49]);
+  // Continental Circuit: hanya turnamen di negara yang ada di game; semua kotanya terdaftar.
+  const cities = new Set(WORLD.cities.map((c) => c.id));
+  for (const e of BWF_2026.calendar) expect(cities.has(e.cityId), e.id).toBe(true);
+  expect(count(BWF_2026, 'IC') + count(BWF_2026, 'IS') + count(BWF_2026, 'FS')).toBe(59);
 });
 
 it('ukuran draw default 2026: S300–S1000 = 32, S100 = 48 MS', () => {
