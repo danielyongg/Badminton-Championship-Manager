@@ -3,9 +3,9 @@ import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { entrantsFor, hostCityId, openTo, type SeasonState, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
 import { autoSquad, squadError, squadPool } from '../engine/team';
 import { contingentOf, inContingent, lockWeek } from '../engine/contingent';
-import { DISCIPLINES, isDoubles, isJuniorFormat, type Discipline, type Ruleset, type TeamFormat, type TournamentDef, type World } from '../engine/types';
+import { DISCIPLINES, isDoubles, isJuniorFormat, type Discipline, type Ruleset, type TeamEventDef, type TeamFormat, type TournamentDef, type World } from '../engine/types';
 import { dataName, t } from '../i18n';
-import { entrantLabel, eventName, lookup, saveGame, teamLabel, tierLabel, useGame } from './game';
+import { entrantLabel, eventName, lookup, saveGame, tierLabel, useGame, TierBadge } from './game';
 import { FatigueBar } from './Squad';
 import { isJuniorAge, isPratama } from '../engine/generator';
 import { formatName, SquadPicker } from './Team';
@@ -60,7 +60,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
             <tr key={e.id} className={past ? 'muted-text' : undefined}>
               <td className="num">{weekOf(e, year)}</td>
               <td><a href="#" onClick={(x) => { x.preventDefault(); onOpenEvent?.(e.id, year); }}>{team ? eventName(ruleset, e.id, year) : dataName(e.name)}</a></td>
-              <td><span className="chip">{team ? teamLabel(e) : ruleset.tiers.find((x) => x.id === tier)?.junior && scope !== 'junior' ? t('juniorShort') : tierLabel(tier)}</span></td>
+              <td><TierBadge tierId={tier} team={team ? e as TeamEventDef : undefined} /></td>
               <td className="hide-sm">{city(hostCityId(e, year))}</td>
               <td>{past ? t('finished') : auto ? t('auto')
                 : submitted(e.id) ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>}</td>

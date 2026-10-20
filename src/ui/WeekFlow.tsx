@@ -1,13 +1,13 @@
 import { hostCityId } from '../engine/season';
 import { useEffect, useRef, useState } from 'react';
 import type { RoundMatch, RoundShow } from '../engine/gate';
-import { DISCIPLINES, type Discipline, type TeamFormat } from '../engine/types';
+import { DISCIPLINES, type Discipline, type TeamEventDef, type TeamFormat } from '../engine/types';
 import { dataName, t } from '../i18n';
 import { Flag } from './Flag';
 import { EntryTable, JuniorEntryTable } from './Entries';
 import { EntryLists } from './EventViews';
 import type { EntriesShow } from '../engine/tournament';
-import { entrantLabel, eventName, saveGame, teamLabel, tierLabel, useGame } from './game';
+import { entrantLabel, eventName, saveGame, useGame, TierBadge } from './game';
 import { formatName } from './Team';
 
 // Alur minggu turnamen: pilih turnamen yang dimainkan → drawing → babak demi babak (laga negara sendiri live).
@@ -49,7 +49,7 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
           const done = ask.played.includes(id);
           return (
             <li key={id}>
-              <span className="chip">{kind === 'team' ? teamLabel(ev as { countries?: string[] }) : tier?.junior ? t('juniorShort') : tier && tierLabel(tier.id)}</span>
+              <TierBadge tierId={tier?.id} team={kind === 'team' ? ev as TeamEventDef : undefined} />
               <span className="grow"><b>{eventName(ruleset, id, year)}</b> <small className="muted-text">{city(hostCityId(ev, year))}</small><br />
                 <small>{done ? <span className="badge good">✓ {t('played')}</span>
                   : kind === 'team' ? null : auto ? t('auto') : submitted ? <span className="badge good">✓ {t('entrySubmitted')}</span>

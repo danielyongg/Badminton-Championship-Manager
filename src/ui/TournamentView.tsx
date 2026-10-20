@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { DISCIPLINES, type Discipline } from '../engine/types';
 import { dataName, numLocale, t } from '../i18n';
 import { BracketView, DrawResultView, DrawStepsView, EntryView, GroupView, QualView, SeedsView, Who } from './EventViews';
-import { entrantLabel, eventName, lookup, tierLabel, useGame } from './game';
+import { entrantLabel, eventName, lookup, useGame, TierBadge } from './game';
 import { LiveDraw } from './LiveDraw';
 import { formatName, TeamResults, winnerOf } from './Team';
 import { Flag } from './Flag';
@@ -39,7 +39,7 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
   };
   // Beregu: hasil yang sudah selesai, atau yang sedang dimainkan (halaman dibuka dari layar babak).
   const team = [...state.teamResults, ...(liveTeamResults.get(state) ?? [])].filter((r) => r.eventId === id && r.year === year);
-  const tier = def && 'tierId' in def ? tierLabel(def.tierId) : def?.countries ? t('multiEvent') : t('tabTeam');
+  const tier = def && 'tierId' in def ? <TierBadge tierId={def.tierId} /> : <TierBadge team={def ?? {}} />;
   const prize = def && 'prizeUsd' in def && def.prizeUsd ? `$${def.prizeUsd.toLocaleString(numLocale())}` : '';
 
   const rec = records.find((r) => r.discipline === d);

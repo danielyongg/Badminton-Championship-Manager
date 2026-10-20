@@ -7,7 +7,7 @@ import { BWF_2026 } from '../engine/presets/bwf2026';
 import { dataName, t } from '../i18n';
 import { makeRng, type Rng } from '../engine/rng';
 import { playWeek, teamFormatsIn, type SeasonState, type WeekHooks } from '../engine/season';
-import { isJuniorFormat, type Ruleset, type SaveMeta, type World } from '../engine/types';
+import { isJuniorFormat, type Ruleset, type TeamFormat, type SaveMeta, type World } from '../engine/types';
 
 // Satu permainan aktif (save yang sedang dimainkan). Engine mengubah `state` di tempat; `version` memicu render ulang.
 
@@ -144,6 +144,20 @@ export function lookup(state: SeasonState) {
 /** Nama turnamen individu atau kejuaraan beregu (kejuaraan kontinental bernama lain di tahun Sudirman Cup). */
 /** Label tier untuk tampilan: multi-event (tier MSG) ditulis lengkap. */
 export const tierLabel = (id: string) => (id === 'MSG' ? t('multiEvent') : id);
+/** Kode tier junior seperti di kalender BWF (Junior International Grand Prix = IGP, dst.). */
+const JUNIOR_CODE: Record<string, string> = { JGP: 'IGP', JIC: 'IC', JIS: 'IS', JC2: 'JC' };
+/**
+ * Badge tier: kelompok kecil (Grade 1/2/3/Junior) di atas kode besar, warna per kelompok.
+ * Grade 1 = Major Events BWF (Kejuaraan Dunia, Olimpiade, multi-event, beregu); WTF ikut Grade 2 bersama World Tour.
+ */
+export function TierBadge({ tierId, team }: { tierId?: string; team?: { formats?: TeamFormat[] } }) {
+  const tier = useGame().game.ruleset.tiers.find((x) => x.id === tierId);
+  const [group, label, code] = team?.formats?.some(isJuniorFormat) ? ['junior', t('juniorShort'), t('teamShort')]
+    : tier?.junior ? ['junior', t('juniorShort'), JUNIOR_CODE[tier.id] ?? tier.id]
+    : team || (tier?.grade === 1 && tier.id !== 'WTF') ? ['g1', t('gradeN', { n: 1 }), t('majorEvents')]
+    : ['g' + (tier?.grade === 3 ? 3 : 2), t('gradeN', { n: tier?.grade === 3 ? 3 : 2 }), tierId ?? ''];
+  return <span className={`tierb ${group}`} title={tier ? dataName(tier.name) : undefined}><small>{label}</small><b>{code}</b></span>;
+}
 /** Label event beregu: beregu multi-event (Asian Games Team dll.) ikut tier "Multi-event", selain itu "Tim". */
 export const teamLabel = (e?: { countries?: string[]; games?: true }) => (e?.countries || e?.games ? t('multiEvent') : t('teamShort'));
 

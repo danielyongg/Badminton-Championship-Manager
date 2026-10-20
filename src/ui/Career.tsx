@@ -18,7 +18,7 @@ import { ThemeSelect } from './ThemeSelect';
 import { Flag } from './Flag';
 import { LiveDraw } from './LiveDraw';
 import { LiveMatch } from './LiveMatch';
-import { advance, entrantLabel, eventName, teamLabel, tierLabel, JUNIOR_MAX_AGE, lookup, saveGame, useGame } from './game';
+import { advance, entrantLabel, eventName, teamLabel, JUNIOR_MAX_AGE, lookup, saveGame, useGame, TierBadge } from './game';
 import { SeasonViews } from './Ranking';
 import { injuryText, isBadInjury, Profile, Squad, usd } from './Squad';
 import { autoPick, recruit, SCOUTING_DEADLINE_WEEK } from '../engine/scouting';
@@ -531,7 +531,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
             <h4>{t('week')} {w}</h4>
             {list.map((e) => (
               <div key={e.id} className="drow">
-                <span className="chip">{ruleset.tiers.find((x) => x.id === e.tierId)?.junior ? t('juniorShort') : tierLabel(e.tierId)}</span>
+                <TierBadge tierId={e.tierId} />
                 <span className="grow"><b>{eventName(ruleset, e.id, year)}</b><small className="muted-text">{city(hostCityId(e, year))}</small></span>
               </div>
             ))}
