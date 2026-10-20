@@ -103,6 +103,7 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .sectors label { display: inline-flex; align-items: center; gap: 3px; font-size: .8rem; cursor: pointer; }
 .sectors select { font-size: .8rem; padding: 2px 28px 2px 6px; margin-left: 4px; }
 .controls.subnav { margin-top: -6px; }
+.controls.subnav.pager-bottom { margin: 16px 0 8px; } /* pemilih halaman di bawah tabel: beri jarak dari baris terakhir */
 /* Dua pilihan berdampingan (ranking: jenis & per minggu), juga di HP. */
 .controls.pair { display: grid; grid-template-columns: 1fr 1fr; }
 .controls.pair select { width: 100%; }

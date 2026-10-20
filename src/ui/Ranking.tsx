@@ -75,7 +75,7 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
   const nextJunior = ruleset.calendar.filter((e) => isHeld(e, state.date.year) && ruleset.tiers.find((x) => x.id === e.tierId)?.junior && weekOf(e, state.date.year) >= state.date.week)
     .sort((a, b) => weekOf(a, state.date.year) - weekOf(b, state.date.year))[0];
   const pager = (bottom: boolean) => rows.length > PAGE && (
-    <nav className="controls subnav">
+    <nav className={`controls subnav${bottom ? ' pager-bottom' : ''}`}>
       {Array.from({ length: Math.ceil(rows.length / PAGE) }, (_, i) => (
         <button key={i} aria-pressed={i === page} onClick={() => { setPage(i); if (bottom) tableTop.current?.scrollIntoView({ block: 'start' }); }}>
           {i * PAGE + 1}–{Math.min((i + 1) * PAGE, rows.length)}
