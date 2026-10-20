@@ -180,7 +180,12 @@ describe('Thomas, Uber & Sudirman Cup', () => {
     expect(teamLevel(state, 'INA', 2026, 'thomas')).toBe(ina ? 1 : 0);
     await until(state, BWF_2026, 19, 9);
     const finals = state.teamResults.find((r) => r.eventId === 'thomas-uber-cup' && r.year === 2026 && r.format === 'thomas')!;
-    expect([...finals.teams].sort()).toEqual([...q!].sort());
+    // Tim lolos yang tak bisa menurunkan line-up lengkap di minggu final diganti tim dari konfederasi yang sama.
+    const conf = (c: string) => WORLD.countries.find((x) => x.id === c)!.confederation;
+    const out = q!.filter((c) => !finals.teams.includes(c)), added = finals.teams.filter((c) => !q!.includes(c));
+    expect(finals.teams).toHaveLength(16);
+    expect(out.map(conf).sort()).toEqual(added.map(conf).sort());
+    expect(out.length).toBeLessThanOrEqual(2);
   }, 60000);
 
   it('live drawing: undian pot putaran final beregu ditampilkan & tersimpan untuk putar ulang', async () => {

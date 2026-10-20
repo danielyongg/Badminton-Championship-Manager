@@ -137,6 +137,16 @@ describe('entry & kualifikasi', () => {
   });
 });
 
+describe('Super 100 tunggal putra', () => {
+  it('48 = 40 langsung + 8 qualifier; nomor lain 28 + 4', () => {
+    const cands = (n: number): Candidate[] => Array.from({ length: n }, (_, i) => ({ id: `c${i + 1}`, countryId: 'X', rank: i + 1 }));
+    const ms = acceptEntries(cands(100), [], tier('S100'), 48, rs, makeRng(1), 'MS');
+    expect([ms.main.length, ms.qualifierSlots, ms.qualifying.length]).toEqual([40, 8, 32]);
+    const md = acceptEntries(cands(100), [], tier('S100'), 32, rs, makeRng(1), 'MD');
+    expect([md.main.length, md.qualifierSlots]).toEqual([28, 4]);
+  });
+});
+
 describe('aturan grade 3 (GCR)', () => {
   it('12.6: tanpa ranking bergiliran per negara (nomor 1 nasional semua negara dulu)', () => {
     const c = (id: string, countryId: string, strength: number): Candidate => ({ id, countryId, strength });

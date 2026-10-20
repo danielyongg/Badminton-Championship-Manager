@@ -34,13 +34,15 @@ describe('poin', () => {
     expect(res.find((r) => r.entrantId === 'e1')!.points).toBe(tier('S300').points[1]); // F
   });
 
-  it('wildcard kalah di R1 Super 500/750 → 0 poin; di Super 300 tetap dapat poin', async () => {
+  it('wildcard kalah di R1 Super 500/750/300 → 0 poin; di Super 1000 tetap dapat poin', async () => {
     const r500 = knockoutResults(await run('e2'), slots, event('S500'), tier('S500'), 'MS', { year: 2026, week: 10 }, rs);
     expect(r500.find((r) => r.entrantId === 'e3')!.points).toBe(0);
     const r750 = knockoutResults(await run('e2'), slots, event('S750'), tier('S750'), 'MS', { year: 2026, week: 10 }, rs);
     expect(r750.find((r) => r.entrantId === 'e3')!.points).toBe(0);
     const r300 = knockoutResults(await run('e2'), slots, event('S300'), tier('S300'), 'MS', { year: 2026, week: 10 }, rs);
-    expect(r300.find((r) => r.entrantId === 'e3')!.points).toBe(tier('S300').points[2]); // SF
+    expect(r300.find((r) => r.entrantId === 'e3')!.points).toBe(0); // GCR 7.11
+    const r1000 = knockoutResults(await run('e2'), slots, event('S1000'), tier('S1000'), 'MS', { year: 2026, week: 10 }, rs);
+    expect(r1000.find((r) => r.entrantId === 'e3')!.points).toBe(tier('S1000').points[2]); // SF
   });
 
   it('wildcard yang menang di R1 lalu kalah tetap dapat poin', async () => {

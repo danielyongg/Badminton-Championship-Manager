@@ -95,11 +95,12 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
   const OLD = { IC: [25, 400], IS: [40, 9999], FS: [60, 9999] } as const;
   if (range) for (const k of ['IC', 'IS', 'FS'] as const)
     if (range[k]?.[0] === OLD[k][0] && range[k]?.[1] === OLD[k][1] && preset.ai.rankRange[k]) range[k] = [...preset.ai.rankRange[k]];
-  // Save sebelum aturan wildcard grade 3 (GCR 7.11): ambil dari preset bila belum diatur.
+  // Save sebelum aturan wildcard GCR 7.11 (grade 3, S300, S100) & slot qualifier S100 MS: ambil dari preset bila belum diatur.
   for (const tier of blob.ruleset.tiers) {
     const p = preset.tiers.find((x) => x.id === tier.id);
     if (p?.wildcardOnlyIfHostAbsent && tier.wildcardOnlyIfHostAbsent === undefined)
       Object.assign(tier, { wildcardOnlyIfHostAbsent: true, zeroPointsForR1WildcardLoss: p.zeroPointsForR1WildcardLoss });
+    if (p?.qualifierSlots && !tier.qualifierSlots) tier.qualifierSlots = { ...p.qualifierSlots };
   }
   return { meta, state: blob.state, ruleset: withDefaults(blob.ruleset, preset), world: blob.world, rng: makeRng(blob.rngState) };
 }

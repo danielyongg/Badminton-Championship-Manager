@@ -54,7 +54,7 @@ export async function runEvent(opts: {
 
   // Wildcard tuan rumah: entri terbaik dari negara tuan rumah yang tidak lolos langsung
   // (GCR 7.11, `wildcardOnlyIfHostAbsent`: hanya bila tuan rumah belum punya wakil di bagan utama nomor itu).
-  const prelim = acceptEntries(candidates, [], tier, size, ruleset, rng);
+  const prelim = acceptEntries(candidates, [], tier, size, ruleset, rng, discipline);
   const direct = new Set(prelim.main.map((c) => c.id));
   const hostInMain = prelim.main.some((c) => c.countryId === opts.hostCountryId);
   const wildcardIds = tier.wildcardOnlyIfHostAbsent && hostInMain ? [] : candidates
@@ -63,7 +63,7 @@ export async function runEvent(opts: {
     .slice(0, tier.wildcards)
     .map((c) => c.id);
 
-  const entry = acceptEntries(candidates, wildcardIds, tier, size, ruleset, rng);
+  const entry = acceptEntries(candidates, wildcardIds, tier, size, ruleset, rng, discipline);
   await opts.onEntries?.(entry);
   const gs = tier.groupStage?.[discipline];
   if (gs) {

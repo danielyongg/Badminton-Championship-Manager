@@ -38,21 +38,22 @@ it('satu turnamen lengkap: S100 MS (draw 48 + kualifikasi) dan ganda', async () 
   }
 });
 
-it('GCR 7.11: wildcard grade 3 hanya bila tuan rumah tidak punya wakil di bagan utama', async () => {
+it.each(['peru-ic', 'vietnam-open'])('GCR 7.11: wildcard grade 3 & Super 100 hanya bila tuan rumah tidak punya wakil di bagan utama (%s)', async (eventId) => {
   const rs = BWF_2026;
   const world = generateWorld(makeRng(1), rs.generator, WORLD.countries, { year: 2026, week: 1 });
   const players = new Map(world.players.map((p) => [p.id, p]));
   const pairs = new Map(world.pairs.map((p) => [p.id, p]));
-  const event = rs.calendar.find((e) => e.id === 'peru-ic')!;
+  const event = rs.calendar.find((e) => e.id === eventId)!;
+  const hostId = event.id === 'peru-ic' ? 'PER' : 'VIE';
   const men = world.players.filter((p) => p.gender === 'M');
   const run = async (hostRank: number) => {
-    const others = men.filter((p) => p.countryId !== 'PER').slice(0, 120).map((p, i) => ({ id: p.id, countryId: p.countryId, rank: i + 1 + (i + 1 >= hostRank ? 1 : 0) }));
-    const host = men.find((p) => p.countryId === 'PER')!;
-    const candidates = [...others, { id: host.id, countryId: 'PER', rank: hostRank }];
+    const others = men.filter((p) => p.countryId !== hostId).slice(0, 120).map((p, i) => ({ id: p.id, countryId: p.countryId, rank: i + 1 + (i + 1 >= hostRank ? 1 : 0) }));
+    const hp = men.find((p) => p.countryId === hostId)!;
+    const candidates = [...others, { id: hp.id, countryId: hostId, rank: hostRank }];
     const rng = makeRng(3);
     const play = simPlay({ players, pairs, cfg: rs.match, rng, tournamentId: event.id, year: 2026, discipline: 'MS', matches: [] });
-    return runEvent({ tournament: event, discipline: 'MS', year: 2026, hostCountryId: 'PER', candidates, ruleset: rs, rng, play });
+    return runEvent({ tournament: event, discipline: 'MS', year: 2026, hostCountryId: hostId, candidates, ruleset: rs, rng, play });
   };
   expect((await run(5)).entry.wildcards).toHaveLength(0); // tuan rumah sudah di bagan utama
-  expect((await run(110)).entry.wildcards.map((w) => w.countryId)).toEqual(['PER']);
+  expect((await run(110)).entry.wildcards.map((w) => w.countryId)).toEqual([hostId]);
 });

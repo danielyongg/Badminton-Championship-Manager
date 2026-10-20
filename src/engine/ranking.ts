@@ -16,7 +16,7 @@ export function pointsFor(tier: Tier, prizeUsd: number, reached: Round) {
 /**
  * Hasil main draw gugur → entri ranking. Peserta yang dapat bye/walkover di R1 lalu kalah di R2 → poin R2
  * (otomatis, karena babak yang tercatat adalah babak tempat ia kalah).
- * Wildcard yang kalah di babak pertama turnamen dengan zeroPointsForR1WildcardLoss (S500/S750, grade 3 menurut GCR 7.11) → 0 poin.
+ * Wildcard yang kalah di babak pertama turnamen dengan zeroPointsForR1WildcardLoss (S500/S750; S300, S100 & grade 3 menurut GCR 7.11) → 0 poin.
  * ponytail: wildcard yang menang walkover/bye di R1 lalu kalah di R2 tetap dapat poin R2 (GCR: walkover bukan kemenangan); jarang terjadi.
  * ASUMSI: kalah di babak kualifikasi = tidak mendapat poin.
  */

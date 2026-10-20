@@ -32,6 +32,8 @@ export interface Tier {
   drawSize: Record<Discipline, number>;
   /** Jumlah peserta kualifikasi per 1 slot qualifier (4 = 2 babak kualifikasi). 0 = tanpa kualifikasi. */
   qualifyingPerSlot: number;
+  /** Jumlah slot qualifier tetap per nomor (mis. Super 100 MS: 40 langsung + 8 qualifier); nomor lain memakai `qualifierRatio`. */
+  qualifierSlots?: Partial<Record<Discipline, number>>;
   groupStage?: Partial<Record<Discipline, GroupStage>>; // nomor yang tidak disebut = knockout murni
   wildcards: number;
   zeroPointsForR1WildcardLoss: boolean;

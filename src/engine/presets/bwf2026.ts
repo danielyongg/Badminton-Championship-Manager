@@ -72,13 +72,14 @@ export const TIERS_2026: Tier[] = [
     id: 'S300', name: 'Super 300', grade: 2,
     points: [7000, 5950, 4900, 3850, 2750, 1670, 660, 320, 130],
     prizeUsd: 250000, prizeSplit: PRIZE_SPLIT,
-    drawSize: draws(32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: false,
+    drawSize: draws(32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: true, wildcardOnlyIfHostAbsent: true, // GCR 7.11 (Level 5)
   },
   {
     id: 'S100', name: 'Super 100', grade: 2,
     points: [5500, 4680, 3850, 3030, 2110, 1290, 510, 240, 100],
     prizeUsd: 110000, prizeSplit: PRIZE_SPLIT,
-    drawSize: draws(48, 32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: false,
+    drawSize: draws(48, 32), qualifierSlots: { MS: 8 }, qualifyingPerSlot: 4, // MS 40 langsung + 8 qualifier
+    wildcards: 1, zeroPointsForR1WildcardLoss: true, wildcardOnlyIfHostAbsent: true, // GCR 7.11 (Level 6)
   },
   {
     id: 'IC', name: 'International Challenge', grade: 3,

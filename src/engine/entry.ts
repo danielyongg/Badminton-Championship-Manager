@@ -1,5 +1,5 @@
 import type { Rng } from './rng';
-import type { EntrantId, Ruleset, Tier } from './types';
+import type { Discipline, EntrantId, Ruleset, Tier } from './types';
 
 // Penerimaan entry (GCR): urut world ranking pada tanggal acuan; kelebihan → kualifikasi → cadangan.
 
@@ -19,9 +19,10 @@ export interface EntryList {
   qualifierSlots: number; // slot main draw untuk lolosan kualifikasi
 }
 
-/** 1 slot kualifikasi per N slot main draw (N menurut grade). */
-export function qualifierSlots(tier: Tier, drawSize: number, ruleset: Ruleset) {
-  return tier.qualifyingPerSlot > 0 ? Math.floor(drawSize / ruleset.qualifierRatio[String(tier.grade) as '1']) : 0;
+/** 1 slot kualifikasi per N slot main draw (N menurut grade), kecuali jumlah tetap per nomor di tier (`tier.qualifierSlots`). */
+export function qualifierSlots(tier: Tier, drawSize: number, ruleset: Ruleset, discipline?: Discipline) {
+  if (tier.qualifyingPerSlot <= 0) return 0;
+  return (discipline && tier.qualifierSlots?.[discipline]) ?? Math.floor(drawSize / ruleset.qualifierRatio[String(tier.grade) as '1']);
 }
 
 /**
@@ -42,7 +43,7 @@ export function sortByRank(cands: Candidate[], rng: Rng): Candidate[] {
 }
 
 export function acceptEntries(
-  cands: Candidate[], wildcardIds: EntrantId[], tier: Tier, drawSize: number, ruleset: Ruleset, rng: Rng,
+  cands: Candidate[], wildcardIds: EntrantId[], tier: Tier, drawSize: number, ruleset: Ruleset, rng: Rng, discipline?: Discipline,
 ): EntryList {
   const wcSet = new Set(wildcardIds.slice(0, tier.wildcards));
   const wildcards = cands.filter((c) => wcSet.has(c.id));
@@ -51,7 +52,7 @@ export function acceptEntries(
 
   if (pool.length <= open) return { main: pool, wildcards, qualifying: [], reserves: [], qualifierSlots: 0 };
 
-  const qSlots = qualifierSlots(tier, drawSize, ruleset);
+  const qSlots = qualifierSlots(tier, drawSize, ruleset, discipline);
   const direct = open - qSlots;
   const qSize = qSlots * tier.qualifyingPerSlot;
   return {
