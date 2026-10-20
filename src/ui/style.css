@@ -494,4 +494,8 @@ table.fit td.num { white-space: nowrap; }
   nav.maintabs button { text-align: left; padding: 8px 12px; border-radius: 6px; font-size: .95rem; }
   nav.maintabs button[aria-pressed=true] { box-shadow: inset 3px 0 var(--accent); background: var(--accent-soft); color: var(--accent-strong); }
   main > .page { grid-column: 2; grid-row: 2; width: 100%; max-width: 1200px; margin: 0 auto; padding: 20px 24px 40px; box-sizing: border-box; }
+  /* Dashboard: kolom mengalir (atas → bawah) agar kartu beda tinggi tidak meninggalkan lubang. */
+  .dash { display: block; columns: 2; column-gap: 16px; }
+  .dash > * { break-inside: avoid; margin: 0 0 16px; display: inline-block; width: 100%; box-sizing: border-box; }
 }
+@media (min-width: 1280px) { .dash { columns: 3; } }
