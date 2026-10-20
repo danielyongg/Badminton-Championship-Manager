@@ -504,5 +504,10 @@ table.fit td.num { white-space: nowrap; }
   /* Kotak pilihan di luar tabel tidak melebar penuh. */
   .page .controls select { width: auto; max-width: 320px; }
   .page .controls.pair { grid-template-columns: repeat(2, minmax(0, 320px)); }
+  /* Menu utama (layar awal): rata tengah, judul lebih besar. */
+  main.menu { margin: 0 auto; padding: 48px 24px; }
+  main.menu h1 { font-size: 2.2rem; margin-bottom: 16px; }
+  /* Layar babak / halaman turnamen: rata tengah dalam isi halaman. */
+  .page .hub { margin-left: auto; margin-right: auto; }
 }
 @media (min-width: 1280px) { .dash { columns: 3; } }
