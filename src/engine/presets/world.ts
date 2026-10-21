@@ -79,6 +79,8 @@ export const WORLD: World = {
     { id: 'changzhou', countryId: 'CHN', name: 'Changzhou', venue: 'Olympic Sports Center Xincheng Gymnasium', lat: 31.81, lon: 119.97 },
     { id: 'shenzhen', countryId: 'CHN', name: 'Shenzhen', venue: 'Shenzhen Bay Gymnasium', lat: 22.52, lon: 113.94 },
     { id: 'qingdao', countryId: 'CHN', name: 'Qingdao', venue: 'Conson Gymnasium', lat: 36.07, lon: 120.38 },
+    { id: 'ningbo', countryId: 'CHN', name: 'Ningbo', venue: 'Ningbo Olympic Sports Center Gymnasium', lat: 29.87, lon: 121.54 },
+    { id: 'huelva', countryId: 'ESP', name: 'Huelva', venue: 'Palacio de los Deportes Carolina Marín', lat: 37.26, lon: -6.95 },
     { id: 'istanbul', countryId: 'TUR', name: 'Istanbul', venue: 'Başakşehir Sports Complex', lat: 41.09, lon: 28.8 },
     { id: 'gaborone', countryId: 'BOT', name: 'Gaborone', venue: 'Royal Aria Gymnasium', lat: -24.65, lon: 25.91 },
     { id: 'auckland', countryId: 'NZL', name: 'Auckland', venue: 'Badminton North Harbour', lat: -36.78, lon: 174.74 },

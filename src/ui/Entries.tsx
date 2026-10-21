@@ -113,13 +113,14 @@ function SeasonPlan() {
   const { state, ruleset } = game;
   const { year, week } = state.date;
   const { players } = lookup(state);
+  const myConf = game.world.countries.find((c) => c.id === state.managedCountryId)?.confederation;
   const ranks = useMemo(() => new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.results, d, absWeek(state.date), ruleset))])), [version, state, ruleset]);
-  const allWeeks = [...new Set(ruleset.calendar.map((e) => weekOf(e, year)))].filter((w) => w >= week && plannableEvents(ruleset, year, w, state.managedCountryId).length).sort((a, b) => a - b);
+  const allWeeks = [...new Set(ruleset.calendar.map((e) => weekOf(e, year)))].filter((w) => w >= week && plannableEvents(ruleset, year, w, state.managedCountryId, myConf).length).sort((a, b) => a - b);
   // Per halaman 8 minggu: tabel penuh (±48 baris × 40+ minggu) membuat scroll patah-patah di HP.
   const [page, setPage] = useState(0);
   const pages = Math.max(1, Math.ceil(allWeeks.length / PLAN_WEEKS)), pg = Math.min(page, pages - 1);
   const weeks = allWeeks.slice(pg * PLAN_WEEKS, (pg + 1) * PLAN_WEEKS);
-  const plan = useMemo(() => new Map(weeks.map((w) => [w, planWeek(state, ruleset, w)])), [version, pg, week]);
+  const plan = useMemo(() => new Map(weeks.map((w) => [w, planWeek(state, ruleset, w, myConf)])), [version, pg, week]);
   const released = releasedIds(state);
   const rows = DISCIPLINES.flatMap((d) => entrantsFor(state, d).filter((e) => isManaged(state, released, e))
     .map((e) => ({ ...e, d, rank: ranks.get(d)!.get(e.id) }))
@@ -150,8 +151,8 @@ function SeasonPlan() {
       <div className="scroll">
         <table className="plan">
           <thead><tr><th>{t('name')}</th>{weeks.map((w) => (
-            <th key={w} title={plannableEvents(ruleset, year, w, state.managedCountryId).map((e) => `${dataName(e.name)} (${tierLabel(e.tierId)})`).join(' · ')}>
-              {t('weekShort')}{w} · {tierLabel(plannableEvents(ruleset, year, w, state.managedCountryId)[0].tierId)}
+            <th key={w} title={plannableEvents(ruleset, year, w, state.managedCountryId, myConf).map((e) => `${dataName(e.name)} (${tierLabel(e.tierId)})`).join(' · ')}>
+              {t('weekShort')}{w} · {tierLabel(plannableEvents(ruleset, year, w, state.managedCountryId, myConf)[0].tierId)}
             </th>
           ))}</tr></thead>
           <tbody>{rows.map((e) => (
@@ -161,7 +162,7 @@ function SeasonPlan() {
                 const injured = e.playerIds.some((id) => (players.get(id)?.injury?.weeksLeft ?? 0) > w - week);
                 if (injured) return <td key={w} title={t('injury')}>🩹</td>;
                 const c = plan.get(w)!.get(e.id) ?? { eventId: null, kind: 'auto' as const };
-                const offered = [...plannableEvents(ruleset, year, w, state.managedCountryId),
+                const offered = [...plannableEvents(ruleset, year, w, state.managedCountryId, myConf),
                   ...(e.playerIds.every((id) => { const p = players.get(id); return !!p && isJuniorAge(p, { year, week: w }); }) ? juniorEvents(w) : [])]
                   .filter((ev) => ruleset.tiers.find((x) => x.id === ev.tierId)!.drawSize[e.d] > 0);
                 const shown = c.kind === 'manual' ? label(c) : c.kind === 'required' ? `⭐ ${label(c)}` : t('tierPrefsFree');

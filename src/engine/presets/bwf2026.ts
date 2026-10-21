@@ -99,6 +99,38 @@ export const TIERS_2026: Tier[] = [
     prizeUsd: 5000, prizeSplit: PRIZE_SPLIT,
     drawSize: draws(32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: true, wildcardOnlyIfHostAbsent: true, // GCR 7.11
   },
+  // Kejuaraan individu kontinental (konfederasi, bukan Major Events BWF). Poin = tier World Tour/Grade 3 yang setara
+  // menurut tabel poin tiap kejuaraan (Wikipedia 2026): Asia = Super 1000, Eropa = Super 500, Pan Am = Super 300,
+  // Afrika & Oseania = International Challenge. Tanpa kualifikasi & wildcard; peserta hanya negara konfederasinya
+  // (`confederation` di kalender). ASUMSI: maks 4 per negara per nomor; hadiah hanya Asia (US$550.000).
+  {
+    id: 'CCA', name: 'Kejuaraan Asia', grade: 2,
+    points: [12000, 10200, 8400, 6600, 4800, 3000, 1200, 600, 240],
+    prizeUsd: 550000, prizeSplit: PRIZE_SPLIT,
+    drawSize: draws(32), countryQuota: { base: 4, max: 4, topRank: 0 },
+    qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
+  },
+  {
+    id: 'CCE', name: 'Kejuaraan Eropa', grade: 2,
+    points: [9200, 7800, 6420, 5040, 3600, 2220, 880, 430, 170],
+    prizeUsd: 0, prizeSplit: NO_PRIZE,
+    drawSize: draws(48, 32), countryQuota: { base: 4, max: 4, topRank: 0 },
+    qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
+  },
+  {
+    id: 'CCP', name: 'Kejuaraan Pan Am', grade: 2,
+    points: [7000, 5950, 4900, 3850, 2750, 1670, 660, 320, 130],
+    prizeUsd: 0, prizeSplit: NO_PRIZE,
+    drawSize: draws(32), countryQuota: { base: 4, max: 4, topRank: 0 },
+    qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
+  },
+  {
+    id: 'CCI', name: 'Kejuaraan Kontinental (Afrika & Oseania)', grade: 2,
+    points: [4000, 3400, 2800, 2200, 1520, 920, 360, 170, 70],
+    prizeUsd: 0, prizeSplit: NO_PRIZE,
+    drawSize: draws(32), countryQuota: { base: 4, max: 4, topRank: 0 },
+    qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
+  },
   // Multi-event (Asian Games, SEA Games, Pan Am, European, African & Commonwealth Games): tanpa poin ranking BWF
   // & tanpa hadiah; peserta hanya negara anggota (`countries`). ASUMSI: 32 tunggal / 16 ganda, maks 2 per negara.
   {
@@ -309,6 +341,14 @@ export const CALENDAR_2026: TournamentDef[] = [
   // Commonwealth Games: Glasgow 2026 tanpa badminton; 2030 Ahmedabad (program badminton mengikuti Birmingham 2022, akhir Juli).
   t('commonwealth-games', 'Commonwealth Games Individual', 'ahmedabad', 31, 'MSG', 0, { everyYears: { interval: 4, offset: 2 }, skipYears: [2026], countries: COMMONWEALTH, contingent: { M: 5, F: 5 },
     hosts: { 2022: 'birmingham', 2030: 'ahmedabad' }, rotation: ['birmingham', 'glasgow', 'sydney'] }),
+  // Kejuaraan individu kontinental 2026: Asia (Ningbo 7–12 Apr), Eropa (Huelva 6–12 Apr), Pan Am (Aguascalientes 7–11 Apr)
+  // minggu 15; Afrika (Gaborone) & Oseania (Auckland) aslinya pekan yang sama dengan beregunya → minggu 8, setelah beregu.
+  // ASUMSI: 2027 minggu 14 (minggu 15 ada Philippine Open); kota tuan rumah tetap kota 2026.
+  t('asia-championships', 'Badminton Asia Championships', 'ningbo', 15, 'CCA', 550000, { confederation: 'BA', weeks: { 2027: 14 } }),
+  t('europe-championships', 'European Championships', 'huelva', 15, 'CCE', 0, { confederation: 'BE', weeks: { 2027: 14 } }),
+  t('panam-championships', 'Pan Am Championships', 'aguascalientes', 15, 'CCP', 0, { confederation: 'BAM', weeks: { 2027: 14 } }),
+  t('africa-championships', 'African Championships', 'gaborone', 8, 'CCI', 0, { confederation: 'BCA' }),
+  t('oceania-championships', 'Oceania Championships', 'auckland', 8, 'CCI', 0, { confederation: 'BO' }),
   // Turnamen junior (U19). ASUMSI: kota tuan rumah & minggu disederhanakan.
   { id: 'asia-junior', name: 'Badminton Asia Junior Championships', cityId: 'surabaya', week: 28, tierId: 'JC', prizeUsd: 0, confederation: 'BA' },
   { id: 'europe-junior', name: 'European Junior Championships', cityId: 'brno', week: 28, tierId: 'JC', prizeUsd: 0, confederation: 'BE' },
@@ -439,11 +479,12 @@ export const BWF_2026: Ruleset = {
   ai: {
     rankRange: {
       OG: [1, 9999], WC: [1, 9999], WTF: [1, 9999], MSG: [1, 9999],
+      CCA: [1, 9999], CCE: [1, 9999], CCP: [1, 9999], CCI: [1, 9999], // kejuaraan kontinental: tiap negara mengirim atlet terbaiknya
       S1000: [1, 64], S750: [1, 64], S500: [1, 100], S300: [1, 160], S100: [10, 260],
       // Grade 3 diisi pemain di luar papan atas (pemain peringkat 40-an tidak turun di Future Series). ASUMSI: kalibrasi
       IC: [50, 9999], IS: [100, 9999], FS: [150, 9999],
     },
-    playProb: { OG: 1, WC: 1, WTF: 1, MSG: 1, S1000: 0.95, S750: 0.85, S500: 0.65, S300: 0.5, S100: 0.55, IC: 0.5, IS: 0.5, FS: 0.5 },
+    playProb: { OG: 1, WC: 1, WTF: 1, MSG: 1, CCA: 0.9, CCE: 0.9, CCP: 0.9, CCI: 0.9, S1000: 0.95, S750: 0.85, S500: 0.65, S300: 0.5, S100: 0.55, IC: 0.5, IS: 0.5, FS: 0.5 },
     restAbove: 45,
     awayGrade3: 0.15, // ASUMSI: sebagian besar peserta IC/IS/FS berasal dari benua tuan rumah
   },

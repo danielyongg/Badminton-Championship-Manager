@@ -143,7 +143,7 @@ export function scheduleYear(rs: Ruleset, year: number, rng: Rng) {
   ]);
   const wtf = Math.min(...held.filter((e) => e.tierId === 'WTF').map((e) => weekOf(e, year)), 53);
   const big = new Set(held.filter((e) => BIG_TIERS.has(e.tierId) && e.weeks?.[year] !== undefined).map((e) => e.weeks![year]));
-  for (const e of shuffle(rng, held.filter((x) => x.weeks?.[year] === undefined && !ANCHOR_TIERS.has(x.tierId) && !junior.has(x.tierId) && !x.countries))) {
+  for (const e of shuffle(rng, held.filter((x) => x.weeks?.[year] === undefined && !ANCHOR_TIERS.has(x.tierId) && !junior.has(x.tierId) && !x.countries && !x.confederation))) {
     const isBig = BIG_TIERS.has(e.tierId);
     const options = shuffle(rng, [-1, 0, 0, 1]).map((d) => e.week + d)
       .filter((w) => w >= 1 && w < wtf && (!isBig || (!big.has(w) && !blocked.has(w))));
@@ -360,7 +360,8 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
     const rank = ranks.get(d)!.get(e.id);
     const fixed = e.playerIds.map((id) => playerEvent.get(id)).find(Boolean);
     const options = events.filter((ev) => ev.tierId !== 'WTF' && ev.tierId !== 'OG' && tierOf(rs, ev).drawSize[d] > 0 && (!fixed || ev.id === fixed)
-      && (!ev.countries || ev.countries.includes(e.countryId)) && inContingent(state, ev.id, e.countryId, e.playerIds));
+      && (!ev.countries || ev.countries.includes(e.countryId)) && (!ev.confederation || confOf(e.countryId) === ev.confederation)
+      && inContingent(state, ev.id, e.countryId, e.playerIds));
     const decision = mine(e) ? manual[e.id] : undefined;
     if (!decision && e.playerIds.some((id) => pratama.has(id) || busy.has(id))) continue;
     let choice = decision ? options.find((ev) => ev.id === decision) : options.find((ev) => state.commitments[e.id]?.includes(ev.id));

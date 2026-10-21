@@ -12,10 +12,11 @@ export interface PlanCell {
 }
 
 /** Turnamen individu senior minggu itu yang entry-nya diatur manajer (tanpa WTF & junior), tier tertinggi dulu. */
-export function plannableEvents(rs: Ruleset, year: number, week: number, country?: string | null) {
+export function plannableEvents(rs: Ruleset, year: number, week: number, country?: string | null, confederation?: string) {
   const tier = (id: string) => rs.tiers.find((t) => t.id === id)!;
   return rs.calendar.filter((e) => weekOf(e, year) === week && isHeld(e, year) && e.tierId !== 'WTF' && e.tierId !== 'OG' && !tier(e.tierId).junior
-      && (!e.countries || !country || e.countries.includes(country))) // multi-event: hanya negara anggota
+      && (!e.countries || !country || e.countries.includes(country)) // multi-event: hanya negara anggota
+      && (!e.confederation || !confederation || e.confederation === confederation)) // kejuaraan kontinental: hanya konfederasinya
     .sort((a, b) => Number(!!b.countries) - Number(!!a.countries) || tier(b.tierId).points[0] - tier(a.tierId).points[0]);
 }
 
@@ -23,9 +24,9 @@ export function plannableEvents(rs: Ruleset, year: number, week: number, country
  * Rencana per peserta negara manajer: keputusan manual → turnamen wajib → otomatis (AI memilih saat minggu itu tiba).
  * Urutan & pengikatan "satu atlet satu turnamen per minggu" sama dengan `chooseEntries`.
  */
-export function planWeek(state: SeasonState, rs: Ruleset, week: number) {
+export function planWeek(state: SeasonState, rs: Ruleset, week: number, confederation?: string) {
   const year = state.date.year;
-  const events = plannableEvents(rs, year, week, state.managedCountryId);
+  const events = plannableEvents(rs, year, week, state.managedCountryId, confederation);
   const tier = (id: string) => rs.tiers.find((t) => t.id === id)!;
   const manual = state.manualEntries[weekKey({ year, week })] ?? {};
   const released = releasedIds(state);

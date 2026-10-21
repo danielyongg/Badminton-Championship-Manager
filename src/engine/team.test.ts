@@ -285,6 +285,10 @@ describe('Thomas, Uber & Sudirman Cup', () => {
     const ina = teamStrengths(state, BWF_2026, 'thomas').find((t) => t.countryId === 'INA')!;
     const fourth = ina.pool.MS[3].id; // tunggal ke-4 tidak masuk line-up otomatis
     expect(ina.lineup).not.toContain(fourth);
+    // Skuad manajer memuat tunggal ke-4 (skuad otomatis belum tentu: tergantung tumpang tindih atlet ganda).
+    const { order, maxMatchesPerPlayer, squadSize } = BWF_2026.team;
+    const squad = autoSquad(order.thomas, ina.pool, maxMatchesPerPlayer, squadSize.thomas.max - 1);
+    state.teamSquads.thomas = squad.includes(fourth) ? squad : [...squad, fourth];
     state.teamLineups.thomas = [fourth, ...ina.lineup.slice(1)];
     state.teamLineups.uber = [null, null, null, null, null];
     while (state.date.week < 18) await playWeek(state, BWF_2026, WORLD, rng, {});

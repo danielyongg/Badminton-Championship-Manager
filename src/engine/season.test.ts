@@ -51,6 +51,28 @@ describe('satu musim penuh (BWF 2026)', () => {
     expect(mb).toBeLessThan(6);
   });
 
+  it('kejuaraan individu kontinental: hanya negara konfederasinya, maks 4 per negara, poin ranking ya, race WTF tidak', () => {
+    const conf = new Map(WORLD.countries.map((c) => [c.id, c.confederation]));
+    const events = rs.calendar.filter((e) => ['CCA', 'CCE', 'CCP', 'CCI'].includes(e.tierId));
+    expect(events).toHaveLength(5);
+    for (const ev of events) {
+      const recs = state.eventRecords.filter((r) => r.tournamentId === ev.id && r.year === 2026);
+      expect(recs.length, ev.id).toBeGreaterThan(0);
+      for (const r of recs) {
+        const accepted = [...r.entry.main, ...r.entry.wildcards];
+        expect(accepted.every((c) => conf.get(c.countryId) === ev.confederation), `${ev.id} ${r.discipline}`).toBe(true);
+        const per: Record<string, number> = {};
+        for (const c of accepted) per[c.countryId] = (per[c.countryId] ?? 0) + 1;
+        expect(Math.max(...Object.values(per)), `${ev.id} ${r.discipline}`).toBeLessThanOrEqual(4);
+      }
+      expect(state.results.some((x) => x.tournamentId === ev.id && x.points > 0), ev.id).toBe(true);
+      expect(rs.race.tiers).not.toContain(ev.tierId);
+    }
+    // Juara Asia mendapat poin setara Super 1000.
+    const champ = state.champions.find((c) => c.tournamentId === 'asia-championships' && c.discipline === 'MS')!;
+    expect(state.results.find((x) => x.tournamentId === 'asia-championships' && x.entrantId === champ.winner && x.discipline === 'MS')!.points).toBe(12000);
+  });
+
   it('hadiah uang: juara tunggal S1000 dapat 7,5% hadiah; juara ganda 7,9% dibagi dua; total sesuai tabel', () => {
     const ev = rs.calendar.find((e) => e.id === 'malaysia-open')!;
     const tier = rs.tiers.find((x) => x.id === ev.tierId)!;

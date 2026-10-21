@@ -129,7 +129,7 @@ export const en: Record<TextKey, string> = {
   goal_titles: 'Titles won',
   goal_top10: 'Players/pairs in world top 10',
   goal_team: 'Team result',
-  major: 'Major', continental: 'Continental', multiSport: 'Multi-sport', msgGames: 'Games', gradeN: 'Grade {n}', multiEvent: 'Multi-event', olympicRanking: 'Olympic ranking {y}', olympicQualified: 'Qualified',
+  major: 'Major', individual: 'Individual', continental: 'Continental', multiSport: 'Multi-sport', msgGames: 'Games', gradeN: 'Grade {n}', multiEvent: 'Multi-event', olympicRanking: 'Olympic ranking {y}', olympicQualified: 'Qualified',
   olympicHint: 'Qualification period: May {from} – April {to} (only points in this period). ✓ = qualified ({n} places): max 2 per country if both top 16 (singles) / top 8 (doubles), continental places, host place (singles).',
   olympicHintProjected: 'Qualification period (May {from} – April {to}) has not started: projection from the current world ranking. ✓ = would qualify ({n} places) if qualification closed now.',
   olympicHost: 'host', olympicContinent: 'continent', goal_medals: '{event} medals', goal_gold: '{event} gold', goal_olympic: 'Olympic qualifiers {y}', goal_olympicLater: 'judged in {y}',
@@ -449,4 +449,6 @@ export const DATA_EN: Record<string, string> = {
   Italia: 'Italy', Kanada: 'Canada', 'Amerika Serikat': 'United States', Brasil: 'Brazil', Meksiko: 'Mexico',
   Mesir: 'Egypt', 'Afrika Selatan': 'South Africa', Aljazair: 'Algeria', 'Selandia Baru': 'New Zealand',
   Kairo: 'Cairo', Aljir: 'Algiers', Praha: 'Prague', 'Kejuaraan Dunia': 'World Championships', 'Kejuaraan Dunia BWF': 'BWF World Championships', Olimpiade: 'Olympics',
+  'Kejuaraan Asia': 'Asia Championships', 'Kejuaraan Eropa': 'European Championships', 'Kejuaraan Pan Am': 'Pan Am Championships',
+  'Kejuaraan Kontinental (Afrika & Oseania)': 'Continental Championships (Africa & Oceania)',
 };

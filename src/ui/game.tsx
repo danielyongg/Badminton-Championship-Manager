@@ -6,7 +6,7 @@ import { PRESETS, syncOfficialCalendar, withDefaults } from '../engine/pack';
 import { BWF_2026 } from '../engine/presets/bwf2026';
 import { dataName, t } from '../i18n';
 import { makeRng, type Rng } from '../engine/rng';
-import { playWeek, teamFormatsIn, type SeasonState, type WeekHooks } from '../engine/season';
+import { playWeek, teamFormatsIn, weekOf, type SeasonState, type WeekHooks } from '../engine/season';
 import { isJuniorFormat, type Ruleset, type Tier, type SaveMeta, type World } from '../engine/types';
 
 // Satu permainan aktif (save yang sedang dimainkan). Engine mengubah `state` di tempat; `version` memicu render ulang.
@@ -62,6 +62,14 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
     if (p?.contingent && !e.contingent) e.contingent = { ...p.contingent }; // save sebelum kontingen
   }
   for (const e of preset.team.events.filter((x) => x.countries && !blob.ruleset.team.events.some((y) => y.id === x.id))) blob.ruleset.team.events.push(structuredClone(e));
+  // Save sebelum kejuaraan individu kontinental: tambah tier & turnamennya (musim ini bila minggunya belum lewat).
+  for (const tier of preset.tiers.filter((x) => CONTINENTAL_TIERS.has(x.id) && !blob.ruleset.tiers.some((y) => y.id === x.id))) blob.ruleset.tiers.push(structuredClone(tier));
+  for (const e of preset.calendar.filter((x) => CONTINENTAL_TIERS.has(x.tierId) && !blob.ruleset.calendar.some((y) => y.id === x.id))) {
+    const { year, week } = blob.state.date;
+    blob.ruleset.calendar.push({ ...structuredClone(e), ...(weekOf(e, year) < week && { years: { from: year + 1 } }) });
+  }
+  for (const [id, r] of Object.entries(preset.ai.rankRange)) blob.ruleset.ai.rankRange[id] ??= r;
+  for (const [id, p] of Object.entries(preset.ai.playProb)) blob.ruleset.ai.playProb[id] ??= p;
   // Save sebelum tuan rumah per tahun: tambah kota baru & salin `hosts`/`rotation` dari preset (kecuali kota event diubah di Editor).
   for (const c of WORLD.cities) if (!blob.world.cities.some((x) => x.id === c.id)) blob.world.cities.push({ ...c });
   for (const e of [...blob.ruleset.calendar, ...(blob.ruleset.team?.events ?? [])]) {
@@ -142,8 +150,10 @@ export function lookup(state: SeasonState) {
 }
 
 /** Nama turnamen individu atau kejuaraan beregu (kejuaraan kontinental bernama lain di tahun Sudirman Cup). */
-/** Label tier untuk tampilan: multi-event (tier MSG) ditulis lengkap. */
-export const tierLabel = (id: string) => (id === 'MSG' ? t('multiEvent') : id);
+/** Kejuaraan individu kontinental senior (Asia, Eropa, Pan Am, Afrika & Oseania). */
+const CONTINENTAL_TIERS = new Set(['CCA', 'CCE', 'CCP', 'CCI']);
+/** Label tier untuk tampilan: multi-event (tier MSG) & kejuaraan kontinental ditulis lengkap. */
+export const tierLabel = (id: string) => (id === 'MSG' ? t('multiEvent') : CONTINENTAL_TIERS.has(id) ? t('continental') : id);
 /** Kode tier junior seperti di kalender BWF (Junior International Grand Prix = IGP, dst.). */
 const JUNIOR_CODE: Record<string, string> = { JGP: 'IGP', JIC: 'IC', JIS: 'IS', JC2: 'JC' };
 /** Kelompok tier untuk tampilan, urut dari yang tertinggi (lihat TierBadge). */
@@ -152,7 +162,7 @@ type TeamLike = { countries?: string[]; games?: true; confederation?: string };
 /** Multi-sport Games: Olimpiade & multi-event (Asian Games, SEA Games, ...), individu maupun beregu. */
 export const tierGroup = (tier?: Tier, team?: TeamLike): (typeof TIER_GROUPS)[number] =>
   tier?.id === 'OG' || tier?.id === 'MSG' || team?.countries || team?.games ? 'msg'
-    : team?.confederation ? 'cont' // kejuaraan kontinental (konfederasi, bukan BWF): bukan Major Events
+    : team?.confederation || CONTINENTAL_TIERS.has(tier?.id ?? '') ? 'cont' // kejuaraan kontinental (konfederasi, bukan BWF): bukan Major Events
     : team || tier?.id === 'WJC' || (tier?.grade === 1 && tier.id !== 'WTF') ? 'g1' : tier?.junior ? 'junior' : tier?.grade === 3 ? 'g3' : 'g2';
 /**
  * Badge tier: kelompok kecil (Grade 1/2/3/Junior) di atas kode besar, warna per kelompok.
@@ -163,7 +173,7 @@ export function TierBadge({ tierId, team }: { tierId?: string; team?: TeamLike }
   const group = tierGroup(tier, team);
   const [label, code] = group === 'msg' ? [t('multiSport'), t('msgGames')]
     : group === 'g1' ? [t('gradeN', { n: 1 }), t('major')]
-    : group === 'cont' ? [t('continental'), t('teamShort')]
+    : group === 'cont' ? [t('continental'), team ? t('teamShort') : t('individual')]
     : group === 'junior' ? [t('juniorShort'), JUNIOR_CODE[tier!.id] ?? tier!.id]
     : [t('gradeN', { n: group === 'g3' ? 3 : 2 }), tierId ?? ''];
   return <span className={`tierb ${group}`} title={tier ? dataName(tier.name) : undefined}><small>{label}</small><b>{code}</b></span>;
