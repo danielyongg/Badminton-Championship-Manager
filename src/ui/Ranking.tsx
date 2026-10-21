@@ -298,7 +298,7 @@ export function Calendar({ state, ruleset, world, short, onOpenEvent, year = sho
     <>
       <nav className="controls subnav">
         {['all', ...groups].map((g) => <button key={g} aria-pressed={group === g} onClick={() => setGroup(g)}>{groupLabel(g)}</button>)}
-        <span className="count">{shown.length}</span>
+        <span className="count">{t(shown.length === 1 ? 'countTournament' : 'countTournaments', { n: shown.length })}</span>
       </nav>
       {/* Desktop: tabel lebar dengan kolom juara per nomor. */}
       <div className="scroll cal-table">

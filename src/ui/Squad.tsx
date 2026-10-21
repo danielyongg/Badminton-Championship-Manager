@@ -8,7 +8,7 @@ import { ATTRS, DISCIPLINES, type Attr, type Discipline, type GameDate, type Pai
 import { numLocale, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName as eventNameOf, lookup, saveGame, TIER_GROUPS, TierBadge, tierGroup, useGame } from './game';
 import { formatName } from './Team';
-import { Pairs } from './Pairs';
+import { ownPairs, Pairs } from './Pairs';
 import { CommitmentChips, RankChart } from './Ranking';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
@@ -131,7 +131,9 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
         {!released && <>
           {(['all', ...DISCIPLINES] as const).map((x) => <button key={x} aria-pressed={view === x} onClick={() => setView(x)}>{x === 'all' ? t('all') : x}</button>)}
         </>}
-        {(released || !pairsView) && <span className="count">{list.length} {t('players')}</span>}
+        <span className="count">{pairsView && !released
+          ? ((n) => t(n === 1 ? 'countPair' : 'countPairs', { n }))(ownPairs(state, view, juniors).length)
+          : `${list.length} ${t('players')}`}</span>
       </nav>
       {juniorCols && !pairsView && <p className="hint">{t('pratamaHint')}</p>}
       {pairsView && !released ? <Pairs key={view} discipline={view} onOpen={onOpen} juniors={juniors} /> : (

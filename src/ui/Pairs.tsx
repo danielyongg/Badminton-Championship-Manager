@@ -3,12 +3,22 @@ import { dissolvePair, formPair, promoteJunior, promoteTrial } from '../engine/c
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import type { Pair } from '../engine/types';
+import type { SeasonState } from '../engine/season';
 import { t, type TextKey } from '../i18n';
 import { FatigueBar, FitStatus, MoraleTag, RankCell, TierPrefs } from './Squad';
 import { moraleTier, pairAbility } from '../engine/match';
 import { lookup, saveGame, useGame } from './game';
 
 const DOUBLES: Pair['discipline'][] = ['MD', 'WD', 'XD'];
+
+/** Pasangan aktif negara manajer satu nomor ganda (junior = kedua atlet junior pratama), tanpa yang dilepas/dadakan. */
+export function ownPairs(state: SeasonState, d: Pair['discipline'], juniors: boolean) {
+  const { players } = lookup(state);
+  const country = state.career!.countryId!;
+  const isJunior = (id: string) => isPratama(players.get(id)!, state.date);
+  return state.pairs.filter((p) => p.discipline === d && !p.dissolved && !p.adHoc && players.get(p.playerIds[0])?.countryId === country
+    && p.playerIds.every((id) => players.get(id)!.released === undefined) && p.playerIds.every(isJunior) === juniors);
+}
 
 /** Pasangan negara sendiri satu nomor ganda untuk satu kelompok usia: junior = kedua atlet junior, selain itu senior. */
 export function Pairs({ discipline: d, onOpen, juniors = false }: { discipline: Pair['discipline']; onOpen: (id: string) => void; juniors?: boolean }) {
@@ -32,7 +42,7 @@ export function Pairs({ discipline: d, onOpen, juniors = false }: { discipline: 
   const isJunior = (id: string) => isPratama(players.get(id)!, state.date); // junior yang sudah promosi masuk Senior
   // Pasangan berisi atlet Development (pratama): tidak masuk turnamen senior otomatis sampai dipromosikan.
   const pratama = (p: Pair) => p.playerIds.some((id) => isPratama(players.get(id)!, state.date));
-  const mine = state.pairs.filter((p) => p.discipline === d && !p.dissolved && !p.adHoc && players.get(p.playerIds[0])?.countryId === country && p.playerIds.every((id) => players.get(id)!.released === undefined) && p.playerIds.every(isJunior) === juniors);
+  const mine = ownPairs(state, d, juniors);
   const athletes = (gender: 'M' | 'F') => state.players
     .filter((p) => p.countryId === country && p.retired === undefined && p.released === undefined && p.gender === gender && p.focus !== 'S' && isJunior(p.id) === juniors)
     .sort((x, y) => currentAbility(y.attrs) - currentAbility(x.attrs));
