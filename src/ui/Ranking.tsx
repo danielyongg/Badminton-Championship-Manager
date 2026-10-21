@@ -7,7 +7,7 @@ import { hostCityId, isHeld, weekOf, newSeason, playWeek, rankFromSnapshots, typ
 import { ageAt, currentAbility } from '../engine/generator';
 import { ATTRS, DISCIPLINES, type Discipline, type Player, type Ruleset, type World } from '../engine/types';
 import { dataName, numLocale, t, type TextKey } from '../i18n';
-import { entrantLabel, eventName as eventNameOf, tierGroup, TierBadge } from './game';
+import { CAL_GROUPS, entrantLabel, eventName as eventNameOf, groupLabel, tierGroup, TierBadge } from './game';
 import { Flag } from './Flag';
 import { formatName, winnerOf } from './Team';
 import { NationsTable, Records } from './WorldRecords';
@@ -336,10 +336,6 @@ export function Calendar({ state, ruleset, world, short, onOpenEvent, year = sho
     </>
   );
 }
-/** Urutan & label filter kalender: Grade 1–3, lalu Multi-sport, Continental, Junior (urutan gelar di profil tetap TIER_GROUPS). */
-const CAL_GROUPS = ['g1', 'g2', 'g3', 'msg', 'cont', 'junior'] as const;
-const groupLabel = (g: string) => g === 'all' ? t('all') : g === 'g1' ? t('gradeN', { n: 1 }) : g === 'g2' ? t('gradeN', { n: 2 }) : g === 'g3' ? t('gradeN', { n: 3 })
-  : g === 'msg' ? t('multiSport') : g === 'cont' ? t('continental') : t('juniorShort');
 
 /** Status tiap turnamen wajib Top Committed satu peserta (atlet tunggal / pasangan). */
 export function commitmentStatus(state: SeasonState, ruleset: Ruleset, entrantId: string) {

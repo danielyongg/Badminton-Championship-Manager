@@ -113,8 +113,8 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   // Junior: kolom status pelatnas (pratama/utama) + tombol promosi.
   const juniorCols = juniors;
   if (juniorCols) COLS.splice(2, 0, { key: 'level', label: 'squadLevel', value: (p) => (isPratama(p, state.date) ? 0 : 1) });
-  // Sub-tab MS/WS: sektor sudah jelas dari tab-nya (seperti tab ganda), kolom sektor hanya di "Semua".
-  if (singlesView) COLS.splice(COLS.findIndex((c) => c.key === 'sector'), 1);
+  // Sub-tab MS/WS: sektor & gender sudah jelas dari tab-nya (seperti tab ganda), kedua kolom hanya di "Semua".
+  if (singlesView) for (const k of ['sector', 'gender']) COLS.splice(COLS.findIndex((c) => c.key === k), 1);
   const [sort, setSort] = useState({ key: 'ability', desc: true });
   const col = COLS.find((c) => c.key === sort.key) ?? COLS.find((c) => c.key === 'ability')!; // urut sektor lalu pindah ke MS/WS → kemampuan
   const cmp = (a: Player, b: Player) => {
@@ -155,7 +155,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
           ))}{released ? <th></th> : <th title={t('tierPrefsHint')}>{t(singlesView ? 'tierPrefs' : 'manageSectors')}</th>}</tr></thead>
           <tbody>{list.map((p) => (
             <tr key={p.id} onClick={() => onOpen(p.id)} style={{ cursor: 'pointer' }}>
-              <td>{p.name}</td><td className="m-hide">{p.gender}</td>
+              <td>{p.name}</td>{!singlesView && <td className="m-hide">{p.gender}</td>}
               {juniorCols && <td>{isPratama(p, state.date)
                 ? <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>
                 : <span className="tag">{t('utama')}</span>}</td>}

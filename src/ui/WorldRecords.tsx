@@ -2,27 +2,17 @@ import { useMemo, useState } from 'react';
 import type { SeasonState } from '../engine/season';
 import type { Ruleset, TeamFormat, World } from '../engine/types';
 import { dataName, t, type TextKey } from '../i18n';
-import { entrantLabel, lookup } from './game';
+import { CAL_GROUPS, entrantLabel, groupLabel, lookup, tierGroup } from './game';
 import { Flag } from './Flag';
 import { formatName, winnerOf } from './Team';
 
 // Klasemen negara (medali per musim) & Rekor + Hall of Fame (gaya BWF), dihitung dari riwayat save ini.
 
-type Scope = 'all' | 'majors' | 'tour' | 'games' | 'team' | 'junior';
+// Sub-tab = kelompok badge tier seperti filter kalender (Grade 1–3, Multi-sport, Continental, Junior).
+type Scope = 'all' | (typeof CAL_GROUPS)[number];
+// Rekor gelar: World Tour + Majors (OG, Kejuaraan Dunia, WTF).
 const MAJORS = new Set(['OG', 'WC', 'WTF']);
 const TOUR = new Set(['S1000', 'S750', 'S500', 'S300', 'S100']);
-
-/** Kelompok sebuah turnamen individu menurut tier. */
-function scopeOf(rs: Ruleset, eventId: string): Scope | undefined {
-  const ev = rs.calendar.find((e) => e.id === eventId);
-  if (!ev) return undefined;
-  const tier = rs.tiers.find((x) => x.id === ev.tierId);
-  if (tier?.junior) return 'junior';
-  if (MAJORS.has(ev.tierId)) return 'majors';
-  if (TOUR.has(ev.tierId)) return 'tour';
-  if (ev.tierId === 'MSG') return 'games';
-  return undefined; // IC/IS/FS: hanya di "Semua"
-}
 
 /**
  * Klasemen negara satu musim: emas = juara, perak = finalis, perunggu = semifinalis (tanpa laga perebutan perunggu,
@@ -33,30 +23,31 @@ export function NationsTable({ state, ruleset, world }: { state: SeasonState; ru
   const [year, setYear] = useState(years[0] ?? state.date.year);
   const [scope, setScope] = useState<Scope>('all');
   const managed = state.career?.countryId;
+  const individualGroup = (id: string) => { const ev = ruleset.calendar.find((e) => e.id === id); return ev && tierGroup(ruleset.tiers.find((x) => x.id === ev.tierId)); };
+  const teamGroup = (id: string) => { const ev = ruleset.team.events.find((e) => e.id === id); return ev && tierGroup(undefined, ev); };
   const rows = useMemo(() => {
     const tally = new Map<string, [number, number, number]>();
     const add = (c: string, i: 0 | 1 | 2) => { const v = tally.get(c) ?? [0, 0, 0]; v[i]++; tally.set(c, v); };
-    if (scope !== 'team')
-      for (const m of state.matches) {
+    for (const m of state.matches) {
         if (m.year !== year || (m.round !== 'F' && m.round !== 'SF')) continue;
-        const sc = scopeOf(ruleset, m.tournamentId);
-        if (!sc && !ruleset.calendar.some((e) => e.id === m.tournamentId)) continue; // partai beregu
-        if (scope === 'all' ? sc === 'junior' : sc !== scope) continue;
+        const g = individualGroup(m.tournamentId);
+        if (!g) continue; // partai beregu: dihitung per format di bawah
+        if (scope === 'all' ? g === 'junior' : g !== scope) continue; // "Semua" = senior
         const country = (id: string) => entrantLabel(state, id).country;
         if (m.round === 'F') { add(country(m.sides[m.winner]), 0); add(country(m.sides[1 - m.winner]), 1); } else add(country(m.sides[1 - m.winner]), 2);
       }
-    if (scope === 'team' || scope === 'all')
-      for (const r of state.teamResults) {
-        if (r.year !== year || r.confederation) continue; // kejuaraan beregu kontinental = kualifikasi, tidak dihitung
+    for (const r of state.teamResults) {
+        // Kejuaraan beregu kontinental (kualifikasi Piala Thomas/Uber/Sudirman) hanya di sub-tab Continental.
+        if (r.year !== year || (scope === 'all' ? r.confederation : teamGroup(r.eventId) !== scope)) continue;
         for (const [c, reached] of Object.entries(r.reached)) if (reached === 'W') add(c, 0); else if (reached === 'F') add(c, 1); else if (reached === 'SF') add(c, 2);
       }
     return [...tally].sort((a, b) => b[1][0] - a[1][0] || b[1][1] - a[1][1] || b[1][2] - a[1][2]);
   }, [state.matches.length, state.teamResults.length, year, scope, ruleset]);
   const name = (c: string) => dataName(world.countries.find((x) => x.id === c)?.name) ?? c;
-  const SCOPES: [Scope, TextKey][] = [['all', 'all'], ['majors', 'scopeMajors'], ['tour', 'scopeTour'], ['games', 'multiEvent'], ['team', 'teamShort'], ['junior', 'juniorShort']];
+  const scopes: Scope[] = ['all', ...CAL_GROUPS.filter((g) => ruleset.calendar.some((e) => individualGroup(e.id) === g) || ruleset.team.events.some((e) => teamGroup(e.id) === g))];
   return (
     <section>
-      <nav className="controls subnav">{SCOPES.map(([s, k]) => <button key={s} aria-pressed={scope === s} onClick={() => setScope(s)}>{t(k)}</button>)}</nav>
+      <nav className="controls subnav">{scopes.map((s) => <button key={s} aria-pressed={scope === s} onClick={() => setScope(s)}>{groupLabel(s)}</button>)}</nav>
       <div className="controls">
         <label>{t('year')}
           <select value={year} onChange={(e) => setYear(Number(e.target.value))}>{years.map((y) => <option key={y} value={y}>{y}</option>)}</select>

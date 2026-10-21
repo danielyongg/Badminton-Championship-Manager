@@ -163,6 +163,10 @@ export const tierLabel = (id: string) => (id === 'MSG' ? t('multiEvent') : CONTI
 const JUNIOR_CODE: Record<string, string> = { JGP: 'IGP', JIC: 'IC', JIS: 'IS', JC2: 'JC' };
 /** Kelompok tier untuk tampilan, urut dari yang tertinggi (lihat TierBadge). */
 export const TIER_GROUPS = ['g1', 'msg', 'cont', 'g2', 'g3', 'junior'] as const;
+/** Urutan & label filter kalender: Grade 1–3, lalu Multi-sport, Continental, Junior (urutan gelar di profil tetap TIER_GROUPS). */
+export const CAL_GROUPS = ['g1', 'g2', 'g3', 'msg', 'cont', 'junior'] as const;
+export const groupLabel = (g: string) => g === 'all' ? t('all') : g === 'g1' ? t('gradeN', { n: 1 }) : g === 'g2' ? t('gradeN', { n: 2 }) : g === 'g3' ? t('gradeN', { n: 3 })
+  : g === 'msg' ? t('multiSport') : g === 'cont' ? t('continental') : t('juniorShort');
 type TeamLike = { countries?: string[]; games?: true; confederation?: string };
 /** Multi-sport Games: Olimpiade & multi-event (Asian Games, SEA Games, ...), individu maupun beregu. */
 export const tierGroup = (tier?: Tier, team?: TeamLike): (typeof TIER_GROUPS)[number] =>
