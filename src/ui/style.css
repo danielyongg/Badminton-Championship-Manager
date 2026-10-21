@@ -3,7 +3,7 @@
 :root {
   font-family: Barlow, system-ui, sans-serif; color-scheme: light;
   --bg: #f4f6f3; --surface: #ffffff; --fg: #1d2a24; --muted: #6b7a72; --line: #e3e8e4;
-  --accent: #0b6b45; --accent-strong: #0b6b45; --accent-soft: #e8f5ee; --on-accent: #ffffff;
+  --accent: #0b6b45; --accent-strong: #0b6b45; --accent-soft: #e8f5ee; --on-accent: #ffffff; --fair: #4f9a2e; --fair-soft: #eff8e6;
   --gold: #8a6200; --gold-soft: #fff4d6; --danger: #c0392b; --danger-soft: #fbe9e7;
   --blue: #1d5fa8; --blue-soft: #e6f0fb; --violet: #6b3fa0; --violet-soft: #f1e9fa; --rose: #a8235a; --rose-soft: #fce8f0; --teal: #0f766e; --teal-soft: #e0f4f1;
   --series-1: #2a78d6; --series-2: #eb6834;
@@ -13,7 +13,7 @@
   :root:not([data-theme=light]) {
     color-scheme: dark;
     --bg: #0e1613; --surface: #16241e; --fg: #dce8e1; --muted: #87998f; --line: #23362d;
-    --accent: #2fa874; --accent-strong: #5fd39e; --accent-soft: #1b3329; --on-accent: #06120d;
+    --accent: #2fa874; --accent-strong: #5fd39e; --accent-soft: #1b3329; --on-accent: #06120d; --fair: #a9d86e; --fair-soft: #26331a;
     --gold: #f0c35a; --gold-soft: #3a3016; --danger: #ef6a5b; --danger-soft: #3a1d1a;
     --blue: #8cbcf0; --blue-soft: #182a3d; --violet: #c8a8f0; --violet-soft: #2b2140; --rose: #f293ba; --rose-soft: #3a1a29; --teal: #7fd6cb; --teal-soft: #15302d;
     --series-1: #3987e5; --series-2: #d95926;
@@ -23,7 +23,7 @@
 :root[data-theme=dark] {
   color-scheme: dark;
   --bg: #0e1613; --surface: #16241e; --fg: #dce8e1; --muted: #87998f; --line: #23362d;
-  --accent: #2fa874; --accent-strong: #5fd39e; --accent-soft: #1b3329; --on-accent: #06120d;
+  --accent: #2fa874; --accent-strong: #5fd39e; --accent-soft: #1b3329; --on-accent: #06120d; --fair: #a9d86e; --fair-soft: #26331a;
   --gold: #f0c35a; --gold-soft: #3a3016; --danger: #ef6a5b; --danger-soft: #3a1d1a;
     --blue: #8cbcf0; --blue-soft: #182a3d; --violet: #c8a8f0; --violet-soft: #2b2140; --rose: #f293ba; --rose-soft: #3a1a29; --teal: #7fd6cb; --teal-soft: #15302d;
   --series-1: #3987e5; --series-2: #d95926;
@@ -231,6 +231,7 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .badge { flex: none; font-size: .72rem; font-weight: 700; padding: 1px 6px; border-radius: 3px; background: var(--line); color: var(--fg); white-space: nowrap; }
 .badge.good { background: var(--accent-soft); color: var(--accent-strong); }
 .badge.gold { background: var(--gold-soft); color: var(--gold); }
+.badge.fair { background: var(--fair-soft); color: var(--fair); } /* hijau muda: fit tapi tidak penuh */
 .drow.mine-row { background: var(--accent-soft); margin: 0 -6px; padding-left: 6px; padding-right: 6px; border-radius: 4px; }
 .drow.mine-row a { color: var(--accent-strong); font-weight: 600; }
 .drow > .pts { flex: none; font-variant-numeric: tabular-nums; font-size: .82rem; color: var(--muted); }
