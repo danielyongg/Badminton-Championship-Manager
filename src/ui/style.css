@@ -587,3 +587,5 @@ table.fit td.num { white-space: nowrap; }
 .entry-check input { width: 22px; height: 22px; margin: 0; accent-color: var(--accent); cursor: pointer; }
 .entry-check input:disabled { cursor: not-allowed; }
 .card .scroll .entrytable td:first-child { position: static; max-width: none; min-width: 0; box-shadow: none; }
+/* Bulatan kondisi atlet: isi = persen kondisi (pie), warna mengikuti badge status. */
+.cond { display: inline-block; width: .9em; height: .9em; margin-right: 4px; vertical-align: -.12em; border-radius: 50%; box-sizing: border-box; border: 1.5px solid currentColor; background: conic-gradient(currentColor var(--p), transparent 0); }

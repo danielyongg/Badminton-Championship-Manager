@@ -6,7 +6,7 @@ import { contingentOf, inContingent, lockWeek } from '../engine/contingent';
 import { DISCIPLINES, isDoubles, isJuniorFormat, type Discipline, type Ruleset, type TeamFormat, type TournamentDef, type World } from '../engine/types';
 import { dataName, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, tierLabel, useGame, TierBadge } from './game';
-import { FatigueBar, FitStatus, MoraleTag } from './Squad';
+import { FitStatus, MoraleTag } from './Squad';
 import { moraleTier, pairAbility } from '../engine/match';
 import { currentAbility, isJuniorAge, isPratama } from '../engine/generator';
 import { formatName, SquadPicker } from './Team';
@@ -214,6 +214,56 @@ function LastChampions() {
   );
 }
 
+type EntryEntrant = { id: string; d: Discipline; playerIds: string[]; trial?: boolean; rank?: number };
+
+/** Atlet → turnamen lain minggu ini tempat ia sudah didaftarkan (keputusan entrant mana pun, tunggal/pasangan, yang memuatnya). */
+function boundElsewhere(state: SeasonState, decisions: Record<string, string>, eventId: string) {
+  const { pairs } = lookup(state);
+  const out = new Map<string, string>();
+  for (const [id, v] of Object.entries(decisions))
+    if (v && v !== 'rest' && v !== eventId) (pairs.get(id)?.playerIds ?? [id]).forEach((x) => out.set(x, v));
+  return out;
+}
+
+/**
+ * Satu baris entry (senior & junior): nama + status/morale (+ wajib / turnamen lain) · ability · ranking · centang.
+ * `ai` = belum diputuskan dan AI yang memilih (label kecil di samping centang).
+ */
+function EntryRow({ e, checked, disabled, other, required, ai, onToggle }: {
+  e: EntryEntrant; checked: boolean; disabled: boolean; other?: string; required?: boolean; ai: boolean; onToggle: (on: boolean) => void;
+}) {
+  const { game } = useGame();
+  const { state, ruleset } = game;
+  const { players } = lookup(state);
+  const ps = e.playerIds.map((id) => players.get(id)!);
+  const ab = ps.map((p) => currentAbility(p.attrs));
+  const pair = ps.length > 1 ? state.pairs.find((p) => p.id === e.id) : undefined;
+  return (
+    <tr className={other ? 'muted-text' : undefined}>
+      <td>
+        <span className="chip">{e.d}</span> {entrantLabel(state, e.id).name}
+        {e.trial && <> <span className="tag">{t('trialPair')}</span></>}
+        {ps.some((x) => isPratama(x, state.date)) && <> <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span></>}
+        <div className="entry-meta">
+          <FitStatus ps={ps} />
+          <MoraleTag short value={ps.reduce((sum, p) => sum + p.form, 0) / ps.length}
+            detail={ps.length > 1 ? ps.map((p) => `${p.name}: ${t(`morale_${moraleTier(p.form)}` as TextKey)}`).join(' · ') : undefined} />
+          {required && <span className="required">⭐ {t('required')}</span>}
+          {other && <span className="muted-text">→ {dataName(ruleset.calendar.find((x) => x.id === other)?.name)}</span>}
+        </div>
+      </td>
+      <td className="num">{Math.round(pair ? pairAbility(ab, pair.chemistry, ruleset.match) : ab[0])}</td>
+      <td className="num">{e.rank ?? '—'}</td>
+      <td className="num">
+        <label className="entry-check">
+          {ai && <small className="muted-text">AI</small>}
+          <input type="checkbox" checked={checked} disabled={disabled} onChange={(x) => onToggle(x.target.checked)} />
+        </label>
+      </td>
+    </tr>
+  );
+}
+
 /**
  * Entry turnamen junior negara manajer: atlet U19 per nomor (tunggal) & pasangan yang kedua atletnya U19 (termasuk pasangan
  * junior otomatis dari turnamen sebelumnya). Main = pasti ikut & didahulukan dalam kuota; Otomatis = dipilih AI
@@ -251,7 +301,7 @@ export function JuniorEntryTable({ ev }: { ev: TournamentDef }) {
   const sector = picked && sectors.includes(picked) ? picked : sectors[0];
   const quota = tier.junior!.quota;
   const chosen = (d: Discipline) => rows.filter((e) => e.d === d && decisions[e.id] === ev.id).length;
-  const other = (v?: string) => v && v !== 'rest' && v !== ev.id ? ruleset.calendar.find((x) => x.id === v) : undefined;
+  const bound = boundElsewhere(state, decisions, ev.id);
   return (
     <>
       <p className="hint">{t('juniorEntryHelp', { s: quota.singles, d: quota.doubles })}</p>
@@ -265,27 +315,13 @@ export function JuniorEntryTable({ ev }: { ev: TournamentDef }) {
       {chosen(sector) > (isDoubles(sector) ? quota.doubles : quota.singles) && <p className="hint">⚠ {t('juniorOverQuota')}</p>}
       {rows.every((e) => e.d !== sector) ? <p className="hint">{t(isDoubles(sector) ? 'juniorNoPairs' : 'juniorNone')}</p> : (
         <div className="scroll">
-          <table>
-            <thead><tr><th>{t('name')}</th><th className="num">{t('rank')}</th><th className="hide-sm">{t('fatigue')}</th><th>{t('tournament')}</th></tr></thead>
+          <table className="entrytable">
+            <thead><tr><th>{t('name')}</th><th className="num">{t('ability')}</th><th className="num">{t('rank')}</th><th className="num">{t('enterCol')}</th></tr></thead>
             <tbody>{rows.filter((e) => e.d === sector).map((e) => {
               const injured = e.playerIds.some((id) => players.get(id)?.injury);
-              const tired = Math.max(...e.playerIds.map((id) => players.get(id)?.fatigue ?? 0));
-              const elsewhere = other(decisions[e.id]);
-              return (
-                <tr key={e.id}>
-                  <td><span className="chip">{e.d}</span> {entrantLabel(state, e.id).name}</td>
-                  <td className="num">{e.rank ?? '—'}</td>
-                  <td className="hide-sm"><FatigueBar value={tired} /></td>
-                  <td>{injured ? `🩹 ${t('injury')}` : (
-                    <select value={decisions[e.id] ?? 'auto'} onChange={(x) => set(e.id, x.target.value)}>
-                      <option value="auto">{t('auto')}</option>
-                      <option value={ev.id}>{t('juniorPlay')}</option>
-                      {elsewhere && <option value={elsewhere.id}>{dataName(elsewhere.name)}</option>}
-                      <option value="rest">{t('rest')}</option>
-                    </select>
-                  )}</td>
-                </tr>
-              );
+              const other = e.playerIds.map((id) => bound.get(id)).find(Boolean);
+              return <EntryRow key={e.id} e={e} checked={decisions[e.id] === ev.id} disabled={injured || !!other} other={other}
+                ai={!decisions[e.id] && !other && !injured} onToggle={(on) => set(e.id, on ? ev.id : 'rest')} />;
             })}</tbody>
           </table>
         </div>
@@ -328,11 +364,7 @@ export function EntryTable({ week: w, eventId, onSubmit }: { week: number; event
     .map((e) => ({ ...e, d, rank: ranks.get(d)!.get(e.id) }))
     .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9)));
   // Turnamen lain minggu ini tempat atlet sudah didaftarkan (keputusan entrant mana pun yang memuat atlet itu).
-  const boundTo = new Map<string, string>();
-  for (const d of DISCIPLINES) for (const e of mine(d)) {
-    const v = decisions[e.id];
-    if (v && v !== 'rest' && v !== eventId) e.playerIds.forEach((id) => boundTo.set(id, v));
-  }
+  const boundTo = boundElsewhere(state, decisions, eventId);
   const elsewhere = (e: (typeof rows)[number]) => e.playerIds.map((id) => boundTo.get(id)).find(Boolean);
   const injured = (e: (typeof rows)[number]) => e.playerIds.some((id) => players.get(id)?.injury);
   // Multi-event: hanya anggota kontingen (setelah dikunci) yang bisa didaftarkan.
@@ -367,13 +399,6 @@ export function EntryTable({ week: w, eventId, onSubmit }: { week: number; event
       ?? (tired > ruleset.ai.restAbove ? undefined : aiEventChoice(options, ruleset, e.rank, state.tierPrefs?.[e.id]));
     return pick?.id === eventId && eligible(e) ? eventId : 'rest';
   });
-  const abilityOf = (e: (typeof rows)[number]) => {
-    const ab = e.playerIds.map((id) => currentAbility(players.get(id)!.attrs));
-    const pair = e.playerIds.length > 1 ? state.pairs.find((p) => p.id === e.id) : undefined;
-    return Math.round(pair ? pairAbility(ab, pair.chemistry, ruleset.match) : ab[0]);
-  };
-  const members = (e: (typeof rows)[number]) => e.playerIds.map((id) => players.get(id)!);
-  const evName = (id: string) => dataName(ruleset.calendar.find((x) => x.id === id)?.name);
 
   return (
     <>
@@ -393,35 +418,10 @@ export function EntryTable({ week: w, eventId, onSubmit }: { week: number; event
       <div className="scroll">
         <table className="entrytable">
           <thead><tr><th>{t('name')}</th><th className="num">{t('ability')}</th><th className="num">{t('rank')}</th><th className="num">{t('enterCol')}</th></tr></thead>
-          <tbody>{rows.filter((e) => e.d === sector).map((e) => {
-            const other = elsewhere(e);
-            const ps = members(e);
-            return (
-              <tr key={e.id} className={other ? 'muted-text' : undefined}>
-                <td>
-                  <span className="chip">{e.d}</span> {entrantLabel(state, e.id).name}
-                  {e.trial && <> <span className="tag">{t('trialPair')}</span></>}
-                  {ps.some((x) => isPratama(x, state.date)) && <> <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span></>}
-                  <div className="entry-meta">
-                    <FitStatus ps={ps} />
-                    <MoraleTag short value={ps.reduce((s, p) => s + p.form, 0) / ps.length}
-                      detail={ps.length > 1 ? ps.map((p) => `${p.name}: ${t(`morale_${moraleTier(p.form)}` as TextKey)}`).join(' · ') : undefined} />
-                    {required(e) && <span className="required">⭐ {t('required')}</span>}
-                    {other && <span className="muted-text">→ {evName(other)}</span>}
-                  </div>
-                </td>
-                <td className="num">{abilityOf(e)}</td>
-                <td className="num">{e.rank ?? '—'}</td>
-                <td className="num">
-                  <label className="entry-check">
-                    {!decisions[e.id] && !other && aiMay(e) && !injured(e) && <small className="muted-text">AI</small>}
-                    <input type="checkbox" checked={checked(e)} disabled={!eligible(e)}
-                      onChange={(x) => set(e.id, x.target.checked ? eventId : 'rest')} />
-                  </label>
-                </td>
-              </tr>
-            );
-          })}</tbody>
+          <tbody>{rows.filter((e) => e.d === sector).map((e) => (
+            <EntryRow key={e.id} e={e} checked={checked(e)} disabled={!eligible(e)} other={elsewhere(e)} required={required(e)}
+              ai={!decisions[e.id] && !elsewhere(e) && aiMay(e) && !injured(e)} onToggle={(on) => set(e.id, on ? eventId : 'rest')} />
+          ))}</tbody>
         </table>
       </div>
       <p className="controls">
