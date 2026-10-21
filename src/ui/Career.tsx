@@ -698,7 +698,11 @@ function SeasonSummary({ year, country, onBack, onOpen, onOpenEvent }: { year: n
   }
   const { titles, teamTitles } = titlesOf(state, ruleset, country, year);
   const perPlayer = new Map<string, number>();
-  for (const c of titles) for (const id of membersOf(c.winner)) perPlayer.set(id, (perPlayer.get(id) ?? 0) + 1);
+  const sectorsWon = new Map<string, Set<string>>(); // nomor tempat atlet juara (bisa lebih dari satu, mis. MD & XD)
+  for (const c of titles) for (const id of membersOf(c.winner)) {
+    perPlayer.set(id, (perPlayer.get(id) ?? 0) + 1);
+    sectorsWon.set(id, (sectorsWon.get(id) ?? new Set()).add(c.discipline));
+  }
   const earnings = Object.entries(state.earnings[year] ?? {}).filter(([id]) => players.get(id)?.countryId === country).sort((a, b) => b[1] - a[1]);
   const link = (id: string) => <a href="#" onClick={(e) => { e.preventDefault(); onOpen(id); }}>{players.get(id)?.name ?? id}</a>;
   return (
@@ -734,7 +738,7 @@ function SeasonSummary({ year, country, onBack, onOpen, onOpenEvent }: { year: n
           <h3>{t('statChampions')} {year}</h3>
           {perPlayer.size === 0 ? <p className="hint">{t('noTitles')}</p> : [...perPlayer].sort((a, b) => b[1] - a[1]).map(([id, n]) => (
             <div key={id} className="drow">
-              <span className="chip">{players.get(id)?.gender}</span>
+              <span className="chip">{[...sectorsWon.get(id)!].join('·')}</span>
               <span className="grow">{link(id)}</span>
               <span className="badge gold">🏆 {n}</span>
             </div>

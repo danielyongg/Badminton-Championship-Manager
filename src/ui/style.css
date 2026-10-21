@@ -197,12 +197,12 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .dlist + .dlist { margin-top: 10px; }
 .dlist h4 { margin: 0 0 2px; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .dlist h4 a { color: inherit; }
-.drow { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.drow { display: flex; align-items: baseline; /* teks pertama sejajar dengan chip/badge di semua daftar */ gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); }
 .drow:last-child { border-bottom: none; }
 /* Turnamen mendatang: kolom tier selebar label terpanjang (MULTI-EVENT), kota di baris kedua. */
 .upcoming .drow .chip { width: 7.4em; }
 .upcoming .drow small { display: block; }
-.drow .chip { flex: none; min-width: 2.6em; text-align: center; margin-top: 2px; }
+.drow .chip { flex: none; min-width: 2.6em; text-align: center; }
 .drow .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 /* Kalender & juara: tabel di desktop, daftar per minggu di HP (juara di bawah nama turnamen). */
 .cal-list { display: none; }
@@ -322,7 +322,7 @@ td.strong { font-weight: 700; }
 .title-badge { width: 1%; }
 .title-badge .tierb { width: 4.4em; }
 .title-counts > span { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; }
-.drow .tierb { flex: none; min-width: 2.6em; margin-top: 2px; }
+.drow .tierb { flex: none; min-width: 2.6em; align-self: flex-start; }
 .upcoming .drow .tierb { width: 4.4em; }
 .chip.opp { background: var(--danger-soft); color: var(--danger); }
 
@@ -361,6 +361,10 @@ td.strong { font-weight: 700; }
   .scroll table td:first-child { white-space: normal; min-width: 110px; max-width: 140px; }
   .scroll table td.num:first-child { min-width: 0; width: 1%; white-space: nowrap; } /* kolom angka (minggu/peringkat) tetap sempit */
   .card .scroll table td:first-child, .card .scroll table th:first-child { background: var(--surface); }
+  /* Judul kolom satu warna dengan latar tabel (di luar kartu = latar halaman), dan satu baris seperti tabel tunggal. */
+  .scroll table th { background: var(--bg); }
+  .card .scroll table th { background: var(--surface); }
+  .pairtable th { white-space: nowrap; }
   .scroll table tr.sel td:first-child { background: color-mix(in srgb, var(--accent-soft) 100%, var(--surface)); }
   /* Line-up: dua pilihan atlet ganda boleh turun baris. */
   .lineup { display: table; }
@@ -373,7 +377,8 @@ td.strong { font-weight: 700; }
   /* Target sentuh nyaman di HP (≥ 32–40 px). */
   .roundlist button.rowtoggle { min-height: 32px; padding: 4px 10px; font-size: .8rem; }
   .plan-cell { padding: 10px 6px; }
-  td a[href], .drow a[href] { display: inline-block; padding: 6px 0; }
+  /* Area sentuh lebih tinggi tanpa menggeser teks: padding diimbangi margin negatif (nama tetap sejajar dengan chip/badge). */
+  td a[href], .drow a[href] { display: inline-block; padding: 6px 0; margin: -6px 0; }
   .pname { display: block; padding: 4px 0; } /* pasangan di HP: satu nama per baris, "/" menempel di nama pertama */
   .pname a[href] { display: inline; padding: 0; } /* "/" mengikuti kata terakhir, tidak turun sendiri */
   /* Menu tab yang bisa digeser: tepi kanan memudar sebagai petunjuk masih ada tab lain. */
