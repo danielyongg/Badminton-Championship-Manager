@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { dissolvePair, potentialStars, promoteJunior, recallPlayer, releasePlayer } from '../engine/career';
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
-import { headToHead, moraleTier } from '../engine/match';
+import { headToHead, moraleTier, pairAbility } from '../engine/match';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { rankFromSnapshots } from '../engine/season';
 import { ATTRS, DISCIPLINES, type Attr, type Discipline, type GameDate, type Pair, type Player } from '../engine/types';
@@ -578,6 +578,7 @@ function PairCard({ pair, rank, onOpen }: { pair: Pair; rank?: number; onOpen: (
       <dl className="facts">
         {fact(t('country'), <><Flag id={a.countryId} />{a.countryId} · <span className="chip">{pair.discipline}</span></>)}
         {fact(t('bwfRank'), rank ? `#${rank}` : '—')}
+        {fact(t('pairAbility'), <span title={`${currentAbility(a.attrs)} / ${currentAbility(b.attrs)} + ${t('chemistry')}`}>{Math.round(pairAbility([currentAbility(a.attrs), currentAbility(b.attrs)], pair.chemistry, game.ruleset.match))}</span>)}
         {fact(t('morale'), <MoraleTag value={(a.form + b.form) / 2} detail={[a, b].map((x) => `${x.name}: ${t(`morale_${moraleTier(x.form)}` as TextKey)}`).join(' · ')} />)}
         {fact(t('chemistry'), Math.round(pair.chemistry))}
         {fact(t('matchesTogether'), pair.matchesTogether)}

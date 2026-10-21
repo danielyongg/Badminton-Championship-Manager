@@ -47,9 +47,16 @@ export const moraleTier = (m: number) => MORALE_TIERS[m >= 6 ? 4 : m >= 2 ? 3 : 
 /** Bonus/penalti atribut dari morale: naik sedikit bila tinggi, turun penuh bila rendah. */
 export const moraleEffect = (m: number, cfg: MatchConfig) => m * (m >= 0 ? cfg.morale.up : cfg.morale.down);
 
+/** Bonus semua atribut pasangan ganda dari chemistry (50 = netral). */
+export const chemistryBonus = (chemistry: number, cfg: MatchConfig) => (chemistry - 50) * cfg.chemistryWeight;
+
+/** Ability pasangan ganda seperti dipakai mesin (tanpa morale & kondisi hari itu): rata-rata ability + bonus chemistry. */
+export const pairAbility = (abilities: number[], chemistry: number, cfg: MatchConfig) =>
+  abilities.reduce((s, x) => s + x, 0) / abilities.length + chemistryBonus(chemistry, cfg);
+
 function sideAttrs(side: SideInput, cfg: MatchConfig, day = 0): Attrs {
   const ps = side.players;
-  const bonus = ps.length > 1 ? ((side.chemistry ?? 50) - 50) * cfg.chemistryWeight : 0;
+  const bonus = ps.length > 1 ? chemistryBonus(side.chemistry ?? 50, cfg) : 0;
   const form = ps.reduce((s, p) => s + moraleEffect(p.form, cfg), 0) / ps.length + day;
   return Object.fromEntries(
     ATTRS.map((a) => [a, ps.reduce((s, p) => s + p.attrs[a], 0) / ps.length + form + bonus]),

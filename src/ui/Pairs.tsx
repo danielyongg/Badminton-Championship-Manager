@@ -5,7 +5,7 @@ import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import type { Pair } from '../engine/types';
 import { t, type TextKey } from '../i18n';
 import { FatigueBar, FitStatus, MoraleTag, RankCell, TierPrefs } from './Squad';
-import { moraleTier } from '../engine/match';
+import { moraleTier, pairAbility } from '../engine/match';
 import { lookup, saveGame, useGame } from './game';
 
 const DOUBLES: Pair['discipline'][] = ['MD', 'WD', 'XD'];
@@ -50,11 +50,17 @@ export function Pairs({ discipline: d, onOpen, juniors = false }: { discipline: 
   ].filter((x) => x.r !== undefined).sort((a, b) => a.r! - b.r!);
   // Kolom mengikuti tab tunggal (Nama, Usia, Ability, Potensi→Chemistry, Morale, Kelelahan, Status, BWF rank); mHide = disembunyikan di HP.
   // Jenis pasangan (percobaan / Development) tampil sebagai tag di bawah nama.
+  // Ability pasangan = kekuatan sisi ganda di mesin (rata-rata ability + bonus chemistry), bukan sekadar rata-rata.
+  const abilityOf = (p: Pair) => pairAbility(p.playerIds.map((id) => currentAbility(players.get(id)!.attrs)), p.chemistry, ruleset.match);
+  const abilityTitle = (p: Pair) => {
+    const base = avg(p, (x) => currentAbility(x.attrs)), bonus = abilityOf(p) - base;
+    return `${p.playerIds.map((id) => currentAbility(players.get(id)!.attrs)).join(' / ')} → ${t('average')} ${Math.round(base)} ${bonus >= 0 ? '+' : '−'} ${t('chemistry')} ${Math.abs(bonus).toFixed(1)}`;
+  };
   const fatigue = (p: Pair) => Math.max(...p.playerIds.map((id) => players.get(id)!.fatigue));
   const COLS: { key: string; label: TextKey; num?: boolean; value: (p: Pair) => string | number; desc?: boolean; mHide?: boolean }[] = [
     { key: 'pair', label: 'pair', value: (p) => p.playerIds.map((id) => players.get(id)!.name).join(' / ') },
-    { key: 'age', label: 'age', num: true, value: (p) => avg(p, (x) => ageAt(x.birth, state.date)) },
-    { key: 'ability', label: 'ability', num: true, value: (p) => avg(p, (x) => currentAbility(x.attrs)), desc: true },
+    { key: 'age', label: 'age', num: true, value: (p) => avg(p, (x) => ageAt(x.birth, state.date)) }, // tampil keduanya, urut menurut rata-rata
+    { key: 'ability', label: 'ability', num: true, value: (p) => abilityOf(p), desc: true },
     { key: 'chem', label: 'chemistry', num: true, value: (p) => p.chemistry, desc: true },
     { key: 'together', label: 'matchesShort', num: true, value: (p) => p.matchesTogether, desc: true, mHide: true },
     { key: 'morale', label: 'morale', value: (p) => avg(p, (x) => x.form), desc: true }, // = efek morale sisi ganda di mesin (rata-rata)
@@ -91,8 +97,8 @@ export function Pairs({ discipline: d, onOpen, juniors = false }: { discipline: 
                 <td>{p.playerIds.map((id) => (
                   <a key={id} href="#" className="pname" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpen(id); }}>{players.get(id)!.name}</a>
                 ))}{kind(p)}</td>
-                <td className="num">{Math.round(avg(p, (x) => ageAt(x.birth, state.date)))}</td>
-                <td className="num">{Math.round(avg(p, (x) => currentAbility(x.attrs)))}</td>
+                <td className="num">{p.playerIds.map((id) => ageAt(players.get(id)!.birth, state.date)).join(' / ')}</td>
+                <td className="num" title={abilityTitle(p)}>{Math.round(abilityOf(p))}</td>
                 <td className="num">{Math.round(p.chemistry)}</td>
                 <td className="num m-hide">{p.matchesTogether}</td>
                 <td><MoraleTag value={avg(p, (x) => x.form)} short detail={moraleTitle(p)} /></td>
