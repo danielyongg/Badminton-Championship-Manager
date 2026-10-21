@@ -32,14 +32,18 @@ export function Lab({ onBack }: { onBack: () => void }) {
 
   return (
     <main>
-      <h1>{t('lab')}</h1>
+      {/* Kerangka sama dengan layar karier: bilah atas, menu tab (laptop: menu samping), isi di .page. */}
+      <header className="controls shell">
+        <span className="title"><b>{t('lab')}</b></span>
+        <button className="menu-btn" onClick={onBack}>{t('mainMenu')}</button>
+      </header>
       <nav className="controls maintabs">
-        <button onClick={onBack}>← {t('mainMenu')}</button>
         <button aria-pressed={tab === 'players'} onClick={() => setTab('players')}>{t('tabPlayers')}</button>
         <button aria-pressed={tab === 'match'} onClick={() => setTab('match')}>{t('tabMatch')}</button>
         <button aria-pressed={tab === 'wizard'} onClick={() => setTab('wizard')}>{t('tabWizard')}</button>
         <button aria-pressed={tab === 'ranking'} onClick={() => setTab('ranking')}>{t('tabRanking')}</button>
       </nav>
+      <div className="page">
       {tab === 'ranking' ? <Ranking ruleset={ruleset} world={WORLD} seed={seed} />
       : tab === 'wizard' ? <Wizard players={world.players} pairs={world.pairs} ruleset={ruleset} world={WORLD} />
       : tab === 'match' ? <MatchLab players={world.players.filter((p) => p.gender === gender && p.focus !== 'D')} cfg={ruleset.match} /> : <>
@@ -102,6 +106,7 @@ export function Lab({ onBack }: { onBack: () => void }) {
         </table>
       </div>
       </>}
+      </div>
     </main>
   );
 }
