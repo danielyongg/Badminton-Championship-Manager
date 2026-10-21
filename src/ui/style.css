@@ -217,6 +217,7 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 @media (max-width: 700px) { .cal-table { display: none; } .cal-list { display: block; } }
 .cal-list .calwk { flex: none; width: var(--tierw); display: flex; flex-direction: column; align-items: stretch; gap: 1px; }
 .cal-list .calwk small { font-size: .68rem; font-weight: 700; color: var(--muted); text-align: center; }
+.cal-list .drow { align-items: center; } /* minggu + badge di tengah tinggi nama & kota */
 .cal-list .drow.now { background: var(--accent-soft); border-radius: 6px; padding-left: 6px; padding-right: 6px; margin: 0 -6px; }
 .cal-list .drow .grow > small { display: block; }
 .cal-champs { margin-top: 3px; font-size: .85rem; }
@@ -331,7 +332,7 @@ td.strong { font-weight: 700; }
 .title-badge { width: 1%; }
 .title-badge .tierb { width: var(--tierw); }
 .title-counts > span { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; }
-.drow .tierb { flex: none; min-width: 2.6em; align-self: flex-start; }
+.drow .tierb { flex: none; min-width: 2.6em; align-self: center; } /* badge di tengah tinggi teks di sebelahnya (nama 1–2 baris + keterangan) */
 .upcoming .drow .tierb { width: var(--tierw); }
 .chip.opp { background: var(--danger-soft); color: var(--danger); }
 
