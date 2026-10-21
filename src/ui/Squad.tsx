@@ -113,8 +113,10 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   // Junior: kolom status pelatnas (pratama/utama) + tombol promosi.
   const juniorCols = juniors;
   if (juniorCols) COLS.splice(2, 0, { key: 'level', label: 'squadLevel', value: (p) => (isPratama(p, state.date) ? 0 : 1) });
+  // Sub-tab MS/WS: sektor sudah jelas dari tab-nya (seperti tab ganda), kolom sektor hanya di "Semua".
+  if (singlesView) COLS.splice(COLS.findIndex((c) => c.key === 'sector'), 1);
   const [sort, setSort] = useState({ key: 'ability', desc: true });
-  const col = COLS.find((c) => c.key === sort.key)!;
+  const col = COLS.find((c) => c.key === sort.key) ?? COLS.find((c) => c.key === 'ability')!; // urut sektor lalu pindah ke MS/WS → kemampuan
   const cmp = (a: Player, b: Player) => {
     const x = col.value(a), y = col.value(b);
     const r = typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y));
@@ -157,11 +159,11 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               {juniorCols && <td>{isPratama(p, state.date)
                 ? <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>
                 : <span className="tag">{t('utama')}</span>}</td>}
-              <td>{sectorsOf(p).map((d) => {
+              {!singlesView && <td>{sectorsOf(p).map((d) => {
                 const pair = d.length === 2 && d[1] === 'D' ? mainPair(p.id, d as DoublesD) : undefined;
                 const partner = pair && lookup(state).players.get(pair.playerIds.find((x) => x !== p.id)!)?.name;
                 return <span key={d} className="chip sector" title={partner}>{d}</span>;
-              })}</td>
+              })}</td>}
               <td className="num">{ageAt(p.birth, state.date)}</td>
               <td className="num">{currentAbility(p.attrs)}<span className={p.caDelta! > 0 ? 'up' : 'down'}>{arrow(p.caDelta)}</span></td>
               <td className="stars">{starText(starsOf(p))}</td>
