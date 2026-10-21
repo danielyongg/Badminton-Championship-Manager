@@ -175,14 +175,14 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
           </table>
           {pager(true)}
         </div>
-        {selected && <Detail id={selected} label={name(selected).name} state={state} discipline={discipline} ruleset={ruleset} eventName={eventName} junior={mode === 'junior'} />}
+        {selected && <Detail id={selected} label={name(selected).name} onOpen={onOpenPlayer} state={state} discipline={discipline} ruleset={ruleset} eventName={eventName} junior={mode === 'junior'} />}
       </div>}
     </section>
   );
 }
 
-function Detail({ id, label, state, discipline, ruleset, eventName, junior }: {
-  id: string; label: string; state: SeasonState; discipline: Discipline; ruleset: Ruleset; eventName: (id: string) => string; junior?: boolean;
+function Detail({ id, label, onOpen, state, discipline, ruleset, eventName, junior }: {
+  id: string; label: string; onOpen?: (id: string) => void; state: SeasonState; discipline: Discipline; ruleset: Ruleset; eventName: (id: string) => string; junior?: boolean;
 }) {
   const now = absWeek(state.date);
   const history = rankFromSnapshots(state, id, discipline);
@@ -192,7 +192,7 @@ function Detail({ id, label, state, discipline, ruleset, eventName, junior }: {
   useEffect(() => { if (window.innerWidth < 900) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [id]);
   return (
     <aside ref={ref}>
-      <h3>{label}</h3>
+      <h3>{onOpen ? <a href="#" onClick={(e) => { e.preventDefault(); onOpen(id); }}>{label}</a> : label}</h3>
       <h4>{t('rankHistory')}</h4>
       <RankChart history={history} />
       <h4>{t('expiringSoon')}</h4>

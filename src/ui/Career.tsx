@@ -569,7 +569,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
                     <div key={id} className={`drow${reached === 'W' ? ' champ' : ''}`}>
                       <span className="chip">{m.discipline}</span>
                       <span className="grow">
-                        <a href="#" onClick={(e) => { e.preventDefault(); onOpen(state.pairs.find((p) => p.id === id)?.playerIds[0] ?? id); }}>{entrantLabel(state, id).name}</a>
+                        <a href="#" onClick={(e) => { e.preventDefault(); onOpen(id); }}>{entrantLabel(state, id).name}</a>
                         <small className="muted-text">{m.winner === i ? t('wins') : t('lost')} vs <Flag id={opp} />{entrantLabel(state, opp).name} · <MatchLink m={m} name={(x) => entrantLabel(state, x).name} title={eventName(ruleset, m.tournamentId, m.year)}>{m.scores.map((g) => `${g[i]}-${g[1 - i]}`).join(', ')}</MatchLink></small>
                       </span>
                       <span className={`badge${reached === 'W' ? ' gold' : reached === 'F' || reached === 'SF' ? ' good' : ''}`}>{reached === 'W' ? `🏆 ${t('champion')}` : reached}</span>
@@ -592,7 +592,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
             <div key={r.id} className={`drow rank${mine ? ' mine-row' : ''}`}>
               <span className="badge">{r.rank}</span>
               <span className="grow">
-                <a href="#" onClick={(e) => { e.preventDefault(); onOpen(state.pairs.find((p) => p.id === r.id)?.playerIds[0] ?? r.id); }}><Flag id={r.id} />{entrantLabel(state, r.id).name}</a>
+                <a href="#" onClick={(e) => { e.preventDefault(); onOpen(r.id); }}><Flag id={r.id} />{entrantLabel(state, r.id).name}</a>
               </span>
               <span className="pts">{r.points.toLocaleString(numLocale())}</span>
               <span className="delta">{r.delta ? <span className={r.delta > 0 ? 'up' : 'down'}>{r.delta > 0 ? '▲' : '▼'}{Math.abs(r.delta)}</span> : <span className="muted-text">–</span>}</span>
@@ -636,7 +636,6 @@ function Titles({ country, year, onOpen, onOpenEvent }: { country: string; year:
   const { game } = useGame();
   const { state, ruleset } = game;
   const { titles, byTier, teamTitles } = titlesOf(state, ruleset, country, year);
-  const person = (id: string) => lookup(state).pairs.get(id)?.playerIds[0] ?? id;
   const winners = (n: number) => t(n === 1 ? 'winnerOne' : 'winnerMany', { n });
   return (
     <section className="card titles">
@@ -649,7 +648,7 @@ function Titles({ country, year, onOpen, onOpenEvent }: { country: string; year:
               <div key={c.tournamentId + c.discipline} className="drow champ">
                 <span className="chip">{c.discipline}</span>
                 <span className="grow">
-                  <a href="#" onClick={(e) => { e.preventDefault(); onOpen(person(c.winner)); }}>{entrantLabel(state, c.winner).name}</a>
+                  <a href="#" onClick={(e) => { e.preventDefault(); onOpen(c.winner); }}>{entrantLabel(state, c.winner).name}</a>
                   <small className="muted-text"><EventLink id={c.tournamentId} year={year} onOpen={onOpenEvent} /></small>
                 </span>
                 <span className="badge gold">🏆</span>

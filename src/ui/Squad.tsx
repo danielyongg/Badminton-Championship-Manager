@@ -4,7 +4,7 @@ import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { headToHead, moraleTier } from '../engine/match';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { rankFromSnapshots } from '../engine/season';
-import { ATTRS, DISCIPLINES, type Attr, type Discipline, type GameDate, type Player } from '../engine/types';
+import { ATTRS, DISCIPLINES, type Attr, type Discipline, type GameDate, type Pair, type Player } from '../engine/types';
 import { numLocale, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName as eventNameOf, lookup, saveGame, TIER_GROUPS, TierBadge, tierGroup, useGame } from './game';
 import { formatName } from './Team';
@@ -51,11 +51,12 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   const { game, version, changed } = useGame();
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
-  // Skuad → Senior/Junior (semua pemain) → filter sektor: Single (pemain tunggal) / Pairs (pasangan ganda).
+  // Skuad → Senior/Junior (semua pemain) → sektor: Semua (atlet) / MS / WS (atlet tunggal) / MD / WD / XD (pasangan ganda).
   // Kelompok: Senior / Junior (pelatnas) / Non-pelatnas (atlet yang dilepas, senior & junior; yang pensiun tidak).
   const [group, setGroup] = useState<'senior' | 'junior' | 'released'>('senior');
   const juniors = group === 'junior', released = group === 'released';
-  const [view, setView] = useState<'all' | 'singles' | 'pairs'>('all');
+  const [view, setView] = useState<'all' | Discipline>('all');
+  const singlesView = view === 'MS' || view === 'WS', pairsView = view === 'MD' || view === 'WD' || view === 'XD';
   const commit = () => { changed(); void saveGame(game); };
   const counts = useMatchCounts();
   const ranks = useMemo(() => {
@@ -106,7 +107,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   const list = state.players
     // Non-pelatnas: atlet yang sudah dilepas (senior & junior); selain itu junior yang sudah promosi masuk Senior.
     .filter((p) => p.countryId === country && p.retired === undefined && (released ? p.released !== undefined : p.released === undefined && isPratama(p, state.date) === juniors))
-    .filter((p) => released || view !== 'singles' || p.focus !== 'D')
+    .filter((p) => released || !singlesView || (p.focus !== 'D' && p.gender === (view === 'MS' ? 'M' : 'F')))
     .sort((a, b) => cmp(a, b) || currentAbility(b.attrs) - currentAbility(a.attrs));
 
   return (
@@ -118,14 +119,12 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
       </nav>
       <nav className="controls subnav">
         {!released && <>
-          <button aria-pressed={view === 'all'} onClick={() => setView('all')}>{t('all')}</button>
-          <button aria-pressed={view === 'singles'} onClick={() => setView('singles')}>{t('sector_singles')}</button>
-          <button aria-pressed={view === 'pairs'} onClick={() => setView('pairs')}>{t('sector_pairs')}</button>
+          {(['all', ...DISCIPLINES] as const).map((x) => <button key={x} aria-pressed={view === x} onClick={() => setView(x)}>{x === 'all' ? t('all') : x}</button>)}
         </>}
-        {(released || view !== 'pairs') && <span className="count">{list.length} {t('players')}</span>}
+        {(released || !pairsView) && <span className="count">{list.length} {t('players')}</span>}
       </nav>
-      {juniorCols && view !== 'pairs' && <p className="hint">{t('pratamaHint')}</p>}
-      {view === 'pairs' && !released ? <Pairs onOpen={onOpen} juniors={juniors} /> : (
+      {juniorCols && !pairsView && <p className="hint">{t('pratamaHint')}</p>}
+      {pairsView && !released ? <Pairs key={view} discipline={view} onOpen={onOpen} juniors={juniors} /> : (
       <div className="scroll">
         <table className="squadtable">
           <thead><tr>{COLS.map((c) => (
@@ -133,7 +132,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               onClick={() => setSort(sort.key === c.key ? { key: c.key, desc: !sort.desc } : { key: c.key, desc: !!c.desc })}>
               {t(c.label)}{sort.key === c.key ? (sort.desc ? ' ▼' : ' ▲') : ''}
             </th>
-          ))}{released ? <th></th> : <th title={t('tierPrefsHint')}>{t(view === 'singles' ? 'tierPrefs' : 'manageSectors')}</th>}</tr></thead>
+          ))}{released ? <th></th> : <th title={t('tierPrefsHint')}>{t(singlesView ? 'tierPrefs' : 'manageSectors')}</th>}</tr></thead>
           <tbody>{list.map((p) => (
             <tr key={p.id} onClick={() => onOpen(p.id)} style={{ cursor: 'pointer' }}>
               <td>{p.name}</td><td className="m-hide">{p.gender}</td>
@@ -157,7 +156,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               <td className="num"><RankCell ranks={allRanks(p)} /></td>
               <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>{released
                 ? <button className="mini" onClick={() => { recallPlayer(state, p.id); commit(); }}>{t('recall')}</button>
-                : view === 'singles' ? <TierPrefs id={p.id} /> : <>
+                : singlesView ? <TierPrefs id={p.id} /> : <>
                   <SectorPicker p={p} onChange={commit} />
                   {isPratama(p, state.date) && <>{' '}<button className="mini btn-go" onClick={() => { promoteJunior(state, p.id); commit(); }}>{t('promote')}</button></>}
                   {' '}<button className="mini btn-danger" onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id); commit(); } }}>{t('releaseShort')}</button>
@@ -250,12 +249,15 @@ export function MoraleTag({ value, short }: { value: number; short?: boolean }) 
 export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBack: () => void; onOpen: (id: string) => void; onOpenEvent?: (id: string, year: number) => void }) {
   const { game, changed, version } = useGame();
   const { state, ruleset } = game;
-  const p: Player | undefined = lookup(state).players.get(id);
+  // Profil pasangan ganda: id = pairId. Data milik pasangan (ranking, gelar, turnamen, laga, H2H) dari id pasangan;
+  // data pribadi (atribut, cedera, morale) tetap di profil masing-masing atlet.
+  const pair = lookup(state).pairs.get(id);
+  const p: Player | undefined = lookup(state).players.get(pair?.playerIds[0] ?? id);
   const counts = useMatchCounts();
   const [tab, setTab] = useState<ProfileTab>('summary');
   const [matchYear, setMatchYear] = useState<number | 'all'>('all');
   const [shown, setShown] = useState(30);
-  const pairs = useMemo(() => state.pairs.filter((x) => x.playerIds.includes(id)), [version, id]);
+  const pairs = useMemo(() => (pair ? [] : state.pairs.filter((x) => x.playerIds.includes(id))), [version, id]);
   const singles: Discipline = p?.gender === 'F' ? 'WS' : 'MS';
   // Ranking dunia saat ini: tunggal + tiap pasangan aktif.
   const ranks = useMemo(() => {
@@ -264,7 +266,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
   }, [version, ruleset]);
   if (!p) return <p><button onClick={onBack}>← {t('back')}</button></p>;
 
-  const sides = new Set([id, ...pairs.map((x) => x.id)]);
+  const sides = new Set([id, ...pairs.map((x) => x.id)]); // pasangan: hanya id pasangan itu
   const mine = state.matches.filter((m) => m.sides.some((s) => sides.has(s)));
   const myIdx = (m: (typeof mine)[number]) => (sides.has(m.sides[0]) ? 0 : 1);
   const won = (m: (typeof mine)[number]) => m.winner === myIdx(m);
@@ -273,13 +275,13 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
   const season = mine.filter((m) => m.year === year);
   const titles = state.champions.filter((c) => sides.has(c.winner));
   const activePairs = pairs.filter((x) => !x.dissolved);
-  const openOpp = (opp: string) => onOpen(lookup(state).pairs.get(opp)?.playerIds[0] ?? opp);
+  const openOpp = (opp: string) => onOpen(opp); // lawan ganda → profil pasangannya
   const evLink = (eid: string, y: number) => onOpenEvent
     ? <a href="#" onClick={(e) => { e.preventDefault(); onOpenEvent(eid, y); }}>{eventName(eid, y)}</a> : eventName(eid, y);
   const fact = (k: string, v: ReactNode) => <div><dt>{k}</dt><dd>{v}</dd></div>;
   const rankOf = (d: Discipline, entrant: string) => ranks.get(d)?.get(entrant);
   // Nomor tunggal hanya ditampilkan bila pernah main tunggal atau punya ranking tunggal (spesialis ganda: tidak).
-  const playsSingles = rankOf(singles, id) !== undefined || mine.some((m) => m.sides.includes(id));
+  const playsSingles = !pair && (rankOf(singles, id) !== undefined || mine.some((m) => m.sides.includes(id)));
 
   // Turnamen yang diikuti per musim: hasil terbaik per nomor (juara, babak tersingkir, atau masih bertanding).
   const events = new Map<string, { eid: string; y: number; week: number; res: { d: Discipline; r: string; champ: boolean }[] }>();
@@ -310,7 +312,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
   // Gelar karier: individu + beregu (tim negaranya juara, atlet di skuad atau ikut bermain); urut tier tertinggi, lalu tahun terbaru.
   const titleRows = [
     ...titles.map((c) => ({ y: c.year, eid: c.tournamentId, tierId: ruleset.calendar.find((e) => e.id === c.tournamentId)?.tierId, team: undefined as { countries?: string[]; games?: true } | undefined,
-      what: c.discipline as string, partner: lookup(state).pairs.get(c.winner)?.playerIds.find((x) => x !== id) })),
+      what: c.discipline as string, partner: pair ? undefined : lookup(state).pairs.get(c.winner)?.playerIds.find((x) => x !== id) })),
     ...state.teamResults.filter((r) => r.reached[p.countryId] === 'W' && (r.squads[p.countryId]?.includes(id) || r.ties.some((tie) => tie.matchIds?.some((mid) => mineIds.has(mid)))))
       .map((r) => ({ y: r.year, eid: r.eventId, tierId: undefined, team: ruleset.team.events.find((e) => e.id === r.eventId) ?? {}, what: formatName(r.format, r.eventId), partner: undefined })),
   ];
@@ -330,7 +332,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
     <section>
       <p><button onClick={onBack}>← {t('back')}</button></p>
       {/* Kartu identitas: selalu tampil di atas sub-tab. */}
-      <section className="card evinfo">
+      {pair ? <PairCard pair={pair} rank={rankOf(pair.discipline, pair.id)} onOpen={onOpen} /> : <section className="card evinfo">
         <h2>{p.name}</h2>
         <dl className="facts">
           {fact(t('country'), <><Flag id={p.countryId} />{p.countryId} · {p.gender} · {p.hand}</>)}
@@ -350,14 +352,29 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
             ? <button className="btn-danger" onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id); changed(); void saveGame(game); } }}>{t('release')}</button>
             : <button onClick={() => { recallPlayer(state, p.id); changed(); void saveGame(game); }}>{t('recall')}</button>}</p>
         )}
-      </section>
+      </section>}
       <nav className="controls">
         {(['summary', 'titles', 'events', 'matches', 'h2h'] as const).map((x) => (
-          <button key={x} aria-pressed={tab === x} onClick={() => setTab(x)}>{t(({ summary: 'profSummary', titles: 'profTitles', events: 'profEvents', matches: 'profMatches', h2h: 'profH2H' } as const)[x])}</button>
+          <button key={x} aria-pressed={tab === x} onClick={() => setTab(x)}>{t(({ summary: 'profSummary', titles: 'profTitles', events: 'profEvents', matches: 'profMatches', h2h: pair ? 'h2h' : 'profH2H' } as const)[x])}</button>
         ))}
       </nav>
 
-      {tab === 'summary' && <>
+      {tab === 'summary' && pair && <div className="split">
+        <section className="card">
+          <h3>{t('seasonStats')} {year}</h3>
+          <dl className="facts">
+            {fact(t('profRecord'), wl(season))}
+            {fact(t('profRecordAll'), wl(mine))}
+            {fact(t('titlesYear', { y: year }), titles.filter((c) => c.year === year).length)}
+            {fact(t('profTitlesAll'), titles.length)}
+          </dl>
+        </section>
+        <section className="card">
+          <h3>{t('rankHistory')}</h3>
+          <RankChart history={rankFromSnapshots(state, pair.id, pair.discipline)} />
+        </section>
+      </div>}
+      {tab === 'summary' && !pair && <>
         <div className="split">
           <section className="card">
             <h3>{t('seasonStats')} {year}</h3>
@@ -374,7 +391,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
               {playsSingles && <tr><td><span className="chip">{singles}</span></td><td>{p.name}</td><td className="num">{rankOf(singles, id) ? `#${rankOf(singles, id)}` : '—'}</td></tr>}
               {!playsSingles && activePairs.length === 0 && <tr><td className="muted-text">{t('profNoEvents')}</td></tr>}
               {activePairs.map((x) => (
-                <tr key={x.id}><td><span className="chip">{x.discipline}</span></td>
+                <tr key={x.id}><td><a href="#" title={t('pairProfile')} onClick={(e) => { e.preventDefault(); onOpen(x.id); }}><span className="chip">{x.discipline}</span></a></td>
                   <td>{x.playerIds.filter((pid) => pid !== id).map((pid) => <a key={pid} href="#" onClick={(e) => { e.preventDefault(); onOpen(pid); }}>{lookup(state).players.get(pid)?.name}</a>)}{x.trial && <> <span className="tag">{t('trialPair')}</span></>}</td>
                   <td className="num">{rankOf(x.discipline, x.id) ? `#${rankOf(x.discipline, x.id)}` : '—'}</td></tr>
               ))}
@@ -454,12 +471,13 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
             {(() => {
               const tc = [id, ...activePairs.map((x) => x.id)].filter((e) => state.commitments[e]?.length);
               return tc.length === 0 ? <p className="hint">{t('tcNone')}</p> : tc.map((e) => (
-                <p key={e}><b>{e === id ? singles : pairs.find((x) => x.id === e)!.discipline}</b> <CommitmentChips state={state} ruleset={ruleset} entrantId={e} /></p>
+                <p key={e}><b>{e === id ? pair?.discipline ?? singles : pairs.find((x) => x.id === e)!.discipline}</b> <CommitmentChips state={state} ruleset={ruleset} entrantId={e} /></p>
               ));
             })()}
           </section>
           <section className="card">
             <h3>{t('rankHistory')}</h3>
+            {pair && <RankChart history={rankFromSnapshots(state, pair.id, pair.discipline)} />}
             {playsSingles && <><h4>{singles}</h4><RankChart history={rankFromSnapshots(state, id, singles)} /></>}
             {activePairs.map((x) => (
               <div key={x.id}>
@@ -511,14 +529,14 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
             ))}</tbody></table>
           )}
         </section>
-        <section className="card">
+        {!pair && <section className="card">
           <h3>{t('profPartners')}</h3>
           {pairs.length === 0 ? <p className="hint">—</p> : (
             <table className="fit">
               <thead><tr><th></th><th>{t('partner')}</th><th className="num">{t('chemistry')}</th><th className="num">{t('matchesShort')}</th></tr></thead>
               <tbody>{[...pairs].reverse().map((x) => (
               <tr key={x.id} className={x.dissolved ? 'muted-text' : undefined}>
-                <td><span className="chip">{x.discipline}</span></td>
+                <td><a href="#" title={t('pairProfile')} onClick={(e) => { e.preventDefault(); onOpen(x.id); }}><span className="chip">{x.discipline}</span></a></td>
                 <td>{x.playerIds.filter((pid) => pid !== id).map((pid) => <a key={pid} href="#" onClick={(e) => { e.preventDefault(); onOpen(pid); }}>{lookup(state).players.get(pid)?.name}</a>)}
                   {x.trial && <> <span className="tag">{t('trialPair')}</span></>}{x.dissolved && <> <span className="tag muted-tag">{t('profDissolved')}</span></>}</td>
                 <td className="num" title={t('chemistry')}>{Math.round(x.chemistry)}</td>
@@ -526,8 +544,42 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
               </tr>
             ))}</tbody></table>
           )}
-        </section>
+        </section>}
       </div>}
+    </section>
+  );
+}
+
+/** Kartu identitas pasangan: kedua atlet (ke profil masing-masing), nomor, chemistry, lama berpasangan, ranking, status. */
+function PairCard({ pair, rank, onOpen }: { pair: Pair; rank?: number; onOpen: (id: string) => void }) {
+  const { game } = useGame();
+  const { state } = game;
+  const [a, b] = pair.playerIds.map((x) => lookup(state).players.get(x)!);
+  const fact = (k: string, v: ReactNode) => <div><dt>{k}</dt><dd>{v}</dd></div>;
+  const since = `${t('weekShort')}${pair.formed.week} ${pair.formed.year}`;
+  const member = (x: Player) => (
+    <div key={x.id} className="drow">
+      <span className="grow"><a href="#" onClick={(e) => { e.preventDefault(); onOpen(x.id); }}>{x.name}</a>
+        <small className="muted-text">{ageAt(x.birth, state.date)} {t('yearsShort')} · {t('ability')} {currentAbility(x.attrs)}</small></span>
+      <MoraleTag value={x.form} short />
+      {x.injury ? <span className={`badge danger${isBadInjury(x.injury) ? ' strong' : ''}`} title={injuryText(x.injury, state.date)}>✚</span> : <FatigueBar value={x.fatigue} />}
+    </div>
+  );
+  return (
+    <section className="card evinfo">
+      <h2>{a.name} / {b.name}</h2>
+      <dl className="facts">
+        {fact(t('country'), <><Flag id={a.countryId} />{a.countryId} · <span className="chip">{pair.discipline}</span></>)}
+        {fact(t('bwfRank'), rank ? `#${rank}` : '—')}
+        {fact(t('chemistry'), Math.round(pair.chemistry))}
+        {fact(t('matchesTogether'), pair.matchesTogether)}
+        {fact(t('pairSince'), pair.dissolved ? `${since} – ${t('weekShort')}${pair.dissolved.week} ${pair.dissolved.year}` : since)}
+        {fact(t('status'), pair.dissolved ? <span className="tag muted-tag">{t('profDissolved')}</span>
+          : pair.trial ? <span className="tag muted-tag">{t('trialPair')}</span>
+          : pair.adHoc ? <span className="tag muted-tag">{t('adHocPair')}</span>
+          : <span className="tag">{t('mainPair')}</span>)}
+      </dl>
+      <div className="dlist">{[a, b].map(member)}</div>
     </section>
   );
 }

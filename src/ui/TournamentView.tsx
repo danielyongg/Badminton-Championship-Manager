@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { DISCIPLINES, type Discipline } from '../engine/types';
 import { dataName, numLocale, t } from '../i18n';
 import { BracketView, DrawResultView, DrawStepsView, EntryView, GroupView, QualView, SeedsView, Who } from './EventViews';
-import { entrantLabel, eventName, lookup, useGame, TierBadge } from './game';
+import { entrantLabel, eventName, useGame, TierBadge } from './game';
 import { LiveDraw } from './LiveDraw';
 import { formatName, TeamResults, winnerOf } from './Team';
 import { Flag } from './Flag';
@@ -34,7 +34,7 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
   const who = {
     name: label,
     mine: (x: string) => !!managed && entrantLabel(state, x).country === managed,
-    onOpen: (x: string) => onOpenPlayer(lookup(state).pairs.get(x)?.playerIds[0] ?? x),
+    onOpen: onOpenPlayer, // ganda → profil pasangan
     eventTitle: eventName(ruleset, id, year),
   };
   // Beregu: hasil yang sudah selesai, atau yang sedang dimainkan (halaman dibuka dari layar babak).

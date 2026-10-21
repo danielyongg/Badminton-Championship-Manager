@@ -376,7 +376,7 @@ const id = {
   groupStage: 'Fase grup',
   knockoutPending: 'Bagan knockout muncul begitu fase grup selesai.',
   profSummary: 'Ringkasan', profTitles: 'Gelar', profTitlesNone: 'Belum pernah juara.', profEvents: 'Turnamen & Committed', profMatches: 'Riwayat laga', profH2H: 'H2H & pasangan',
-  profRecord: 'Menang–kalah', profTitlesAll: 'Gelar karier', profRanks: 'Ranking dunia saat ini', profEventsYear: 'Turnamen {y}',
+  profRecord: 'Menang–kalah', profRecordAll: 'Menang–kalah (karier)', pairSince: 'Berpasangan sejak', pairProfile: 'Profil pasangan', profTitlesAll: 'Gelar karier', profRanks: 'Ranking dunia saat ini', profEventsYear: 'Turnamen {y}',
   profNoEvents: 'Belum ada laga.', profPartners: 'Pasangan', profDissolved: 'berpisah', showMore: 'Tampilkan lebih banyak', fit: 'Fit',
   partner: 'Partner', matchesShort: 'Laga',
   viewEvents: 'Turnamen', everyYear: 'Tiap tahun', everyNYears: 'Tiap {n} tahun',
