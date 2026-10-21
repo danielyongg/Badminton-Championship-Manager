@@ -153,14 +153,14 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .group td:first-child { white-space: normal; } /* nama panjang turun baris, kolom angka tetap terlihat */
 .groupgames { list-style: none; padding: 0; margin: 8px 0 0; font-size: .85rem; border-top: 1px solid var(--line); }
 .groupgames li { padding: 4px 0; }
-.groupgames a { white-space: nowrap; }
+.groupgames a { white-space: nowrap; } /* skor tidak terpatah di tengah "21-15" */
 /* Tabel pasangan (Skuad MD/WD/XD): satu nama per baris, tanpa "/" & garis bawah; baris → profil pasangan, nama → profil atlet. */
 .pairtable td:first-child { white-space: normal; min-width: 11em; }
 .pairtable .pname { display: block; padding: 3px 0; text-decoration: none; }
 .pairtable .pname + .pname { border-top: 1px dashed var(--line); } /* nama panjang yang terpatah tetap terbaca sebagai satu atlet */
 .pairtable .pname:hover { text-decoration: underline; }
 .pairtable td:first-child .tag { margin-top: 2px; }
-.pairtable th { white-space: normal; vertical-align: bottom; } /* judul panjang (Tier priority, BWF rank) turun baris agar kolom aksi tidak terpotong di laptop */ /* skor tidak terpatah di tengah "21-15" */
+.pairtable th { white-space: normal; vertical-align: bottom; } /* judul panjang (Tier priority, BWF rank) turun baris agar kolom aksi tidak terpotong di laptop */
 .dash { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 12px; align-items: start; }
 .dash > * { overflow-x: auto; }
 /* Kartu panjang (hasil turnamen) membentang beberapa baris; kartu pendek mengisi celah di kolom lain. */
@@ -204,6 +204,21 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .upcoming .drow small { display: block; }
 .drow .chip { flex: none; min-width: 2.6em; text-align: center; margin-top: 2px; }
 .drow .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+/* Kalender & juara: tabel di desktop, daftar per minggu di HP (juara di bawah nama turnamen). */
+.cal-list { display: none; }
+@media (max-width: 700px) { .cal-table { display: none; } .cal-list { display: block; } }
+.cal-list .calwk { flex: none; width: 4.4em; display: flex; flex-direction: column; align-items: stretch; gap: 1px; }
+.cal-list .calwk small { font-size: .68rem; font-weight: 700; color: var(--muted); text-align: center; }
+.cal-list .drow.now { background: var(--accent-soft); border-radius: 6px; padding-left: 6px; padding-right: 6px; margin: 0 -6px; }
+.cal-list .drow .grow > small { display: block; }
+.cal-champs { margin-top: 3px; font-size: .85rem; }
+.cal-champs summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; list-style: none; }
+.cal-champs summary::-webkit-details-marker { display: none; }
+.cal-champs > small { display: block; margin-top: 2px; }
+.cal-champs summary span small { color: var(--muted); font-size: .7rem; font-weight: 700; margin-right: 3px; }
+.cal-champs ul { list-style: none; padding: 0; margin: 0; }
+.cal-champs li { padding: 1px 0; overflow-wrap: anywhere; }
+.cal-champs .chip { display: inline-block; min-width: 2.4em; text-align: center; margin-right: 4px; font-size: .7rem; }
 .drow .grow:has(> b) { display: block; }
 .drow.champ { background: var(--gold-soft); box-shadow: inset 3px 0 var(--gold); margin: 2px 0; padding: 6px 6px 6px 9px; border-radius: 4px; border-bottom: none; }
 .drow.champ .grow > a, .drow.champ .grow > b { font-weight: 800; }
@@ -531,7 +546,11 @@ table.fit td.num { white-space: nowrap; }
     flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 2px; margin: 0; padding: 12px 12px 72px; border-bottom: none; border-right: 1px solid var(--line); background: var(--surface); overflow-y: auto; }
   nav.maintabs button { text-align: left; padding: 8px 12px; border-radius: 6px; font-size: .95rem; }
   nav.maintabs button[aria-pressed=true] { box-shadow: inset 3px 0 var(--accent); background: var(--accent-soft); color: var(--accent-strong); }
-  main > .page { grid-column: 2; grid-row: 2; width: 100%; max-width: 1200px; margin: 0 auto; padding: 20px 24px 40px; box-sizing: border-box; }
+  main > .page { grid-column: 2; grid-row: 2; width: 100%; max-width: 1200px; margin: 0 auto; padding: 12px 24px 40px; box-sizing: border-box; }
+  /* Sub-tab di laptop: font sedikit lebih besar & rapat (seperti bilah tab), tanpa ruang kosong di atas. */
+  .page nav.controls:not(.maintabs) { gap: 2px 4px; margin-bottom: 10px; }
+  .page nav.controls:not(.maintabs) button[aria-pressed] { font-size: .95rem; padding: 6px 12px; }
+  .page nav.controls:not(.maintabs) > .count { font-size: .9rem; padding-left: 8px; }
   /* Dashboard: kolom mengalir (atas → bawah) agar kartu beda tinggi tidak meninggalkan lubang. */
   .dash { display: block; columns: 2; column-gap: 16px; }
   .dash > * { break-inside: avoid; margin: 0 0 16px; display: inline-block; width: 100%; box-sizing: border-box; }

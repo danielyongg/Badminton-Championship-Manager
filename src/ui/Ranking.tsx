@@ -7,7 +7,7 @@ import { hostCityId, isHeld, weekOf, newSeason, playWeek, rankFromSnapshots, typ
 import { ageAt, currentAbility } from '../engine/generator';
 import { ATTRS, DISCIPLINES, type Discipline, type Player, type Ruleset, type World } from '../engine/types';
 import { dataName, numLocale, t, type TextKey } from '../i18n';
-import { entrantLabel, eventName as eventNameOf, tierLabel, TierBadge } from './game';
+import { entrantLabel, eventName as eventNameOf, TIER_GROUPS, tierGroup, tierLabel, TierBadge } from './game';
 import { Flag } from './Flag';
 import { formatName, winnerOf } from './Team';
 import { NationsTable, Records } from './WorldRecords';
@@ -267,40 +267,77 @@ const weekOfAbs = (a: number) => a - yearOfAbs(a) * 52;
 const shownYear = (s: SeasonState) => (s.date.week === 1 ? s.date.year - 1 : s.date.year);
 
 export function Calendar({ state, ruleset, world, short, onOpenEvent, year = shownYear(state) }: { state: SeasonState; ruleset: Ruleset; world: World; short: (id: string) => string; onOpenEvent?: (id: string, year: number) => void; year?: number }) {
-  const events = ruleset.calendar.filter((e) => isHeld(e, year)).sort((a, b) => weekOf(a, year) - weekOf(b, year));
-  const teams = ruleset.team.events.filter((e) => isHeld(e, year));
   const city = new Map(world.cities.map((c) => [c.id, c]));
-  // Kejuaraan beregu: juara per format (Thomas/Uber/Sudirman/…) di kolom nomor.
-  const teamRow = (e: (typeof teams)[number]) => (
-    <tr key={e.id} className={year === state.date.year && weekOf(e, year) === state.date.week ? 'sel' : ''}>
-      <td className="num">{weekOf(e, year)}</td><td>{onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, year); }}>{eventNameOf(ruleset, e.id, year)}</a> : eventNameOf(ruleset, e.id, year)}</td><td><TierBadge team={e} /></td>
-      <td className="hide-sm">{dataName(city.get(hostCityId(e, year))?.name)} ({city.get(hostCityId(e, year))?.countryId})</td>
-      <td className="num hide-sm">—</td>
-      <td colSpan={DISCIPLINES.length}>{state.teamResults.filter((x) => x.eventId === e.id && x.year === year).map((x) => {
-        const w = winnerOf(x);
-        return w && <span key={x.format} style={{ marginRight: 12, whiteSpace: 'nowrap' }}><small className="muted-text">{formatName(x.format, x.eventId)}</small> <Flag id={w} />{w}</span>;
-      })}</td>
-    </tr>
-  );
+  const tierOf = (id: string) => ruleset.tiers.find((x) => x.id === id);
+  // Satu baris data per turnamen, dipakai tabel (desktop) & daftar per minggu (HP).
+  // Juara: per nomor (individu) atau per format (beregu, negara pemenang).
+  const rows = [...ruleset.calendar, ...ruleset.team.events].filter((e) => isHeld(e, year)).map((e) => {
+    const individual = 'tierId' in e;
+    const c = city.get(hostCityId(e, year));
+    return {
+      id: e.id, week: weekOf(e, year), team: !individual, group: tierGroup(individual ? tierOf(e.tierId) : undefined, individual ? undefined : e),
+      name: individual ? dataName(e.name) : eventNameOf(ruleset, e.id, year),
+      badge: individual ? <TierBadge tierId={e.tierId} /> : <TierBadge team={e} />,
+      place: c && `${dataName(c.name)} (${c.countryId})`,
+      prize: individual && e.prizeUsd ? `$${e.prizeUsd.toLocaleString(numLocale())}` : '—',
+      champs: individual
+        ? DISCIPLINES.map((d) => ({ key: d as string, label: d as string, id: state.champions.find((x) => x.year === year && x.tournamentId === e.id && x.discipline === d)?.winner }))
+        : state.teamResults.filter((x) => x.eventId === e.id && x.year === year).map((x) => ({ key: x.format as string, label: formatName(x.format, x.eventId), id: winnerOf(x) })),
+    };
+  }).sort((a, b) => a.week - b.week);
+  // Filter kelompok tier (hanya kelompok yang ada tahun ini) agar daftar setahun tidak terlalu panjang.
+  const groups = TIER_GROUPS.filter((g) => rows.some((r) => r.group === g));
+  const [group, setGroup] = useState<string>('all');
+  const shown = rows.filter((r) => group === 'all' || r.group === group);
+  const now = (week: number) => year === state.date.year && week === state.date.week;
+  const link = (r: (typeof rows)[number]) => (onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(r.id, year); }}>{r.name}</a> : r.name);
+  const who = (r: (typeof rows)[number], id?: string) => id && (r.team
+    ? <><Flag id={id} />{id}</> // beregu: negara juara
+    : <><Flag id={entrantLabel(state, id).country} />{short(id)}</>);
   return (
-    <div className="scroll">
-      <table>
-        <thead><tr><th className="num">{t('week')}</th><th>{t('tournament')}</th><th>{t('tier')}</th><th className="hide-sm">{t('city')}</th><th className="num hide-sm">{t('prize')}</th>{DISCIPLINES.map((d) => <th key={d}>{d}</th>)}</tr></thead>
-        <tbody>{[...events, ...teams].sort((a, b) => weekOf(a, year) - weekOf(b, year)).map((e) => !('tierId' in e) ? teamRow(e) : (
-          <tr key={e.id} className={year === state.date.year && weekOf(e, year) === state.date.week ? 'sel' : ''}>
-            <td className="num">{weekOf(e, year)}</td><td>{onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, year); }}>{dataName(e.name)}</a> : dataName(e.name)}</td><td><TierBadge tierId={e.tierId} /></td>
-            <td className="hide-sm">{dataName(city.get(hostCityId(e, year))?.name)} ({city.get(hostCityId(e, year))?.countryId})</td>
-            <td className="num hide-sm">{e.prizeUsd ? `$${e.prizeUsd.toLocaleString(numLocale())}` : '—'}</td>
-            {DISCIPLINES.map((d) => {
-              const c = state.champions.find((x) => x.year === year && x.tournamentId === e.id && x.discipline === d);
-              return <td key={d}>{c && <><Flag id={entrantLabel(state, c.winner).country} />{short(c.winner)}</>}</td>;
-            })}
-          </tr>
-        ))}</tbody>
-      </table>
-    </div>
+    <>
+      <nav className="controls subnav">
+        {['all', ...groups].map((g) => <button key={g} aria-pressed={group === g} onClick={() => setGroup(g)}>{groupLabel(g)}</button>)}
+        <span className="count">{shown.length}</span>
+      </nav>
+      {/* Desktop: tabel lebar dengan kolom juara per nomor. */}
+      <div className="scroll cal-table">
+        <table>
+          <thead><tr><th className="num">{t('week')}</th><th>{t('tournament')}</th><th>{t('tier')}</th><th>{t('city')}</th><th className="num">{t('prize')}</th>{DISCIPLINES.map((d) => <th key={d}>{d}</th>)}</tr></thead>
+          <tbody>{shown.map((r) => (
+            <tr key={r.id} className={now(r.week) ? 'sel' : ''}>
+              <td className="num">{r.week}</td><td>{link(r)}</td><td>{r.badge}</td><td>{r.place}</td><td className="num">{r.prize}</td>
+              {r.team
+                ? <td colSpan={DISCIPLINES.length}>{r.champs.map((c) => c.id && <span key={c.key} style={{ marginRight: 12, whiteSpace: 'nowrap' }}><small className="muted-text">{c.label}</small> {who(r, c.id)}</span>)}</td>
+                : r.champs.map((c) => <td key={c.key}>{who(r, c.id)}</td>)}
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+      {/* HP: satu baris ringkas per turnamen (minggu & tier di kiri), juara di bawah nama — tanpa geser ke samping.
+          Bendera juara satu baris; ketuk untuk kota & nama lengkap juara. Belum dimainkan: kota. */}
+      <div className="dlist cal-list">{shown.map((r) => (
+        <div key={r.id} className={`drow${now(r.week) ? ' now' : ''}`}>
+          <div className="calwk"><small>{t('weekShort')}{r.week}</small>{r.badge}</div>
+          <div className="grow">
+            <b>{link(r)}</b>
+            {!r.champs.some((c) => c.id) ? <small className="muted-text">{r.place}</small> : (
+              <details className="cal-champs">
+                <summary>{r.champs.filter((c) => c.id).map((c) => (
+                  <span key={c.key}><small>{c.label}</small><Flag id={r.team ? c.id : entrantLabel(state, c.id!).country} /></span>
+                ))}</summary>
+                <small className="muted-text">{r.place}</small>
+                <ul>{r.champs.filter((c) => c.id).map((c) => <li key={c.key}><span className="chip">{c.label}</span> {who(r, c.id)}</li>)}</ul>
+              </details>
+            )}
+          </div>
+        </div>
+      ))}</div>
+    </>
   );
 }
+const groupLabel = (g: string) => g === 'all' ? t('all') : g === 'g1' ? t('major') : g === 'msg' ? t('multiSport') : g === 'cont' ? t('continental')
+  : g === 'g2' ? t('worldTour') : g === 'g3' ? t('gradeN', { n: 3 }) : t('juniorShort');
 
 /** Status tiap turnamen wajib Top Committed satu peserta (atlet tunggal / pasangan). */
 export function commitmentStatus(state: SeasonState, ruleset: Ruleset, entrantId: string) {

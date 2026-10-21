@@ -64,9 +64,14 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
   for (const e of preset.team.events.filter((x) => x.countries && !blob.ruleset.team.events.some((y) => y.id === x.id))) blob.ruleset.team.events.push(structuredClone(e));
   // Save sebelum kejuaraan individu kontinental: tambah tier & turnamennya (musim ini bila minggunya belum lewat).
   for (const tier of preset.tiers.filter((x) => CONTINENTAL_TIERS.has(x.id) && !blob.ruleset.tiers.some((y) => y.id === x.id))) blob.ruleset.tiers.push(structuredClone(tier));
-  for (const e of preset.calendar.filter((x) => CONTINENTAL_TIERS.has(x.tierId) && !blob.ruleset.calendar.some((y) => y.id === x.id))) {
+  for (const e of preset.calendar.filter((x) => CONTINENTAL_TIERS.has(x.tierId) && !blob.ruleset.calendar.some((y) => y.id === x.id))) blob.ruleset.calendar.push(structuredClone(e));
+  // Tahun mulai: juara pertamanya, atau musim ini (musim depan bila minggunya sudah lewat) — tahun-tahun sebelum save
+  // mendapat turnamen ini tidak menampilkannya di kalender. Juga memperbaiki save yang sudah ditambah tanpa `years`.
+  for (const e of blob.ruleset.calendar.filter((x) => CONTINENTAL_TIERS.has(x.tierId) && !x.years)) {
     const { year, week } = blob.state.date;
-    blob.ruleset.calendar.push({ ...structuredClone(e), ...(weekOf(e, year) < week && { years: { from: year + 1 } }) });
+    const first = Math.min(...blob.state.champions.filter((c) => c.tournamentId === e.id).map((c) => c.year));
+    const from = Number.isFinite(first) ? first : weekOf(e, year) < week ? year + 1 : year;
+    if (from > blob.ruleset.startYear) e.years = { from };
   }
   for (const [id, r] of Object.entries(preset.ai.rankRange)) blob.ruleset.ai.rankRange[id] ??= r;
   for (const [id, p] of Object.entries(preset.ai.playProb)) blob.ruleset.ai.playProb[id] ??= p;
