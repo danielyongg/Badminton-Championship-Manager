@@ -12,4 +12,6 @@ import './ui/style.css';
 
 document.documentElement.lang = getLang();
 applyTheme(getTheme()); // sebelum render pertama agar tidak berkedip
+// Offline: simpan file game di perangkat (service-worker.js). Hanya build produksi.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) void navigator.serviceWorker.register('./sw.js').catch(() => {});
 createRoot(document.getElementById('root')!).render(<StrictMode><App /><UpdateBar /><Splash /></StrictMode>);
