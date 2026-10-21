@@ -7,7 +7,7 @@ import { hostCityId, isHeld, weekOf, newSeason, playWeek, rankFromSnapshots, typ
 import { ageAt, currentAbility } from '../engine/generator';
 import { ATTRS, DISCIPLINES, type Discipline, type Player, type Ruleset, type World } from '../engine/types';
 import { dataName, numLocale, t, type TextKey } from '../i18n';
-import { entrantLabel, eventName as eventNameOf, TIER_GROUPS, tierGroup, tierLabel, TierBadge } from './game';
+import { entrantLabel, eventName as eventNameOf, tierGroup, tierLabel, TierBadge } from './game';
 import { Flag } from './Flag';
 import { formatName, winnerOf } from './Team';
 import { NationsTable, Records } from './WorldRecords';
@@ -286,7 +286,7 @@ export function Calendar({ state, ruleset, world, short, onOpenEvent, year = sho
     };
   }).sort((a, b) => a.week - b.week);
   // Filter kelompok tier (hanya kelompok yang ada tahun ini) agar daftar setahun tidak terlalu panjang.
-  const groups = TIER_GROUPS.filter((g) => rows.some((r) => r.group === g));
+  const groups = CAL_GROUPS.filter((g) => rows.some((r) => r.group === g));
   const [group, setGroup] = useState<string>('all');
   const shown = rows.filter((r) => group === 'all' || r.group === group);
   const now = (week: number) => year === state.date.year && week === state.date.week;
@@ -336,8 +336,10 @@ export function Calendar({ state, ruleset, world, short, onOpenEvent, year = sho
     </>
   );
 }
-const groupLabel = (g: string) => g === 'all' ? t('all') : g === 'g1' ? t('major') : g === 'msg' ? t('multiSport') : g === 'cont' ? t('continental')
-  : g === 'g2' ? t('worldTour') : g === 'g3' ? t('gradeN', { n: 3 }) : t('juniorShort');
+/** Urutan & label filter kalender: Grade 1–3, lalu Multi-sport, Continental, Junior (urutan gelar di profil tetap TIER_GROUPS). */
+const CAL_GROUPS = ['g1', 'g2', 'g3', 'msg', 'cont', 'junior'] as const;
+const groupLabel = (g: string) => g === 'all' ? t('all') : g === 'g1' ? t('gradeN', { n: 1 }) : g === 'g2' ? t('gradeN', { n: 2 }) : g === 'g3' ? t('gradeN', { n: 3 })
+  : g === 'msg' ? t('multiSport') : g === 'cont' ? t('continental') : t('juniorShort');
 
 /** Status tiap turnamen wajib Top Committed satu peserta (atlet tunggal / pasangan). */
 export function commitmentStatus(state: SeasonState, ruleset: Ruleset, entrantId: string) {
