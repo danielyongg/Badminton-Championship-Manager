@@ -538,6 +538,27 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
           </div>
         ))}
       </section>
+      {/* Ranking sebelum hasil turnamen (kartu panjang): di laptop tetap di kolom kiri, di HP tidak perlu gulir jauh. */}
+      <section className="card rankcard">
+        <h3>{t('bwfRankNow')}</h3>
+        <nav className="controls subnav">
+          {DISCIPLINES.map((d) => <button key={d} aria-pressed={d === rankD} onClick={() => setRankD(d)}>{d}</button>)}
+        </nav>
+        {top10.length === 0 ? <p className="hint">—</p> : top10.map((r) => {
+          const mine = entrantLabel(state, r.id).country === managed;
+          return (
+            <div key={r.id} className={`drow rank${mine ? ' mine-row' : ''}`}>
+              <span className="badge">{r.rank}</span>
+              <span className="grow">
+                <a href="#" onClick={(e) => { e.preventDefault(); onOpen(r.id); }}><Flag id={r.id} />{entrantLabel(state, r.id).name}</a>
+              </span>
+              <span className="pts">{r.points.toLocaleString(numLocale())}</span>
+              <span className="delta">{r.delta ? <span className={r.delta > 0 ? 'up' : 'down'}>{r.delta > 0 ? '▲' : '▼'}{Math.abs(r.delta)}</span> : <span className="muted-text">–</span>}</span>
+            </div>
+          );
+        })}
+        <p><button onClick={() => onFullRanking(rankD)}>{t('fullRanking')} ›</button></p>
+      </section>
       {managed && (
         <section className="card tall">
           <h3>{t('tournamentResults')}</h3>
@@ -581,26 +602,6 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
           )}
         </section>
       )}
-      <section className="card">
-        <h3>{t('bwfRankNow')}</h3>
-        <nav className="controls subnav">
-          {DISCIPLINES.map((d) => <button key={d} aria-pressed={d === rankD} onClick={() => setRankD(d)}>{d}</button>)}
-        </nav>
-        {top10.length === 0 ? <p className="hint">—</p> : top10.map((r) => {
-          const mine = entrantLabel(state, r.id).country === managed;
-          return (
-            <div key={r.id} className={`drow rank${mine ? ' mine-row' : ''}`}>
-              <span className="badge">{r.rank}</span>
-              <span className="grow">
-                <a href="#" onClick={(e) => { e.preventDefault(); onOpen(r.id); }}><Flag id={r.id} />{entrantLabel(state, r.id).name}</a>
-              </span>
-              <span className="pts">{r.points.toLocaleString(numLocale())}</span>
-              <span className="delta">{r.delta ? <span className={r.delta > 0 ? 'up' : 'down'}>{r.delta > 0 ? '▲' : '▼'}{Math.abs(r.delta)}</span> : <span className="muted-text">–</span>}</span>
-            </div>
-          );
-        })}
-        <p><button onClick={() => onFullRanking(rankD)}>{t('fullRanking')} ›</button></p>
-      </section>
       {managed && injured.length > 0 && (
         <section className="card">
           <h3>{t('injuries')}</h3>
