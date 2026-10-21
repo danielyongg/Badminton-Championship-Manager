@@ -131,6 +131,8 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   const go = async (weeks: number) => {
     setBusy(true);
     stop.current = false;
+    // Maju dari halaman turnamen/profil: langsung tampilkan halaman turnamen minggu ini, bukan hanya bilah "kembali".
+    setHubAway(false); setProfileId(undefined); setEventView(undefined); window.scrollTo(0, 0);
     for (let i = 0; i < weeks && !stop.current; i++) {
       if (weeks > 1) setSimWeek(state.date.week);
       // Maju beberapa minggu = serba otomatis; 1 minggu = pilih turnamen yang dimainkan per babak.

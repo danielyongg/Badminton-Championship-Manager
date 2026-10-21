@@ -319,6 +319,7 @@ export const en: Record<TextKey, string> = {
   topEarners: 'Top earners',
   attrChart: 'Attributes by age',
   attrChartWait: 'The attributes-by-age chart appears once the player has passed a season end (history is recorded at each season end).',
+  suggestion: 'Suggestion', suggestionHint: 'Fill every choice with the assistant\'s suggestion: mandatory → play, tired → rest, otherwise the tournament that fits the ranking (or rest). You can still change each one.',
   playAll: 'Play all', restAll: 'Rest all', autoAll: 'All automatic',
   trialPair: 'trial',
   trialCheckbox: 'Trial pair (main pair stays)',

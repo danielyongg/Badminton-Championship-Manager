@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
-import { entrantsFor, hostCityId, openTo, type SeasonState, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
+import { aiEventChoice, entrantsFor, hostCityId, openTo, type SeasonState, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
 import { autoSquad, squadError, squadPool } from '../engine/team';
 import { contingentOf, inContingent, lockWeek } from '../engine/contingent';
 import { DISCIPLINES, isDoubles, isJuniorFormat, type Discipline, type Ruleset, type TeamFormat, type TournamentDef, type World } from '../engine/types';
-import { dataName, t } from '../i18n';
+import { dataName, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, tierLabel, useGame, TierBadge } from './game';
-import { FatigueBar } from './Squad';
-import { isJuniorAge, isPratama } from '../engine/generator';
+import { FatigueBar, MoraleTag } from './Squad';
+import { moraleTier, pairAbility } from '../engine/match';
+import { currentAbility, isJuniorAge, isPratama } from '../engine/generator';
 import { formatName, SquadPicker } from './Team';
 import { Flag } from './Flag';
 import { plannableEvents, planWeek, type PlanCell } from '../engine/plan';
@@ -343,6 +344,28 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
     void saveGame(game);
   };
 
+  // Saran = pilihan AI tanpa unsur acak: wajib → main; lelah (di atas batas istirahat AI) → istirahat; selain itu turnamen
+  // yang cocok dengan ranking/prioritas tier (satu turnamen per atlet per minggu), atau istirahat bila tidak ada.
+  const suggest = () => {
+    const bound = new Map<string, string>();
+    setAll((e) => {
+      if (e.trial) return decisions[e.id];
+      const fixed = e.playerIds.map((id) => bound.get(id)).find(Boolean);
+      const options = offeredFor(e).filter((ev) => !fixed || ev.id === fixed);
+      const tired = Math.max(...e.playerIds.map((id) => players.get(id)?.fatigue ?? 0));
+      const pick = options.find((ev) => state.commitments[e.id]?.includes(ev.id))
+        ?? (tired > ruleset.ai.restAbove ? undefined : aiEventChoice(options, ruleset, e.rank, state.tierPrefs?.[e.id]));
+      if (pick) e.playerIds.forEach((id) => bound.set(id, pick.id));
+      return pick?.id ?? 'rest';
+    });
+  };
+  const membersOf = (e: (typeof rows)[number]) => e.playerIds.map((id) => players.get(id)!);
+  const abilityOf = (e: (typeof rows)[number]) => {
+    const ab = membersOf(e).map((p) => currentAbility(p.attrs));
+    const pair = e.playerIds.length > 1 ? state.pairs.find((p) => p.id === e.id) : undefined;
+    return Math.round(pair ? pairAbility(ab, pair.chemistry, ruleset.match) : ab[0]);
+  };
+
   return (
     <>
       <p>{t('entryHelp')}</p>
@@ -353,6 +376,7 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
             <button onClick={() => setAll((e) => e.trial ? decisions[e.id] : (eventId && offeredFor(e).some((ev) => ev.id === eventId) ? eventId : offeredFor(e)[0]?.id))}>{t('playAll')}</button>
             <button onClick={() => setAll(() => 'rest')}>{t('restAll')}</button>
             <button onClick={() => setAll(() => 'auto')}>{t('autoAll')}</button>
+            <button title={t('suggestionHint')} onClick={suggest}>💡 {t('suggestion')}</button>
           </p>
           <nav className="controls subnav">
             {sectors.map((d) => (
@@ -362,8 +386,8 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
             ))}
           </nav>
           <div className="scroll">
-            <table>
-              <thead><tr><th>{t('name')}</th><th className="num">{t('rank')}</th><th className="hide-sm">{t('fatigue')}</th><th>{t('tournament')}</th></tr></thead>
+            <table className="entrytable">
+              <thead><tr><th>{t('name')}</th><th className="num">{t('ability')}</th><th>{t('morale')}</th><th className="num">{t('rank')}</th><th>{t('fatigue')}</th><th>{t('tournament')}</th></tr></thead>
               <tbody>{rows.filter((e) => e.d === sector).map((e) => {
                 const required = events.find((ev) => state.commitments[e.id]?.includes(ev.id));
                 const injured = e.playerIds.some((id) => players.get(id)?.injury);
@@ -372,10 +396,13 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
                 return (
                   <tr key={e.id}>
                     {/* Nomor sebagai label di depan nama: kolom nama yang menempel saat tabel digeser di HP. */}
-                    <td><span className="chip">{e.d}</span> {entrantLabel(state, e.id).name}{required ? ` ⭐ ${t('required')}` : ''}{e.trial && <> <span className="tag">{t('trialPair')}</span></>}{e.playerIds.some((id) => { const x = players.get(id); return x && isPratama(x, state.date); }) && <> <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span></>}</td>
-                    <td className="num">{e.rank ?? '—'}</td>
-                    <td className="hide-sm"><FatigueBar value={tired} /></td>
-                    <td>{injured ? `🩹 ${t('injury')}` : (
+                    <td><span className="chip">{e.d}</span> {entrantLabel(state, e.id).name}{e.trial && <> <span className="tag">{t('trialPair')}</span></>}{e.playerIds.some((id) => { const x = players.get(id); return x && isPratama(x, state.date); }) && <> <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span></>}</td>
+                    <td className="num" data-l={t('ability')}>{abilityOf(e)}</td>
+                    <td data-l={t('morale')}><MoraleTag short value={membersOf(e).reduce((s, p) => s + p.form, 0) / e.playerIds.length}
+                      detail={e.playerIds.length > 1 ? membersOf(e).map((p) => `${p.name}: ${t(`morale_${moraleTier(p.form)}` as TextKey)}`).join(' · ') : undefined} /></td>
+                    <td className="num" data-l={t('rank')}>{e.rank ?? '—'}</td>
+                    <td data-l={t('fatigue')}><FatigueBar value={tired} /></td>
+                    <td className="pick">{required && <div className="required">⭐ {t('required')}: {dataName(required.name)}</div>}{injured ? `🩹 ${t('injury')}` : (
                       <select value={decisions[e.id] ?? 'auto'} onChange={(ev) => set(e.id, ev.target.value)}>
                         <option value="auto">{e.trial ? t('notEntered') : t('auto')}</option>
                         {offered.map((ev) => <option key={ev.id} value={ev.id}>{dataName(ev.name)}</option>)}
