@@ -6,7 +6,7 @@ import { contingentOf, inContingent, lockWeek } from '../engine/contingent';
 import { DISCIPLINES, isDoubles, isJuniorFormat, type Discipline, type Ruleset, type TeamFormat, type TournamentDef, type World } from '../engine/types';
 import { dataName, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, tierLabel, useGame, TierBadge } from './game';
-import { FatigueBar, MoraleTag } from './Squad';
+import { FatigueBar, FitStatus, MoraleTag } from './Squad';
 import { moraleTier, pairAbility } from '../engine/match';
 import { currentAbility, isJuniorAge, isPratama } from '../engine/generator';
 import { formatName, SquadPicker } from './Team';
@@ -98,7 +98,7 @@ export function EntryPanel({ id }: { id: string }) {
       <h3>{t('entryStatus')} {status}</h3>
       {teamEv ? <TeamSquads eventId={id} formats={teamEv.formats ?? teamFormatsIn(ruleset, year)} onSubmit={submit} />
       : ev && ruleset.tiers.find((x) => x.id === ev.tierId)?.junior ? <><JuniorEntryTable ev={ev} />{button}</>
-      : ev && <><EntryRules ev={ev} /><EntryTable week={weekOf(ev, year)} eventId={id} />{button}</>}
+      : ev && <><EntryRules ev={ev} /><EntryTable week={weekOf(ev, year)} eventId={id} onSubmit={submit} /></>}
     </section>
   );
 }
@@ -294,7 +294,12 @@ export function JuniorEntryTable({ ev }: { ev: TournamentDef }) {
   );
 }
 
-export function EntryTable({ week: w, eventId }: { week: number; eventId?: string }) {
+/**
+ * Entry satu turnamen individu: centang = ikut turnamen ini, tanpa centang = istirahat (keputusan manual minggu itu).
+ * Belum diputuskan = asisten AI yang memilih (label "AI"). Atlet yang sudah didaftarkan ke turnamen lain minggu yang sama
+ * (langsung, atau lewat nomor lain yang dimainkannya) tidak bisa dicentang: satu atlet satu turnamen per minggu.
+ */
+export function EntryTable({ week: w, eventId, onSubmit }: { week: number; eventId: string; onSubmit: () => void }) {
   const { game, version, changed } = useGame();
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
@@ -317,25 +322,34 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
     void saveGame(game);
   };
 
-  const drawOf = (id: string) => ruleset.tiers.find((tt) => tt.id === events.find((e) => e.id === id)?.tierId)?.drawSize;
-  const rows = DISCIPLINES.filter((d) => !eventId || (drawOf(eventId)?.[d] ?? 0) > 0).flatMap((d) =>
-    entrantsFor(state, d).filter((e) => e.countryId === country && !e.playerIds.some((id) => players.get(id)?.released !== undefined))
-      .map((e) => ({ ...e, d, rank: ranks.get(d)!.get(e.id) }))
-      .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9)));
+  const mine = (d: Discipline) => entrantsFor(state, d).filter((e) => e.countryId === country && !e.playerIds.some((id) => players.get(id)?.released !== undefined));
+  const draw = ruleset.tiers.find((tt) => tt.id === events.find((e) => e.id === eventId)?.tierId)?.drawSize;
+  const rows = DISCIPLINES.filter((d) => (draw?.[d] ?? 0) > 0).flatMap((d) => mine(d)
+    .map((e) => ({ ...e, d, rank: ranks.get(d)!.get(e.id) }))
+    .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9)));
+  // Turnamen lain minggu ini tempat atlet sudah didaftarkan (keputusan entrant mana pun yang memuat atlet itu).
+  const boundTo = new Map<string, string>();
+  for (const d of DISCIPLINES) for (const e of mine(d)) {
+    const v = decisions[e.id];
+    if (v && v !== 'rest' && v !== eventId) e.playerIds.forEach((id) => boundTo.set(id, v));
+  }
+  const elsewhere = (e: (typeof rows)[number]) => e.playerIds.map((id) => boundTo.get(id)).find(Boolean);
+  const injured = (e: (typeof rows)[number]) => e.playerIds.some((id) => players.get(id)?.injury);
+  // Multi-event: hanya anggota kontingen (setelah dikunci) yang bisa didaftarkan.
+  const eligible = (e: (typeof rows)[number]) => !injured(e) && !elsewhere(e) && inContingent(state, eventId, country, e.playerIds);
+  const required = (e: (typeof rows)[number]) => !!state.commitments[e.id]?.includes(eventId);
+  // AI pasti mendaftarkan turnamen wajib; pasangan percobaan & junior pratama tidak pernah didaftarkan AI.
+  const aiMay = (e: (typeof rows)[number]) => !e.trial && !e.playerIds.some((id) => { const x = players.get(id); return x && isPratama(x, state.date); });
+  const checked = (e: (typeof rows)[number]) => decisions[e.id] === eventId || (!decisions[e.id] && required(e) && eligible(e));
 
-  // Sub-tab per nomor agar daftar tidak memanjang; tombol "semua" tetap berlaku untuk semua nomor.
   const sectors = DISCIPLINES.filter((d) => rows.some((e) => e.d === d));
   const [picked, setSector] = useState<Discipline>();
   const sector = picked && sectors.includes(picked) ? picked : sectors[0];
-  // Multi-event: hanya anggota kontingen (setelah dikunci) yang bisa didaftarkan.
-  const offeredFor = (e: (typeof rows)[number]) => events.filter((ev) => ruleset.tiers.find((tt) => tt.id === ev.tierId)!.drawSize[e.d] > 0
-    && inContingent(state, ev.id, country, e.playerIds));
-  // Semua baris sekaligus: Main = turnamen ini (atau turnamen pertama yang membuka nomornya; pasangan trial tidak diubah
-  // agar pasangan utama tidak tergeser), Istirahat, atau kembali Otomatis.
+  // Semua nomor turnamen ini sekaligus; atlet yang terikat turnamen lain tidak diubah.
   const setAll = (pick: (e: (typeof rows)[number]) => string | undefined) => {
     const next = { ...decisions };
     for (const e of rows) {
-      if (e.playerIds.some((id) => players.get(id)?.injury)) continue;
+      if (elsewhere(e)) continue;
       const v = pick(e);
       if (!v || v === 'auto') delete next[e.id]; else next[e.id] = v;
     }
@@ -343,81 +357,78 @@ export function EntryTable({ week: w, eventId }: { week: number; eventId?: strin
     changed();
     void saveGame(game);
   };
-
   // Saran = pilihan AI tanpa unsur acak: wajib → main; lelah (di atas batas istirahat AI) → istirahat; selain itu turnamen
-  // yang cocok dengan ranking/prioritas tier (satu turnamen per atlet per minggu), atau istirahat bila tidak ada.
-  const suggest = () => {
-    const bound = new Map<string, string>();
-    setAll((e) => {
-      if (e.trial) return decisions[e.id];
-      const fixed = e.playerIds.map((id) => bound.get(id)).find(Boolean);
-      const options = offeredFor(e).filter((ev) => !fixed || ev.id === fixed);
-      const tired = Math.max(...e.playerIds.map((id) => players.get(id)?.fatigue ?? 0));
-      const pick = options.find((ev) => state.commitments[e.id]?.includes(ev.id))
-        ?? (tired > ruleset.ai.restAbove ? undefined : aiEventChoice(options, ruleset, e.rank, state.tierPrefs?.[e.id]));
-      if (pick) e.playerIds.forEach((id) => bound.set(id, pick.id));
-      return pick?.id ?? 'rest';
-    });
-  };
-  const membersOf = (e: (typeof rows)[number]) => e.playerIds.map((id) => players.get(id)!);
+  // minggu ini yang cocok dengan ranking/prioritas tier. Disarankan ke turnamen lain → istirahat di sini.
+  const suggest = () => setAll((e) => {
+    if (e.trial || injured(e)) return decisions[e.id];
+    const options = events.filter((ev) => ruleset.tiers.find((tt) => tt.id === ev.tierId)!.drawSize[e.d] > 0 && inContingent(state, ev.id, country, e.playerIds));
+    const tired = Math.max(...e.playerIds.map((id) => players.get(id)?.fatigue ?? 0));
+    const pick = options.find((ev) => state.commitments[e.id]?.includes(ev.id))
+      ?? (tired > ruleset.ai.restAbove ? undefined : aiEventChoice(options, ruleset, e.rank, state.tierPrefs?.[e.id]));
+    return pick?.id === eventId && eligible(e) ? eventId : 'rest';
+  });
   const abilityOf = (e: (typeof rows)[number]) => {
-    const ab = membersOf(e).map((p) => currentAbility(p.attrs));
+    const ab = e.playerIds.map((id) => currentAbility(players.get(id)!.attrs));
     const pair = e.playerIds.length > 1 ? state.pairs.find((p) => p.id === e.id) : undefined;
     return Math.round(pair ? pairAbility(ab, pair.chemistry, ruleset.match) : ab[0]);
   };
+  const members = (e: (typeof rows)[number]) => e.playerIds.map((id) => players.get(id)!);
+  const evName = (id: string) => dataName(ruleset.calendar.find((x) => x.id === id)?.name);
 
   return (
     <>
       <p>{t('entryHelp')}</p>
-      {events.length === 0 ? <p>{t('noEvents')}</p> : (
-        <>
-          {!eventId && <p>{events.map((e) => `${dataName(e.name)} (${tierLabel(e.tierId)})`).join(' · ')}</p>}
-          <p className="controls">
-            <button onClick={() => setAll((e) => e.trial ? decisions[e.id] : (eventId && offeredFor(e).some((ev) => ev.id === eventId) ? eventId : offeredFor(e)[0]?.id))}>{t('playAll')}</button>
-            <button onClick={() => setAll(() => 'rest')}>{t('restAll')}</button>
-            <button onClick={() => setAll(() => 'auto')}>{t('autoAll')}</button>
-            <button title={t('suggestionHint')} onClick={suggest}>💡 {t('suggestion')}</button>
-          </p>
-          <nav className="controls subnav">
-            {sectors.map((d) => (
-              <button key={d} aria-pressed={d === sector} onClick={() => setSector(d)}>
-                {d} <span className="muted-text">{rows.filter((e) => e.d === d).length}</span>
-              </button>
-            ))}
-          </nav>
-          <div className="scroll">
-            <table className="entrytable">
-              <thead><tr><th>{t('name')}</th><th className="num">{t('ability')}</th><th>{t('morale')}</th><th className="num">{t('rank')}</th><th>{t('fatigue')}</th><th>{t('tournament')}</th></tr></thead>
-              <tbody>{rows.filter((e) => e.d === sector).map((e) => {
-                const required = events.find((ev) => state.commitments[e.id]?.includes(ev.id));
-                const injured = e.playerIds.some((id) => players.get(id)?.injury);
-                const tired = Math.max(...e.playerIds.map((id) => players.get(id)?.fatigue ?? 0));
-                const offered = offeredFor(e);
-                return (
-                  <tr key={e.id}>
-                    {/* Nomor sebagai label di depan nama: kolom nama yang menempel saat tabel digeser di HP. */}
-                    <td><span className="chip">{e.d}</span> {entrantLabel(state, e.id).name}{e.trial && <> <span className="tag">{t('trialPair')}</span></>}{e.playerIds.some((id) => { const x = players.get(id); return x && isPratama(x, state.date); }) && <> <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span></>}</td>
-                    <td className="num" data-l={t('ability')}>{abilityOf(e)}</td>
-                    <td data-l={t('morale')}><MoraleTag short value={membersOf(e).reduce((s, p) => s + p.form, 0) / e.playerIds.length}
-                      detail={e.playerIds.length > 1 ? membersOf(e).map((p) => `${p.name}: ${t(`morale_${moraleTier(p.form)}` as TextKey)}`).join(' · ') : undefined} /></td>
-                    <td className="num" data-l={t('rank')}>{e.rank ?? '—'}</td>
-                    <td data-l={t('fatigue')}><FatigueBar value={tired} /></td>
-                    <td className="pick">{required && <div className="required">⭐ {t('required')}: {dataName(required.name)}</div>}{injured ? `🩹 ${t('injury')}` : (
-                      <select value={decisions[e.id] ?? 'auto'} onChange={(ev) => set(e.id, ev.target.value)}>
-                        <option value="auto">{e.trial ? t('notEntered') : t('auto')}</option>
-                        {offered.map((ev) => <option key={ev.id} value={ev.id}>{dataName(ev.name)}</option>)}
-                        {/* Dipilih untuk turnamen junior minggu ini (diatur dari entry turnamen junior). */}
-                        {ruleset.calendar.filter((ev) => ev.id === decisions[e.id] && !offered.includes(ev)).map((ev) => <option key={ev.id} value={ev.id}>{dataName(ev.name)}</option>)}
-                        <option value="rest">{t('rest')}</option>
-                      </select>
-                    )}</td>
-                  </tr>
-                );
-              })}</tbody>
-            </table>
-          </div>
-        </>
-      )}
+      <p className="controls">
+        <button onClick={() => setAll((e) => (e.trial || !eligible(e) ? decisions[e.id] : eventId))}>{t('playAll')}</button>
+        <button onClick={() => setAll(() => 'rest')}>{t('restAll')}</button>
+        <button title={t('suggestionHint')} onClick={suggest}>💡 {t('suggestion')}</button>
+      </p>
+      <nav className="controls subnav">
+        {sectors.map((d) => (
+          <button key={d} aria-pressed={d === sector} onClick={() => setSector(d)}>
+            {d} <span className="muted-text">{rows.filter((e) => e.d === d && checked(e)).length}/{rows.filter((e) => e.d === d).length}</span>
+          </button>
+        ))}
+      </nav>
+      <div className="scroll">
+        <table className="entrytable">
+          <thead><tr><th>{t('name')}</th><th className="num">{t('ability')}</th><th className="num">{t('rank')}</th><th className="num">{t('enterCol')}</th></tr></thead>
+          <tbody>{rows.filter((e) => e.d === sector).map((e) => {
+            const other = elsewhere(e);
+            const ps = members(e);
+            return (
+              <tr key={e.id} className={other ? 'muted-text' : undefined}>
+                <td>
+                  <span className="chip">{e.d}</span> {entrantLabel(state, e.id).name}
+                  {e.trial && <> <span className="tag">{t('trialPair')}</span></>}
+                  {ps.some((x) => isPratama(x, state.date)) && <> <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span></>}
+                  <div className="entry-meta">
+                    <FitStatus ps={ps} />
+                    <MoraleTag short value={ps.reduce((s, p) => s + p.form, 0) / ps.length}
+                      detail={ps.length > 1 ? ps.map((p) => `${p.name}: ${t(`morale_${moraleTier(p.form)}` as TextKey)}`).join(' · ') : undefined} />
+                    {required(e) && <span className="required">⭐ {t('required')}</span>}
+                    {other && <span className="muted-text">→ {evName(other)}</span>}
+                  </div>
+                </td>
+                <td className="num">{abilityOf(e)}</td>
+                <td className="num">{e.rank ?? '—'}</td>
+                <td className="num">
+                  <label className="entry-check">
+                    {!decisions[e.id] && !other && aiMay(e) && !injured(e) && <small className="muted-text">AI</small>}
+                    <input type="checkbox" checked={checked(e)} disabled={!eligible(e)}
+                      onChange={(x) => set(e.id, x.target.checked ? eventId : 'rest')} />
+                  </label>
+                </td>
+              </tr>
+            );
+          })}</tbody>
+        </table>
+      </div>
+      <p className="controls">
+        <button className="primary" onClick={onSubmit}>{t('submitEntries')}</button>
+        {/* Serahkan ke asisten AI: hapus keputusan untuk turnamen ini (pilihan ke turnamen lain tetap), lalu submit. */}
+        <button title={t('autoSubmitHint')} onClick={() => { setAll((e) => (decisions[e.id] === eventId || decisions[e.id] === 'rest' ? 'auto' : decisions[e.id])); onSubmit(); }}>{t('auto')}</button>
+      </p>
     </>
   );
 }

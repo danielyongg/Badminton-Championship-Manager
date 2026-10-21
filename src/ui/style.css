@@ -157,7 +157,10 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 /* Tabel pasangan (Skuad MD/WD/XD): satu nama per baris, tanpa "/" & garis bawah; baris → profil pasangan, nama → profil atlet. */
 .pairtable td:first-child { white-space: normal; min-width: 11em; }
 .pairtable .pname { display: block; padding: 3px 0; text-decoration: none; }
-.pairtable .pname + .pname { border-top: 1px dashed var(--line); } /* nama panjang yang terpatah tetap terbaca sebagai satu atlet */
+/* Pemisah dua atlet: garis pendek tegas dengan jarak cukup dari nama pertama (nama panjang yang terpatah tetap terbaca sebagai satu atlet). */
+.pairtable td .pname { margin: 0; }
+.pairtable td .pname + .pname { position: relative; margin-top: 5px; padding-top: 8px; }
+.pairtable td .pname + .pname::before { content: ''; position: absolute; top: 0; left: 0; width: 2.5em; border-top: 2px solid var(--muted); opacity: .45; }
 .pairtable .pname:hover { text-decoration: underline; }
 .pairtable td:first-child .tag { margin-top: 2px; }
 .pairtable th { white-space: normal; vertical-align: bottom; } /* judul panjang (Tier priority, BWF rank) turun baris agar kolom aksi tidak terpotong di laptop */
@@ -574,16 +577,13 @@ table.fit td.num { white-space: nowrap; }
   .page .hub { margin-left: auto; margin-right: auto; }
 }
 @media (min-width: 1280px) { .dash { columns: 3; } }
-/* Entry: label turnamen wajib di atas pilihan turnamen, bukan menempel di nama. */
-.required { font-size: .75rem; color: var(--gold); white-space: nowrap; margin-bottom: 2px; }
-/* HP: tiap baris entry jadi kartu — nama, lalu ability · morale · rank · kelelahan berlabel, lalu pilihan turnamen selebar layar. */
-@media (max-width: 700px) {
-  .entrytable, .entrytable tbody { display: block; width: 100%; }
-  .entrytable thead { display: none; }
-  .entrytable tr { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
-  .entrytable td { border: 0; padding: 0; text-align: left; box-shadow: none; background: none; }
-  .entrytable td:first-child, .entrytable td.pick { grid-column: 1 / -1; }
-  .card .scroll .entrytable td:first-child { position: static; max-width: none; box-shadow: none; }
-  .entrytable td[data-l]::before { content: attr(data-l); display: block; font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-  .entrytable td.pick select { width: 100%; }
-}
+/* Entry: label turnamen wajib (di bawah nama, bersama status & morale). */
+.required { font-size: .75rem; color: var(--gold); white-space: nowrap; }
+/* Entry turnamen: baris ringkas — nama + status/morale di bawahnya, ability, ranking, centang. */
+.entrytable td:first-child { white-space: normal; }
+.entry-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; margin-top: 3px; font-size: .8rem; }
+.entry-meta .required { margin: 0; }
+.entry-check { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; cursor: pointer; }
+.entry-check input { width: 22px; height: 22px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.entry-check input:disabled { cursor: not-allowed; }
+.card .scroll .entrytable td:first-child { position: static; max-width: none; min-width: 0; box-shadow: none; }

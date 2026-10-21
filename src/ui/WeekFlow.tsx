@@ -29,12 +29,16 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
       <h3>{eventName(ruleset, editing, year)} · {t('entryStatus')}</h3>
       {(() => {
         const ev = ruleset.calendar.find((e) => e.id === editing);
-        return ev && ruleset.tiers.find((x) => x.id === ev.tierId)?.junior ? <JuniorEntryTable ev={ev} /> : <EntryTable week={ask.week} eventId={editing} />;
+        const submit = () => { (state.entriesSubmitted ??= {})[`${year}:${editing}`] = true; changed(); void saveGame(game); setEditing(undefined); };
+        const junior = ev && ruleset.tiers.find((x) => x.id === ev.tierId)?.junior;
+        return <>
+          {junior ? <JuniorEntryTable ev={ev} /> : <EntryTable week={ask.week} eventId={editing} onSubmit={submit} />}
+          <div className="controls roundbar">
+            {junior && <button className="primary" onClick={submit}>{t('submitEntries')}</button>}
+            <button onClick={() => setEditing(undefined)}>← {t('back')}</button>
+          </div>
+        </>;
       })()}
-      <div className="controls roundbar">
-        <button className="primary" onClick={() => { (state.entriesSubmitted ??= {})[`${year}:${editing}`] = true; changed(); void saveGame(game); setEditing(undefined); }}>{t('submitEntries')}</button>
-        <button onClick={() => setEditing(undefined)}>← {t('back')}</button>
-      </div>
     </section>
   );
   return (
