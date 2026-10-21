@@ -595,3 +595,5 @@ table.fit td.num { white-space: nowrap; }
 .cal-list .calwk .tierb { width: 100%; }
 .eventdir td.tiercell { width: 1%; padding-right: 10px; }
 .eventdir td.tiercell .tierb { width: var(--tierw); }
+/* Bilah versi baru (saat minggu berjalan): menempel di atas, di atas menu tab. */
+.updatebar { position: fixed; top: env(safe-area-inset-top); left: 0; right: 0; z-index: 50; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px; background: var(--gold-soft); color: var(--fg); border-bottom: 1px solid var(--gold); font-size: .9rem; }

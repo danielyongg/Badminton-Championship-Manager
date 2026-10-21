@@ -6,9 +6,10 @@ import '@fontsource/barlow/800.css';
 import { getLang } from './i18n';
 import { App } from './ui/App';
 import { Splash } from './ui/Splash';
+import { UpdateBar } from './ui/UpdateBar';
 import { applyTheme, getTheme } from './ui/theme';
 import './ui/style.css';
 
 document.documentElement.lang = getLang();
 applyTheme(getTheme()); // sebelum render pertama agar tidak berkedip
-createRoot(document.getElementById('root')!).render(<StrictMode><App /><Splash /></StrictMode>);
+createRoot(document.getElementById('root')!).render(<StrictMode><App /><UpdateBar /><Splash /></StrictMode>);

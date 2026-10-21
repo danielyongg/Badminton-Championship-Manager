@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { weekRunning } from './UpdateBar';
 import { matchConfigFor, simulateMatch, type MatchResult } from '../engine/match';
 import type { DrawHook, DrawShow, EntriesHook, EntriesShow, LiveHook, LiveRequest } from '../engine/tournament';
 import { CHALLENGE_DEADLINE_WEEK, CHALLENGE_PENALTY, CHALLENGE_REWARD, challengeProgress, goalProgress, goalWeight } from '../engine/career';
@@ -130,6 +131,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   });
   const go = async (weeks: number) => {
     setBusy(true);
+    weekRunning.on = true;
     stop.current = false;
     // Maju dari halaman turnamen/profil: langsung tampilkan halaman turnamen minggu ini, bukan hanya bilah "kembali".
     setHubAway(false); setProfileId(undefined); setEventView(undefined); window.scrollTo(0, 0);
@@ -144,6 +146,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
     setPlaying(undefined);
     setHubAway(false);
     setBusy(false);
+    weekRunning.on = false;
     changed();
     void persist();
   };

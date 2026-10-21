@@ -322,6 +322,7 @@ export const en: Record<TextKey, string> = {
   suggestion: 'Suggestion', suggestionHint: 'Fill every choice with the assistant\'s suggestion: mandatory → play, tired → rest, otherwise the tournament that fits the ranking (or rest). You can still change each one.',
   enterCol: 'Enter', autoSubmitHint: 'Let the AI assistant choose for this tournament (choices for other tournaments stay) and submit.',
   condition: 'Condition',
+  newVersion: 'A new version is available. Reload when the week is done (progress this week is not saved yet).', reload: 'Reload',
   playAll: 'Play all', restAll: 'Rest all', autoAll: 'All automatic',
   trialPair: 'trial',
   trialCheckbox: 'Trial pair (main pair stays)',

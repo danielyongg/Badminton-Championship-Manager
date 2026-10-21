@@ -322,6 +322,7 @@ const id = {
   suggestion: 'Saran', suggestionHint: 'Isi semua pilihan dengan saran asisten: wajib → main, lelah → istirahat, selain itu turnamen yang cocok dengan ranking (atau istirahat). Tiap pilihan tetap bisa diubah.',
   enterCol: 'Ikut', autoSubmitHint: 'Serahkan pilihan turnamen ini ke asisten AI (pilihan ke turnamen lain tetap) lalu submit.',
   condition: 'Kondisi',
+  newVersion: 'Versi baru tersedia. Muat ulang setelah minggu ini selesai (progres minggu ini belum tersimpan).', reload: 'Muat ulang',
   playAll: 'Main semua', restAll: 'Istirahat semua', autoAll: 'Semua otomatis',
   trialPair: 'percobaan',
   trialCheckbox: 'Pasangan percobaan (pasangan utama tetap ada)',
