@@ -210,7 +210,7 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 /* Kalender & juara: tabel di desktop, daftar per minggu di HP (juara di bawah nama turnamen). */
 .cal-list { display: none; }
 @media (max-width: 700px) { .cal-table { display: none; } .cal-list { display: block; } }
-.cal-list .calwk { flex: none; width: 4.4em; display: flex; flex-direction: column; align-items: stretch; gap: 1px; }
+.cal-list .calwk { flex: none; width: var(--tierw); display: flex; flex-direction: column; align-items: stretch; gap: 1px; }
 .cal-list .calwk small { font-size: .68rem; font-weight: 700; color: var(--muted); text-align: center; }
 .cal-list .drow.now { background: var(--accent-soft); border-radius: 6px; padding-left: 6px; padding-right: 6px; margin: 0 -6px; }
 .cal-list .drow .grow > small { display: block; }
@@ -314,7 +314,7 @@ td.strong { font-weight: 700; }
 .log b { font-variant-numeric: tabular-nums; }
 .chip { font-size: .7rem; font-weight: 700; padding: 0 5px; border-radius: 3px; text-transform: uppercase; background: var(--accent-soft); color: var(--accent-strong); }
 /* Badge tier: kelompok (kecil) di atas kode (besar), warna per kelompok. */
-.tierb { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05; padding: 2px 6px; border-radius: 4px; white-space: nowrap; background: var(--accent-soft); color: var(--accent-strong); }
+.tierb { box-sizing: border-box; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05; padding: 2px 6px; border-radius: 4px; white-space: nowrap; background: var(--accent-soft); color: var(--accent-strong); }
 .tierb small { font-size: .58rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; opacity: .85; }
 .tierb b { font-size: .82rem; font-weight: 800; }
 .tierb.g1 { background: var(--gold-soft); color: var(--gold); }
@@ -324,10 +324,10 @@ td.strong { font-weight: 700; }
 .tierb.junior { background: var(--violet-soft); color: var(--violet); }
 .title-counts { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
 .title-badge { width: 1%; }
-.title-badge .tierb { width: 4.4em; }
+.title-badge .tierb { width: var(--tierw); }
 .title-counts > span { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; }
 .drow .tierb { flex: none; min-width: 2.6em; align-self: flex-start; }
-.upcoming .drow .tierb { width: 4.4em; }
+.upcoming .drow .tierb { width: var(--tierw); }
 .chip.opp { background: var(--danger-soft); color: var(--danger); }
 
 /* Live drawing */
@@ -433,7 +433,7 @@ td.strong { font-weight: 700; }
 .weeklist { list-style: none; padding: 0; margin: 0 0 12px; }
 .weeklist li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .weeklist .grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.weeklist .tierb { flex: none; width: 4.4em; }
+.weeklist .tierb { flex: none; width: var(--tierw); }
 .weeklist button { min-height: 36px; }
 /* HP: tombol turun ke baris kedua (rata kanan) agar nama turnamen tidak terhimpit. */
 @media (max-width: 600px) {
@@ -590,3 +590,8 @@ table.fit td.num { white-space: nowrap; }
 .card .scroll .entrytable td:first-child { position: static; max-width: none; min-width: 0; box-shadow: none; }
 /* Bulatan kondisi atlet: isi = persen kondisi (pie), warna mengikuti badge status. */
 .cond { display: inline-block; width: .9em; height: .9em; margin-right: 4px; vertical-align: -.12em; border-radius: 50%; box-sizing: border-box; border: 1.5px solid currentColor; background: conic-gradient(currentColor var(--p), transparent 0); }
+/* Kolom badge tier: lebar seragam yang memuat label terpanjang ("Continental"), badge mengisi kolom. */
+:root { --tierw: 6.2em; }
+.cal-list .calwk .tierb { width: 100%; }
+.eventdir td.tiercell { width: 1%; padding-right: 10px; }
+.eventdir td.tiercell .tierb { width: var(--tierw); }

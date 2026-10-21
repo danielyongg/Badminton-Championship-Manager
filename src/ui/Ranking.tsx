@@ -7,7 +7,7 @@ import { hostCityId, isHeld, weekOf, newSeason, playWeek, rankFromSnapshots, typ
 import { ageAt, currentAbility } from '../engine/generator';
 import { ATTRS, DISCIPLINES, type Discipline, type Player, type Ruleset, type World } from '../engine/types';
 import { dataName, numLocale, t, type TextKey } from '../i18n';
-import { entrantLabel, eventName as eventNameOf, tierGroup, tierLabel, TierBadge } from './game';
+import { entrantLabel, eventName as eventNameOf, tierGroup, TierBadge } from './game';
 import { Flag } from './Flag';
 import { formatName, winnerOf } from './Team';
 import { NationsTable, Records } from './WorldRecords';
@@ -367,32 +367,36 @@ export function CommitmentChips({ state, ruleset, entrantId }: { state: SeasonSt
 }
 
 /**
- * Daftar semua turnamen di ruleset (termasuk yang tidak digelar tiap tahun / baru mulai tahun depan), per tier:
+ * Daftar semua turnamen di ruleset (termasuk yang tidak digelar tiap tahun / baru mulai tahun depan), per kelompok badge tier
+ * (urutan sama dengan filter kalender), di dalamnya tier tertinggi dulu lalu edisi berikutnya:
  * frekuensi, edisi berikutnya (tahun, minggu, tuan rumah) & juara terakhir. Klik → halaman turnamen.
  */
 function EventDirectory({ state, ruleset, world, onOpenEvent }: { state: SeasonState; ruleset: Ruleset; world: World; onOpenEvent?: (id: string, year: number) => void }) {
   const { year, week } = state.date;
   const city = new Map(world.cities.map((c) => [c.id, c]));
-  const all = [...ruleset.calendar.map((e) => ({ e, tier: e.tierId })), ...ruleset.team.events.map((e) => ({ e, tier: e.countries ? 'MSG' : 'TEAM' }))];
+  const tierOf = (id: string) => ruleset.tiers.find((x) => x.id === id);
+  const all = [...ruleset.calendar.map((e) => ({ e, tier: tierOf(e.tierId), group: tierGroup(tierOf(e.tierId)), badge: <TierBadge tierId={e.tierId} /> })),
+    ...ruleset.team.events.map((e) => ({ e, tier: undefined, group: tierGroup(undefined, e), badge: <TierBadge team={e} /> }))];
   const next = (e: (typeof all)[number]['e']) => {
     for (let y = year; y < year + 12; y++) if (isHeld(e, y) && (y > year || weekOf(e, y) >= week)) return y;
     return undefined;
   };
-  const tiers = [...new Set(all.map((x) => x.tier))];
-  const tierName = (id: string) => (id === 'TEAM' ? t('teamShort') : id === 'MSG' ? tierLabel(id) : dataName(ruleset.tiers.find((x) => x.id === id)?.name) ?? id);
+  const groups = CAL_GROUPS.filter((g) => all.some((x) => x.group === g));
+  const strength = (x: (typeof all)[number]) => x.tier?.points[0] ?? Infinity; // beregu = kejuaraan utama kelompoknya, di atas
   const freq = (e: (typeof all)[number]['e']) => (!e.everyYears ? t('everyYear') : e.everyYears.invert ? t('mostYears', { n: e.everyYears.interval }) : t('everyNYears', { n: e.everyYears.interval }));
   return (
-    <>{tiers.map((tier) => (
-      <section key={tier} className="card">
-        <h3>{tierName(tier)} <span className="muted-text">({all.filter((x) => x.tier === tier).length})</span></h3>
-        <table className="fit"><tbody>{all.filter((x) => x.tier === tier)
+    <>{groups.map((g) => (
+      <section key={g} className="card">
+        <h3>{groupLabel(g)} <span className="muted-text">({all.filter((x) => x.group === g).length})</span></h3>
+        <table className="fit eventdir"><tbody>{all.filter((x) => x.group === g)
           .map((x) => ({ ...x, y: next(x.e) }))
-          .sort((a, b) => (a.y ?? 9999) - (b.y ?? 9999) || (a.y ? weekOf(a.e, a.y) - weekOf(b.e, b.y!) : 0))
-          .map(({ e, y }) => {
+          .sort((a, b) => strength(b) - strength(a) || (a.y ?? 9999) - (b.y ?? 9999) || (a.y ? weekOf(a.e, a.y) - weekOf(b.e, b.y!) : 0))
+          .map(({ e, y, badge }) => {
             const host = y ? city.get(hostCityId(e, y)) : undefined;
             const last = state.champions.filter((c) => c.tournamentId === e.id).at(-1)?.year ?? state.teamResults.filter((r) => r.eventId === e.id).at(-1)?.year;
             return (
               <tr key={e.id}>
+                <td className="tiercell">{badge}</td>
                 <td>
                   {onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, last ?? y ?? year); }}>{eventNameOf(ruleset, e.id, y ?? year)}</a> : eventNameOf(ruleset, e.id, y ?? year)}
                   <br /><small className="muted-text">{freq(e)}{host && <> · <Flag id={host.countryId} />{dataName(host.name)}</>}</small>
