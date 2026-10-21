@@ -466,7 +466,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
     return computeRanking(state.results, rankD, now, ruleset).slice(0, 10)
       .map((r) => { const i = prev?.ids.indexOf(r.entrantId) ?? -1; return { id: r.entrantId, rank: r.rank, points: r.points, delta: i < 0 ? undefined : i + 1 - r.rank }; });
   }, [version, rankD]);
-  const upcoming = [...ruleset.calendar, ...ruleset.team.events.map((e) => ({ ...e, tierId: e.countries ? 'MSG' : t('teamShort') }))]
+  const upcoming = [...ruleset.calendar, ...ruleset.team.events.map((e) => ({ ...e, tierId: undefined, team: e }))] // beregu: badge dari event (Grade 1 / Multi-sport), sama dengan Kalender
     .filter((e) => isHeld(e, year) && weekOf(e, year) >= week && weekOf(e, year) < week + 4 && (!managed || openTo(e, managed, world)))
     .sort((a, b) => weekOf(a, year) - weekOf(b, year));
   const city = (id: string) => dataName(world.cities.find((c) => c.id === id)?.name);
@@ -531,7 +531,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
             <h4>{t('week')} {w}</h4>
             {list.map((e) => (
               <div key={e.id} className="drow">
-                <TierBadge tierId={e.tierId} />
+                <TierBadge tierId={e.tierId} team={'team' in e ? e.team : undefined} />
                 <span className="grow"><b>{eventName(ruleset, e.id, year)}</b><small className="muted-text">{city(hostCityId(e, year))}</small></span>
               </div>
             ))}

@@ -7,7 +7,7 @@ import { hostCityId, isHeld, weekOf, newSeason, playWeek, rankFromSnapshots, typ
 import { ageAt, currentAbility } from '../engine/generator';
 import { ATTRS, DISCIPLINES, type Discipline, type Player, type Ruleset, type World } from '../engine/types';
 import { dataName, numLocale, t, type TextKey } from '../i18n';
-import { entrantLabel, eventName as eventNameOf, teamLabel, tierLabel, TierBadge } from './game';
+import { entrantLabel, eventName as eventNameOf, tierLabel, TierBadge } from './game';
 import { Flag } from './Flag';
 import { formatName, winnerOf } from './Team';
 import { NationsTable, Records } from './WorldRecords';
@@ -273,7 +273,7 @@ export function Calendar({ state, ruleset, world, short, onOpenEvent, year = sho
   // Kejuaraan beregu: juara per format (Thomas/Uber/Sudirman/…) di kolom nomor.
   const teamRow = (e: (typeof teams)[number]) => (
     <tr key={e.id} className={year === state.date.year && weekOf(e, year) === state.date.week ? 'sel' : ''}>
-      <td className="num">{weekOf(e, year)}</td><td>{onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, year); }}>{eventNameOf(ruleset, e.id, year)}</a> : eventNameOf(ruleset, e.id, year)}</td><td>{teamLabel(e)}</td>
+      <td className="num">{weekOf(e, year)}</td><td>{onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, year); }}>{eventNameOf(ruleset, e.id, year)}</a> : eventNameOf(ruleset, e.id, year)}</td><td><TierBadge team={e} /></td>
       <td className="hide-sm">{dataName(city.get(hostCityId(e, year))?.name)} ({city.get(hostCityId(e, year))?.countryId})</td>
       <td className="num hide-sm">—</td>
       <td colSpan={DISCIPLINES.length}>{state.teamResults.filter((x) => x.eventId === e.id && x.year === year).map((x) => {
