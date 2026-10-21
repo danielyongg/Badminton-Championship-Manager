@@ -4,7 +4,8 @@ import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import type { Pair } from '../engine/types';
 import { t, type TextKey } from '../i18n';
-import { FatigueBar, RankCell, TierPrefs } from './Squad';
+import { FatigueBar, MoraleTag, RankCell, TierPrefs } from './Squad';
+import { moraleTier } from '../engine/match';
 import { lookup, saveGame, useGame } from './game';
 
 const DOUBLES: Pair['discipline'][] = ['MD', 'WD', 'XD'];
@@ -47,16 +48,20 @@ export function Pairs({ discipline: d, onOpen, juniors = false }: { discipline: 
     { d: p.discipline as string, r: ranks.senior[p.discipline].get(p.id) },
     { d: `${p.discipline} Jr`, r: ranks.junior[p.discipline].get(p.id) },
   ].filter((x) => x.r !== undefined).sort((a, b) => a.r! - b.r!);
-  const COLS: { key: string; label: TextKey; num?: boolean; value: (p: Pair) => string | number; desc?: boolean }[] = [
+  // mHide: disembunyikan di HP (status tampil di bawah nama; usia, laga bersama & kelelahan ada di profil pasangan).
+  const COLS: { key: string; label: TextKey; num?: boolean; value: (p: Pair) => string | number; desc?: boolean; mHide?: boolean }[] = [
     { key: 'pair', label: 'pair', value: (p) => p.playerIds.map((id) => players.get(id)!.name).join(' / ') },
-    { key: 'status', label: 'status', value: (p) => (p.trial ? 2 : pratama(p) ? 1 : 0) },
-    { key: 'age', label: 'age', num: true, value: (p) => avg(p, (x) => ageAt(x.birth, state.date)) },
+    { key: 'status', label: 'status', value: (p) => (p.trial ? 2 : pratama(p) ? 1 : 0), mHide: true },
+    { key: 'morale', label: 'morale', value: (p) => avg(p, (x) => x.form), desc: true }, // = efek morale sisi ganda di mesin (rata-rata)
     { key: 'ability', label: 'ability', num: true, value: (p) => avg(p, (x) => currentAbility(x.attrs)), desc: true },
     { key: 'chem', label: 'chemistry', num: true, value: (p) => p.chemistry, desc: true },
-    { key: 'together', label: 'matchesTogether', num: true, value: (p) => p.matchesTogether, desc: true },
-    { key: 'fatigue', label: 'fatigue', value: (p) => Math.max(...p.playerIds.map((id) => players.get(id)!.fatigue)), desc: true },
     { key: 'rank', label: 'bwfRank', num: true, value: (p) => rankList(p)[0]?.r ?? Infinity },
+    { key: 'age', label: 'age', num: true, value: (p) => avg(p, (x) => ageAt(x.birth, state.date)), mHide: true },
+    { key: 'together', label: 'matchesShort', num: true, value: (p) => p.matchesTogether, desc: true, mHide: true },
+    { key: 'fatigue', label: 'fatigue', value: (p) => Math.max(...p.playerIds.map((id) => players.get(id)!.fatigue)), desc: true, mHide: true },
   ];
+  // Morale pasangan: tingkat dari rata-rata morale kedua atlet; keterangan menyebut morale masing-masing.
+  const moraleTitle = (p: Pair) => p.playerIds.map((id) => `${players.get(id)!.name}: ${t(`morale_${moraleTier(players.get(id)!.form)}` as TextKey)}`).join(' · ');
   const col = COLS.find((c) => c.key === sort.key)!;
   const cmp = (a: Pair, b: Pair) => {
     const x = col.value(a), y = col.value(b);
@@ -73,25 +78,26 @@ export function Pairs({ discipline: d, onOpen, juniors = false }: { discipline: 
     <>
       {list.length === 0 ? <p className="hint">{t('noPairsYet')}</p> : (
         <div className="scroll">
-          <table>
+          <table className="squadtable pairtable">
             <thead><tr>{COLS.map((c) => (
-              <th key={c.key} className={`sortable${c.num ? ' num' : ''}${c.key === 'status' ? ' m-hide' : ''}`} aria-sort={sort.key === c.key ? (sort.desc ? 'descending' : 'ascending') : undefined}
+              <th key={c.key} className={`sortable${c.num ? ' num' : ''}${c.mHide ? ' m-hide' : ''}`} aria-sort={sort.key === c.key ? (sort.desc ? 'descending' : 'ascending') : undefined}
                 onClick={() => setSort(sort.key === c.key ? { key: c.key, desc: !sort.desc } : { key: c.key, desc: !!c.desc })}>
                 {t(c.label)}{sort.key === c.key ? (sort.desc ? ' ▼' : ' ▲') : ''}
               </th>
             ))}<th title={t('tierPrefsHint')}>{t('tierPrefs')}</th><th></th></tr></thead>
             <tbody>{list.map((p) => (
               <tr key={p.id} onClick={() => onOpen(p.id)} style={{ cursor: 'pointer' }}>{/* baris → profil pasangan, nama → profil atlet */}
-                <td>{p.playerIds.map((id, i) => (
-                  <span key={id} className="pname"><a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpen(id); }}>{players.get(id)!.name}</a>{i < p.playerIds.length - 1 && '\u00a0/ '}</span>
-                ))}<span className="m-only"> {status(p, true)}</span></td>
+                <td>{p.playerIds.map((id) => (
+                  <a key={id} href="#" className="pname" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpen(id); }}>{players.get(id)!.name}{players.get(id)!.injury ? '\u00a0🩹' : ''}</a>
+                ))}<span className="m-only">{status(p, true)}</span></td>
                 <td className="m-hide">{status(p, false)}</td>
-                <td className="num">{Math.round(avg(p, (x) => ageAt(x.birth, state.date)))}</td>
+                <td><MoraleTag value={avg(p, (x) => x.form)} short detail={moraleTitle(p)} /></td>
                 <td className="num">{Math.round(avg(p, (x) => currentAbility(x.attrs)))}</td>
                 <td className="num">{Math.round(p.chemistry)}</td>
-                <td className="num">{p.matchesTogether}</td>
-                <td><FatigueBar value={Math.max(...p.playerIds.map((id) => players.get(id)!.fatigue))} />{p.playerIds.some((id) => players.get(id)!.injury) ? ' 🩹' : ''}</td>
                 <td className="num"><RankCell ranks={rankList(p)} /></td>
+                <td className="num m-hide">{Math.round(avg(p, (x) => ageAt(x.birth, state.date)))}</td>
+                <td className="num m-hide">{p.matchesTogether}</td>
+                <td className="m-hide"><FatigueBar value={Math.max(...p.playerIds.map((id) => players.get(id)!.fatigue))} /></td>
                 <td onClick={(e) => e.stopPropagation()}>{p.trial ? '—' : <TierPrefs id={p.id} />}</td>
                 <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>
                   {pratama(p) && <button className="mini btn-go" onClick={() => { p.playerIds.forEach((id) => promoteJunior(state, id)); commit(); }}>{t('promote')}</button>}

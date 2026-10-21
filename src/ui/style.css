@@ -153,7 +153,13 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .group td:first-child { white-space: normal; } /* nama panjang turun baris, kolom angka tetap terlihat */
 .groupgames { list-style: none; padding: 0; margin: 8px 0 0; font-size: .85rem; border-top: 1px solid var(--line); }
 .groupgames li { padding: 4px 0; }
-.groupgames a { white-space: nowrap; } /* skor tidak terpatah di tengah "21-15" */
+.groupgames a { white-space: nowrap; }
+/* Tabel pasangan (Skuad MD/WD/XD): satu nama per baris, tanpa "/" & garis bawah; baris → profil pasangan, nama → profil atlet. */
+.pairtable td:first-child { white-space: normal; min-width: 11em; }
+.pairtable .pname { display: block; padding: 3px 0; text-decoration: none; }
+.pairtable .pname + .pname { border-top: 1px dashed var(--line); } /* nama panjang yang terpatah tetap terbaca sebagai satu atlet */
+.pairtable .pname:hover { text-decoration: underline; }
+.pairtable td:first-child .tag { margin-top: 2px; } /* skor tidak terpatah di tengah "21-15" */
 .dash { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 12px; align-items: start; }
 .dash > * { overflow-x: auto; }
 /* Kartu panjang (hasil turnamen) membentang beberapa baris; kartu pendek mengisi celah di kolom lain. */

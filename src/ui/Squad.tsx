@@ -240,10 +240,10 @@ type ProfileTab = 'summary' | 'titles' | 'events' | 'matches' | 'h2h';
  */
 const MORALE_ICON = { veryHigh: '▲▲', high: '▲', normal: '–', low: '▼', veryLow: '▼▼' } as const;
 /** Morale atlet (5 tingkat); `short` = ikon saja (tabel), nama tingkat sebagai keterangan. */
-export function MoraleTag({ value, short }: { value: number; short?: boolean }) {
+export function MoraleTag({ value, short, detail }: { value: number; short?: boolean; detail?: string }) {
   const tier = moraleTier(value);
   const label = t(`morale_${tier}` as TextKey);
-  return <span className={`morale morale-${tier}`} title={label}>{MORALE_ICON[tier]}{!short && ` ${label}`}</span>;
+  return <span className={`morale morale-${tier}`} title={detail ? `${label} (${detail})` : label}>{MORALE_ICON[tier]}{!short && ` ${label}`}</span>;
 }
 
 export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBack: () => void; onOpen: (id: string) => void; onOpenEvent?: (id: string, year: number) => void }) {
@@ -571,6 +571,7 @@ function PairCard({ pair, rank, onOpen }: { pair: Pair; rank?: number; onOpen: (
       <dl className="facts">
         {fact(t('country'), <><Flag id={a.countryId} />{a.countryId} · <span className="chip">{pair.discipline}</span></>)}
         {fact(t('bwfRank'), rank ? `#${rank}` : '—')}
+        {fact(t('morale'), <MoraleTag value={(a.form + b.form) / 2} detail={[a, b].map((x) => `${x.name}: ${t(`morale_${moraleTier(x.form)}` as TextKey)}`).join(' · ')} />)}
         {fact(t('chemistry'), Math.round(pair.chemistry))}
         {fact(t('matchesTogether'), pair.matchesTogether)}
         {fact(t('pairSince'), pair.dissolved ? `${since} – ${t('weekShort')}${pair.dissolved.week} ${pair.dissolved.year}` : since)}
