@@ -418,7 +418,7 @@ td.strong { font-weight: 700; }
   .drawlayout .groups { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; } /* minmax(0): nama panjang tidak melebarkan kolom melewati layar */
   .drawlayout .groups .card { padding: 6px 8px; }
   .drawlayout .groups ol { padding-left: 1.4em; margin: 4px 0 0; }
-  .drawlayout .groups li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .drawlayout .groups li { overflow-wrap: anywhere; } /* nama panjang / pasangan turun baris, tetap utuh terlihat */
   /* Bagan undian: nama panjang turun baris agar tidak melewati lebar layar. */
   .halves { grid-template-columns: minmax(0, 1fr); }
   .drawboard { width: 100%; }
