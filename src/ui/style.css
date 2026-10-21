@@ -602,3 +602,20 @@ table.fit td.num { white-space: nowrap; }
 .eventdir td.tiercell .tierb { width: var(--tierw); }
 /* Bilah versi baru (saat minggu berjalan): menempel di atas, di atas menu tab. */
 .updatebar { position: fixed; top: env(safe-area-inset-top); left: 0; right: 0; z-index: 50; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px; background: var(--gold-soft); color: var(--fg); border-bottom: 1px solid var(--gold); font-size: .9rem; }
+/* Rincian ranking (panel Dunia & tab Ranking profil): baris poin per turnamen & poin kedaluwarsa. */
+.rankdetail h4 { margin: 14px 0 4px; }
+.rankpts .drow { align-items: center; }
+.rankpts .tierb { width: var(--tierw); }
+.rankpts .grow > small { display: block; }
+.rankpts .rp-pts { flex: none; display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; }
+.rankpts .rp-pts small { font-size: .72rem; }
+.rankpts .rp-weeks { flex: none; width: 3em; display: flex; flex-direction: column; align-items: center; line-height: 1.05; padding: 3px 0; border-radius: 4px; background: var(--line); }
+.rankpts .rp-weeks small { font-size: .62rem; color: var(--muted); text-transform: uppercase; }
+.rankpts .muted-row { opacity: .6; }
+/* Kartu lipat (H2H & partner di riwayat laga). */
+.foldcard > summary { cursor: pointer; list-style: none; }
+.foldcard > summary::-webkit-details-marker { display: none; }
+.foldcard > summary h3 { display: inline; }
+.foldcard > summary::after { content: ' ▾'; color: var(--muted); }
+.foldcard[open] > summary::after { content: ' ▴'; }
+.tierb.pre { background: var(--line); color: var(--muted); }

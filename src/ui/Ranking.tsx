@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { absWeek, computeRace, computeRanking, expiringPoints } from '../engine/ranking';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { absWeek, activeEntries, computeRace, computeRanking, expiringPoints } from '../engine/ranking';
 import { nextOlympics, olympicField, olympicRanking } from '../engine/olympics';
 import { presetPack } from '../engine/pack';
 import { makeRng } from '../engine/rng';
 import { hostCityId, isHeld, weekOf, newSeason, playWeek, rankFromSnapshots, type SeasonState } from '../engine/season';
 import { ageAt, currentAbility } from '../engine/generator';
-import { ATTRS, DISCIPLINES, type Discipline, type Player, type Ruleset, type World } from '../engine/types';
+import { ATTRS, DISCIPLINES, type Discipline, type Player, type RankingEntry, type Ruleset, type World } from '../engine/types';
 import { dataName, numLocale, t, type TextKey } from '../i18n';
 import { CAL_GROUPS, entrantLabel, eventName as eventNameOf, groupLabel, tierGroup, TierBadge } from './game';
 import { Flag } from './Flag';
@@ -175,36 +175,99 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
           </table>
           {pager(true)}
         </div>
-        {selected && <Detail id={selected} label={name(selected).name} onOpen={onOpenPlayer} state={state} discipline={discipline} ruleset={ruleset} eventName={eventName} junior={mode === 'junior'} />}
+        {selected && <Detail id={selected} label={name(selected).name} onOpen={onOpenPlayer} onOpenEvent={onOpenEvent} state={state} discipline={discipline} ruleset={ruleset} junior={mode === 'junior'} />}
       </div>}
     </section>
   );
 }
 
-function Detail({ id, label, onOpen, state, discipline, ruleset, eventName, junior }: {
-  id: string; label: string; onOpen?: (id: string) => void; state: SeasonState; discipline: Discipline; ruleset: Ruleset; eventName: (id: string) => string; junior?: boolean;
+function Detail({ id, label, onOpen, onOpenEvent, state, discipline, ruleset, junior }: {
+  id: string; label: string; onOpen?: (id: string) => void; onOpenEvent?: (id: string, year: number) => void; state: SeasonState; discipline: Discipline; ruleset: Ruleset; junior?: boolean;
 }) {
-  const now = absWeek(state.date);
-  const history = rankFromSnapshots(state, id, discipline);
-  const expiring = expiringPoints(junior ? state.juniorResults ?? [] : state.results, id, discipline, now, 12, ruleset);
   // HP: panel ada di bawah tabel → gulir ke panel saat atlet dipilih.
   const ref = useRef<HTMLElement>(null);
   useEffect(() => { if (window.innerWidth < 900) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [id]);
   return (
     <aside ref={ref}>
       <h3>{onOpen ? <a href="#" onClick={(e) => { e.preventDefault(); onOpen(id); }}>{label}</a> : label}</h3>
-      <h4>{t('rankHistory')}</h4>
-      <RankChart history={history} />
-      <h4>{t('expiringSoon')}</h4>
-      {expiring.length === 0 ? <p>—</p> : (
-        <table>
-          <tbody>{expiring.map((e, i) => (
-            <tr key={i}><td>{eventName(e.entry.tournamentId)} {e.entry.year}</td><td className="num">{e.entry.points}</td>
-              <td>{e.weeksLeft} {t('weeksLeft')}</td><td>{e.counted ? t('counted') : t('notCounted')}</td></tr>
-          ))}</tbody>
-        </table>
-      )}
+      <RankingDetail state={state} ruleset={ruleset} id={id} discipline={discipline} junior={junior} onOpenEvent={onOpenEvent} />
     </aside>
+  );
+}
+
+/**
+ * Rincian ranking satu peserta (dipakai panel ranking Dunia & tab Ranking di profil): ringkasan (peringkat, poin, jumlah
+ * turnamen, peringkat terbaik, Race to Finals), grafik riwayat, poin per turnamen (yang masuk 10 terbaik ditandai) dan
+ * poin yang kedaluwarsa 12 minggu ke depan.
+ */
+export function RankingDetail({ state, ruleset, id, discipline: d, junior, onOpenEvent }: {
+  state: SeasonState; ruleset: Ruleset; id: string; discipline: Discipline; junior?: boolean; onOpenEvent?: (id: string, year: number) => void;
+}) {
+  const now = absWeek(state.date);
+  const results = junior ? state.juniorResults ?? [] : state.results;
+  const { bestOf } = ruleset.ranking;
+  const me = computeRanking(results, d, now, ruleset).find((r) => r.entrantId === id);
+  const active = activeEntries(results, d, now).filter((e) => e.entrantId === id).sort((a, b) => b.points - a.points);
+  const counted = new Set(active.slice(0, bestOf));
+  const history = junior ? [] : rankFromSnapshots(state, id, d); // snapshot hanya ranking senior
+  const ranked = history.filter((h) => h.rank !== undefined);
+  const best = ranked.length ? Math.min(...ranked.map((h) => h.rank!)) : undefined;
+  const race = junior ? undefined : computeRace(state.results, d, state.date.year, ruleset).find((r) => r.entrantId === id);
+  const expiring = expiringPoints(results, id, d, now, 12, ruleset);
+  const atRisk = expiring.filter((e) => e.counted).reduce((sum, e) => sum + e.entry.points, 0);
+  const num = (n: number) => n.toLocaleString(numLocale());
+  // Poin awal pra-musim (bukan turnamen): tanpa tautan & tanpa badge tier.
+  const pre = (e: RankingEntry) => e.tierId === 'PRE';
+  const preRows = active.filter(pre);
+  const evLink = (e: RankingEntry) => {
+    if (pre(e)) return t('preseasonPoints');
+    const name = `${eventNameOf(ruleset, e.tournamentId, e.year) ?? e.tournamentId} ${e.year}`;
+    return onOpenEvent ? <a href="#" onClick={(x) => { x.preventDefault(); onOpenEvent(e.tournamentId, e.year); }}>{name}</a> : name;
+  };
+  // Babak yang dicapai di turnamen itu (laga terakhir peserta di nomor ini).
+  const reached = (e: RankingEntry) => {
+    const last = state.matches.filter((m) => m.tournamentId === e.tournamentId && m.year === e.year && m.discipline === d && m.sides.includes(id)).at(-1);
+    return !last ? '' : last.round === 'F' && last.sides[last.winner] === id ? `🏆 ${t('champion')}` : last.round;
+  };
+  const fact = (k: string, v: ReactNode, sub?: ReactNode) => <div><dt>{k}</dt><dd>{v}{sub && <small className="muted-text"> {sub}</small>}</dd></div>;
+  if (!active.length && !ranked.length) return <p className="hint">{t('noRankPoints')}</p>;
+  return (
+    <div className="rankdetail">
+      <dl className="facts">
+        {fact(t(junior ? 'juniorRanking' : 'worldRanking'), me ? `#${me.rank}` : '—', me && `${num(me.points)} ${t('points').toLowerCase()}`)}
+        {fact(t('tournaments'), active.length, t('rankCountedOf', { n: Math.min(active.length, bestOf), b: bestOf }))}
+        {!junior && fact(t('bestRank'), best ? `#${best}` : '—')}
+        {race && fact(`${t('raceToFinals')} ${state.date.year}`, `#${race.rank}`, `${num(race.points)}`)}
+        {fact(t('expiringShort'), atRisk ? `−${num(atRisk)}` : '0', t('next12Weeks'))}
+      </dl>
+      {!junior && <><h4>{t('rankHistory')}</h4><RankChart history={history} /></>}
+      <h4>{t('rankPointsFrom')}</h4>
+      {active.length === 0 ? <p className="hint">—</p> : (
+        <div className="dlist rankpts">{active.filter((e) => !pre(e) || e === preRows[0]).map((e, i) => {
+          // Poin awal pra-musim (banyak entri sama): satu baris "×n", status dihitung bila ada yang masuk 10 terbaik.
+          const group = pre(e) ? preRows : [e];
+          const on = group.some((x) => counted.has(x));
+          return (
+            <div key={i} className={`drow${on ? '' : ' muted-row'}`}>
+              {pre(e) ? <span className="tierb pre"><b>—</b></span> : <TierBadge tierId={e.tierId} />}
+              <span className="grow">{evLink(e)}<small className="muted-text">{pre(e) ? `${group.length} × ${num(e.points)}` : reached(e)}</small></span>
+              <span className="rp-pts"><b>{num(group.reduce((sum, x) => sum + x.points, 0))}</b><small className={on ? 'up' : 'muted-text'}>{on ? t('counted') : t('notCounted')}</small></span>
+            </div>
+          );
+        })}</div>
+      )}
+      <h4>{t('expiringSoon')}</h4>
+      {expiring.length > 0 && <p className="hint">{t('expiringHint')}</p>}
+      {expiring.length === 0 ? <p className="hint">{t('noExpiring')}</p> : (
+        <div className="dlist rankpts">{expiring.map((e, i) => (
+          <div key={i} className={`drow${e.counted ? '' : ' muted-row'}`}>
+            <span className="rp-weeks"><b>{e.weeksLeft}</b><small>{t('weeksShortUnit')}</small></span>
+            <span className="grow">{evLink(e.entry)}<small className={e.counted ? 'up' : 'muted-text'}>{e.counted ? t('counted') : t('notCounted')}</small></span>
+            <span className="rp-pts"><b className={e.counted ? 'down' : undefined}>−{num(e.entry.points)}</b></span>
+          </div>
+        ))}</div>
+      )}
+    </div>
   );
 }
 

@@ -9,7 +9,7 @@ import { numLocale, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName as eventNameOf, lookup, saveGame, TIER_GROUPS, TierBadge, tierGroup, useGame } from './game';
 import { formatName } from './Team';
 import { ownPairs, Pairs } from './Pairs';
-import { CommitmentChips, RankChart } from './Ranking';
+import { CommitmentChips, RankChart, RankingDetail } from './Ranking';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
 
@@ -249,7 +249,7 @@ export function TierPrefs({ id }: { id: string }) {
   );
 }
 
-type ProfileTab = 'summary' | 'titles' | 'events' | 'matches' | 'h2h';
+type ProfileTab = 'summary' | 'ranking' | 'titles' | 'events' | 'matches';
 
 /**
  * Profil atlet: kartu identitas (selalu tampil) + sub-tab Ringkasan (statistik, ranking, atribut, cedera),
@@ -360,8 +360,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           {fact(t('fatigue'), <FatigueBar value={p.fatigue} />)}
           {fact(t('status'), p.retired !== undefined ? `${t('retired')} ${p.retired}`
             : p.released !== undefined ? <span className="tag muted-tag">{t('releasedTag', { year: p.released })}</span>
-            : p.injury ? <span className={`badge danger${isBadInjury(p.injury) ? ' strong' : ''}`}>✚ {t('injury')}</span>
-            : <span className="badge good">{t('fit')}</span>)}
+            : <FitStatus ps={[p]} />)}
         </dl>
         {p.injury && <p className={`injury-now${isBadInjury(p.injury) ? ' strong' : ''}`}>✚ {injuryText(p.injury, state.date)}</p>}
         {p.countryId === state.career?.countryId && p.retired === undefined && (
@@ -371,8 +370,8 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         )}
       </section>}
       <nav className="controls">
-        {(['summary', 'titles', 'events', 'matches', 'h2h'] as const).map((x) => (
-          <button key={x} aria-pressed={tab === x} onClick={() => setTab(x)}>{t(({ summary: 'profSummary', titles: 'profTitles', events: 'profEvents', matches: 'profMatches', h2h: pair ? 'h2h' : 'profH2H' } as const)[x])}</button>
+        {(['summary', 'ranking', 'titles', 'events', 'matches'] as const).map((x) => (
+          <button key={x} aria-pressed={tab === x} onClick={() => setTab(x)}>{t(({ summary: 'profSummary', ranking: 'profRanking', titles: 'profTitles', events: 'profEvents', matches: 'profMatches' } as const)[x])}</button>
         ))}
       </nav>
 
@@ -447,6 +446,23 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         </div>
       </>}
 
+      {/* Ranking: satu kartu per nomor (tunggal & tiap pasangan aktif), ditambah ranking junior bila punya poin junior. */}
+      {tab === 'ranking' && (() => {
+        const entrants = pair ? [{ e: pair.id, d: pair.discipline, partner: undefined as string | undefined }]
+          : [...(playsSingles ? [{ e: id, d: singles, partner: undefined as string | undefined }] : []),
+            ...activePairs.map((x) => ({ e: x.id, d: x.discipline, partner: x.playerIds.find((pid) => pid !== id) }))];
+        const now = absWeek(state.date);
+        const hasJunior = (e: string) => (state.juniorResults ?? []).some((r) => r.entrantId === e && r.expiresAbsWeek > now);
+        const cards = entrants.flatMap((x) => [{ ...x, junior: false }, ...(hasJunior(x.e) ? [{ ...x, junior: true }] : [])]);
+        return cards.length === 0 ? <p className="hint">{t('noRankPoints')}</p> : <div className="split">{cards.map((x) => (
+          <section key={`${x.e}${x.junior}`} className="card">
+            <h3><span className="chip">{x.d}{x.junior ? ' Jr' : ''}</span>
+              {x.partner && <> <a href="#" onClick={(ev) => { ev.preventDefault(); onOpen(x.e); }}>+ {lookup(state).players.get(x.partner)?.name}</a></>}</h3>
+            <RankingDetail state={state} ruleset={ruleset} id={x.e} discipline={x.d} junior={x.junior} onOpenEvent={onOpenEvent} />
+          </section>
+        ))}</div>;
+      })()}
+
       {tab === 'titles' && <section className="card">
         <h3>{t('profTitlesAll')} <span className="muted-text">({titleRows.length})</span></h3>
         {titleRows.length === 0 ? <p className="hint">{t('profTitlesNone')}</p> : <>
@@ -492,17 +508,6 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
               ));
             })()}
           </section>
-          <section className="card">
-            <h3>{t('rankHistory')}</h3>
-            {pair && <RankChart history={rankFromSnapshots(state, pair.id, pair.discipline)} />}
-            {playsSingles && <><h4>{singles}</h4><RankChart history={rankFromSnapshots(state, id, singles)} /></>}
-            {activePairs.map((x) => (
-              <div key={x.id}>
-                <h4>{x.discipline}: {entrantLabel(state, x.id).name}</h4>
-                <RankChart history={rankFromSnapshots(state, x.id, x.discipline)} />
-              </div>
-            ))}
-          </section>
         </aside>
       </div>}
 
@@ -514,6 +519,32 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
             </button>
           ))}
         </nav>
+        {/* H2H & partner (sebelumnya sub-tab sendiri): ringkas & bisa dibuka, di atas daftar laga. */}
+        <div className="split">
+          {h2h.length > 0 && <details className="card foldcard">
+            <summary><h3>{t('h2h')} <span className="muted-text">({h2h.length})</span></h3></summary>
+            <table className="fit"><tbody>{h2h.map(({ o, rec }) => (
+              <tr key={o}>
+                <td><a href="#" onClick={(e) => { e.preventDefault(); openOpp(o); }}><Flag id={entrantLabel(state, o).country} />{entrantLabel(state, o).name}</a></td>
+                <td className={`num h2h ${rec[0] > rec[1] ? 'ahead' : rec[0] < rec[1] ? 'behind' : ''}`}>{rec[0]} – {rec[1]}</td>
+              </tr>
+            ))}</tbody></table>
+          </details>}
+          {!pair && pairs.length > 0 && <details className="card foldcard">
+            <summary><h3>{t('profPartners')} <span className="muted-text">({pairs.length})</span></h3></summary>
+            <table className="fit">
+              <thead><tr><th></th><th>{t('partner')}</th><th className="num">{t('chemistry')}</th><th className="num">{t('matchesShort')}</th></tr></thead>
+              <tbody>{[...pairs].reverse().map((x) => (
+              <tr key={x.id} className={x.dissolved ? 'muted-text' : undefined}>
+                <td><a href="#" title={t('pairProfile')} onClick={(e) => { e.preventDefault(); onOpen(x.id); }}><span className="chip">{x.discipline}</span></a></td>
+                <td>{x.playerIds.filter((pid) => pid !== id).map((pid) => <a key={pid} href="#" onClick={(e) => { e.preventDefault(); onOpen(pid); }}>{lookup(state).players.get(pid)?.name}</a>)}
+                  {x.trial && <> <span className="tag">{t('trialPair')}</span></>}{x.dissolved && <> <span className="tag muted-tag">{t('profDissolved')}</span></>}</td>
+                <td className="num" title={t('chemistry')}>{Math.round(x.chemistry)}</td>
+                <td className="num" title={t('matchesTogether')}>{x.matchesTogether}</td>
+              </tr>
+            ))}</tbody></table>
+          </details>}
+        </div>
         {list.length === 0 ? <p className="hint">{t('profNoEvents')}</p> : (
           <div className="mlist">{list.slice(0, shown).map((m) => {
             const i = myIdx(m), opp = m.sides[1 - i];
@@ -534,35 +565,6 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         {list.length > shown && <p><button onClick={() => setShown(shown + 30)}>{t('showMore')} ({list.length - shown})</button></p>}
       </>}
 
-      {tab === 'h2h' && <div className="split">
-        <section className="card">
-          <h3>{t('h2h')}</h3>
-          {h2h.length === 0 ? <p className="hint">{t('profNoEvents')}</p> : (
-            <table className="fit"><tbody>{h2h.map(({ o, rec }) => (
-              <tr key={o}>
-                <td><a href="#" onClick={(e) => { e.preventDefault(); openOpp(o); }}><Flag id={entrantLabel(state, o).country} />{entrantLabel(state, o).name}</a></td>
-                <td className={`num h2h ${rec[0] > rec[1] ? 'ahead' : rec[0] < rec[1] ? 'behind' : ''}`}>{rec[0]} – {rec[1]}</td>
-              </tr>
-            ))}</tbody></table>
-          )}
-        </section>
-        {!pair && <section className="card">
-          <h3>{t('profPartners')}</h3>
-          {pairs.length === 0 ? <p className="hint">—</p> : (
-            <table className="fit">
-              <thead><tr><th></th><th>{t('partner')}</th><th className="num">{t('chemistry')}</th><th className="num">{t('matchesShort')}</th></tr></thead>
-              <tbody>{[...pairs].reverse().map((x) => (
-              <tr key={x.id} className={x.dissolved ? 'muted-text' : undefined}>
-                <td><a href="#" title={t('pairProfile')} onClick={(e) => { e.preventDefault(); onOpen(x.id); }}><span className="chip">{x.discipline}</span></a></td>
-                <td>{x.playerIds.filter((pid) => pid !== id).map((pid) => <a key={pid} href="#" onClick={(e) => { e.preventDefault(); onOpen(pid); }}>{lookup(state).players.get(pid)?.name}</a>)}
-                  {x.trial && <> <span className="tag">{t('trialPair')}</span></>}{x.dissolved && <> <span className="tag muted-tag">{t('profDissolved')}</span></>}</td>
-                <td className="num" title={t('chemistry')}>{Math.round(x.chemistry)}</td>
-                <td className="num" title={t('matchesTogether')}>{x.matchesTogether}</td>
-              </tr>
-            ))}</tbody></table>
-          )}
-        </section>}
-      </div>}
     </section>
   );
 }
