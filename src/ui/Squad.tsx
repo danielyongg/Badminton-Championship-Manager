@@ -38,18 +38,19 @@ function useMatchCounts() {
   }, [version, game]);
 }
 
-/** Status siap main: cedera (detail di keterangan) / lelah (kondisi < 60%) / fit, dengan bulatan kondisi. Pasangan: kondisi atlet terburuk. */
+/** Status siap main: cedera (detail di keterangan) / lelah (kondisi < 55%) / fit, dengan bulatan kondisi. Pasangan: kondisi atlet terburuk. */
 export function FitStatus({ ps }: { ps: Player[] }) {
   const { game } = useGame();
   const hurt = ps.find((x) => x.injury), tired = Math.max(...ps.map((x) => x.fatigue));
   const who = (x: Player) => (ps.length > 1 ? `${x.name}: ` : '');
   const cond = Math.max(0, 100 - tired);
-  // Kondisi (100 − kelelahan): ≥80 hijau, 60–79 hijau muda (Fit); 30–59 kuning, <30 merah (Lelah).
-  const tone = cond >= 80 ? 'good' : cond >= 60 ? 'fair' : cond >= 30 ? 'gold' : 'danger';
+  // Kondisi (100 − kelelahan): ≥80 hijau, 55–79 hijau muda (Fit); 25–54 kuning, <25 merah (Lelah).
+  // Batas Fit 55% = batas istirahat AI (kelelahan > restAbove 45 → istirahat).
+  const tone = cond >= 80 ? 'good' : cond >= 55 ? 'fair' : cond >= 25 ? 'gold' : 'danger';
   return hurt?.injury ? <span className={`badge danger${isBadInjury(hurt.injury) ? ' strong' : ''}`} title={who(hurt) + injuryText(hurt.injury, game.state.date)}>✚ {t('injury')}</span>
     : <span className={`badge ${tone}`} title={`${t('condition')} ${Math.round(cond)}%`}>
         {/* Bulatan = kondisi: penuh saat segar, berkurang seiring lelah. */}
-        <span className="cond" style={{ '--p': `${cond}%` } as CSSProperties} />{t(cond >= 60 ? 'statusFit' : 'statusTired')}
+        <span className="cond" style={{ '--p': `${cond}%` } as CSSProperties} />{t(cond >= 55 ? 'statusFit' : 'statusTired')}
       </span>;
 }
 
