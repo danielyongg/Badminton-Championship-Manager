@@ -110,6 +110,11 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 /* Dua pilihan berdampingan (ranking: jenis & per minggu), juga di HP. */
 .controls.pair { display: grid; grid-template-columns: 1fr 1fr; }
 .controls.pair select { width: 100%; }
+/* Bentuk pasangan: dua pilihan atlet sama lebar (bukan selebar nama terpanjang di daftarnya); tombol & centang mengikuti.
+   HP: tiap pilihan selebar kartu. */
+.controls.formpair { align-items: center; }
+.controls.formpair select, .page .controls.formpair select { flex: 0 1 320px; width: 320px; max-width: 100%; }
+@media (max-width: 700px) { .controls.formpair select, .page .controls.formpair select { flex-basis: 100%; width: 100%; } }
 /* Juara minggu lalu (ranking): blok per turnamen, berdampingan bila layar lebar. */
 .champs { margin-bottom: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
 .champs h4 { margin: 0; }

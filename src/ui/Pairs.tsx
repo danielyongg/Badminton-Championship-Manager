@@ -128,7 +128,7 @@ export function Pairs({ discipline: d, onOpen, juniors = false }: { discipline: 
       )}
       <section className="card">
         <h3>{t('formPair')} {d}</h3>
-        <div className="controls">
+        <div className="controls formpair">
           <select value={a} onChange={(e) => setA(e.target.value)}><option value="">—</option>{athletes(genders[d][0]).map((p) => option(p.id))}</select>
           <select value={b} onChange={(e) => setB(e.target.value)}><option value="">—</option>{athletes(genders[d][1]).map((p) => option(p.id))}</select>
           <button disabled={!a || !b} onClick={() => {
