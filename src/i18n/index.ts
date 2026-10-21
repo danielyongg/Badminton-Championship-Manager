@@ -73,7 +73,7 @@ const id = {
   counted: 'dihitung',
   notCounted: 'di luar 10 terbaik',
   group: 'Grup',
-  wins: 'Menang',
+  wins: 'Menang', beat: 'mengalahkan',
   games: 'Game',
   view: 'Tampilan',
   viewRanking: 'Ranking',

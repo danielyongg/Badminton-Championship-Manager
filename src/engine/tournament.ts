@@ -45,7 +45,7 @@ export async function runEvent(opts: {
   parallel?: boolean;
   /** Dipanggil setelah entry diterima, sebelum undian (menunggu daftar entry semua nomor ditampilkan). */
   onEntries?: (entry: EntryList) => Promise<void>;
-  /** Catatan sementara setelah undian; diisi terus selama turnamen berjalan (bagan gugur saja). */
+  /** Catatan sementara sejak undian; diisi terus selama turnamen berjalan (grup & bagan gugur). */
   onRecord?: (rec: EventRecord) => void;
 }): Promise<EventRun> {
   const { tournament, discipline, ruleset, rng, candidates, parallel } = opts;
@@ -72,14 +72,18 @@ export async function runEvent(opts: {
       .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
     const drawn = groupDraw(all, gs, rng);
     const groups = drawn.groups.map((g) => g.map((e) => e.id));
+    // Catatan sementara: klasemen grup diisi per grup yang selesai, lalu bagan gugur babak demi babak.
+    const rec: EventRecord = { tournamentId: tournament.id, year: opts.year, discipline, entry, qualRounds: [], steps: drawn.steps, slots: [], rounds: [], groups: { groups, standings: [], steps: drawn.steps } };
+    opts.onRecord?.(rec);
     await opts.onDraw?.({ tournamentId: tournament.id, discipline, entrants: all.map((e) => e.id), steps: drawn.steps, groups: gs.groups });
-    const standings = await each(parallel, groups, (g) => playGroup(g, opts.play, parallel));
+    const standings = await each(parallel, groups, async (g, i) => (rec.groups!.standings[i] = await playGroup(g, opts.play, parallel)));
     const field = knockoutFromGroups(standings, gs.advance, rng);
-    const main = await playKnockout(field, opts.play, undefined, parallel);
+    const slots = field.map((id, i) => ({ pos: i + 1, entrant: id ?? undefined, bye: !id }));
+    rec.slots = slots;
+    const main = await playKnockout(field, opts.play, undefined, parallel, rec.rounds);
     standings.forEach((s) => s.forEach((row, place) => {
       if (place >= gs.advance) main.reached.set(row.id, groupEliminatedRound(field.length, place + 1, gs.advance));
     }));
-    const slots = field.map((id, i) => ({ pos: i + 1, entrant: id ?? undefined, bye: !id }));
     return { entry, qualSections: [], qualResults: [], draw: { slots, steps: drawn.steps }, slots, main, groups: { groups, standings, steps: drawn.steps } };
   }
 

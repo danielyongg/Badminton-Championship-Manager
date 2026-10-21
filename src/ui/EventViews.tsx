@@ -77,17 +77,40 @@ export function QualView({ rec, matches, ...who }: ViewProps) {
   ))}</>;
 }
 
-export function GroupView({ rec, ...who }: ViewProps) {
+/** Klasemen grup + hasil laganya. Grup yang belum selesai: klasemen sementara dihitung dari laga yang sudah dimainkan. */
+export function GroupView({ rec, matches, ...who }: ViewProps) {
+  const { groups, standings } = rec.groups!;
   return (
     <div className="groups">
-      {rec.groups!.standings.map((rows, i) => (
-        <table key={i}>
-          <thead><tr><th>{t('group')} {String.fromCharCode(65 + i)}</th><th>{t('wins')}</th><th>±{t('games')}</th><th>±{t('points')}</th></tr></thead>
-          <tbody>{rows.map((r) => (
-            <tr key={r.id}><td><Who id={r.id} {...who} /></td><td className="num">{r.wins}</td><td className="num">{r.gameDiff}</td><td className="num">{r.pointDiff}</td></tr>
-          ))}</tbody>
-        </table>
-      ))}
+      {groups.map((ids, i) => {
+        const games = matches.filter((m) => m.round === 'G' && ids.includes(m.sides[0]) && ids.includes(m.sides[1]));
+        // ponytail: urutan sementara tanpa head-to-head; klasemen final (dengan tiebreak) dari mesin begitu grup selesai.
+        const rows = standings[i] ?? ids.map((id) => {
+          const r = { id, wins: 0, gameDiff: 0, pointDiff: 0 };
+          for (const m of games.filter((x) => x.sides.includes(id))) {
+            const s = m.sides.indexOf(id);
+            if (m.winner === s) r.wins++;
+            for (const g of m.scores) { r.gameDiff += g[s] > g[1 - s] ? 1 : -1; r.pointDiff += g[s] - g[1 - s]; }
+          }
+          return r;
+        }).sort((a, b) => b.wins - a.wins || b.gameDiff - a.gameDiff || b.pointDiff - a.pointDiff);
+        return (
+          <section key={i} className="card group">
+            <table>
+              <thead><tr><th>{t('group')} {String.fromCharCode(65 + i)}</th><th>{t('wins')}</th><th>±{t('games')}</th><th>±{t('points')}</th></tr></thead>
+              <tbody>{rows.map((r) => (
+                <tr key={r.id} className={who.mine?.(r.id) ? 'sel' : undefined}><td><Who id={r.id} {...who} /></td><td className="num">{r.wins}</td><td className="num">{r.gameDiff}</td><td className="num">{r.pointDiff}</td></tr>
+              ))}</tbody>
+            </table>
+            {games.length > 0 && (
+              <ul className="groupgames">{games.map((m) => {
+                const [w, l] = m.winner === 0 ? m.sides : [m.sides[1], m.sides[0]];
+                return <li key={m.id}><Who id={w} {...who} /> <span className="muted">{t('beat')}</span> <Who id={l} {...who} /> · <MatchLink m={m} name={who.name} title={who.eventTitle}>{scoreText(m, w)}</MatchLink></li>;
+              })}</ul>
+            )}
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -139,7 +162,7 @@ export function DrawStepsView({ rec, name, count }: ViewProps & { count?: number
 }
 
 /** Pemenang bagan; kosong selama bagan belum selesai. */
-const winnerOf = (rounds: (string | null)[][]) => (rounds.at(-1)!.length === 1 ? rounds.at(-1)![0] : null);
+const winnerOf = (rounds: (string | null)[][]) => (rounds.at(-1)?.length === 1 ? rounds.at(-1)![0] : null);
 
 /** Bagan utama; kualifikasi (bila ada) ditampilkan di atasnya. Posisi qualifier yang belum terisi bertuliskan "Kualifikasi". */
 export function BracketView({ rec, matches, ...who }: ViewProps) {
@@ -148,6 +171,19 @@ export function BracketView({ rec, matches, ...who }: ViewProps) {
     return s?.seed ? ` [${s.seed}]` : s?.qualifier ? ' [Q]' : s?.wildcard ? ' [WC]' : '';
   };
   const champ = winnerOf(rec.rounds);
+  if (rec.groups) {
+    // Format grup: klasemen & laga grup, lalu bagan gugur (laga grup disaring agar ulangan di babak gugur tidak tertukar skornya).
+    const ko = matches.filter((m) => m.round !== 'G');
+    return (
+      <>
+        {champ && <p><b>{t('champion')}:</b> <Who id={champ} {...who} /></p>}
+        <h4>{t('groupStage')}</h4>
+        <GroupView rec={rec} matches={matches} {...who} />
+        <h4>{t('knockout')}</h4>
+        {rec.rounds.length ? <RoundColumns rounds={rec.rounds} matches={ko} {...who} /> : <p className="muted">{t('knockoutPending')}</p>}
+      </>
+    );
+  }
   return (
     <>
       {champ && <p><b>{t('champion')}:</b> <Who id={champ} {...who} suffix={tag(champ)} /></p>}

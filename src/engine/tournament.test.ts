@@ -3,7 +3,7 @@ import { generateWorld } from './generator';
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
-import { runEvent, simPlay } from './tournament';
+import { runEvent, simPlay, type EventRecord } from './tournament';
 import type { Match } from './types';
 
 it('satu turnamen lengkap: S100 MS (draw 48 + kualifikasi) dan ganda', async () => {
@@ -56,4 +56,25 @@ it.each(['peru-ic', 'vietnam-open'])('GCR 7.11: wildcard grade 3 & Super 100 han
   };
   expect((await run(5)).entry.wildcards).toHaveLength(0); // tuan rumah sudah di bagan utama
   expect((await run(110)).entry.wildcards.map((w) => w.countryId)).toEqual([hostId]);
+});
+
+it('WTF (format grup): catatan sementara sejak undian, klasemen terisi per grup, lalu bagan gugur', async () => {
+  const rs = BWF_2026;
+  const world = generateWorld(makeRng(1), rs.generator, WORLD.countries, { year: 2026, week: 1 });
+  const players = new Map(world.players.map((p) => [p.id, p]));
+  const event = rs.calendar.find((e) => e.tierId === 'WTF')!;
+  const candidates = world.players.filter((p) => p.gender === 'M').slice(0, 8).map((p, i) => ({ id: p.id, countryId: p.countryId, rank: i + 1 }));
+  const rng = makeRng(2);
+  const sim = simPlay({ players, pairs: new Map(), cfg: rs.match, rng, tournamentId: event.id, year: 2026, discipline: 'MS', matches: [] });
+  let rec: EventRecord | undefined;
+  const seen: number[] = [];
+  const play: typeof sim = (a, b, round) => {
+    if (round === 'G') seen.push(rec!.groups!.standings.filter(Boolean).length); else expect(rec!.rounds.length).toBeGreaterThan(0);
+    return sim(a, b, round);
+  };
+  const run = await runEvent({ tournament: event, discipline: 'MS', year: 2026, hostCountryId: 'CHN', candidates, ruleset: rs, rng, play, onRecord: (r) => { rec = r; } });
+  expect(seen[0]).toBe(0); // grup pertama dimainkan: belum ada klasemen final
+  expect(seen.at(-1)).toBe(1); // grup terakhir: grup pertama sudah final
+  expect(rec!.groups!.standings).toEqual(run.groups!.standings);
+  expect(rec!.rounds.at(-1)).toEqual([run.main.rounds.at(-1)![0]]);
 });

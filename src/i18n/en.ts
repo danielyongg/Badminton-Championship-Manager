@@ -73,7 +73,7 @@ export const en: Record<TextKey, string> = {
   counted: 'counted',
   notCounted: 'outside best 10',
   group: 'Group',
-  wins: 'Wins',
+  wins: 'Wins', beat: 'def.',
   games: 'Games',
   view: 'View',
   viewRanking: 'Ranking',

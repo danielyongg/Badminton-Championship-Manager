@@ -148,6 +148,12 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 @media (min-width: 900px) { .split { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
 .groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 12px; }
+/* Kartu grup di halaman turnamen: klasemen + daftar laga ringkas (nama panjang turun baris). */
+.group table { width: 100%; }
+.group td:first-child { white-space: normal; } /* nama panjang turun baris, kolom angka tetap terlihat */
+.groupgames { list-style: none; padding: 0; margin: 8px 0 0; font-size: .85rem; border-top: 1px solid var(--line); }
+.groupgames li { padding: 4px 0; }
+.groupgames a { white-space: nowrap; } /* skor tidak terpatah di tengah "21-15" */
 .dash { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 12px; align-items: start; }
 .dash > * { overflow-x: auto; }
 /* Kartu panjang (hasil turnamen) membentang beberapa baris; kartu pendek mengisi celah di kolom lain. */
