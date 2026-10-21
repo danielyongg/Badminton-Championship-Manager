@@ -4,7 +4,7 @@ import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import type { Pair } from '../engine/types';
 import { t, type TextKey } from '../i18n';
-import { FatigueBar, MoraleTag, RankCell, TierPrefs } from './Squad';
+import { FatigueBar, FitStatus, MoraleTag, RankCell, TierPrefs } from './Squad';
 import { moraleTier } from '../engine/match';
 import { lookup, saveGame, useGame } from './game';
 
@@ -48,17 +48,19 @@ export function Pairs({ discipline: d, onOpen, juniors = false }: { discipline: 
     { d: p.discipline as string, r: ranks.senior[p.discipline].get(p.id) },
     { d: `${p.discipline} Jr`, r: ranks.junior[p.discipline].get(p.id) },
   ].filter((x) => x.r !== undefined).sort((a, b) => a.r! - b.r!);
-  // mHide: disembunyikan di HP (status tampil di bawah nama; usia, laga bersama & kelelahan ada di profil pasangan).
+  // Kolom mengikuti tab tunggal (Nama, Usia, Ability, Potensi→Chemistry, Morale, Kelelahan, Status, BWF rank); mHide = disembunyikan di HP.
+  // Jenis pasangan (percobaan / Development) tampil sebagai tag di bawah nama.
+  const fatigue = (p: Pair) => Math.max(...p.playerIds.map((id) => players.get(id)!.fatigue));
   const COLS: { key: string; label: TextKey; num?: boolean; value: (p: Pair) => string | number; desc?: boolean; mHide?: boolean }[] = [
     { key: 'pair', label: 'pair', value: (p) => p.playerIds.map((id) => players.get(id)!.name).join(' / ') },
-    { key: 'status', label: 'status', value: (p) => (p.trial ? 2 : pratama(p) ? 1 : 0), mHide: true },
-    { key: 'morale', label: 'morale', value: (p) => avg(p, (x) => x.form), desc: true }, // = efek morale sisi ganda di mesin (rata-rata)
+    { key: 'age', label: 'age', num: true, value: (p) => avg(p, (x) => ageAt(x.birth, state.date)) },
     { key: 'ability', label: 'ability', num: true, value: (p) => avg(p, (x) => currentAbility(x.attrs)), desc: true },
     { key: 'chem', label: 'chemistry', num: true, value: (p) => p.chemistry, desc: true },
-    { key: 'rank', label: 'bwfRank', num: true, value: (p) => rankList(p)[0]?.r ?? Infinity },
-    { key: 'age', label: 'age', num: true, value: (p) => avg(p, (x) => ageAt(x.birth, state.date)), mHide: true },
     { key: 'together', label: 'matchesShort', num: true, value: (p) => p.matchesTogether, desc: true, mHide: true },
-    { key: 'fatigue', label: 'fatigue', value: (p) => Math.max(...p.playerIds.map((id) => players.get(id)!.fatigue)), desc: true, mHide: true },
+    { key: 'morale', label: 'morale', value: (p) => avg(p, (x) => x.form), desc: true }, // = efek morale sisi ganda di mesin (rata-rata)
+    { key: 'fatigue', label: 'fatigue', value: fatigue, desc: true, mHide: true },
+    { key: 'status', label: 'status', value: (p) => { const hurt = p.playerIds.map((id) => players.get(id)!.injury?.weeksLeft ?? 0); return Math.max(...hurt) ? 2 + Math.max(...hurt) / 100 : fatigue(p) > ruleset.ai.restAbove ? 1 : 0; }, desc: true },
+    { key: 'rank', label: 'bwfRank', num: true, value: (p) => rankList(p)[0]?.r ?? Infinity },
   ];
   // Morale pasangan: tingkat dari rata-rata morale kedua atlet; keterangan menyebut morale masing-masing.
   const moraleTitle = (p: Pair) => p.playerIds.map((id) => `${players.get(id)!.name}: ${t(`morale_${moraleTier(players.get(id)!.form)}` as TextKey)}`).join(' · ');
@@ -69,10 +71,9 @@ export function Pairs({ discipline: d, onOpen, juniors = false }: { discipline: 
     return (sort.desc ? -r : r) || (rankList(a)[0]?.r ?? Infinity) - (rankList(b)[0]?.r ?? Infinity);
   };
   const list = [...mine].sort(cmp);
-  // Status pasangan; di HP (compact) tag "Main" tidak ditampilkan karena itu status biasa.
-  const status = (p: Pair, compact: boolean) => p.trial ? <span className="tag muted-tag">{t('trialPair')}</span>
-    : pratama(p) ? <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>
-    : compact ? null : <span className="tag">{t('mainPair')}</span>;
+  // Jenis pasangan di bawah nama: hanya yang tidak biasa (percobaan / Development); pasangan utama tanpa tag.
+  const kind = (p: Pair) => p.trial ? <span className="tag muted-tag">{t('trialPair')}</span>
+    : pratama(p) ? <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span> : null;
 
   return (
     <>
@@ -88,16 +89,16 @@ export function Pairs({ discipline: d, onOpen, juniors = false }: { discipline: 
             <tbody>{list.map((p) => (
               <tr key={p.id} onClick={() => onOpen(p.id)} style={{ cursor: 'pointer' }}>{/* baris → profil pasangan, nama → profil atlet */}
                 <td>{p.playerIds.map((id) => (
-                  <a key={id} href="#" className="pname" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpen(id); }}>{players.get(id)!.name}{players.get(id)!.injury ? '\u00a0🩹' : ''}</a>
-                ))}<span className="m-only">{status(p, true)}</span></td>
-                <td className="m-hide">{status(p, false)}</td>
-                <td><MoraleTag value={avg(p, (x) => x.form)} short detail={moraleTitle(p)} /></td>
+                  <a key={id} href="#" className="pname" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpen(id); }}>{players.get(id)!.name}</a>
+                ))}{kind(p)}</td>
+                <td className="num">{Math.round(avg(p, (x) => ageAt(x.birth, state.date)))}</td>
                 <td className="num">{Math.round(avg(p, (x) => currentAbility(x.attrs)))}</td>
                 <td className="num">{Math.round(p.chemistry)}</td>
-                <td className="num"><RankCell ranks={rankList(p)} /></td>
-                <td className="num m-hide">{Math.round(avg(p, (x) => ageAt(x.birth, state.date)))}</td>
                 <td className="num m-hide">{p.matchesTogether}</td>
-                <td className="m-hide"><FatigueBar value={Math.max(...p.playerIds.map((id) => players.get(id)!.fatigue))} /></td>
+                <td><MoraleTag value={avg(p, (x) => x.form)} short detail={moraleTitle(p)} /></td>
+                <td className="m-hide"><FatigueBar value={fatigue(p)} /></td>
+                <td><FitStatus ps={p.playerIds.map((id) => players.get(id)!)} /></td>
+                <td className="num"><RankCell ranks={rankList(p)} /></td>
                 <td onClick={(e) => e.stopPropagation()}>{p.trial ? '—' : <TierPrefs id={p.id} />}</td>
                 <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>
                   {pratama(p) && <button className="mini btn-go" onClick={() => { p.playerIds.forEach((id) => promoteJunior(state, id)); commit(); }}>{t('promote')}</button>}

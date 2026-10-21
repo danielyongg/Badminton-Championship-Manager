@@ -38,6 +38,16 @@ function useMatchCounts() {
   }, [version, game]);
 }
 
+/** Status siap main: cedera (detail di keterangan) / lelah (di atas batas istirahat AI) / fit. Pasangan: kondisi atlet terburuk. */
+export function FitStatus({ ps }: { ps: Player[] }) {
+  const { game } = useGame();
+  const hurt = ps.find((x) => x.injury), tired = Math.max(...ps.map((x) => x.fatigue));
+  const who = (x: Player) => (ps.length > 1 ? `${x.name}: ` : '');
+  return hurt?.injury ? <span className={`badge danger${isBadInjury(hurt.injury) ? ' strong' : ''}`} title={who(hurt) + injuryText(hurt.injury, game.state.date)}>✚ {t('injury')}</span>
+    : tired > game.ruleset.ai.restAbove ? <span className="badge gold" title={`${t('fatigue')} ${Math.round(tired)}`}>◐ {t('statusTired')}</span>
+    : <span className="badge good">● {t('statusFit')}</span>;
+}
+
 export function FatigueBar({ value }: { value: number }) {
   const color = value > 60 ? 'var(--danger)' : value > 35 ? 'var(--gold)' : 'var(--accent)';
   return (
@@ -149,10 +159,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
               <td className="stars">{starText(starsOf(p))}</td>
               <td><MoraleTag value={p.form} short /></td>
               <td className="m-hide"><FatigueBar value={p.fatigue} /></td>
-              <td>{p.injury
-                ? <span className={`badge danger${isBadInjury(p.injury) ? ' strong' : ''}`} title={injuryText(p.injury, state.date)}>✚ {t('injury')}</span>
-                : p.fatigue > ruleset.ai.restAbove ? <span className="badge gold" title={`${t('fatigue')} ${Math.round(p.fatigue)}`}>◐ {t('statusTired')}</span>
-                : <span className="badge good">● {t('statusFit')}</span>}</td>
+              <td><FitStatus ps={[p]} /></td>
               <td className="num"><RankCell ranks={allRanks(p)} /></td>
               <td onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>{released
                 ? <button className="mini" onClick={() => { recallPlayer(state, p.id); commit(); }}>{t('recall')}</button>
