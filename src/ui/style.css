@@ -415,7 +415,7 @@ td.strong { font-weight: 700; }
 .roundlist .rowtoggle { font-size: .75rem; padding: 1px 8px; min-height: 0; white-space: nowrap; }
 @media (max-width: 600px) {
   /* Live drawing grup: dua grup per baris agar semua grup terlihat tanpa banyak menggulir. */
-  .drawlayout .groups { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .drawlayout .groups { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; } /* minmax(0): nama panjang tidak melebarkan kolom melewati layar */
   .drawlayout .groups .card { padding: 6px 8px; }
   .drawlayout .groups ol { padding-left: 1.4em; margin: 4px 0 0; }
   .drawlayout .groups li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
