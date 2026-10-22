@@ -175,7 +175,7 @@ const id = {
   matchesTogether: 'Laga bersama',
   rank: 'Rank',
   matchesPlayed: 'Laga dimainkan', careerStats: 'Statistik karier', perMatch: 'laga', deciderRecord: 'Rubber game (game ke-3)',
-  newsStreakTag: 'Beruntun', newsTitle: 'Berita minggu ini', newsUpset: 'Kejutan', newsStreak: 'juara {n} turnamen beruntun', newsSmash: 'Smash', newsRally: 'Reli', newsRecord: 'Rekor musim', newsFire: '{n} kemenangan minggu ini', unranked: 'tanpa peringkat',
+  newsFirstTag: 'Gelar perdana', newsFirstTitle: 'meraih gelar pertama', newsYoungTag: 'Bintang muda', newsYoungChamp: '({n} th) juara turnamen senior', newsSeedTag: 'Unggulan gugur', newsSeedOut: 'Unggulan 1 tersingkir di {round}', lostTo: 'kalah dari', newsComebackTag: 'Comeback', newsComeback: 'juara setelah kalah di game pertama final', newsHighTag: 'Rekor pribadi', newsCareerHigh: 'naik ke peringkat {n}, tertinggi dalam kariernya', newsStreakTag: 'Beruntun', newsTitle: 'Berita minggu ini', newsUpset: 'Kejutan', newsStreak: 'juara {n} turnamen beruntun', newsSmash: 'Smash', newsRally: 'Reli', newsRecord: 'Rekor musim', newsFire: '{n} kemenangan minggu ini', unranked: 'tanpa peringkat',
   stratTip: 'Saran strategi', useTip: 'Pakai', neverMet: 'belum pernah bertemu', lastMeeting: 'Pertemuan terakhir',
   pts: 'poin', newRank: 'baru masuk', bestMoment: 'Momen terbaik: {name} mengalahkan #{rank} {opp} ({round})',
   entryWeek: 'Minggu',

@@ -765,9 +765,12 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 .controls label.wide select { width: 100%; text-overflow: ellipsis; }
 /* Berita minggu ini: badge jenis berita selebar sama agar kalimat sejajar. */
 .news .drow { align-items: flex-start; }
-.news .drow > .badge { min-width: 5rem; text-align: center; margin-top: 2px; }
+.news .drow > .badge { min-width: 6.4rem; text-align: center; margin-top: 2px; }
 .news .badge.news-upset { background: color-mix(in srgb, var(--series-1) 15%, transparent); color: var(--series-1); }
 .news .badge.news-streak { background: var(--gold-soft); color: var(--gold); }
 .news .badge.news-smash, .news .badge.news-fire { background: var(--danger-soft, rgba(220, 80, 50, .14)); color: var(--danger); }
 .news .badge.news-rally { background: var(--accent-soft); color: var(--accent-strong); }
 .news .grow > small { display: block; }
+.news .badge.news-firstTitle, .news .badge.news-comeback { background: var(--accent-soft); color: var(--accent-strong); }
+.news .badge.news-youngChamp { background: var(--fair-soft); color: var(--fair); }
+.news .badge.news-careerHigh { background: color-mix(in srgb, var(--series-1) 15%, transparent); color: var(--series-1); }

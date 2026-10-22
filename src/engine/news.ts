@@ -1,6 +1,7 @@
+import { ageAt, JUNIOR_MAX_AGE } from './generator';
 import { absWeek, computeRanking, rankMap } from './ranking';
 import { weekOf, type SeasonState } from './season';
-import type { EntrantId, Match, Ruleset } from './types';
+import type { Discipline, EntrantId, Match, Ruleset } from './types';
 
 // Berita mingguan Dashboard: judul singkat dari laga minggu lalu (tanpa data baru di save).
 
@@ -9,10 +10,20 @@ export type NewsItem =
   | { kind: 'streak'; id: EntrantId; n: number; tournamentId: string }
   | { kind: 'smash'; m: Match; id: EntrantId; kmh: number; record: boolean }
   | { kind: 'rally'; m: Match; shots: number; record: boolean }
-  | { kind: 'fire'; id: EntrantId; wins: number };
+  | { kind: 'fire'; id: EntrantId; wins: number }
+  | { kind: 'firstTitle'; id: EntrantId; tournamentId: string; discipline: Discipline }
+  | { kind: 'careerHigh'; id: EntrantId; rank: number; discipline: Discipline }
+  | { kind: 'seedOut'; m: Match; id: EntrantId; opp: EntrantId }
+  | { kind: 'comeback'; m: Match; id: EntrantId }
+  | { kind: 'youngChamp'; id: EntrantId; age: number; tournamentId: string; discipline: Discipline };
 
 /** Kejutan: pemenang ≥ UPSET_GAP peringkat di bawah lawan yang ada di UPSET_TOP besar (ranking senior/junior sebelum minggu itu). */
 const UPSET_TOP = 20, UPSET_GAP = 20;
+/** Urutan tampil (yang lebih jarang/lebih dekat dengan manajer dulu); smash, reli & on fire mengisi sisa tempat. */
+const PRIORITY: NewsItem['kind'][] = ['careerHigh', 'youngChamp', 'firstTitle', 'upset', 'seedOut', 'comeback', 'streak', 'smash', 'rally', 'fire'];
+const MAX_NEWS = 6;
+/** Babak utama sebelum perempat final (unggulan 1 "tersingkir dini"). */
+const EARLY = new Set(['R128', 'R64', 'R32', 'R16']);
 
 export function weeklyNews(state: SeasonState, rs: Ruleset): NewsItem[] {
   const { year, week } = state.date;
@@ -43,6 +54,37 @@ export function weeklyNews(state: SeasonState, rs: Ruleset): NewsItem[] {
   }
   if (upset) items.push(upset);
 
+  // Juara minggu ini (individu): gelar perdana, juara muda di turnamen senior.
+  const weekChamps = state.champions.filter((c) => { const e = defs.get(c.tournamentId); return e && absWeek({ year: c.year, week: weekOf(e, c.year) }) === lastAbs; });
+  const pairOf = new Map(state.pairs.map((p) => [p.id, p]));
+  const playersOf = (id: EntrantId) => pairOf.get(id)?.playerIds ?? [id];
+  const seniorChamps = state.champions.filter((c) => !junior.has(c.tournamentId));
+  // Gelar perdana hanya bila save sudah punya juara musim sebelumnya (awal karier: semua juara tampak "perdana").
+  // ponytail: hanya gelar sejak awal save yang diketahui; atlet/pasangan yang juara sebelum save dimulai tetap bisa muncul.
+  const history = seniorChamps.some((c) => c.year < last.year);
+  for (const c of weekChamps) {
+    if (junior.has(c.tournamentId)) continue;
+    const ps = playersOf(c.winner);
+    const titled = seniorChamps.some((x) => !weekChamps.includes(x) && playersOf(x.winner).some((id) => ps.includes(id)));
+    if (history && !titled) items.push({ kind: 'firstTitle', id: c.winner, tournamentId: c.tournamentId, discipline: c.discipline });
+    const ages = ps.map((id) => state.players.find((p) => p.id === id)).filter((p) => p).map((p) => ageAt(p!.birth, last));
+    if (ages.length && Math.max(...ages) <= JUNIOR_MAX_AGE) items.push({ kind: 'youngChamp', id: c.winner, age: Math.max(...ages), tournamentId: c.tournamentId, discipline: c.discipline });
+  }
+
+  // Unggulan 1 tersingkir sebelum perempat final (babak utama).
+  for (const r of state.eventRecords) {
+    const e = defs.get(r.tournamentId);
+    if (!e || r.year !== last.year || weekOf(e, r.year) !== last.week) continue;
+    const top = r.slots.find((x) => x.seed === 1)?.entrant;
+    const lost = top && thisWeek.find((m) => m.tournamentId === r.tournamentId && m.discipline === r.discipline && m.sides.includes(top)
+      && m.sides[m.winner] !== top && EARLY.has(m.round));
+    if (lost) items.push({ kind: 'seedOut', m: lost, id: top, opp: lost.sides[lost.winner] });
+  }
+
+  // Comeback di final: juara setelah kalah di game pertama.
+  for (const m of thisWeek)
+    if (m.round === 'F' && m.scores.length === 3 && !m.retired && m.scores[0][m.winner] < m.scores[0][1 - m.winner]) items.push({ kind: 'comeback', m, id: m.sides[m.winner] });
+
   // Juara beruntun: gelar minggu ini + gelar di turnamen-turnamen sebelumnya yang diikuti, tanpa putus.
   const won = new Set(state.champions.map((c) => `${c.year}:${c.tournamentId}:${c.winner}`));
   for (const c of state.champions) {
@@ -68,6 +110,18 @@ export function weeklyNews(state: SeasonState, rs: Ruleset): NewsItem[] {
   const rally = thisWeek.reduce<Match | undefined>((b, m) => (longest(m) > (b ? longest(b) : 0) ? m : b), undefined);
   if (rally) items.push({ kind: 'rally', m: rally, shots: longest(rally), record: season.every((m) => longest(m) < longest(rally)) });
 
+  // Peringkat tertinggi karier (negara manajer): minggu pertama di peringkat yang belum pernah dicapai (1–100).
+  const managed = state.career?.countryId;
+  const countryOf = (id: EntrantId) => state.players.find((p) => p.id === playersOf(id)[0])?.countryId;
+  if (managed) for (const [d, byId] of Object.entries(state.rankWeeks ?? {}) as [Discipline, Record<string, { r: number; at: Record<number, number> }>][]) {
+    for (const [id, w] of Object.entries(byId)) {
+      const ranks = Object.keys(w.at).map(Number);
+      const weeks = Object.values(w.at).reduce((a, b) => a + b, 0);
+      if (w.r > 0 && w.at[w.r] === 1 && Math.min(...ranks) === w.r && weeks >= 5 && countryOf(id) === managed)
+        items.push({ kind: 'careerHigh', id, rank: w.r, discipline: d });
+    }
+  }
+
   // On fire: kondisi terbawa tertinggi minggu itu (kemenangan beruntun), selain juara yang sudah diberitakan.
   const hot = state.hotForm?.absWeek === lastAbs ? state.hotForm.by : {};
   const { hotFrom, winBonus, winCap } = rs.match.dayForm;
@@ -75,5 +129,16 @@ export function weeklyNews(state: SeasonState, rs: Ruleset): NewsItem[] {
     .filter(([id, h]) => h.v + Math.min(winCap, h.wins * winBonus) >= hotFrom && !items.some((x) => x.kind === 'streak' && x.id === id))
     .sort((a, b) => b[1].wins - a[1].wins)[0];
   if (fire) items.push({ kind: 'fire', id: fire[0], wins: fire[1].wins });
-  return items;
+
+  // Satu berita per jenis (yang paling menonjol: turnamen tier tertinggi, beruntun terpanjang, peringkat terbaik),
+  // lalu maksimal MAX_NEWS menurut prioritas jenis.
+  const tierRank = (tid: string) => { const i = rs.tiers.findIndex((x) => x.id === defs.get(tid)?.tierId); return i < 0 ? 99 : i; };
+  const weight = (n: NewsItem) =>
+    n.kind === 'careerHigh' ? n.rank
+    : n.kind === 'streak' ? -n.n * 100 + tierRank(n.tournamentId)
+    : 'tournamentId' in n ? tierRank(n.tournamentId)
+    : 'm' in n ? tierRank(n.m.tournamentId) : 0;
+  const best = new Map<NewsItem['kind'], NewsItem>();
+  for (const n of items) { const b = best.get(n.kind); if (!b || weight(n) < weight(b)) best.set(n.kind, n); }
+  return PRIORITY.filter((k) => best.has(k)).map((k) => best.get(k)!).slice(0, MAX_NEWS);
 }

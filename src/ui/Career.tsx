@@ -689,16 +689,22 @@ function NewsCard({ onOpen }: { onOpen: (id: string) => void }) {
     </MatchLink>
   );
   const where = (m: Match) => <small className="muted-text">{eventName(ruleset, m.tournamentId, m.year)} · {m.discipline} {m.round} · {score(m)}</small>;
+  const lastYear = state.date.week > 1 ? state.date.year : state.date.year - 1;
   const record = (on: boolean) => on && <> <span className="badge gold">{t('newsRecord')}</span></>;
   // Tiap berita: badge jenis (lebar tetap, warna per jenis) + kalimat utama + baris keterangan.
   const row = (n: NewsItem): [string, ReactNode, ReactNode] => {
     switch (n.kind) {
       case 'upset': return [t('newsUpset'), <>{who(n.winner)} <span className="muted-text">({n.wr ? `#${n.wr}` : t('unranked')})</span> {t('beat')} {who(n.loser)} <span className="muted-text">(#{n.lr})</span></>, where(n.m)];
       case 'streak': return [t('newsStreakTag'), <>{who(n.id)} {t('newsStreak', { n: n.n })}</>,
-        <small className="muted-text">{eventName(ruleset, n.tournamentId, state.date.week > 1 ? state.date.year : state.date.year - 1)}</small>];
+        <small className="muted-text">{eventName(ruleset, n.tournamentId, lastYear)}</small>];
       case 'smash': return [t('newsSmash'), <><b>{n.kmh} km/h</b> · {who(n.id)}{record(n.record)}</>, where(n.m)];
       case 'rally': return [t('newsRally'), <><b>{n.shots} {t('shotsUnit')}</b> · {who(n.m.sides[0])} vs {who(n.m.sides[1])}{record(n.record)}</>, where(n.m)];
       case 'fire': return [t('onFire'), <>{who(n.id)}</>, <small className="muted-text">{t('newsFire', { n: n.wins })}</small>];
+      case 'firstTitle': return [t('newsFirstTag'), <>{who(n.id)} {t('newsFirstTitle')}</>, <small className="muted-text">{eventName(ruleset, n.tournamentId, lastYear)} · {n.discipline}</small>];
+      case 'youngChamp': return [t('newsYoungTag'), <>{who(n.id)} {t('newsYoungChamp', { n: n.age })}</>, <small className="muted-text">{eventName(ruleset, n.tournamentId, lastYear)} · {n.discipline}</small>];
+      case 'seedOut': return [t('newsSeedTag'), <>{t('newsSeedOut', { round: n.m.round })}: {who(n.id)} {t('lostTo')} {who(n.opp)}</>, where(n.m)];
+      case 'comeback': return [t('newsComebackTag'), <>{who(n.id)} {t('newsComeback')}</>, where(n.m)];
+      case 'careerHigh': return [t('newsHighTag'), <>{who(n.id)} {t('newsCareerHigh', { n: n.rank })}</>, <small className="muted-text">{n.discipline}</small>];
     }
   };
   return (
