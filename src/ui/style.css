@@ -718,3 +718,5 @@ table.fit td.num { white-space: nowrap; }
 .foldcard[open] > summary::after { content: ' ▴'; }
 .tierb.pre { background: var(--line); color: var(--muted); }
 .moment { margin: 2px 0 6px; font-size: .9em; }
+.prematch { border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; margin: 8px 0; font-size: .9em; }
+.prematch p { margin: 4px 0; }

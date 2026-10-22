@@ -297,3 +297,23 @@ export function matchConfigFor(cfg: MatchConfig, year: number): MatchConfig {
     pressure: { ...cfg.pressure, fromScore: n.pressureFrom }, warmup: { ...cfg.warmup, points: n.warmupPoints },
   };
 }
+
+/** Duel kunci tiap strategi (sesuai pola di `patterns`): atribut kita vs atribut lawan yang menahannya. */
+const KEY_DUEL: Record<Exclude<Strategy, 'balanced'>, [Attr, Attr]> = {
+  attacking: ['smash', 'defense'], fast: ['net', 'net'], deceptive: ['deception', 'speed'], defensive: ['consistency', 'consistency'],
+};
+
+/**
+ * Saran strategi pra-laga: duel kunci dengan keunggulan terbesar (atribut dasar rata-rata pasangan, tanpa kondisi hari itu).
+ * ponytail: heuristik sederhana; keunggulan < `min` poin → 'balanced'.
+ */
+export function suggestStrategy(me: Player[], opp: Player[], min = 4): { strategy: Strategy; edge?: { mine: Attr; theirs: Attr; a: number; b: number } } {
+  const avg = (ps: Player[], a: Attr) => Math.round(ps.reduce((s, p) => s + p.attrs[a], 0) / ps.length);
+  let best: { strategy: Strategy; edge?: { mine: Attr; theirs: Attr; a: number; b: number } } = { strategy: 'balanced' };
+  let top = min - 1;
+  for (const [strategy, [mine, theirs]] of Object.entries(KEY_DUEL) as [Strategy, [Attr, Attr]][]) {
+    const a = avg(me, mine), b = avg(opp, theirs);
+    if (a - b > top) { top = a - b; best = { strategy, edge: { mine, theirs, a, b } }; }
+  }
+  return best;
+}

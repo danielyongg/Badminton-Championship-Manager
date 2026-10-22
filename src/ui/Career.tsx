@@ -18,7 +18,7 @@ import { LangSelect } from './LangSelect';
 import { ThemeSelect } from './ThemeSelect';
 import { Flag } from './Flag';
 import { LiveDraw } from './LiveDraw';
-import { LiveMatch } from './LiveMatch';
+import { LiveMatch, PreMatch } from './LiveMatch';
 import { advance, entrantLabel, eventName, teamLabel, JUNIOR_MAX_AGE, lookup, saveGame, useGame, TierBadge } from './game';
 import { SeasonViews } from './Ranking';
 import { injuryText, isBadInjury, Profile, Squad, usd } from './Squad';
@@ -221,6 +221,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
           cfg={matchConfigFor(game.ruleset.match, state.date.year)}
           rng={game.rng}
           title={`${eventName(game.ruleset, live.req.tournamentId, state.date.year)} · ${live.req.discipline} ${live.req.round}`}
+          preview={<PreMatch state={state} ruleset={game.ruleset} req={live.req} mySide={live.mySide} />}
           onDone={(r) => { setLive(undefined); live.resolve(r); }}
           onSkipRound={() => { skipRound.current = true; }}
         />

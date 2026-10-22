@@ -1,9 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
-import { createMatch, matchResult, playRally, type MatchResult, type MatchState, type RallyEvent, type SideInput } from '../engine/match';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createMatch, headToHead, matchResult, playRally, suggestStrategy, type MatchResult, type MatchState, type RallyEvent, type SideInput } from '../engine/match';
 import type { Rng } from '../engine/rng';
-import { STRATEGIES, type MatchConfig, type Strategy } from '../engine/types';
+import { absWeek, computeRanking, rankMap } from '../engine/ranking';
+import type { SeasonState } from '../engine/season';
+import type { LiveRequest } from '../engine/tournament';
+import { STRATEGIES, type MatchConfig, type Ruleset, type Strategy } from '../engine/types';
 import { t, type TextKey } from '../i18n';
 import { Flag } from './Flag';
+import { entrantLabel, eventName } from './game';
+import { MatchLink } from './MatchDetail';
 import { MatchStatsView } from './MatchStats';
 
 const SPEEDS = { slow: 600, normal: 250, fast: 60 } as const;
@@ -12,8 +17,10 @@ const SPEEDS = { slow: 600, normal: 250, fast: 60 } as const;
  * Live Match: rally demi rally. Strategi dipilih sebelum laga, saat interval (11 poin; 8 poin di sistem 3×15), dan antar game.
  * Lawan (AI) memakai strategi 'balanced'.
  */
-export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, onDone, onSkipRound }: {
+export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview, onDone, onSkipRound }: {
   sides: [SideInput, SideInput]; names: [string, string]; ids?: [string, string]; mySide: 0 | 1; cfg: MatchConfig; rng: Rng; title: string;
+  /** Kartu pra-laga (H2H, ranking), tampil sampai reli pertama. */
+  preview?: ReactNode;
   onDone: (r: MatchResult) => void; onSkipRound?: () => void;
 }) {
   const st = useRef<MatchState>(null);
@@ -24,6 +31,7 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, onDone, 
   const [speed, setSpeed] = useState<keyof typeof SPEEDS>('normal');
   const [log, setLog] = useState<{ ev: RallyEvent; score: string }[]>([]);
   const [strategy, setStrategy] = useState<Strategy>('balanced');
+  const [tip] = useState(() => suggestStrategy(sides[mySide].players, sides[1 - mySide].players));
   const [hidden, setHidden] = useState(false);
   const [view, setView] = useState<'log' | 'stats'>('log');
   const hide = () => { setRunning(false); setHidden(true); }; // laga dijeda selama pop-up disembunyikan
@@ -95,6 +103,15 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, onDone, 
           <span className="track"><span className="marker" style={{ left: `${50 + momentum * 50}%` }} /></span>
         </div>
 
+        {m.rallies === 0 && (
+          <div className="prematch">
+            {preview}
+            <p>💡 {t('stratTip')}: <b>{t(`strat_${tip.strategy}` as TextKey)}</b>
+              {tip.edge && <small className="muted-text"> · {t(tip.edge.mine as TextKey)} {tip.edge.a} vs {t(tip.edge.theirs as TextKey)} {tip.edge.b}</small>}
+              {tip.strategy !== strategy && <> <button onClick={() => setStrategy(tip.strategy)}>{t('useTip')}</button></>}
+            </p>
+          </div>
+        )}
         {!done && (
           <div className="controls">
             <label>{t('strategy')}
@@ -143,5 +160,27 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, onDone, 
 
       </div>
     </div>
+  );
+}
+
+/** Isi kartu pra-laga: ranking kedua sisi (junior: ranking junior), rekor H2H & pertemuan terakhir. */
+export function PreMatch({ state, ruleset, req, mySide }: { state: SeasonState; ruleset: Ruleset; req: LiveRequest; mySide: 0 | 1 }) {
+  const [me, opp] = [req.entrants[mySide], req.entrants[1 - mySide]];
+  const tierId = ruleset.calendar.find((e) => e.id === req.tournamentId)?.tierId;
+  const junior = !!ruleset.tiers.find((x) => x.id === tierId)?.junior;
+  const ranks = rankMap(computeRanking(junior ? state.juniorResults : state.results, req.discipline, absWeek(state.date), ruleset));
+  const [w, l] = headToHead(state.matches, me, opp);
+  const lastMeet = state.matches.filter((m) => m.sides.includes(me) && m.sides.includes(opp) && !m.walkover).at(-1);
+  const name = (id: string) => entrantLabel(state, id).name;
+  const i = lastMeet?.sides.indexOf(me) ?? 0;
+  return (
+    <>
+      <p>{t('rank')}: <b>{ranks.get(me) ?? '–'}</b> vs <b>{ranks.get(opp) ?? '–'}</b> · {t('h2h')}: {w + l ? <b>{w}–{l}</b> : t('neverMet')}</p>
+      {lastMeet && (
+        <p>{t('lastMeeting')}: {eventName(ruleset, lastMeet.tournamentId, lastMeet.year)} {lastMeet.year} {lastMeet.round} · {lastMeet.winner === i ? t('wins') : t('lost')}{' '}
+          <MatchLink m={lastMeet} name={name} title={eventName(ruleset, lastMeet.tournamentId, lastMeet.year)}>{lastMeet.scores.map((g) => `${g[i]}-${g[1 - i]}`).join(', ')}</MatchLink>
+        </p>
+      )}
+    </>
   );
 }

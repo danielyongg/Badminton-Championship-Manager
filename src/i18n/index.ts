@@ -171,6 +171,7 @@ const id = {
   formPair: 'Bentuk pasangan baru',
   matchesTogether: 'Laga bersama',
   rank: 'Rank',
+  stratTip: 'Saran strategi', useTip: 'Pakai', neverMet: 'belum pernah bertemu', lastMeeting: 'Pertemuan terakhir',
   pts: 'poin', newRank: 'baru masuk', bestMoment: 'Momen terbaik: {name} mengalahkan #{rank} {opp} ({round})',
   entryWeek: 'Minggu',
   auto: 'Otomatis (AI)',

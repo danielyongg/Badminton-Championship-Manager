@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createMatch, headToHead, matchConfigFor, playRally, simulateMatch, type SideInput } from './match';
+import { createMatch, headToHead, matchConfigFor, playRally, simulateMatch, suggestStrategy, type SideInput } from './match';
 import { BWF_2026 } from './presets/bwf2026';
 import { makeRng } from './rng';
 import { ATTRS, STRATEGIES, type Attrs, type Match, type Player, type Strategy } from './types';
@@ -175,4 +175,13 @@ it('sistem skor 3×15 mulai 2027: game 15 poin, deuce unggul 2, batas 21; 2026 m
       expect(w === 15 && l <= 13 || w > 15 && w <= 21 && (w - l === 2 || w === 21)).toBe(true);
     }
   }
+});
+
+describe('saran strategi pra-laga', () => {
+  it('memilih duel kunci dengan keunggulan terbesar, seimbang bila tipis', () => {
+    expect(suggestStrategy([player(flat(70))], [player(flat(70))]).strategy).toBe('balanced');
+    expect(suggestStrategy([player({ ...flat(70), smash: 85 })], [player({ ...flat(70), defense: 72 })]).strategy).toBe('attacking');
+    const s = suggestStrategy([player({ ...flat(70), deception: 80, smash: 76 })], [player({ ...flat(70), speed: 60 })]);
+    expect(s).toEqual({ strategy: 'deceptive', edge: { mine: 'deception', theirs: 'speed', a: 80, b: 60 } });
+  });
 });
