@@ -303,9 +303,26 @@ export function JuniorEntryTable({ ev }: { ev: TournamentDef }) {
   const quota = tier.junior!.quota;
   const chosen = (d: Discipline) => rows.filter((e) => e.d === d && decisions[e.id] === ev.id).length;
   const bound = boundElsewhere(state, decisions, ev.id);
+  // Saran (tanpa unsur acak, seperti AI turnamen junior): per nomor, atlet/pasangan yang bisa main & tidak lelah diurutkan
+  // ranking junior lalu kemampuan → kuota teratas main, sisanya istirahat. Sisa kuota ganda tetap diisi pasangan otomatis.
+  const suggest = () => {
+    const next = { ...decisions };
+    for (const d of sectors) {
+      const free = rows.filter((e) => e.d === d && !e.playerIds.some((id) => bound.get(id)));
+      const strength = (e: (typeof rows)[number]) => e.playerIds.reduce((sum, id) => sum + currentAbility(players.get(id)!.attrs), 0);
+      const fit = free.filter((e) => e.playerIds.every((id) => { const p = players.get(id)!; return !p.injury && p.fatigue <= ruleset.ai.restAbove; }))
+        .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9) || strength(b) - strength(a));
+      const play = new Set(fit.slice(0, isDoubles(d) ? quota.doubles : quota.singles));
+      for (const e of free) next[e.id] = play.has(e) ? ev.id : 'rest';
+    }
+    state.manualEntries[key] = next;
+    changed();
+    void saveGame(game);
+  };
   return (
     <>
       <p className="hint">{t('juniorEntryHelp', { s: quota.singles, d: quota.doubles })}</p>
+      <p className="controls"><button title={t('suggestionHint')} onClick={suggest}>💡 {t('suggestion')}</button></p>
       <nav className="controls subnav">
         {sectors.map((d) => (
           <button key={d} aria-pressed={d === sector} onClick={() => setSector(d)}>
