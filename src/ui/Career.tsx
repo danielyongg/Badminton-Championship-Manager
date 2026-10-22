@@ -619,9 +619,13 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
                   if (!b) return null;
                   const opp = b.m.sides[1 - b.i];
                   return (
-                    <p className="moment">⭐ {t('bestMoment', { name: entrantLabel(state, b.id).name, rank: b.oppRank, opp: entrantLabel(state, opp).name, round: b.m.round })}{' '}
-                      <MatchLink m={b.m} name={(x) => entrantLabel(state, x).name} title={eventName(ruleset, b.m.tournamentId, b.m.year)}>{b.m.scores.map((g) => `${g[b.i]}-${g[1 - b.i]}`).join(', ')}</MatchLink>
-                    </p>
+                    <div className="drow moment">
+                      <span className="badge gold">{t('bestMomentTag')}</span>
+                      <span className="grow">
+                        <span><a href="#" onClick={(e) => { e.preventDefault(); onOpen(b.id); }}>{entrantLabel(state, b.id).name}</a> {t('beat')} <span className="muted-text">#{b.oppRank}</span> <Flag id={opp} />{entrantLabel(state, opp).name}</span>
+                        <small className="muted-text">{b.m.discipline} {b.m.round} · <MatchLink m={b.m} name={(x) => entrantLabel(state, x).name} title={eventName(ruleset, b.m.tournamentId, b.m.year)}>{b.m.scores.map((g) => `${g[b.i]}-${g[1 - b.i]}`).join(', ')}</MatchLink></small>
+                      </span>
+                    </div>
                   );
                 })()}
                 {list.map(({ id, m, i }) => {
