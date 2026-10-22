@@ -88,6 +88,7 @@ const id = {
   showRetired: 'Tampilkan pensiunan',
   status: 'Status',
   retired: 'Pensiun',
+  attrShowChart: 'Tampilkan di grafik', attrDeltaHint: 'Pencet atribut untuk menampilkannya di grafik. ▲▼ = perubahan sejak akhir musim {y}.',
   now: 'Kini',
   speed: 'Speed',
   stamina: 'Stamina',

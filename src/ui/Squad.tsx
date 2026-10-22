@@ -431,21 +431,8 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           </section>
         </div>
         {careerCard}
-        <AttrChart p={p} date={state.date} />
-        <div className="split">
-          <div className="scroll">
-            <h3>{t('attributes')}</h3>
-            <table>
-              <thead><tr><th></th>{p.attrHistory.map((h) => <th key={h.year}>{h.year}</th>)}<th>{t('now')}</th></tr></thead>
-              <tbody>
-                {ATTRS.map((a) => (
-                  <tr key={a}><td>{t(a)}</td>{p.attrHistory.map((h) => <td className="num" key={h.year}>{Math.round(h.attrs[a])}</td>)}<td className="num"><b>{Math.round(p.attrs[a])}</b></td></tr>
-                ))}
-                <tr><td><b>{t('ability')}</b></td>{p.attrHistory.map((h) => <td className="num" key={h.year}>{currentAbility(h.attrs)}</td>)}<td className="num"><b>{currentAbility(p.attrs)}</b></td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div>
+        <AttrPanel p={p} date={state.date} />
+        <section className="card">
             <h3>{t('injuryHistory')}</h3>
             {!p.injuryHistory?.length ? <p className="hint">{t('injuryHistoryNone')}</p> : (
               <table>
@@ -459,8 +446,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
                 ))}</tbody>
               </table>
             )}
-          </div>
-        </div>
+        </section>
       </>}
 
       {/* Ranking: satu kartu per nomor (tunggal & tiap pasangan aktif), ditambah ranking junior bila punya poin junior. */}
@@ -626,11 +612,46 @@ function PairCard({ pair, rank, onOpen }: { pair: Pair; rank?: number; onOpen: (
 export const usd = (x: number) => `$${Math.round(x).toLocaleString(numLocale())}`;
 
 /**
- * Grafik atribut per usia: Kemampuan (CA) + satu atribut pilihan. Titik = akhir tiap musim (riwayat) + sekarang.
- * Satu sumbu (0–100 dipersempit ke rentang data); tabel atribut di bawahnya sebagai tampilan tabel.
+ * Atribut: grafik per usia + daftar atribut (bar, nilai kini, perubahan sejak akhir musim lalu). Kemampuan (CA) selalu di
+ * grafik; atribut yang dipencet di daftar ditambahkan sebagai garis kedua. Titik = akhir tiap musim (riwayat) + sekarang.
  */
-function AttrChart({ p, date }: { p: Player; date: GameDate }) {
-  const [attr, setAttr] = useState<Attr>('speed');
+function AttrPanel({ p, date }: { p: Player; date: GameDate }) {
+  const [attr, setAttr] = useState<Attr | 'ca'>('ca');
+  // Pembanding ▲▼: akhir musim terakhir; bila belum ada perubahan sejak itu (awal musim), akhir musim sebelumnya.
+  const same = (h?: { attrs: Player['attrs'] }) => !!h && ATTRS.every((a) => Math.round(h.attrs[a]) === Math.round(p.attrs[a]));
+  const base = same(p.attrHistory.at(-1)) && p.attrHistory.length > 1 ? p.attrHistory.at(-2) : p.attrHistory.at(-1);
+  const prev = base?.attrs;
+  const rows: { key: Attr | 'ca'; label: string; now: number; delta?: number }[] = [
+    { key: 'ca', label: t('ability'), now: currentAbility(p.attrs), delta: prev && currentAbility(p.attrs) - currentAbility(prev) },
+    ...ATTRS.map((a) => ({ key: a, label: t(a), now: Math.round(p.attrs[a]), delta: prev && Math.round(p.attrs[a]) - Math.round(prev[a]) })),
+  ];
+  // Grafik butuh ≥ 2 titik (riwayat akhir musim + sekarang di usia berbeda); tanpa grafik daftar memakai lebar penuh.
+  const hasChart = new Set([...p.attrHistory.map((h) => h.year + 1), date.year + (date.week - 1) / 52]).size > 1;
+  return (
+    <section className="card attrpanel">
+      <h3>{t('attributes')}</h3>
+      {!hasChart && <p className="hint">{t('attrChartWait')}</p>}
+      <div className={hasChart ? 'attrgrid' : 'attrlist-only'}>
+        {hasChart && <AttrChart p={p} date={date} attr={attr} />}
+        <div className="attrlist" role="list">
+          {rows.map((r) => (
+            <button key={r.key} role="listitem" className={`attrrow${r.key === 'ca' ? ' ca' : ''}${r.key === attr ? ' sel' : ''}`}
+              aria-pressed={r.key === attr} title={t('attrShowChart')} onClick={() => setAttr(r.key === attr ? 'ca' : r.key)}>
+              <span className="name">{r.label}</span>
+              <span className="meter"><span style={{ width: `${r.now}%` }} /></span>
+              <b className="val">{r.now}</b>
+              <span className="delta">{r.delta ? <span className={r.delta > 0 ? 'up' : 'down'}>{r.delta > 0 ? '▲' : '▼'}{Math.abs(r.delta)}</span> : ''}</span>
+            </button>
+          ))}
+          {prev && hasChart && <p className="hint">{t('attrDeltaHint', { y: base!.year })}</p>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Grafik per usia: Kemampuan + (opsional) satu atribut. Satu sumbu, dipersempit ke rentang data. */
+function AttrChart({ p, date, attr }: { p: Player; date: GameDate; attr: Attr | 'ca' }) {
   // Riwayat tahun Y = kondisi akhir musim Y (usia ±(Y + 1) − tahun lahir); "sekarang" memakai usia pecahan menurut minggu.
   const byAge = new Map<number, Player['attrs']>();
   for (const h of p.attrHistory) byAge.set(h.year + 1 - p.birth.year, h.attrs);
@@ -639,47 +660,50 @@ function AttrChart({ p, date }: { p: Player; date: GameDate }) {
   if (pts.length < 2) return <p className="hint">{t('attrChartWait')}</p>;
   const series = [
     { key: 'ca', label: t('ability'), color: 'var(--series-1)', vals: pts.map(([, a]) => currentAbility(a)) },
-    { key: attr, label: t(attr), color: 'var(--series-2)', vals: pts.map(([, a]) => Math.round(a[attr])) },
+    ...(attr === 'ca' ? [] : [{ key: attr, label: t(attr), color: 'var(--series-2)', vals: pts.map(([, a]) => Math.round(a[attr])) }]),
   ];
   const all = series.flatMap((s) => s.vals);
   const lo = Math.max(0, Math.floor((Math.min(...all) - 5) / 10) * 10), hi = Math.min(100, Math.ceil((Math.max(...all) + 5) / 10) * 10);
-  const W = 360, H = 170, L = 30, R = 56, T = 10, B = 24;
+  const W = 360, H = 200, L = 28, R = 34, T = 12, B = 26;
   const ages = pts.map(([a]) => a);
   const x = (age: number) => L + ((age - ages[0]) / Math.max(1, ages.at(-1)! - ages[0])) * (W - L - R);
   const y = (v: number) => T + ((hi - v) / (hi - lo)) * (H - T - B);
   const ticks = Array.from({ length: (hi - lo) / 10 + 1 }, (_, i) => lo + i * 10);
+  // Label ujung garis tidak boleh bertumpuk: geser saling menjauh bila terlalu dekat.
+  const ly = series.map((s) => y(s.vals.at(-1)!));
+  if (ly.length === 2 && Math.abs(ly[0] - ly[1]) < 14) {
+    const mid = (ly[0] + ly[1]) / 2, up = ly[0] <= ly[1] ? 0 : 1;
+    ly[up] = mid - 7; ly[1 - up] = mid + 7;
+  }
   return (
-    <section>
-      <div className="controls">
-        <h3 style={{ margin: 0 }}>{t('attrChart')}</h3>
+    <div className="attrchart">
+      <div className="legend">
+        <small className="muted-text">{t('attrChart')}</small>
         {series.map((s) => <span key={s.key}><span className="swatch" style={{ background: s.color }} /> {s.label}</span>)}
-        <select value={attr} onChange={(e) => setAttr(e.target.value as Attr)} aria-label={t('attributes')}>
-          {ATTRS.map((a) => <option key={a} value={a}>{t(a)}</option>)}
-        </select>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxWidth: W * 1.6 }} role="img" aria-label={t('attrChart')}>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={t('attrChart')}>
         {ticks.map((v) => (
           <g key={v}>
             <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="var(--line)" strokeWidth="1" />
-            <text x={L - 4} y={y(v) + 3} fontSize="9" textAnchor="end" fill="currentColor" opacity=".7">{v}</text>
+            <text x={L - 5} y={y(v) + 4} fontSize="11" textAnchor="end" fill="currentColor" opacity=".7">{v}</text>
           </g>
         ))}
         {Array.from({ length: Math.floor(ages.at(-1)!) - Math.ceil(ages[0]) + 1 }, (_, i) => Math.ceil(ages[0]) + i).map((a) => (
-          <text key={a} x={x(a)} y={H - 8} fontSize="9" textAnchor="middle" fill="currentColor" opacity=".7">{a}</text>
+          <text key={a} x={x(a)} y={H - 8} fontSize="11" textAnchor="middle" fill="currentColor" opacity=".7">{a}</text>
         ))}
-        <text x={W - R} y={H - 8} fontSize="9" fill="currentColor" opacity=".7" dx="6">{t('yearsShort')}</text>
-        {series.map((s) => (
+        <text x={W - R} y={H - 8} fontSize="11" fill="currentColor" opacity=".7" dx="10">{t('yearsShort')}</text>
+        {series.map((s, k) => (
           <g key={s.key}>
-            <polyline points={s.vals.map((v, i) => `${x(ages[i])},${y(v)}`).join(' ')} fill="none" stroke={s.color} strokeWidth="2" />
+            <polyline points={s.vals.map((v, i) => `${x(ages[i])},${y(v)}`).join(' ')} fill="none" stroke={s.color} strokeWidth="2.5" strokeLinejoin="round" />
             {s.vals.map((v, i) => (
               <circle key={i} cx={x(ages[i])} cy={y(v)} r="4" fill={s.color} stroke="var(--surface)" strokeWidth="2">
                 <title>{`${s.label} · ${Math.floor(ages[i])} ${t('yearsShort')}: ${v}`}</title>
               </circle>
             ))}
-            <text x={x(ages.at(-1)!) + 8} y={y(s.vals.at(-1)!) + 3} fontSize="10" fill="currentColor">{s.label} {s.vals.at(-1)}</text>
+            <text x={x(ages.at(-1)!) + 8} y={ly[k] + 4} fontSize="12" fontWeight="700" fill={s.color}>{s.vals.at(-1)}</text>
           </g>
         ))}
       </svg>
-    </section>
+    </div>
   );
 }

@@ -88,6 +88,7 @@ export const en: Record<TextKey, string> = {
   showRetired: 'Show retired',
   status: 'Status',
   retired: 'Retired',
+  attrShowChart: 'Show on chart', attrDeltaHint: 'Tap an attribute to show it on the chart. ▲▼ = change since end of season {y}.',
   now: 'Now',
   speed: 'Speed',
   stamina: 'Stamina',

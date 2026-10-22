@@ -725,3 +725,24 @@ table.fit td.num { white-space: nowrap; }
 .filebtn:hover { border-color: var(--accent); }
 .filebtn:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
 .sr-only { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+/* Profil: panel atribut (grafik + daftar atribut yang bisa dipencet). Laptop: berdampingan; HP: bertumpuk. */
+.attrgrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px 24px; align-items: start; }
+@media (min-width: 900px) { .attrgrid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
+.attrchart .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; font-size: .85rem; }
+.attrchart svg { display: block; max-width: 640px; }
+.attrlist { display: flex; flex-direction: column; }
+.attrlist .hint { margin: 8px 0 0; }
+.attrrow { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) 2.2rem 2.6rem; align-items: center; gap: 10px; width: 100%;
+  text-align: left; padding: 6px 8px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--fg); }
+button.attrrow[aria-pressed] { color: var(--fg); background: transparent; border-bottom: 1px solid var(--line); border-radius: 0; box-shadow: none; }
+button.attrrow[aria-pressed]:hover:not(:disabled) { background: var(--surface-2, rgba(127,127,127,.08)); border-color: var(--line); }
+button.attrrow[aria-pressed=true] { background: rgba(127,127,127,.12); box-shadow: inset 3px 0 var(--series-2); font-weight: 400; }
+button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); }
+.attrrow.ca .name { font-weight: 700; }
+.attrrow .meter { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.attrrow .meter > span { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
+.attrrow.ca .meter > span { background: var(--series-1); }
+.attrrow .val { text-align: right; font-variant-numeric: tabular-nums; }
+.attrrow .delta { font-size: .8rem; text-align: right; }
+.attrrow .delta .up, .attrrow .delta .down { font-size: inherit; }
+.attrlist-only { max-width: 560px; }
