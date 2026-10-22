@@ -9,6 +9,7 @@ import { formatName, TeamResults, winnerOf } from './Team';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
 import { canEnter, EntryPanel } from './Entries';
+import { weekRunning } from './UpdateBar';
 
 // Halaman turnamen di karier: entry, kualifikasi/grup, undian, bagan untuk tiap nomor (data 2 musim terakhir).
 
@@ -42,6 +43,8 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
   const tier = def && 'tierId' in def ? <TierBadge tierId={def.tierId} /> : <TierBadge team={def ?? {}} />;
   const prize = def && 'prizeUsd' in def && def.prizeUsd ? `$${def.prizeUsd.toLocaleString(numLocale())}` : '';
 
+  // Minggu sedang dimainkan: entry turnamen minggu ini sudah terkunci → form entry tidak ditampilkan lagi.
+  const locked = weekRunning.on && !!def && weekOf(def, year) === state.date.week && year === state.date.year;
   const rec = records.find((r) => r.discipline === d);
   const matches = state.matches.filter((m) => m.tournamentId === id && m.year === year && m.discipline === d);
   const country = city && world.countries.find((c) => c.id === city.countryId);
@@ -71,7 +74,7 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
       {page === 'winners' ? <Winners id={id} year={year} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
       : page === 'history' ? <WinnersHistory id={id} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
       : page === 'participants' ? <Participants id={id} year={year} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
-      : team.length > 0 ? <TeamResults results={team} /> : played.length === 0 ? (canEnter(state, ruleset, world, id, year) ? <EntryPanel id={id} /> : <p>{t('notPlayedYet')}</p>) : (
+      : team.length > 0 ? <TeamResults results={team} /> : played.length === 0 ? (canEnter(state, ruleset, world, id, year) && !locked ? <EntryPanel id={id} /> : <p>{t(locked ? 'inProgressNoResults' : 'notPlayedYet')}</p>) : (
         <>
           {/* Bagian (entry, kualifikasi, undian, bagan) dulu, lalu nomor sebagai sub-tab. */}
           {records.length > 0 && (

@@ -396,6 +396,7 @@ const id = {
   draw_topHalf: 'Paruh atas',
   draw_bottomHalf: 'Paruh bawah',
   notPlayedYet: 'Turnamen ini belum dimainkan musim ini.',
+  inProgressNoResults: 'Turnamen sedang berjalan; entry sudah dikunci. Ikuti jalannya di tab Jadwal — undian & hasil tampil di sini begitu ada.',
   limitedData: 'Turnamen ini dimainkan sebelum catatan undian disimpan, jadi entry, unggulan & bagan lengkap tidak tersedia. Daftar laga per babak:',
   nameMixed: 'Nama di tahun Sudirman Cup',
   yearsShort: 'th',

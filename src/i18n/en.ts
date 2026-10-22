@@ -396,6 +396,7 @@ export const en: Record<TextKey, string> = {
   draw_topHalf: 'Top half',
   draw_bottomHalf: 'Bottom half',
   notPlayedYet: 'This tournament has not been played this season.',
+  inProgressNoResults: 'Tournament in progress; entries are locked. Follow it on the Schedule tab — the draw & results appear here once available.',
   limitedData: 'This tournament was played before draw records were saved, so entries, seeds and the full bracket are unavailable. Matches by round:',
   nameMixed: 'Name in Sudirman Cup years',
   yearsShort: 'y',
