@@ -216,7 +216,7 @@ function Pairs({ data, mode, date, ch, country: initial }: SectionProps) {
           <thead><tr><th>{t('pairs')}</th><th className="num">{t('chemistry')}</th><th></th></tr></thead>
           <tbody>{mine.map((p) => (
             <tr key={p.id}>
-              <td className="ed-names"><span className="chip">{p.discipline}</span>{p.playerIds.map((id) => <span key={id}>{byId.get(id)?.name}</span>)}</td>
+              <td><div className="ed-names"><div>{p.playerIds.map((id) => <span key={id}>{byId.get(id)?.name}</span>)}</div><span className="chip">{p.discipline}</span></div></td>
               <td className="num"><Num o={p} k="chemistry" ch={ch} w={64} round /></td>
               <td className="num">{mode === 'pack' && <button className="mini" aria-label={t('delete')} onClick={() => { removeAt(data.pairs, p); ch(); }}>✕</button>}</td>
             </tr>

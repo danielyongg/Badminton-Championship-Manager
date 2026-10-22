@@ -339,12 +339,12 @@ td.strong { font-weight: 700; }
 .edtable tr.sel td { background: var(--accent-soft); box-shadow: inset 0 -1px var(--accent); }
 .edtable tr.sel td:first-child { font-weight: 700; color: var(--accent-strong); }
 .edtable td input, .edtable td select { padding-top: 4px; padding-bottom: 4px; }
-.ed-names span:not(.chip) { display: block; }
+.ed-names { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ed-names > div > span { display: block; }
 .edtable td.ed-pname { white-space: normal; }
 .ed-pname .chip { margin-left: 4px; font-size: .65rem; }
 .card .scroll table.edtable td:first-child { max-width: none; min-width: 0; } /* nama penuh di tabel Editor (aturan tabel HP umum membatasi 140px) */
-.edtable .ed-names { min-width: 11em !important; }
-.ed-names .chip { float: right; margin-left: 8px; }
+.edtable td:has(> .ed-names) { min-width: 11em; }
 .ed-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .ed-detail-head h3 { margin: 4px 0 10px; font-size: 1.05rem; text-transform: none; letter-spacing: normal; color: var(--fg); }
 .ed-detail-head h3 small { font-size: .72rem; font-weight: 400; margin-left: 4px; }
@@ -360,7 +360,33 @@ td.strong { font-weight: 700; }
 .ed-ab { color: var(--accent-strong); font-size: .9rem; margin-left: 4px; }
 .ed-actions { margin: 14px 0 4px; }
 button.danger { color: var(--danger); border-color: var(--danger); background: var(--surface); }
-.ed-bands { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 24px; margin: 8px 0 12px; }
+.ed-bands { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 12px 24px; margin: 8px 0 16px; }
+/* Editor: daftar baris berlabel (laptop = kolom berjudul; HP = kartu dua kolom dengan label, tanpa geser ke samping). */
+.ed-rhead, .ed-row { display: grid; grid-template-columns: var(--cols); gap: 8px; align-items: center; }
+.ed-rhead { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; padding: 0 0 6px; border-bottom: 1px solid var(--line); }
+.ed-row { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.ed-cell { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ed-cell input, .ed-cell select, .ed-row > input { width: 100%; box-sizing: border-box; min-width: 0; }
+.ed-cell small { font-size: .7rem; }
+.ed-lbl { display: none; font-size: .64rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.ed-act { display: flex; justify-content: flex-end; }
+.ed-code, .ed-round { font-variant-numeric: tabular-nums; }
+@media (max-width: 699px) {
+  .ed-rows:not(.keep) .ed-rhead { display: none; }
+  .ed-rows:not(.keep) .ed-row { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px 10px; padding: 10px 0 12px; position: relative; }
+  .ed-rows:not(.keep) .ed-cell { grid-column: span 3; }
+  .ed-rows:not(.keep) .ed-cell.wide { grid-column: 1 / -1; }
+  .ed-rows:not(.keep) .ed-cell.third { grid-column: span 2; }
+  .ed-rows:not(.keep) .ed-cell.ed-empty { display: none; }
+  .ed-rows:not(.keep) .ed-lbl { display: block; }
+  .ed-rows:not(.keep) .ed-act { position: absolute; top: 6px; right: 0; }
+  .ed-rows:not(.keep) .ed-act:empty { display: none; }
+  .ed-rows:not(.keep) .ed-code { grid-column: 1 / -1; }
+  .ed-rows:not(.keep) .ed-row:has(.ed-act button) .ed-cell.wide:first-of-type { padding-right: 40px; }
+  .ed-rows.keep .ed-rhead { font-size: .6rem; }
+  .ed-rows.keep .ed-rhead, .ed-rows.keep .ed-row { gap: 6px; }
+}
+.ed-tools.json { grid-template-columns: minmax(0, 1fr) auto; }
 .ed-json { width: 100%; box-sizing: border-box; min-height: 320px; font-family: ui-monospace, monospace; font-size: .8rem; line-height: 1.45; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
 /* Statistik laga (MatchStatsView): warna sisi 0/1 (atlet sendiri = aksen), baris nilai · label · nilai + bar perbandingan. */
 .mstats { --c0: var(--series-1); --c1: var(--series-2); font-size: .85rem; }

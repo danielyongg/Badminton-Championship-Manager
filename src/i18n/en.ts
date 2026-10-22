@@ -206,6 +206,7 @@ export const en: Record<TextKey, string> = {
   strat_defensive: 'Defensive',
   strat_fast: 'Fast & Aggressive',
   strat_deceptive: 'Deceptive',
+  newTournament: 'New tournament', newCity: 'New city', addTournament: 'Add tournament', addCity: 'Add city', roundCol: 'Round',
   cannotDeleteHistory: 'This player already has history (matches, points or a team squad), so they cannot be deleted from a running save.',
   weeksAtRank: 'Weeks at #{r}', weeksAtRankRun: 'Streak at #{r}', weeksTotal: 'weeks in total', weeksConsecutive: 'consecutive weeks',
   statDuration: 'Duration', statLongest: 'Longest rally', shotsUnit: 'shots', statFastestSmash: 'Fastest smash', statSectionPoints: 'Points', statServePts: 'Points on serve', statReceivePts: 'Points on receive', statStreak: 'Most consecutive points', statGamePoints: 'Game/match points', statGpSaved: 'Game points saved', statMpSaved: 'Match points saved', statSectionWinners: 'Winners', statServiceWinners: 'Service winners', statWinnersTotal: 'Total winners', statSectionErrors: 'Errors', statUE: 'Unforced errors', statFE: 'Forced errors', statServiceFaults: 'Service faults', statSectionArea: 'Winning area', areaFront: 'Front (net & drop)', areaMid: 'Mid (smash)', areaBack: 'Back (clear/lob)', statRallyLen: 'Rally length', rallyShort: 'Short 1–4', rallyMid: 'Medium 5–9', rallyLong: 'Long 10+', minutesShort: 'min', statsTab: 'Stats', logTab: 'Rallies', statsEstimateHint: 'Duration, rally length & smash speed are simulation estimates.',
