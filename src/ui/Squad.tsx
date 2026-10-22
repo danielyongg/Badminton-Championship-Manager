@@ -2,6 +2,7 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { dissolvePair, potentialStars, promoteJunior, recallPlayer, releasePlayer } from '../engine/career';
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { headToHead, moraleTier, pairAbility } from '../engine/match';
+import { careerStats } from '../engine/careerStats';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { rankFromSnapshots } from '../engine/season';
 import { ATTRS, DISCIPLINES, type Attr, type Discipline, type GameDate, type Pair, type Player } from '../engine/types';
@@ -343,6 +344,21 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
     const g = tierGroup(ruleset.tiers.find((tt) => tt.id === x.tierId), x.team);
     return g === 'g1' || g === 'msg' ? g : x.tierId ?? 'team';
   };
+  const cs = careerStats(state.statArchive, mine, sides);
+  const perMatch = (x: number) => (cs.n ? <small className="muted-text"> · {(x / cs.n).toFixed(1)}/{t('perMatch')}</small> : null);
+  const careerCard = (
+    <section className="card">
+      <h3>{t('careerStats')}</h3>
+      <dl className="facts">
+        {fact(t('matchesPlayed'), mine.length)}
+        {fact(t('statFastestSmash'), cs.kmh ? `${cs.kmh} km/h` : '—')}
+        {fact(t('statWinnersTotal'), <>{cs.winners}{perMatch(cs.winners)}</>)}
+        {fact(t('statUE'), <>{cs.ue}{perMatch(cs.ue)}</>)}
+        {fact(t('statStreak'), cs.streak || '—')}
+        {fact(t('deciderRecord'), cs.decider[0] + cs.decider[1] ? <>{cs.decider[0]}–{cs.decider[1]} <small className="muted-text">({Math.round((100 * cs.decider[0]) / (cs.decider[0] + cs.decider[1]))}%)</small></> : '—')}
+      </dl>
+    </section>
+  );
   const wl = (ms: typeof mine) => { const w = ms.filter(won).length; return `${w}–${ms.length - w}`; };
 
   return (
@@ -375,7 +391,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         ))}
       </nav>
 
-      {tab === 'summary' && pair && <div className="split">
+      {tab === 'summary' && pair && <><div className="split">
         <section className="card">
           <h3>{t('seasonStats')} {year}</h3>
           <dl className="facts">
@@ -389,7 +405,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           <h3>{t('rankHistory')}</h3>
           <RankChart history={rankFromSnapshots(state, pair.id, pair.discipline)} />
         </section>
-      </div>}
+      </div>{careerCard}</>}
       {tab === 'summary' && !pair && <>
         <div className="split">
           <section className="card">
@@ -414,6 +430,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
             </tbody></table>
           </section>
         </div>
+        {careerCard}
         <AttrChart p={p} date={state.date} />
         <div className="split">
           <div className="scroll">

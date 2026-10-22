@@ -4,6 +4,7 @@ import { olympicField } from './olympics';
 import { applySevereInjury, developQuarter, newJuniors, retirementChance, rollInjury } from './development';
 import { applyCountryQuota, type Candidate, type EntryList } from './entry';
 import { ageAt, currentAbility, generateWorld, isJuniorAge, isPratama } from './generator';
+import { archiveStats, type StatAcc } from './careerStats';
 import { absWeek, computeRace, computeRanking, knockoutResults, rankMap } from './ranking';
 import { makeRng, shuffle, type Rng } from './rng';
 import type { Standing } from './groups';
@@ -90,6 +91,8 @@ export interface SeasonState {
   earnings: Record<string, Record<string, number>>;
   /** Catatan turnamen (entry, kualifikasi, undian, bagan) 2 musim terakhir, untuk halaman turnamen. */
   eventRecords: EventRecord[];
+  /** Statistik laga yang sudah dibuang, dijumlahkan per peserta (statistik karier). Save lama: tidak ada. */
+  statArchive?: Record<EntrantId, StatAcc>;
 }
 
 /** Keputusan beregu manajer. Kembalikan Promise untuk menunggu pilihan di UI, atau null untuk otomatis. */
@@ -1009,7 +1012,9 @@ function endYear(state: SeasonState, rs: Ruleset, world: World, rng: Rng) {
     career.reputation = Math.max(0, Math.min(100, career.reputation + report.reputationChange));
   }
   // Hemat ukuran save: statistik detail hanya 2 musim terakhir (skor & H2H tetap), hasil ranking > 2 tahun dibuang.
-  for (const m of state.matches) if (m.year < year - 1) delete m.stats;
+  const dropped = state.matches.filter((m) => m.year < year - 1 && m.stats);
+  archiveStats((state.statArchive ??= {}), dropped); // statistik karier tetap utuh
+  for (const m of dropped) delete m.stats;
   state.eventRecords = state.eventRecords.filter((r) => r.year >= year - 1);
   state.results = state.results.filter((r) => r.expiresAbsWeek > now - 52);
   state.juniorResults = state.juniorResults.filter((r) => r.expiresAbsWeek > now - 52);

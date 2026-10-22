@@ -38,7 +38,7 @@ Prinsip tetap: ringan — menambah kenyamanan/informasi, tanpa sistem manajemen 
 - [x] **2. Ringkasan turnamen atlet sendiri**: kartu setelah turnamen selesai — babak dicapai, poin ranking didapat, ranking naik/turun, momen terbaik (mis. mengalahkan unggulan 1).
 - [x] **3. Berita mingguan** di Dashboard: judul singkat dari data yang ada (kejutan minggu ini, juara beruntun, rekor reli/smash, atlet on fire).
 - [x] **4. Kartu pra-laga di Live Match**: H2H, pertemuan terakhir, ranking, kondisi 🔥, saran strategi singkat dari atribut lawan.
-- [ ] **5. Statistik karier atlet** di profil (dari `Match.stats`): smash tercepat sepanjang karier, total winner, rasio menang di game ketiga, poin beruntun terpanjang. Catatan: `stats` dibuang untuk musim > 2 tahun lalu (`endYear`), jadi statistik karier perlu diakumulasi ke data atlet sebelum dibuang.
+- [x] **5. Statistik karier atlet** di profil (dari `Match.stats`): smash tercepat sepanjang karier, total winner, rasio menang di game ketiga, poin beruntun terpanjang. Catatan: `stats` dibuang untuk musim > 2 tahun lalu (`endYear`), jadi statistik karier perlu diakumulasi ke data atlet sebelum dibuang.
 - Ide lain (belum disetujui): pencapaian (achievements), skenario saat New Game.
 
 ## Tahap akhir — Percantik UI & perbaikan UX (setelah semua fitur selesai)
