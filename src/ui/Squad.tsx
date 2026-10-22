@@ -540,7 +540,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         const sideMatches = mine.filter((m) => m.sides.includes(side));
         const years = [...new Set(sideMatches.filter((m) => v2(m)).map((m) => m.year))].sort((a, b) => b - a);
         const y = statYear !== 'all' && years.includes(statYear) ? statYear : 'all';
-        const scope = (y === 'all' ? sideMatches : sideMatches.filter((m) => m.year === y)).filter((m) => !m.walkover);
+        const scope = y === 'all' ? sideMatches : sideMatches.filter((m) => m.year === y); // walkover ikut rekor (sama dengan tab lain), tanpa statistik
         const tot = statTotals(state.statArchive, scope, side, y === 'all');
         const label = (e: string) => e === id && !pair ? (lookup(state).pairs.get(e)?.discipline ?? singles) : lookup(state).pairs.get(e)?.discipline ?? singles;
         return <>
