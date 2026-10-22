@@ -1,5 +1,5 @@
-import { normal, type Rng } from './rng';
-import { ATTRS, type Attr, type Attrs, type EntrantId, type Match, type MatchConfig, type PatternKind, type Player, type PointType, type Strategy } from './types';
+import { makeRng, normal, type Rng } from './rng';
+import { ATTRS, type Attr, type Attrs, type EntrantId, type Match, type MatchConfig, type MatchStats, type PatternKind, type Player, type PointType, type Strategy, type WinnerShot } from './types';
 
 // Mesin pertandingan berbasis rally. Dibuat sebagai "mesin langkah" (playRally) agar
 // Live Match (Fase 8) bisa memainkan rally satu per satu dan mengubah strategi di interval.
@@ -14,6 +14,7 @@ interface SideState {
   attrs: Attrs; // atribut dasar sisi ini (rata-rata pasangan + form + chemistry)
   energy: number; // 0–100
   strategy: Strategy;
+  male: boolean; // kecepatan smash (tunggal/ganda putra & campuran lebih cepat)
 }
 
 export interface MatchState {
@@ -23,7 +24,9 @@ export interface MatchState {
   server: 0 | 1;
   intervalDone: boolean;
   winner?: 0 | 1;
-  stats: Record<PointType, [number, number]>;
+  stats: MatchStats;
+  run: [0 | 1, number]; // rentetan poin berjalan: [sisi, jumlah]
+  srng: Rng; // acak khusus statistik (panjang reli, kecepatan smash): tidak menggeser urutan acak hasil laga
   rallies: number;
   momentum: number; // −1 (sisi 1 unggul) .. 1 (sisi 0 unggul)
 }
@@ -31,12 +34,14 @@ export interface MatchState {
 export interface RallyEvent {
   winner: 0 | 1;
   type: PointType;
+  shots: number; // panjang reli (pukulan)
+  kmh?: number; // kecepatan smash penentu (bila poin smash)
   interval?: boolean; // baru masuk interval (11 poin; 8 poin di sistem 3×15)
   gameOver?: boolean;
   matchOver?: boolean;
 }
 
-export type MatchResult = Pick<Match, 'scores' | 'winner'> & { stats: Record<PointType, [number, number]> };
+export type MatchResult = Pick<Match, 'scores' | 'winner'> & { stats: MatchStats };
 
 const PHYSICAL: Attr[] = ['speed', 'stamina', 'smash', 'defense'];
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
@@ -64,18 +69,42 @@ function sideAttrs(side: SideInput, cfg: MatchConfig, day = 0): Attrs {
   ) as Attrs;
 }
 
+const pair = (): [number, number] => [0, 0];
+export const emptyStats = (): MatchStats => ({
+  v: 2, win: { smash: pair(), net: pair(), drop: pair(), clear: pair() }, ue: pair(), fe: pair(), sf: pair(), sw: pair(),
+  srv: pair(), srvWon: pair(), streak: pair(), gp: pair(), gps: pair(), mps: pair(), kmh: pair(), longest: 0, rallies: [0, 0, 0], sec: 0,
+});
+
+/**
+ * Panjang reli (pukulan) per pola. ASUMSI (perkiraan siaran BWF): rata-rata ±9 pukulan, reli panjang 10–25.
+ * Kecepatan smash: dasar putra 360 / putri 300 km/jam, +2,5 per poin atribut Smash di atas 70, acak σ 12.
+ */
+const SHOTS: Record<PatternKind, [number, number]> = { smash: [3, 8], net: [3, 7], deception: [4, 8], rally: [10, 16] };
+const smashKmh = (s: SideState, smash: number, rng: Rng) => Math.round(clamp((s.male ? 360 : 300) + (smash - 70) * 2.5 + normal(rng, 0, 12), 200, 480));
+
+/** Sisi yang memegang game point sebelum reli ini (menang reli = menang game), atau tidak ada. */
+function gamePointFor(st: MatchState, cfg: MatchConfig): 0 | 1 | undefined {
+  for (const x of [0, 1] as const) {
+    const a = st.score[x] + 1, b = st.score[1 - x];
+    if ((a >= cfg.pointsToWin && a - b >= 2) || a === cfg.cap) return x;
+  }
+  return undefined;
+}
+
 export function createMatch(sides: [SideInput, SideInput], cfg: MatchConfig, rng: Rng): MatchState {
   const start = (s: SideInput) => clamp(100 - Math.max(...s.players.map((p) => p.fatigue)) * cfg.energy.fatigueToStart, 0, 100);
   return {
     sides: [
-      { attrs: sideAttrs(sides[0], cfg, sides[0].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[0]), strategy: 'balanced' },
-      { attrs: sideAttrs(sides[1], cfg, sides[1].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[1]), strategy: 'balanced' },
+      { attrs: sideAttrs(sides[0], cfg, sides[0].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[0]), strategy: 'balanced', male: sides[0].players.some((p) => p.gender === 'M') },
+      { attrs: sideAttrs(sides[1], cfg, sides[1].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[1]), strategy: 'balanced', male: sides[1].players.some((p) => p.gender === 'M') },
     ],
     games: [],
     score: [0, 0],
     server: rng() < 0.5 ? 0 : 1,
     intervalDone: false,
-    stats: { smash: [0, 0], net: [0, 0], clear: [0, 0], drop: [0, 0], error: [0, 0], service: [0, 0] },
+    stats: emptyStats(),
+    run: [0, 0],
+    srng: makeRng(rng.state() ^ 0x5bd1e995),
     rallies: 0,
     momentum: 0,
   };
@@ -149,6 +178,10 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
   let type: PointType;
   let energyMult = 1;
   let erred: 0 | 1 | undefined;
+  let shots: number;
+  let kmh: number | undefined;
+  const s = st.stats;
+  const gpSide = gamePointFor(st, cfg);
 
   const serveProb = cfg.serviceEvent.base + (100 - eff(st, srv, 'serve', cfg)) * cfg.serviceEvent.perMissingServe;
   if (rng() < serveProb) {
@@ -156,11 +189,14 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
     winner = rng() < 0.2 + (eff(st, srv, 'serve', cfg) / 100) * 0.5 ? srv : rcv;
     type = 'service';
     energyMult = 0.2;
+    if (winner === srv) { s.sw[srv]++; shots = 2; } else { s.sf[srv]++; shots = 1; }
   } else if ((erred = ownError(st, cfg, rng)) !== undefined) {
     // Kesalahan sendiri sebelum pola berkembang: lawan dapat poin.
     winner = (1 - erred) as 0 | 1;
     type = 'error';
     energyMult = 0.5;
+    s.ue[erred]++;
+    shots = 2 + Math.floor(st.srng() * 8);
   } else {
     const p = pickPattern(patterns(st, cfg), rng);
     const x = p.attacker;
@@ -179,15 +215,35 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
     const loser = (1 - winner) as 0 | 1;
     if (rng() < 0.18 + ((100 - eff(st, loser, 'consistency', cfg)) / 100) * 0.3) type = 'error';
     energyMult = p.energyMult * clamp(normal(rng, 1, 0.3), 0.3, 2);
+    if (type === 'error') s.fe[loser]++; else s.win[type as WinnerShot][winner]++;
+    const [lo, n] = SHOTS[p.kind];
+    shots = lo + Math.floor(st.srng() * n);
+    if (p.kind === 'smash') {
+      kmh = smashKmh(st.sides[x], eff(st, x, 'smash', cfg), st.srng);
+      s.kmh[x] = Math.max(s.kmh[x], kmh);
+      if (type !== 'smash') kmh = undefined; // hanya smash penentu yang ditampilkan di log
+    }
   }
 
   spendEnergy(st, energyMult, cfg);
   st.rallies++;
-  st.stats[type][winner]++;
+  // Statistik reli: servis, rentetan poin, game/match point, panjang reli & perkiraan durasi.
+  s.srv[srv]++;
+  if (winner === srv) s.srvWon[srv]++;
+  st.run = st.run[0] === winner ? [winner, st.run[1] + 1] : [winner, 1];
+  s.streak[winner] = Math.max(s.streak[winner], st.run[1]);
+  if (gpSide !== undefined) {
+    s.gp[gpSide]++;
+    const matchPoint = st.games.filter((g) => g[gpSide] > g[1 - gpSide]).length === cfg.gamesToWin - 1;
+    if (winner !== gpSide) (matchPoint ? s.mps : s.gps)[winner]++;
+  }
+  s.longest = Math.max(s.longest, shots);
+  s.rallies[shots <= 4 ? 0 : shots <= 9 ? 1 : 2]++;
+  s.sec += Math.round(shots * 1.2 + 20); // ±1,2 detik per pukulan + jeda antar reli
   st.score[winner]++;
   st.server = winner;
   st.momentum = st.momentum * cfg.momentum.decay + (winner === 0 ? 1 : -1) * (1 - cfg.momentum.decay);
-  const ev: RallyEvent = { winner, type };
+  const ev: RallyEvent = { winner, type, shots, ...(kmh && { kmh }) };
 
   const [a, b] = st.score;
   const w = a > b ? a : b;
@@ -196,6 +252,7 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
     st.score = [0, 0];
     st.intervalDone = false;
     ev.gameOver = true;
+    s.sec += 120; // jeda antar game
     const won = st.games.filter((g) => g[winner] > g[1 - winner]).length;
     if (won === cfg.gamesToWin) {
       st.winner = winner;
@@ -204,6 +261,7 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
   } else if (!st.intervalDone && w === cfg.intervalAt) {
     st.intervalDone = true;
     ev.interval = true;
+    s.sec += 60;
     recover(st, cfg.energy.intervalRecovery);
   }
   return ev;

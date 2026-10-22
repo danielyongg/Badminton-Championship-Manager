@@ -3,10 +3,10 @@ import { LiveMatch } from './LiveMatch';
 import { currentAbility } from '../engine/generator';
 import { headToHead, matchConfigFor, simulateMatch, type MatchResult } from '../engine/match';
 import { makeRng } from '../engine/rng';
-import type { Match, MatchConfig, Player, PointType } from '../engine/types';
+import type { Match, MatchConfig, Player } from '../engine/types';
+import { MatchStatsView } from './MatchStats';
 import { t } from '../i18n';
 
-const TYPES: PointType[] = ['smash', 'net', 'clear', 'drop', 'error', 'service'];
 
 /** Uji coba mesin pertandingan: pilih dua atlet tunggal, simulasikan, lihat skor, statistik & H2H. */
 export function MatchLab({ players, cfg: base }: { players: Player[]; cfg: MatchConfig }) {
@@ -70,10 +70,7 @@ export function MatchLab({ players, cfg: base }: { players: Player[]; cfg: Match
       {last && (
         <>
           <p><b>{t('score')}:</b> {last.scores.map(([x, y]) => `${x}-${y}`).join(', ')} → {(last.winner === 0 ? pa : pb).name}</p>
-          <table style={{ maxWidth: 420 }}>
-            <thead><tr><th>{t('pointType')}</th><th>{pa.name}</th><th>{pb.name}</th></tr></thead>
-            <tbody>{TYPES.map((k) => <tr key={k}><td>{t(k)}</td><td className="num">{last.stats[k][0]}</td><td className="num">{last.stats[k][1]}</td></tr>)}</tbody>
-          </table>
+          <div style={{ maxWidth: 560 }}><MatchStatsView s={last.stats} names={[pa.name, pb.name]} /></div>
           <p><b>{t('h2h')}:</b> {h2h[0]} – {h2h[1]}</p>
         </>
       )}

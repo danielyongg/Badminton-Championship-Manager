@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Match, PointType } from '../engine/types';
+import { MatchStatsView } from './MatchStats';
 import { t } from '../i18n';
 import { Flag } from './Flag';
 
@@ -29,11 +30,13 @@ export function MatchDetail({ m, name, title, onClose }: {
           ))}</tbody>
         </table>
         {(m.walkover || m.retired) && <p className="hint">{m.walkover ? t('walkover') : t('retiredMatch')}</p>}
-        {m.stats ? (
+        {m.stats && 'v' in m.stats ? <div style={{ marginTop: 8 }}><MatchStatsView s={m.stats} names={[name(m.sides[0]), name(m.sides[1])]} /></div>
+        : m.stats ? (
           <table style={{ marginTop: 8 }}>
             <thead><tr><th>{t('pointType')}</th><th className="num">{name(m.sides[0]).split(' ')[0]}</th><th className="num">{name(m.sides[1]).split(' ')[0]}</th></tr></thead>
             <tbody>
-              {TYPES.map((k) => <tr key={k}><td>{t(k)}</td><td className="num">{m.stats![k][0]}</td><td className="num">{m.stats![k][1]}</td></tr>)}
+              {/* Save lama: jumlah poin per jenis (sebelum statistik lengkap). */}
+              {TYPES.map((k) => { const st = m.stats as Record<PointType, [number, number]>; return <tr key={k}><td>{t(k)}</td><td className="num">{st[k][0]}</td><td className="num">{st[k][1]}</td></tr>; })}
               <tr><td><b>{t('totalPoints')}</b></td><td className="num"><b>{total(0)}</b></td><td className="num"><b>{total(1)}</b></td></tr>
             </tbody>
           </table>

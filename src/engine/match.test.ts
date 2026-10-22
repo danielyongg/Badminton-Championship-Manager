@@ -34,9 +34,6 @@ describe('mesin pertandingan', () => {
       }
       const gamesWon = r.scores.filter(([a, b]) => (r.winner === 0 ? a > b : b > a)).length;
       expect(gamesWon).toBe(2);
-      const totalPoints = r.scores.flat().reduce((s, x) => s + x, 0);
-      const statPoints = Object.values(r.stats).flat().reduce((s, x) => s + x, 0);
-      expect(statPoints).toBe(totalPoints);
     }
   });
 
@@ -68,6 +65,29 @@ describe('mesin pertandingan', () => {
     expect(r).toBeGreaterThan(0.6);
   });
 
+  it('statistik laga konsisten: semua poin terhitung, servis, rentetan, panjang reli, durasi', () => {
+    const rng = makeRng(8);
+    for (let i = 0; i < 200; i++) {
+      const r = simulateMatch([side(player(flat(72))), side(player(flat(70), { gender: 'F' }))], cfg, rng);
+      const s = r.stats;
+      const pts = ([0, 1] as const).map((x) => r.scores.reduce((sum, g) => sum + g[x], 0));
+      const total = pts[0] + pts[1];
+      // Tiap poin: winner sisi itu, atau kesalahan (unforced/forced/servis) sisi lawan, atau poin servis.
+      for (const x of [0, 1] as const) {
+        const y = 1 - x;
+        const byWin = s.win.smash[x] + s.win.net[x] + s.win.drop[x] + s.win.clear[x] + s.sw[x];
+        expect(byWin + s.ue[y] + s.fe[y] + s.sf[y]).toBe(pts[x]);
+      }
+      expect(s.srv[0] + s.srv[1]).toBe(total);
+      expect(s.srvWon[0] + s.srvWon[1]).toBeLessThanOrEqual(total);
+      expect(s.rallies[0] + s.rallies[1] + s.rallies[2]).toBe(total);
+      expect(Math.max(...s.streak)).toBeGreaterThanOrEqual(2);
+      expect(s.longest).toBeGreaterThanOrEqual(10);
+      expect(s.sec).toBeGreaterThan(15 * 60);
+      expect(s.gp[r.winner]).toBeGreaterThanOrEqual(2); // minimal satu game point per game yang dimenangkan
+    }
+  });
+
   it('pemain smash tinggi mencetak lebih banyak poin smash', () => {
     const rng = makeRng(3);
     const smasher = side(player({ ...flat(70), smash: 95, net: 55 }));
@@ -75,8 +95,8 @@ describe('mesin pertandingan', () => {
     let smash: [number, number] = [0, 0], net: [number, number] = [0, 0];
     for (let i = 0; i < 300; i++) {
       const s = simulateMatch([smasher, netter], cfg, rng).stats;
-      smash = [smash[0] + s.smash[0], smash[1] + s.smash[1]];
-      net = [net[0] + s.net[0], net[1] + s.net[1]];
+      smash = [smash[0] + s.win.smash[0], smash[1] + s.win.smash[1]];
+      net = [net[0] + s.win.net[0], net[1] + s.win.net[1]];
     }
     expect(smash[0]).toBeGreaterThan(smash[1]);
     expect(net[1]).toBeGreaterThan(net[0]);

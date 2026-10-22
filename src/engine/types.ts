@@ -391,6 +391,32 @@ export interface Draw {
 
 export type PointType = 'smash' | 'net' | 'clear' | 'drop' | 'error' | 'service';
 
+/** Pukulan penentu poin (winner). */
+export const WINNER_SHOTS = ['smash', 'net', 'drop', 'clear'] as const;
+export type WinnerShot = (typeof WINNER_SHOTS)[number];
+type Pair2 = [number, number];
+/** Statistik laga per sisi [sisi 0, sisi 1] (kesalahan dicatat di sisi yang membuatnya). */
+export interface MatchStats {
+  v: 2;
+  win: Record<WinnerShot, Pair2>; // poin dari pukulan penentu (winner)
+  ue: Pair2; // unforced error (salah sendiri)
+  fe: Pair2; // forced error (kalah duel karena tertekan)
+  sf: Pair2; // kesalahan servis
+  sw: Pair2; // poin langsung dari servis
+  srv: Pair2; // reli saat servis
+  srvWon: Pair2; // poin dimenangkan saat servis
+  streak: Pair2; // poin beruntun terbanyak
+  gp: Pair2; // reli saat memegang game/match point
+  gps: Pair2; // game point lawan yang diselamatkan
+  mps: Pair2; // match point lawan yang diselamatkan
+  kmh: Pair2; // smash tercepat (0 = tidak ada smash)
+  longest: number; // reli terpanjang (pukulan)
+  rallies: [number, number, number]; // reli pendek (1–4 pukulan), sedang (5–9), panjang (10+)
+  sec: number; // perkiraan durasi (detik)
+}
+/** Statistik save lama: jumlah poin per jenis untuk pemenang poin. */
+export type LegacyMatchStats = Record<PointType, Pair2>;
+
 export interface Match {
   id: string;
   tournamentId: string;
@@ -402,7 +428,8 @@ export interface Match {
   winner: 0 | 1;
   walkover?: boolean;
   retired?: boolean;
-  stats?: Record<PointType, [number, number]>; // dibuang untuk musim > 2 tahun lalu (hemat ukuran save)
+  /** Statistik laga; dibuang untuk musim > 2 tahun lalu (hemat ukuran save). Save lama: hanya jenis poin (tanpa `v`). */
+  stats?: MatchStats | LegacyMatchStats;
 }
 
 /** Satu hasil turnamen yang memberi poin ranking. */

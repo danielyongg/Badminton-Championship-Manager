@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { createMatch, matchResult, playRally, type MatchResult, type MatchState, type RallyEvent, type SideInput } from '../engine/match';
 import type { Rng } from '../engine/rng';
-import { STRATEGIES, type MatchConfig, type PointType, type Strategy } from '../engine/types';
+import { STRATEGIES, type MatchConfig, type Strategy } from '../engine/types';
 import { t, type TextKey } from '../i18n';
 import { Flag } from './Flag';
+import { MatchStatsView } from './MatchStats';
 
 const SPEEDS = { slow: 600, normal: 250, fast: 60 } as const;
-const TYPES: PointType[] = ['smash', 'net', 'clear', 'drop', 'error', 'service'];
 
 /**
  * Live Match: rally demi rally. Strategi dipilih sebelum laga, saat interval (11 poin; 8 poin di sistem 3×15), dan antar game.
@@ -25,6 +25,7 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, onDone, 
   const [log, setLog] = useState<{ ev: RallyEvent; score: string }[]>([]);
   const [strategy, setStrategy] = useState<Strategy>('balanced');
   const [hidden, setHidden] = useState(false);
+  const [view, setView] = useState<'log' | 'stats'>('log');
   const hide = () => { setRunning(false); setHidden(true); }; // laga dijeda selama pop-up disembunyikan
 
   useEffect(() => {
@@ -126,17 +127,19 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, onDone, 
           </div>
         )}
 
-        <div className="split">
+        <nav className="controls subnav livetabs">
+          <button aria-pressed={view === 'log'} onClick={() => setView('log')}>{t('logTab')}</button>
+          <button aria-pressed={view === 'stats'} onClick={() => setView('stats')}>{t('statsTab')}</button>
+        </nav>
+        {view === 'log' ? (
           <ol className="log">
             {log.map(({ ev, score }, i) => (
-              <li key={i}><b>{score}</b> <span className={`chip${ev.winner === mySide ? '' : ' opp'}`}>{t(ev.type)}</span> {names[ev.winner]}{ev.interval ? ` · ${t('interval')}` : ''}{ev.gameOver ? ` · ${t('gameOver')}` : ''}</li>
+              <li key={i}><b>{score}</b> <span className={`chip${ev.winner === mySide ? '' : ' opp'}`}>{t(ev.type)}</span> {names[ev.winner]}
+                <small className="muted-text">{ev.kmh ? ` · ${ev.kmh} km/h` : ''}{ev.shots >= 15 ? ` · ${ev.shots} ${t('shotsUnit')}` : ''}</small>
+                {ev.interval ? ` · ${t('interval')}` : ''}{ev.gameOver ? ` · ${t('gameOver')}` : ''}</li>
             ))}
           </ol>
-          <table>
-            <thead><tr><th>{t('pointType')}</th><th>{names[0].split(' ')[0]}</th><th>{names[1].split(' ')[0]}</th></tr></thead>
-            <tbody>{TYPES.map((k) => <tr key={k}><td>{t(k)}</td><td className="num">{m.stats[k][0]}</td><td className="num">{m.stats[k][1]}</td></tr>)}</tbody>
-          </table>
-        </div>
+        ) : <MatchStatsView s={m.stats} names={names} mine={mySide} />}
 
       </div>
     </div>

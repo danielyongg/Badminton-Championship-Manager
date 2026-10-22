@@ -315,6 +315,42 @@ td.strong { font-weight: 700; }
 .momentum { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
 .momentum .track { position: relative; flex: 1; max-width: 300px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--danger), var(--line), var(--accent)); }
 .momentum .marker { position: absolute; top: -3px; width: 4px; height: 16px; background: currentColor; transform: translateX(-2px); }
+/* Statistik laga (MatchStatsView): warna sisi 0/1 (atlet sendiri = aksen), baris nilai · label · nilai + bar perbandingan. */
+.mstats { --c0: var(--series-1); --c1: var(--series-2); font-size: .85rem; }
+.mstats.mine-0 { --c0: var(--accent); }
+.mstats.mine-1 { --c1: var(--accent); }
+.mstats .s0 { --c: var(--c0); }
+.mstats .s1 { --c: var(--c1); }
+.ms-head { display: flex; justify-content: space-between; gap: 12px; font-weight: 700; margin: 2px 0 10px; }
+.ms-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.ms-name::before { content: ''; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+.ms-name.s1 { flex-direction: row-reverse; text-align: right; }
+.ms-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 4px; }
+.ms-facts > div { background: var(--bg); border-radius: 6px; padding: 6px 10px; }
+.ms-facts dt { font-size: .66rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.ms-facts dd { margin: 2px 0 0; font-size: 1.2rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.ms-facts small { font-size: .72rem; font-weight: 500; color: var(--muted); }
+.ms-sec { margin-top: 12px; }
+.mstats .ms-sec h4 { margin: 0 0 2px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+.ms-row { display: grid; grid-template-columns: minmax(3em, max-content) 1fr minmax(3em, max-content); align-items: baseline; column-gap: 8px; padding: 5px 0 4px; }
+.ms-row > span { text-align: center; color: var(--muted); font-size: .8rem; }
+.ms-row > b { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ms-row > b:last-of-type { text-align: right; }
+.ms-row > b.lead { font-weight: 800; }
+.ms-row > b.trail { font-weight: 500; color: var(--muted); }
+.ms-row.strong > span { color: var(--fg); font-weight: 700; }
+.ms-bar { grid-column: 1 / -1; display: flex; gap: 2px; height: 5px; margin-top: 4px; border-radius: 3px; overflow: hidden; background: var(--line); }
+.ms-bar i, .ms-dist i { display: block; flex-basis: 0; min-width: 3px; }
+.ms-bar i { background: var(--c); }
+.ms-dist { display: flex; gap: 2px; height: 12px; border-radius: 4px; overflow: hidden; background: var(--line); margin-top: 6px; }
+.mstats .r0 { background: var(--teal); }
+.mstats .r1 { background: var(--blue); }
+.mstats .r2 { background: var(--violet); }
+.ms-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; list-style: none; margin: 6px 0 0; padding: 0; font-size: .78rem; color: var(--muted); }
+.ms-legend li { display: flex; align-items: center; gap: 5px; }
+.ms-legend b { color: var(--fg); }
+.ms-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+.livetabs { margin: 8px 0 4px; }
 .log { font-size: .8rem; margin: 0; padding-left: 0; list-style: none; max-height: 240px; overflow-y: auto; }
 .log li { padding: 3px 0; border-bottom: 1px solid var(--line); }
 .log b { font-variant-numeric: tabular-nums; }

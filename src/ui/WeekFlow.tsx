@@ -9,6 +9,7 @@ import { EntryLists } from './EventViews';
 import type { EntriesShow } from '../engine/tournament';
 import { entrantLabel, eventName, saveGame, useGame, TierBadge } from './game';
 import { formatName } from './Team';
+import { MatchLink } from './MatchDetail';
 
 // Alur minggu turnamen: pilih turnamen yang dimainkan → drawing → babak demi babak (laga negara sendiri live).
 
@@ -94,6 +95,9 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   const seedOf = (key: string, id: string) => state.eventRecords
     .find((r) => r.tournamentId === show.tournamentId && r.year === state.date.year && r.discipline === key)?.slots.find((x) => x.entrant === id)?.seed;
   const seedTag = (key: string, id: string) => { const n = seedOf(key, id); return n ? <> <small className="seed">[{n}]</small></> : null; }; // spasi di luar: unggulan boleh turun baris
+  // Laga individu yang sudah selesai → catatan laga (detail & statistik lewat klik skor).
+  const recordOf = (m: RoundMatch) => state.matches.find((x) => x.tournamentId === show.tournamentId && x.year === state.date.year
+    && x.discipline === m.key && x.round === show.round && x.sides[0] === m.sides[0] && x.sides[1] === m.sides[1]);
   const isMine = (id: string) => label(id).country === managed;
   const mineKeys = new Set(show.matches.filter((m) => m.sides.some(isMine)).map((m) => m.key));
   const [picked, pick] = useState(lastTab);
@@ -145,12 +149,13 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
               ? `${m.result.scores.filter(([x, y]) => x > y).length}–${m.result.scores.filter(([x, y]) => x < y).length}`
               : m.result.scores.map(([x, y], i) => <span key={i} className="game">{x}-{y}</span>); // satu game per baris
             const k = rowKey(m);
+            const rec = score && !team ? recordOf(m) : undefined;
             return (
               <tr key={k} className={[mine && 'mine-row', m === current && 'current'].filter(Boolean).join(' ') || undefined}>
                 <td className={w === 0 ? 'win' : undefined}><Flag id={sides[0].country} />{sides[0].name}{seedTag(m.key, m.sides[0])}</td>
                 <td className="muted-text">vs</td>
                 <td className={w === 1 ? 'win' : undefined}><Flag id={sides[1].country} />{sides[1].name}{seedTag(m.key, m.sides[1])}</td>
-                <td className="num">{score || (m === current ? '…'
+                <td className="num">{rec ? <MatchLink m={rec} name={(x) => label(x).name} title={eventName(ruleset, show.tournamentId, state.date.year)}>{score}</MatchLink> : score || (m === current ? '…'
                   : mine && !done && <button className="rowtoggle" title={t('rowToggleHint')} aria-label={t(skipped.has(k) ? 'rowSkip' : 'rowLive')} onClick={() => toggle(k)}>
                     {/* HP: ikon saja agar muat di kolom skor; teks di layar lebar. */}
                     {skipped.has(k) ? '⏭' : '▶'}<span className="hide-sm"> {t(skipped.has(k) ? 'rowSkip' : 'rowLive')}</span>
