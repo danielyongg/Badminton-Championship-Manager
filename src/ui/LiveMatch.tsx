@@ -114,6 +114,8 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, onDone, 
             {onSkipRound && <button onClick={() => { finish(); onDone(matchResult(m)); onSkipRound(); }}>{t('simRound')}</button>}
           </div>
         )}
+        {/* Pengaruh strategi yang dipilih ke pola permainan & energi atlet (nilai di ruleset.match.strategies). */}
+        {!done && <p className="hint">{t(`stratInfo_${strategy}` as TextKey)}</p>}
         {!running && !done && m.rallies > 0 && <p className="hint">{t('strategyHint')}</p>}
         {/* Hasil & Lanjut tepat di bawah papan skor: langsung terjangkau di HP tanpa menggulir. */}
         {done && (
