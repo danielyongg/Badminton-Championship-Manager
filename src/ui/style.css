@@ -160,7 +160,7 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .groupgames li { padding: 4px 0; }
 .groupgames a { white-space: nowrap; } /* skor tidak terpatah di tengah "21-15" */
 /* Tabel pasangan (Skuad MD/WD/XD): satu nama per baris, tanpa "/" & garis bawah; baris → profil pasangan, nama → profil atlet. */
-.pairtable td:first-child { white-space: normal; min-width: 11em; }
+.pairtable td:first-child { white-space: normal; min-width: 9em; }
 .pairtable .pname { display: block; padding: 3px 0; text-decoration: none; }
 /* Pemisah dua atlet: garis pendek tegas dengan jarak cukup dari nama pertama (nama panjang yang terpatah tetap terbaca sebagai satu atlet). */
 .pairtable td .pname { margin: 0; }
@@ -168,7 +168,6 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .pairtable td .pname + .pname::before { content: ''; position: absolute; top: 0; left: 0; width: 2.5em; border-top: 2px solid var(--muted); opacity: .45; }
 .pairtable .pname:hover { text-decoration: underline; }
 .pairtable td:first-child .tag { margin-top: 2px; }
-.pairtable th { white-space: normal; vertical-align: bottom; } /* judul panjang (Tier priority, BWF rank) turun baris agar kolom aksi tidak terpotong di laptop */
 .dash { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 12px; align-items: start; }
 .dash > * { overflow-x: auto; }
 /* Kartu panjang (hasil turnamen) membentang beberapa baris; kartu pendek mengisi celah di kolom lain. */
@@ -605,6 +604,10 @@ table.fit td.num { white-space: nowrap; }
 .updatebar { position: fixed; top: env(safe-area-inset-top); left: 0; right: 0; z-index: 50; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px; background: var(--gold-soft); color: var(--fg); border-bottom: 1px solid var(--gold); font-size: .9rem; }
 /* Rincian ranking (panel Dunia & tab Ranking profil): baris poin per turnamen & poin kedaluwarsa. */
 .rankdetail h4 { margin: 14px 0 4px; }
+@media (min-width: 1024px) {
+  .rankdetail.wide { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 32px; align-items: start; }
+  .rankdetail.wide > div > h4:first-child { margin-top: 0; }
+}
 .rankpts .drow { align-items: center; }
 .rankpts .tierb { width: var(--tierw); }
 .rankpts .grow > small { display: block; }

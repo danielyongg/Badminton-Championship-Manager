@@ -454,11 +454,12 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         const now = absWeek(state.date);
         const hasJunior = (e: string) => (state.juniorResults ?? []).some((r) => r.entrantId === e && r.expiresAbsWeek > now);
         const cards = entrants.flatMap((x) => [{ ...x, junior: false }, ...(hasJunior(x.e) ? [{ ...x, junior: true }] : [])]);
-        return cards.length === 0 ? <p className="hint">{t('noRankPoints')}</p> : <div className="split">{cards.map((x) => (
+        const wide = cards.length === 1;
+        return cards.length === 0 ? <p className="hint">{t('noRankPoints')}</p> : <div className={wide ? undefined : 'split'}>{cards.map((x) => (
           <section key={`${x.e}${x.junior}`} className="card">
             <h3><span className="chip">{x.d}{x.junior ? ' Jr' : ''}</span>
               {x.partner && <> <a href="#" onClick={(ev) => { ev.preventDefault(); onOpen(x.e); }}>+ {lookup(state).players.get(x.partner)?.name}</a></>}</h3>
-            <RankingDetail state={state} ruleset={ruleset} id={x.e} discipline={x.d} junior={x.junior} onOpenEvent={onOpenEvent} />
+            <RankingDetail state={state} ruleset={ruleset} id={x.e} discipline={x.d} junior={x.junior} onOpenEvent={onOpenEvent} wide={wide} />
           </section>
         ))}</div>;
       })()}
