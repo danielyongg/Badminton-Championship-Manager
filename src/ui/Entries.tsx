@@ -226,10 +226,9 @@ function boundElsewhere(state: SeasonState, decisions: Record<string, string>, e
 
 /**
  * Satu baris entry (senior & junior): nama + status/morale (+ wajib / turnamen lain) · ability · ranking · centang.
- * `ai` = belum diputuskan dan AI yang memilih (label kecil di samping centang).
  */
-function EntryRow({ e, checked, disabled, other, required, ai, onToggle }: {
-  e: EntryEntrant; checked: boolean; disabled: boolean; other?: string; required?: boolean; ai?: boolean; onToggle: (on: boolean) => void;
+function EntryRow({ e, checked, disabled, other, required, onToggle }: {
+  e: EntryEntrant; checked: boolean; disabled: boolean; other?: string; required?: boolean; onToggle: (on: boolean) => void;
 }) {
   const { game } = useGame();
   const { state, ruleset } = game;
@@ -256,7 +255,6 @@ function EntryRow({ e, checked, disabled, other, required, ai, onToggle }: {
       <td className="num">{e.rank ?? '—'}</td>
       <td className="num">
         <label className="entry-check">
-          {ai && <small className="muted-text">AI</small>}
           <input type="checkbox" checked={checked} disabled={disabled} onChange={(x) => onToggle(x.target.checked)} />
         </label>
       </td>
@@ -398,8 +396,6 @@ export function EntryTable({ week: w, eventId, onSubmit }: { week: number; event
   // Multi-event: hanya anggota kontingen (setelah dikunci) yang bisa didaftarkan.
   const eligible = (e: (typeof rows)[number]) => !injured(e) && !elsewhere(e) && inContingent(state, eventId, country, e.playerIds);
   const required = (e: (typeof rows)[number]) => !!state.commitments[e.id]?.includes(eventId);
-  // AI pasti mendaftarkan turnamen wajib; pasangan percobaan & junior pratama tidak pernah didaftarkan AI.
-  const aiMay = (e: (typeof rows)[number]) => !e.trial && !e.playerIds.some((id) => { const x = players.get(id); return x && isPratama(x, state.date); });
   const checked = (e: (typeof rows)[number]) => decisions[e.id] === eventId || (!decisions[e.id] && required(e) && eligible(e));
 
   const sectors = DISCIPLINES.filter((d) => rows.some((e) => e.d === d));
@@ -448,7 +444,7 @@ export function EntryTable({ week: w, eventId, onSubmit }: { week: number; event
           <thead><tr><th>{t('name')}</th><th className="num">{t('ability')}</th><th className="num">{t('rank')}</th><th className="num">{t('enterCol')}</th></tr></thead>
           <tbody>{rows.filter((e) => e.d === sector).map((e) => (
             <EntryRow key={e.id} e={e} checked={checked(e)} disabled={!eligible(e)} other={elsewhere(e)} required={required(e)}
-              ai={!decisions[e.id] && !elsewhere(e) && aiMay(e) && !injured(e)} onToggle={(on) => set(e.id, on ? eventId : 'rest')} />
+              onToggle={(on) => set(e.id, on ? eventId : 'rest')} />
           ))}</tbody>
         </table>
       </div>
