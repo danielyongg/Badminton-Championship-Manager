@@ -410,7 +410,7 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 .log { font-size: .8rem; margin: 0; padding-left: 0; list-style: none; max-height: 240px; overflow-y: auto; }
 .log li { padding: 3px 0; border-bottom: 1px solid var(--line); }
 .log b { font-variant-numeric: tabular-nums; }
-.chip { font-size: .7rem; font-weight: 700; padding: 0 5px; border-radius: 3px; text-transform: uppercase; background: var(--accent-soft); color: var(--accent-strong); }
+.chip { white-space: nowrap; font-size: .7rem; font-weight: 700; padding: 0 5px; border-radius: 3px; text-transform: uppercase; background: var(--accent-soft); color: var(--accent-strong); }
 /* Badge tier: kelompok (kecil) di atas kode (besar), warna per kelompok. */
 .tierb { box-sizing: border-box; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05; padding: 2px 6px; border-radius: 4px; white-space: nowrap; background: var(--accent-soft); color: var(--accent-strong); }
 .tierb small { font-size: .58rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; opacity: .85; }
@@ -757,3 +757,8 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 .h2h-sub { text-align: center; margin: 8px 0 0; }
 .capped { max-width: 760px; }
 .h2h-head, .h2h-sub { max-width: 720px; margin-left: auto; margin-right: auto; }
+/* Split berisi kartu: jarak vertikal (HP) dari margin kartu saja, sama dengan kartu di luar split. */
+.split:has(> .card) { row-gap: 0; }
+/* Pilihan lawan H2H: nama pasangan panjang tidak melewati layar. */
+.controls label.wide { width: 100%; max-width: 480px; }
+.controls label.wide select { width: 100%; text-overflow: ellipsis; }

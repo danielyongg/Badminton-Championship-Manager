@@ -575,7 +575,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         const recOf = (o: string) => { const ms = mine.filter((m) => m.sides.includes(o)); const x = ms.filter(won).length; return `${x}–${ms.length - x}`; };
         return <>
           <div className="controls">
-            <label>{t('h2hOpponent')}
+            <label className="wide">{t('h2hOpponent')}
               <select value={opp} onChange={(e) => setH2hOpp(e.target.value)}>
                 {opps.map((o) => <option key={o} value={o}>{entrantLabel(state, o).name} ({recOf(o)})</option>)}
               </select>
