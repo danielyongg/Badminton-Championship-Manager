@@ -5,7 +5,8 @@ import { adHocId } from './team';
 import { DISCIPLINES, isDoubles, type Discipline, type Pair, type Player, type Ruleset, type TournamentDef, type World } from './types';
 
 // Turnamen junior (U19): peserta dipilih otomatis per negara (maks kuota tier), diurutkan ranking junior lalu kemampuan.
-// Ganda: pasangan junior yang ada (kedua atlet U19), sisanya dipasangkan otomatis (pasangan `junior` + `adHoc`).
+// Ganda: pasangan junior yang ada (kedua atlet U19), sisanya dipasangkan otomatis (pasangan `junior` + `adHoc`) —
+// kecuali negara manajer: ganda juniornya hanya pasangan yang dibentuk manajer (sama seperti senior).
 
 const GENDERS: Record<'MD' | 'WD' | 'XD', ['M' | 'F', 'M' | 'F']> = { MD: ['M', 'M'], WD: ['F', 'F'], XD: ['M', 'F'] };
 
@@ -13,6 +14,7 @@ interface JuniorState {
   players: Player[];
   pairs: Pair[];
   date: { year: number; week: number };
+  managedCountryId?: string | null;
 }
 
 /**
@@ -84,7 +86,8 @@ function juniorPairs(
 ) {
   const players = new Map(state.players.map((p) => [p.id, p]));
   const ok = (id: string) => { const p = players.get(id); return !!p && eligible(p); };
-  const existing = state.pairs.filter((p) => p.discipline === d && !p.dissolved && !p.trial && (!p.adHoc || p.junior)
+  const managed = (p: Pair) => players.get(p.playerIds[0])?.countryId === state.managedCountryId;
+  const existing = state.pairs.filter((p) => p.discipline === d && !p.dissolved && !p.trial && (!p.adHoc || (p.junior && !managed(p)))
     && p.playerIds.every(ok) && free(p.id));
   // Pasangan nyata, dan pasangan junior otomatis yang dipilih manajer untuk turnamen ini.
   const out = existing.filter((p) => !p.junior || forced.has(p.id)).map((p) => ({ id: p.id, countryId: players.get(p.playerIds[0])!.countryId, playerIds: [...p.playerIds] }));
@@ -92,6 +95,7 @@ function juniorPairs(
   const byCountry = new Map<string, Player[]>();
   for (const p of state.players) if (eligible(p) && !used.has(p.id)) byCountry.set(p.countryId, [...(byCountry.get(p.countryId) ?? []), p]);
   for (const [country, pool] of byCountry) {
+    if (country === state.managedCountryId) continue; // negara manajer: tanpa pasangan junior otomatis
     let have = out.filter((e) => e.countryId === country).length;
     const left = pool.sort((a, b) => currentAbility(b.attrs) - currentAbility(a.attrs));
     const [g1, g2] = GENDERS[d];

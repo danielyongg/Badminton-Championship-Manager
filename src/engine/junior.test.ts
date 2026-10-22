@@ -22,6 +22,16 @@ describe('turnamen junior', () => {
     }
   });
 
+  it('negara manajer tanpa pasangan junior otomatis (ganda junior hanya bentukan manajer); negara lain tetap otomatis', async () => {
+    const state = newSeason(WORLD, rs, 21, undefined, 'INA');
+    const rng = makeRng(21);
+    while (state.date.week < 30) await playWeek(state, rs, WORLD, rng);
+    const country = new Map(state.players.map((p) => [p.id, p.countryId]));
+    const auto = state.pairs.filter((p) => p.adHoc && p.junior);
+    expect(auto.some((p) => country.get(p.playerIds[0]) !== 'INA')).toBe(true);
+    expect(auto.filter((p) => country.get(p.playerIds[0]) === 'INA')).toHaveLength(0);
+  });
+
   it('hanya U19, kontinental hanya konfederasinya, tanpa poin senior; ranking junior terbentuk; tidak bentrok dengan turnamen senior', async () => {
     const state = newSeason(WORLD, rs, 21, undefined, 'INA');
     const rng = makeRng(21);

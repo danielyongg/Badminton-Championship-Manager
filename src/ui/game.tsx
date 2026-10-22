@@ -110,6 +110,11 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
   const OLD = { IC: [25, 400], IS: [40, 9999], FS: [60, 9999] } as const;
   if (range) for (const k of ['IC', 'IS', 'FS'] as const)
     if (range[k]?.[0] === OLD[k][0] && range[k]?.[1] === OLD[k][1] && preset.ai.rankRange[k]) range[k] = [...preset.ai.rankRange[k]];
+  // Save sebelum ganda junior negara manajer hanya dari pasangan bentukan manajer: pasangan junior dadakan diakhiri
+  // (riwayat laganya tetap).
+  const own = new Set(blob.state.players.filter((p) => p.countryId === blob.state.managedCountryId).map((p) => p.id));
+  for (const pair of blob.state.pairs)
+    if (pair.adHoc && pair.junior && !pair.dissolved && own.has(pair.playerIds[0])) pair.dissolved = { ...blob.state.date };
   // Save sebelum unforced error menentukan reli: nilai strategi bawaan lama (risiko 0,03/0,03/0,04) diganti hasil
   // kalibrasi baru dari preset (ubahan Editor dibiarkan).
   const strat = blob.ruleset.match?.strategies;
