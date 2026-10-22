@@ -144,7 +144,7 @@ function Players({ data, mode, date, ch, country: initial, canDelete, onDelete }
               <thead><tr><th>{t('name')}</th><th className="num">{t('age')}</th><th className="num">{t('ability')}</th><th className="num">PA</th></tr></thead>
               <tbody>{list.slice(0, 200).map((x) => (
                 <tr key={x.id} className={x.id === sel ? 'sel' : ''} onClick={() => setSel(x.id)}>
-                  <td className="ed-pname">{x.name} <span className="chip">{x.gender}</span></td><td className="num">{ageAt(x.birth, date)}</td>
+                  <td className="ed-pname"><span className="ed-pn"><span>{x.name}</span><span className="chip">{x.gender}</span></span></td><td className="num">{ageAt(x.birth, date)}</td>
                   <td className="num"><b>{currentAbility(x.attrs)}</b></td><td className="num muted-text">{x.pa}</td>
                 </tr>
               ))}</tbody>

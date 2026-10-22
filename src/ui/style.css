@@ -801,3 +801,5 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 .pstats .w3 { background: var(--w3); } .pstats .w4 { background: var(--w4); }
 .pstats .r0 { background: var(--teal); } .pstats .r1 { background: var(--blue); } .pstats .r2 { background: var(--violet); }
 .ps-legend li span { color: var(--muted); }
+/* Editor → atlet: chip gender tetap di samping nama (nama panjang turun baris sendiri). */
+.ed-pn { display: inline-flex; align-items: baseline; gap: 2px; }
