@@ -355,7 +355,6 @@ td.strong { font-weight: 700; }
 .ed-form label.wide { grid-column: 1 / -1; }
 @media (min-width: 600px) { .ed-form label.wide { grid-column: span 2; } }
 .ed-form input, .ed-form select { width: 100%; box-sizing: border-box; font-size: .95rem; text-transform: none; letter-spacing: normal; color: var(--fg); }
-.ed-pair { display: grid; grid-template-columns: 3fr 2fr; gap: 6px; }
 .ed-detail h4, .ed-list h4 { margin-top: 14px; }
 .ed-ab { color: var(--accent-strong); font-size: .9rem; margin-left: 4px; }
 .ed-actions { margin: 14px 0 4px; }

@@ -163,7 +163,8 @@ function Players({ data, mode, date, ch, country: initial, canDelete, onDelete }
             <label>{t('country')}<Sel o={p} k="countryId" ch={ch} options={countryOptions(data.world)} disabled={locked} /></label>
             <label>{t('gender')}<Sel o={p} k="gender" ch={ch} options={[['M', t('men')], ['F', t('women')]]} disabled={locked} /></label>
             <label>{t('hand')}<Sel o={p} k="hand" ch={ch} options={[['R', t('handR')], ['L', t('handL')]]} /></label>
-            <label>{t('born')}<span className="ed-pair"><Num o={p.birth} k="year" ch={ch} w={0} /><Num o={p.birth} k="week" ch={ch} w={0} /></span></label>
+            <label>{t('born')}<Num o={p.birth} k="year" ch={ch} w={0} /></label>
+            <label title={t('birthWeekHint')}>{t('birthWeek')}<Num o={p.birth} k="week" ch={ch} w={0} /></label>
             <label>{t('potential')} (PA)<Num o={p} k="pa" ch={ch} w={0} /></label>
             <label>{t('trait')}<Sel o={p} k="trait" ch={ch} options={[['', '—'], ['late', t('traitLate')], ['stagnant', t('traitStagnant')]]} /></label>
           </div>
