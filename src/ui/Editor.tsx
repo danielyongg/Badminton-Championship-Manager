@@ -15,7 +15,11 @@ import { Calendar, Countries, Cities, RulesetForm, Tiers } from './EditorData';
 export interface EditData { ruleset: Ruleset; world: World; players: Player[]; pairs: Pair[] }
 /** 'save' = save berjalan: tidak ada penghapusan, negara/gender atlet tidak bisa diubah (riwayat tetap utuh). */
 export type EditMode = 'pack' | 'save';
-export interface SectionProps { data: EditData; mode: EditMode; date: GameDate; ch: () => void; country?: string }
+/** `canDelete` / `onDelete` (save berjalan): atlet tanpa riwayat boleh dihapus; pemilik data membersihkan referensinya. */
+export interface SectionProps {
+  data: EditData; mode: EditMode; date: GameDate; ch: () => void; country?: string;
+  canDelete?: (p: Player) => boolean; onDelete?: (p: Player, pairIds: string[]) => void;
+}
 
 type Obj = Record<string | number, unknown>;
 type Cell = { o: object; k: string | number; ch: () => void; w?: number; disabled?: boolean };
@@ -54,14 +58,14 @@ export const removeAt = <T,>(arr: T[], item: T) => arr.splice(arr.indexOf(item),
 const SECTIONS = ['players', 'pairs', 'calendar', 'tiers', 'cities', 'countries', 'rules'] as const;
 type Section = (typeof SECTIONS)[number];
 
-export function Editor({ data, mode, date, onChange, toolbar, country }: {
+export function Editor({ data, mode, date, onChange, toolbar, country, canDelete, onDelete }: {
   data: EditData; mode: EditMode; date: GameDate; onChange: () => void; toolbar?: ReactNode; country?: string;
-}) {
+} & Pick<SectionProps, 'canDelete' | 'onDelete'>) {
   const [section, setSection] = useState<Section>('players');
   const [, bump] = useState(0);
   const ch = () => { bump((x) => x + 1); onChange(); };
   const errors = validatePack(data);
-  const props = { data, mode, date, ch, country };
+  const props = { data, mode, date, ch, country, canDelete, onDelete };
   return (
     <>
       {/* Kepala: bagian sebagai sub-tab, status validasi + catatan + tombol (ekspor / kembali) dalam satu baris. */}
@@ -88,7 +92,7 @@ export function Editor({ data, mode, date, onChange, toolbar, country }: {
 // Pilihan: nama data mengikuti bahasa tampilan (isian nama di tabel Negara/Kota tetap nama asli data).
 const countryOptions = (w: World): [string, string][] => w.countries.map((c) => [c.id, `${c.id} — ${dataName(c.name)}`]);
 
-function Players({ data, mode, date, ch, country: initial }: SectionProps) {
+function Players({ data, mode, date, ch, country: initial, canDelete, onDelete }: SectionProps) {
   const [country, setCountry] = useState(initial ?? data.world.countries[0]?.id ?? '');
   const [q, setQ] = useState('');
   const [sel, setSel] = useState<string>();
@@ -108,8 +112,10 @@ function Players({ data, mode, date, ch, country: initial }: SectionProps) {
   };
   const remove = (x: Player) => {
     if (!confirm(t('confirmDeletePlayer'))) return;
-    for (const pair of data.pairs.filter((pr) => pr.playerIds.includes(x.id))) removeAt(data.pairs, pair);
+    const pairs = data.pairs.filter((pr) => pr.playerIds.includes(x.id));
+    for (const pair of pairs) removeAt(data.pairs, pair);
     removeAt(data.players, x);
+    onDelete?.(x, pairs.map((pr) => pr.id));
     setSel(undefined);
     ch();
   };
@@ -165,7 +171,9 @@ function Players({ data, mode, date, ch, country: initial }: SectionProps) {
           <div className="ed-form attrs">
             {ATTRS.map((a) => <label key={a}>{t(a)}<Num o={p.attrs} k={a} ch={ch} w={0} round /></label>)}
           </div>
-          {!locked && <p className="controls ed-actions"><button className="danger" onClick={() => remove(p)}>{t('delete')}</button></p>}
+          {/* Save berjalan: hanya atlet tanpa riwayat (belum pernah main) yang bisa dihapus. */}
+          {(!locked || canDelete?.(p)) ? <p className="controls ed-actions"><button className="danger" onClick={() => remove(p)}>{t('delete')}</button></p>
+            : <p className="hint ed-actions">{t('cannotDeleteHistory')}</p>}
         </section>
       )}
     </div>

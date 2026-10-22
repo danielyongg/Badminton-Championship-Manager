@@ -947,6 +947,30 @@ function updateRankWeeks(state: SeasonState, rs: Ruleset) {
   }
 }
 
+/** Id atlet & semua pasangannya (peserta yang mungkin tercatat di riwayat). */
+const entrantIdsOf = (state: SeasonState, playerId: string) => new Set([playerId, ...state.pairs.filter((p) => p.playerIds.includes(playerId)).map((p) => p.id)]);
+
+/**
+ * Atlet sudah punya riwayat (laga, poin ranking, skuad/line-up beregu): tidak boleh dihapus dari save berjalan agar
+ * riwayat tetap utuh. Atlet baru (mis. dibuat di Editor) yang belum pernah main boleh dihapus.
+ */
+export function hasHistory(state: SeasonState, playerId: string) {
+  const ids = entrantIdsOf(state, playerId);
+  return state.matches.some((m) => m.sides.some((s) => ids.has(s)))
+    || [...state.results, ...(state.juniorResults ?? [])].some((r) => ids.has(r.entrantId))
+    || JSON.stringify([state.teamSquads, state.teamLineups, state.teamResults]).includes(`"${playerId}"`);
+}
+
+/** Bersihkan referensi atlet (dan pasangannya) yang dihapus dari pilihan entry, kewajiban, prioritas tier & pengalaman. */
+export function forgetPlayer(state: SeasonState, playerId: string, pairIds: string[]) {
+  for (const id of [playerId, ...pairIds]) {
+    for (const week of Object.values(state.manualEntries)) delete week[id];
+    delete state.commitments[id];
+    delete state.tierPrefs?.[id];
+    delete state.experience[id];
+  }
+}
+
 export function rankFromSnapshots(state: SeasonState, entrantId: string, d: Discipline) {
   return state.rankSnapshots.filter((s) => s.discipline === d).map((s) => {
     const i = s.ids.indexOf(entrantId);

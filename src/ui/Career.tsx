@@ -4,7 +4,7 @@ import { matchConfigFor, simulateMatch, type MatchResult } from '../engine/match
 import type { DrawHook, DrawShow, EntriesHook, EntriesShow, LiveHook, LiveRequest } from '../engine/tournament';
 import { CHALLENGE_DEADLINE_WEEK, CHALLENGE_PENALTY, CHALLENGE_REWARD, challengeProgress, goalProgress, goalWeight } from '../engine/career';
 import { ageAt } from '../engine/generator';
-import { hostCityId, isHeld, openTo, teamFormatsIn, weekOf, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
+import { forgetPlayer, hasHistory, hostCityId, isHeld, openTo, teamFormatsIn, weekOf, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
 import type { RoundHook, RoundShow } from '../engine/gate';
 import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
@@ -263,7 +263,8 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
         : tab === 'team' ? <Team />
         : tab === 'editor' ? (
           <Editor data={{ ruleset: game.ruleset, world, players: state.players, pairs: state.pairs }} mode="save" date={state.date} country={managed ?? undefined}
-            onChange={() => { changed(); persistSoon(); }} toolbar={<button onClick={exportSave}>{t('export')}</button>} />
+            onChange={() => { changed(); persistSoon(); }} toolbar={<button onClick={exportSave}>{t('export')}</button>}
+            canDelete={(p) => !hasHistory(state, p.id)} onDelete={(p, pairIds) => { forgetPlayer(state, p.id, pairIds); changed(); void persist(); }} />
         )
         : tab === 'world' ? <SeasonViews key={worldD} initialDiscipline={worldD} state={state} ruleset={game.ruleset} world={world} version={version} onOpenPlayer={open} onOpenEvent={openEvent} />
         : <Federation onChanged={() => { changed(); void persist(); }} onOpen={open} onOpenEvent={openEvent} />}
