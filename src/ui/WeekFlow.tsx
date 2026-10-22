@@ -32,9 +32,8 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
         const submit = () => { (state.entriesSubmitted ??= {})[`${year}:${editing}`] = true; changed(); void saveGame(game); setEditing(undefined); };
         const junior = ev && ruleset.tiers.find((x) => x.id === ev.tierId)?.junior;
         return <>
-          {junior ? <JuniorEntryTable ev={ev} /> : <EntryTable week={ask.week} eventId={editing} onSubmit={submit} />}
+          {junior ? <JuniorEntryTable ev={ev} onSubmit={submit} /> : <EntryTable week={ask.week} eventId={editing} onSubmit={submit} />}
           <div className="controls roundbar">
-            {junior && <button className="primary" onClick={submit}>{t('submitEntries')}</button>}
             <button onClick={() => setEditing(undefined)}>← {t('back')}</button>
           </div>
         </>;

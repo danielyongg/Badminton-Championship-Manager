@@ -90,14 +90,13 @@ export function EntryPanel({ id }: { id: string }) {
   const done = state.entriesSubmitted?.[`${year}:${id}`];
   const submit = () => { (state.entriesSubmitted ??= {})[`${year}:${id}`] = true; changed(); void saveGame(game); };
   const status = done ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>;
-  const button = <p><button className="primary" onClick={submit}>{t('submitEntries')}</button></p>;
   const teamEv = ruleset.team.events.find((e) => e.id === id);
   const ev = ruleset.calendar.find((e) => e.id === id);
   return (
     <section className="card">
       <h3>{t('entryStatus')} {status}</h3>
       {teamEv ? <TeamSquads eventId={id} formats={teamEv.formats ?? teamFormatsIn(ruleset, year)} onSubmit={submit} />
-      : ev && ruleset.tiers.find((x) => x.id === ev.tierId)?.junior ? <><JuniorEntryTable ev={ev} />{button}</>
+      : ev && ruleset.tiers.find((x) => x.id === ev.tierId)?.junior ? <JuniorEntryTable ev={ev} onSubmit={submit} />
       : ev && <><EntryRules ev={ev} /><EntryTable week={weekOf(ev, year)} eventId={id} onSubmit={submit} /></>}
     </section>
   );
@@ -230,7 +229,7 @@ function boundElsewhere(state: SeasonState, decisions: Record<string, string>, e
  * `ai` = belum diputuskan dan AI yang memilih (label kecil di samping centang).
  */
 function EntryRow({ e, checked, disabled, other, required, ai, onToggle }: {
-  e: EntryEntrant; checked: boolean; disabled: boolean; other?: string; required?: boolean; ai: boolean; onToggle: (on: boolean) => void;
+  e: EntryEntrant; checked: boolean; disabled: boolean; other?: string; required?: boolean; ai?: boolean; onToggle: (on: boolean) => void;
 }) {
   const { game } = useGame();
   const { state, ruleset } = game;
@@ -270,7 +269,7 @@ function EntryRow({ e, checked, disabled, other, required, ai, onToggle }: {
  * junior otomatis dari turnamen sebelumnya). Main = pasti ikut & didahulukan dalam kuota; Otomatis = dipilih AI
  * (ranking junior lalu kemampuan); sisa kuota ganda diisi pasangan otomatis.
  */
-export function JuniorEntryTable({ ev }: { ev: TournamentDef }) {
+export function JuniorEntryTable({ ev, onSubmit }: { ev: TournamentDef; onSubmit: () => void }) {
   const { game, version, changed } = useGame();
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
@@ -339,11 +338,22 @@ export function JuniorEntryTable({ ev }: { ev: TournamentDef }) {
               const injured = e.playerIds.some((id) => players.get(id)?.injury);
               const other = e.playerIds.map((id) => bound.get(id)).find(Boolean);
               return <EntryRow key={e.id} e={e} checked={decisions[e.id] === ev.id} disabled={injured || !!other} other={other}
-                ai={!decisions[e.id] && !other && !injured} onToggle={(on) => set(e.id, on ? ev.id : 'rest')} />;
+                onToggle={(on) => set(e.id, on ? ev.id : 'rest')} />;
             })}</tbody>
           </table>
         </div>
       )}
+      <p className="controls">
+        <button className="primary" onClick={onSubmit}>{t('submitEntries')}</button>
+        {/* Serahkan ke asisten AI: hapus keputusan untuk turnamen ini (pilihan ke turnamen lain tetap), lalu submit. */}
+        <button title={t('autoSubmitHint')} onClick={() => {
+          const next = { ...decisions };
+          for (const e of rows) if (next[e.id] === ev.id || next[e.id] === 'rest') delete next[e.id];
+          state.manualEntries[key] = next;
+          changed();
+          onSubmit();
+        }}>{t('auto')}</button>
+      </p>
     </>
   );
 }
