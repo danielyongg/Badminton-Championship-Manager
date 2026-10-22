@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { CONFEDERATIONS } from '../engine/pack';
 import { DISCIPLINES, ROUNDS, type AgeBand, type NamePool, type Ruleset } from '../engine/types';
-import { numLocale, t } from '../i18n';
+import { dataName, numLocale, t } from '../i18n';
 import { AddById, Num, removeAt, Sel, Txt, type SectionProps } from './Editor';
 
 // Bagian Editor untuk data ruleset & dunia: kalender, tier, kota, negara, aturan lain.
@@ -11,7 +11,7 @@ const NAME_POOLS: NamePool[] = ['id', 'cn', 'jp', 'kr', 'th', 'my', 'in', 'vn', 
 // Mengubah kota / minggu di Editor = tetap tiap tahun (tuan rumah / jadwal per tahun bawaan preset dihapus).
 export function Calendar({ data, mode, ch }: SectionProps) {
   const rs = data.ruleset;
-  const cities = data.world.cities.map((c): [string, string] => [c.id, `${c.name} (${c.countryId})`]);
+  const cities = data.world.cities.map((c): [string, string] => [c.id, `${dataName(c.name)} (${c.countryId})`]);
   const tiers = rs.tiers.map((x): [string, string] => [x.id, x.id]);
   const every = (e: { everyYears?: { interval: number; offset: number; invert?: boolean } }) =>
     e.everyYears ? `${e.everyYears.invert ? t('exceptEvery') : t('every')} ${e.everyYears.interval} ${t('years')}` : '';
@@ -63,7 +63,7 @@ export function Tiers({ data, ch }: SectionProps) {
   return (
     <section className="card">
       <div className="ed-tools">
-        <select value={tier.id} onChange={(e) => setId(e.target.value)}>{rs.tiers.map((x) => <option key={x.id} value={x.id}>{x.id} — {x.name}</option>)}</select>
+        <select value={tier.id} onChange={(e) => setId(e.target.value)}>{rs.tiers.map((x) => <option key={x.id} value={x.id}>{x.id} — {dataName(x.name)}</option>)}</select>
       </div>
       <div className="ed-form">
         <label className="wide">{t('name')}<Txt o={tier} k="name" ch={ch} w={0} /></label>

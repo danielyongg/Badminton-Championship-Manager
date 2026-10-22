@@ -6,7 +6,7 @@ import { ageAt, currentAbility, generateWorld } from '../engine/generator';
 import { normalizePack, presetPack, PRESETS, validatePack, type DataPack } from '../engine/pack';
 import { makeRng } from '../engine/rng';
 import { ATTRS, type GameDate, type Pair, type Player, type Ruleset, type World } from '../engine/types';
-import { t, type TextKey } from '../i18n';
+import { dataName, t, type TextKey } from '../i18n';
 import { Calendar, Countries, Cities, RulesetForm, Tiers } from './EditorData';
 
 // Editor data: dipakai untuk paket data (dari menu utama) dan untuk save yang sedang berjalan (tab Editor).
@@ -85,7 +85,8 @@ export function Editor({ data, mode, date, onChange, toolbar, country }: {
   );
 }
 
-const countryOptions = (w: World): [string, string][] => w.countries.map((c) => [c.id, `${c.id} — ${c.name}`]);
+// Pilihan: nama data mengikuti bahasa tampilan (isian nama di tabel Negara/Kota tetap nama asli data).
+const countryOptions = (w: World): [string, string][] => w.countries.map((c) => [c.id, `${c.id} — ${dataName(c.name)}`]);
 
 function Players({ data, mode, date, ch, country: initial }: SectionProps) {
   const [country, setCountry] = useState(initial ?? data.world.countries[0]?.id ?? '');
