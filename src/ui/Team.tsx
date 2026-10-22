@@ -74,23 +74,27 @@ export function SquadPicker({ pool, value, onChange, size }: {
 }) {
   const { game } = useGame();
   const { players } = lookup(game.state);
+  // Urutan tetap selama daftar terbuka: yang sudah terpilih (saran) di atas, agar langsung terlihat.
+  const order = useMemo(() => { const all = poolPlayers(pool); return [...all.filter((id) => value.includes(id)), ...all.filter((id) => !value.includes(id))]; }, [pool]);
   const plays = (id: string) => Object.entries(pool).filter(([, list]) => list.some((e) => e.playerIds.includes(id))).map(([d]) => d).join(', ');
   return (
     <div>
-      <p>{t('squadCount')}: <b>{value.length}</b> ({size.min}–{size.max})</p>
-      <div className="scroll squadlist">
-        <table>
-          <tbody>{poolPlayers(pool).map((id) => {
-            const p = players.get(id)!;
-            const on = value.includes(id);
-            return (
-              <tr key={id} className={on ? 'sel' : ''}>
-                <td><label><input type="checkbox" checked={on} onChange={() => onChange(on ? value.filter((x) => x !== id) : [...value, id])} /> {p.name}</label></td><td>{p.gender}</td>
-                <td className="num">{ageAt(p.birth, game.state.date)} {t('yearsShort')}</td><td className="num">{currentAbility(p.attrs)}</td><td>{plays(id)}</td>
-              </tr>
-            );
-          })}</tbody>
-        </table>
+      <p className="squad-count">{t('squadCount')}: <b className={value.length < size.min || value.length > size.max ? 'down' : undefined}>{value.length}</b> <span className="muted-text">({size.min}–{size.max})</span></p>
+      <div className="squadlist">
+        {order.map((id) => {
+          const p = players.get(id)!;
+          const on = value.includes(id);
+          return (
+            <label key={id} className={`pickrow${on ? ' sel' : ''}`}>
+              <input type="checkbox" checked={on} onChange={() => onChange(on ? value.filter((x) => x !== id) : [...value, id])} />
+              <span className="grow">
+                <b>{p.name}</b>
+                <small className="muted-text">{p.gender} · {ageAt(p.birth, game.state.date)} {t('yearsShort')} · {plays(id).split(', ').map((d) => <span key={d} className="chip">{d}</span>)}</small>
+              </span>
+              <span className="val" title={t('ability')}>{currentAbility(p.attrs)}</span>
+            </label>
+          );
+        })}
       </div>
     </div>
   );
@@ -227,8 +231,8 @@ export function SquadModal({ title, eventId, format, pool, suggested, onDone }: 
         <div className="controls roundbar">
           <button className="primary" disabled={!!err} onClick={() => onDone(squad)}>{t('registerSquad')}</button>
           <button onClick={() => setSquad(suggested)}>{t('resetSuggestion')}</button>
-          <small className="down">{err}</small>
         </div>
+        {err && <p className="form-err">{err}</p>}
       </div>
     </div>
   );
