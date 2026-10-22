@@ -121,8 +121,8 @@ function MainMenu({ onStart, onLab, onEditor, onLang }: { onStart: (g: Game) => 
           </table>
         )}
         <p className="hint">{t('saveFileHelp')}</p>
-        <label>{t('importSave')}{' '}
-          <input type="file" accept=".json,application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importFile(f); e.target.value = ''; }} />
+        <label className="filebtn">{t('importSave')}
+          <input type="file" className="sr-only" accept=".json,application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importFile(f); e.target.value = ''; }} />
         </label>
         {msg && <p>{msg}</p>}
       </section>

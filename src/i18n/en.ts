@@ -108,7 +108,7 @@ export const en: Record<TextKey, string> = {
   load: 'Load',
   delete: 'Delete',
   exportSave: 'Export',
-  importSave: 'Import save:',
+  importSave: 'Import save…',
   saveFileHelp: 'Export saves your career to a file so you can move it to another device or browser (the iPhone web app keeps its data separate from Safari). Import adds a new save without overwriting existing ones.',
   notSaveFile: 'Not a save file from this game',
   confirmDelete: 'Delete this save? This cannot be undone.',

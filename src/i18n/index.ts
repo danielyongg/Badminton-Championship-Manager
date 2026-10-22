@@ -108,7 +108,7 @@ const id = {
   load: 'Muat',
   delete: 'Hapus',
   exportSave: 'Ekspor',
-  importSave: 'Impor save:',
+  importSave: 'Impor save…',
   saveFileHelp: 'Ekspor menyimpan karier ke file agar bisa dipindah ke perangkat atau peramban lain (web app di iPhone menyimpan data terpisah dari Safari). Impor menambah save baru tanpa menimpa yang ada.',
   notSaveFile: 'Bukan file save permainan ini',
   confirmDelete: 'Hapus save ini? Tidak bisa dibatalkan.',

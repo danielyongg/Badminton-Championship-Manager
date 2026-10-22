@@ -169,13 +169,14 @@ export function PreMatch({ state, ruleset, req, mySide }: { state: SeasonState; 
   const tierId = ruleset.calendar.find((e) => e.id === req.tournamentId)?.tierId;
   const junior = !!ruleset.tiers.find((x) => x.id === tierId)?.junior;
   const ranks = rankMap(computeRanking(junior ? state.juniorResults : state.results, req.discipline, absWeek(state.date), ruleset));
-  const [w, l] = headToHead(state.matches, me, opp);
+  const [a, b] = req.entrants; // urutan sama dengan papan skor
+  const [w, l] = headToHead(state.matches, a, b);
   const lastMeet = state.matches.filter((m) => m.sides.includes(me) && m.sides.includes(opp) && !m.walkover).at(-1);
   const name = (id: string) => entrantLabel(state, id).name;
   const i = lastMeet?.sides.indexOf(me) ?? 0;
   return (
     <>
-      <p>{t('rank')}: <b>{ranks.get(me) ?? '–'}</b> vs <b>{ranks.get(opp) ?? '–'}</b> · {t('h2h')}: {w + l ? <b>{w}–{l}</b> : t('neverMet')}</p>
+      <p>{t('rank')}: <b>{ranks.get(a) ?? '–'}</b> vs <b>{ranks.get(b) ?? '–'}</b> · {t('h2h')}: {w + l ? <b>{w}–{l}</b> : t('neverMet')}</p>
       {lastMeet && (
         <p>{t('lastMeeting')}: {eventName(ruleset, lastMeet.tournamentId, lastMeet.year)} {lastMeet.year} {lastMeet.round} · {lastMeet.winner === i ? t('wins') : t('lost')}{' '}
           <MatchLink m={lastMeet} name={name} title={eventName(ruleset, lastMeet.tournamentId, lastMeet.year)}>{lastMeet.scores.map((g) => `${g[i]}-${g[1 - i]}`).join(', ')}</MatchLink>
