@@ -34,51 +34,61 @@ const cell = (label: string, node: ReactNode, cls = '') => (
 const delBtn = (onClick: () => void) => <button className="mini" aria-label={t('delete')} title={t('delete')} onClick={onClick}>✕</button>;
 
 // Mengubah kota / minggu di Editor = tetap tiap tahun (tuan rumah / jadwal per tahun bawaan preset dihapus).
+// Satu turnamen diedit sekaligus: pilih dari dropdown (individu & beregu, urut minggu), isian tampil sebagai form.
 export function Calendar({ data, mode, ch }: SectionProps) {
   const rs = data.ruleset;
   const cities = data.world.cities.map((c): [string, string] => [c.id, `${dataName(c.name)} (${c.countryId})`]);
   const tiers = rs.tiers.map((x): [string, string] => [x.id, x.id]);
   const every = (e: { everyYears?: { interval: number; offset: number; invert?: boolean } }) =>
     e.everyYears ? `${e.everyYears.invert ? t('exceptEvery') : t('every')} ${e.everyYears.interval} ${t('years')}` : '';
-  const pack = mode === 'pack';
+  const byWeek = <T extends { week: number; name: string }>(list: T[]) => [...list].sort((a, b) => a.week - b.week || a.name.localeCompare(b.name));
+  const [id, setId] = useState(rs.calendar[0]?.id ?? rs.team.events[0]?.id);
+  const ev = rs.calendar.find((e) => e.id === id);
+  const team = ev ? undefined : rs.team.events.find((e) => e.id === id);
+  const cityCh = (e: { hosts?: unknown; rotation?: unknown }) => () => { delete e.hosts; delete e.rotation; ch(); };
   const add = () => {
     const tier = rs.tiers.at(-1)!;
     const name = t('newTournament');
-    rs.calendar.push({ id: uniqueId(name, [...rs.calendar, ...rs.team.events].map((e) => e.id)), name, cityId: data.world.cities[0].id, week: 1, tierId: tier.id, prizeUsd: tier.prizeUsd });
+    const nid = uniqueId(name, [...rs.calendar, ...rs.team.events].map((e) => e.id));
+    rs.calendar.push({ id: nid, name, cityId: data.world.cities[0].id, week: 1, tierId: tier.id, prizeUsd: tier.prizeUsd });
+    setId(nid);
     ch();
   };
   return (
-    <>
-      <section className="card">
-        <h3>{t('ed_calendar')} <span className="muted-text">({rs.calendar.length})</span></h3>
-        <Rows cols="minmax(0, 2fr) minmax(0, 1.4fr) 64px 104px 116px 32px" head={[t('name'), t('city'), t('week'), t('tier'), `${t('prize')} (USD)`, '']}>
-          {rs.calendar.map((e) => (
-            <div className="ed-row" key={e.id}>
-              {cell(t('name'), <><Txt o={e} k="name" ch={ch} w={0} />{every(e) && <small className="muted-text">{every(e)}</small>}</>, 'wide')}
-              {cell(t('city'), <Sel o={e} k="cityId" ch={() => { delete e.hosts; delete e.rotation; ch(); }} options={cities} />, 'wide')}
-              {cell(t('week'), <Num o={e} k="week" ch={() => { delete e.weeks; ch(); }} w={0} />, 'third')}
-              {cell(t('tier'), <Sel o={e} k="tierId" ch={ch} options={tiers} />, 'third')}
-              {cell(`${t('prize')} (USD)`, <Num o={e} k="prizeUsd" ch={ch} w={0} />, 'third')}
-              <span className="ed-act">{pack && delBtn(() => { removeAt(rs.calendar, e); ch(); })}</span>
-            </div>
-          ))}
-        </Rows>
-        <p className="controls ed-actions"><button onClick={add}>+ {t('addTournament')}</button></p>
-      </section>
-      <section className="card">
-        <h3>{t('tabTeam')} <span className="muted-text">({rs.team.events.length})</span></h3>
-        <Rows cols="minmax(0, 2fr) minmax(0, 2fr) minmax(0, 1.4fr) 64px" head={[t('name'), t('nameMixed'), t('city'), t('week')]}>
-          {rs.team.events.map((e) => (
-            <div className="ed-row" key={e.id}>
-              {cell(t('name'), <><Txt o={e} k="name" ch={ch} w={0} /><small className="muted-text">{e.confederation ?? e.formats?.join(', ')} {every(e)}</small></>, 'wide')}
-              {cell(t('nameMixed'), e.confederation ? <Txt o={e} k="nameMixed" ch={ch} w={0} /> : <span className="muted-text">—</span>, `wide${e.confederation ? '' : ' ed-empty'}`)}
-              {cell(t('city'), <Sel o={e} k="cityId" ch={() => { delete e.hosts; delete e.rotation; ch(); }} options={cities} />)}
-              {cell(t('week'), <Num o={e} k="week" ch={() => { delete e.weeks; ch(); }} w={0} />)}
-            </div>
-          ))}
-        </Rows>
-      </section>
-    </>
+    <section className="card">
+      <h3>{t('ed_calendar')} <span className="muted-text">({rs.calendar.length} + {rs.team.events.length} {t('tabTeam').toLowerCase()})</span></h3>
+      <div className="ed-tools pick">
+        <select value={id} onChange={(e) => setId(e.target.value)}>
+          <optgroup label={t('individual')}>
+            {byWeek(rs.calendar).map((e) => <option key={e.id} value={e.id}>{t('weekShort')}{e.week} · {e.name} ({e.tierId})</option>)}
+          </optgroup>
+          <optgroup label={t('tabTeam')}>
+            {byWeek(rs.team.events).map((e) => <option key={e.id} value={e.id}>{t('weekShort')}{e.week} · {e.name}</option>)}
+          </optgroup>
+        </select>
+        <button onClick={add}>+ {t('addTournament')}</button>
+      </div>
+      {ev && <>
+        <div className="ed-form">
+          <label className="wide">{t('name')}<Txt o={ev} k="name" ch={ch} w={0} /></label>
+          <label className="wide">{t('city')}<Sel o={ev} k="cityId" ch={cityCh(ev)} options={cities} /></label>
+          <label>{t('week')}<Num o={ev} k="week" ch={() => { delete ev.weeks; ch(); }} w={0} /></label>
+          <label>{t('tier')}<Sel o={ev} k="tierId" ch={ch} options={tiers} /></label>
+          <label>{t('prize')} (USD)<Num o={ev} k="prizeUsd" ch={ch} w={0} /></label>
+        </div>
+        {every(ev) && <p className="hint">{every(ev)}</p>}
+        {mode === 'pack' && <p className="controls ed-actions"><button className="danger" onClick={() => { removeAt(rs.calendar, ev); setId(rs.calendar[0]?.id); ch(); }}>{t('delete')}</button></p>}
+      </>}
+      {team && <>
+        <div className="ed-form">
+          <label className="wide">{t('name')}<Txt o={team} k="name" ch={ch} w={0} /></label>
+          {team.confederation && <label className="wide">{t('nameMixed')}<Txt o={team} k="nameMixed" ch={ch} w={0} /></label>}
+          <label className="wide">{t('city')}<Sel o={team} k="cityId" ch={cityCh(team)} options={cities} /></label>
+          <label>{t('week')}<Num o={team} k="week" ch={() => { delete team.weeks; ch(); }} w={0} /></label>
+        </div>
+        <p className="hint">{team.confederation ?? team.formats?.join(', ')} {every(team)}</p>
+      </>}
+    </section>
   );
 }
 

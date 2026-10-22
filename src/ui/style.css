@@ -386,6 +386,7 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
   .ed-rows.keep .ed-rhead, .ed-rows.keep .ed-row { gap: 6px; }
 }
 .ed-tools.json { grid-template-columns: minmax(0, 1fr) auto; }
+@media (min-width: 600px) { .ed-tools.pick { grid-template-columns: minmax(0, 1fr) auto; } } /* laptop: pilihan + tombol sebaris; HP: bertumpuk */
 .ed-json { width: 100%; box-sizing: border-box; min-height: 320px; font-family: ui-monospace, monospace; font-size: .8rem; line-height: 1.45; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
 /* Statistik laga (MatchStatsView): warna sisi 0/1 (atlet sendiri = aksen), baris nilai · label · nilai + bar perbandingan. */
 .mstats { --c0: var(--series-1); --c1: var(--series-2); font-size: .85rem; }
