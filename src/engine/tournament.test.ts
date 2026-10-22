@@ -3,7 +3,7 @@ import { generateWorld } from './generator';
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
-import { runEvent, simPlay, type EventRecord } from './tournament';
+import { nextDayForm, runEvent, simPlay, type EventRecord, type HotForm } from './tournament';
 import type { Match } from './types';
 
 it('satu turnamen lengkap: S100 MS (draw 48 + kualifikasi) dan ganda', async () => {
@@ -77,4 +77,22 @@ it('WTF (format grup): catatan sementara sejak undian, klasemen terisi per grup,
   expect(seen.at(-1)).toBe(1); // grup terakhir: grup pertama sudah final
   expect(rec!.groups!.standings).toEqual(run.groups!.standings);
   expect(rec!.rounds.at(-1)).toEqual([run.main.rounds.at(-1)![0]]);
+});
+
+it('on fire: kondisi hari itu terbawa antar laga (sebaran tetap), bonus kemenangan dibatasi', () => {
+  const cfg = BWF_2026.match, rng = makeRng(4);
+  const pairs: [number, number][] = [];
+  for (let i = 0; i < 4000; i++) {
+    const hot: HotForm = {};
+    const a = nextDayForm(hot, 'x', cfg, rng);
+    pairs.push([a, nextDayForm(hot, 'x', cfg, rng)]);
+  }
+  const sd = (xs: number[]) => { const m = xs.reduce((s, x) => s + x, 0) / xs.length; return Math.sqrt(xs.reduce((s, x) => s + (x - m) ** 2, 0) / xs.length); };
+  const [first, second] = [pairs.map((p) => p[0]), pairs.map((p) => p[1])];
+  expect(Math.abs(sd(second) - cfg.dayForm.sd)).toBeLessThan(0.15);
+  const corr = pairs.reduce((s, [x, y]) => s + x * y, 0) / pairs.length / (sd(first) * sd(second));
+  expect(Math.abs(corr - cfg.dayForm.carry)).toBeLessThan(0.05);
+  const hot: HotForm = { x: { v: 0, wins: 10 } };
+  const v = nextDayForm(hot, 'x', cfg, rng);
+  expect(v - hot.x.v).toBe(cfg.dayForm.winCap);
 });

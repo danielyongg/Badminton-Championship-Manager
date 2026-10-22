@@ -10,7 +10,7 @@ import type { Standing } from './groups';
 import { each, type MatchRound, type PlayFn } from './knockout';
 import { juniorEntries, juniorTeamEntrants } from './junior';
 import { AD_HOC, adHocEntrants, autoLineup, rankOrder, autoSquad, lineupError, playTie, runTeamEvent, squadError, squadPool, type Lineup, type TeamEntrant } from './team';
-import { runEvent, simPlay, toRecord, type DrawHook, type DrawShow, type EntriesHook, type EntriesShow, type EventRecord, type LiveHook } from './tournament';
+import { runEvent, simPlay, toRecord, type HotForm, type DrawHook, type DrawShow, type EntriesHook, type EntriesShow, type EventRecord, type LiveHook } from './tournament';
 import { roundGate, type RoundHook } from './gate';
 import { makeScouting, recruit, SCOUTING_DEADLINE_WEEK, type Scouting } from './scouting';
 import {
@@ -70,6 +70,8 @@ export interface SeasonState {
   contingents?: Record<string, Record<string, string[]>>;
   /** Hasil kejuaraan beregu (kontinental & final). */
   teamResults: TeamResult[];
+  /** Kondisi hari itu yang terbawa antar laga minggu ini (on fire); diganti baru tiap minggu. */
+  hotForm?: { absWeek: number; by: HotForm };
   /** Line-up beregu pilihan manajer per format; tidak sah (cedera, pasangan bubar) → line-up otomatis. */
   teamLineups: Partial<Record<TeamFormat, Lineup>>;
   /** Skuad beregu pilihan manajer per format (dipakai bila manajer tidak memilih saat turnamen dimulai). */
@@ -408,6 +410,13 @@ export interface WeekHooks { live?: LiveHook; team?: TeamHook; draw?: DrawHook; 
  * selisih ability), jadi kemenangan atas lawan lebih kuat menaikkan banyak & kekalahan dari lawan lebih lemah
  * menurunkan banyak. Juara (& finalis turnamen individu) mendapat bonus.
  */
+/** Kondisi terbawa minggu berjalan (dibuat baru saat minggu berganti: efek on fire hanya dalam satu turnamen). */
+export function hotFormOf(state: SeasonState): HotForm {
+  const w = absWeek(state.date);
+  if (state.hotForm?.absWeek !== w) state.hotForm = { absWeek: w, by: {} };
+  return state.hotForm.by;
+}
+
 function updateMorale(state: SeasonState, rs: Ruleset, fromMatch: number, fromChampion: number) {
   const cfg = rs.match.morale;
   const players = new Map(state.players.map((p) => [p.id, p]));
@@ -507,7 +516,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     const runs = await each(gated, ds, (d) => {
       let candidates = entries.get(event.id)!.get(d)!;
       if (tier.countryQuota) candidates = applyCountryQuota(candidates, tier.countryQuota);
-      const sim = simPlay({ players, pairs, cfg: rs.match, rng, tournamentId: event.id, year, discipline: d, matches: state.matches, live: h.live });
+      const sim = simPlay({ players, pairs, cfg: rs.match, rng, tournamentId: event.id, year, discipline: d, matches: state.matches, live: h.live, hot: hotFormOf(state) });
       const play = gate ? gate.wrap(d, sim) : sim;
       // Catatan sementara sejak undian: halaman turnamen bisa dibuka selagi turnamen dimainkan.
       const onRecord = (rec: EventRecord) => {
@@ -855,7 +864,7 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
     };
     const plays = new Map<Discipline, PlayFn>();
     const playOf = (d: Discipline) => plays.get(d) ?? plays.set(d, simPlay({
-      players, pairs, cfg: rs.match, rng, tournamentId: ev.id, year, discipline: d, matches: state.matches, live,
+      players, pairs, cfg: rs.match, rng, tournamentId: ev.id, year, discipline: d, matches: state.matches, live, hot: hotFormOf(state),
     })).get(d)!;
     const ties: TeamTie[] = [];
     const current: TeamResult = {

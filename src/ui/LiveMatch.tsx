@@ -79,7 +79,7 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, onDone, 
             {([0, 1] as const).map((s) => (
               <tr key={s} className={s === mySide ? 'mine' : ''}>
                 <td className="srv" title={m.server === s && !done ? t('serve') : undefined}>{m.server === s && !done ? '●' : ''}</td>
-                <td><Flag id={ids?.[s]} />{names[s]}</td>
+                <td><Flag id={ids?.[s]} />{names[s]}{(sides[s].day ?? 0) >= cfg.dayForm.hotFrom && <> <span className="fire" title={t('onFireHint')} aria-label={t('onFire')}>🔥</span></>}</td>
                 {m.games.map((g, i) => <td key={i} className="num muted">{g[s]}</td>)}
                 {!done && <td className="pt">{m.score[s]}</td>}
                 <td className="num"><b>{gamesWon(s)}</b></td>

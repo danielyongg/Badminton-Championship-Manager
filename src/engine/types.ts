@@ -235,8 +235,12 @@ export interface MatchConfig {
    * dapat bonus; tiap minggu dikali `weeklyDecay` (kembali ke Normal).
    */
   morale: { up: number; down: number; scale: number; k: number; titleBonus: number; finalBonus: number; weeklyDecay: number };
-  /** Kondisi hari itu: bonus/penalti acak semua atribut per sisi per laga (simpangan baku). */
-  dayForm: { sd: number };
+  /**
+   * Kondisi hari itu: bonus/penalti acak semua atribut per sisi per laga (simpangan baku `sd`). Di turnamen karier kondisi
+   * terbawa antar laga minggu itu ("on fire"): `carry` = bagian kondisi laga sebelumnya yang terbawa (sebaran tetap `sd`),
+   * ditambah `winBonus` per kemenangan di turnamen itu (maks `winCap`). Tanda 🔥 mulai `hotFrom`.
+   */
+  dayForm: { sd: number; carry: number; winBonus: number; winCap: number; hotFrom: number };
   /**
    * Kesalahan sendiri (unforced error) yang benar-benar menentukan reli: tiap reli (selain poin servis) tiap sisi bisa
    * kehilangan poin langsung dengan peluang (base + risiko strategi) × (150 − Consistency efektif) / 100.

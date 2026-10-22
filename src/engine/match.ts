@@ -7,6 +7,7 @@ import { ATTRS, type Attr, type Attrs, type EntrantId, type Match, type MatchCon
 export interface SideInput {
   players: Player[]; // 1 (tunggal) atau 2 (ganda)
   chemistry?: number; // ganda saja
+  day?: number; // kondisi hari itu (termasuk efek on fire); kosong = diacak baru
 }
 
 interface SideState {
@@ -67,8 +68,8 @@ export function createMatch(sides: [SideInput, SideInput], cfg: MatchConfig, rng
   const start = (s: SideInput) => clamp(100 - Math.max(...s.players.map((p) => p.fatigue)) * cfg.energy.fatigueToStart, 0, 100);
   return {
     sides: [
-      { attrs: sideAttrs(sides[0], cfg, normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[0]), strategy: 'balanced' },
-      { attrs: sideAttrs(sides[1], cfg, normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[1]), strategy: 'balanced' },
+      { attrs: sideAttrs(sides[0], cfg, sides[0].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[0]), strategy: 'balanced' },
+      { attrs: sideAttrs(sides[1], cfg, sides[1].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[1]), strategy: 'balanced' },
     ],
     games: [],
     score: [0, 0],

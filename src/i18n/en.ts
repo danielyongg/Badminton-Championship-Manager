@@ -206,6 +206,7 @@ export const en: Record<TextKey, string> = {
   strat_defensive: 'Defensive',
   strat_fast: 'Fast & Aggressive',
   strat_deceptive: 'Deceptive',
+  onFire: 'On fire', onFireHint: "On fire: today's condition is above average and partly carries over to the next match in this tournament; each win adds a little confidence.",
   stratInfo_balanced: 'No bonus or penalty: smash, net, deception & rallies are used according to ability. Normal energy use.',
   stratInfo_attacking: "Smashes more often and harder (against the opponent's Defense); weaker defence, avoids long rallies, slightly more unforced errors. Uses more energy. Good when Smash is high or the opponent's Defense is low.",
   stratInfo_defensive: 'Plays more long rallies (Consistency duel), defends better and makes fewer unforced errors; smash, net & deception attacks are blunter. Uses less energy. Good when Consistency is high or the opponent tires quickly.',

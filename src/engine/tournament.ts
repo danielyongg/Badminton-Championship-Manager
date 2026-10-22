@@ -3,7 +3,7 @@ import { acceptEntries, qualifyingSections, type Candidate, type EntryList } fro
 import { groupDraw, groupEliminatedRound, knockoutFromGroups, playGroup, type GroupStageResult } from './groups';
 import { each, fillQualifiers, playKnockout, qualRoundName, slotField, type KnockoutResult, type PlayFn } from './knockout';
 import { matchConfigFor, simulateMatch, type MatchResult, type SideInput } from './match';
-import type { Rng } from './rng';
+import { normal, type Rng } from './rng';
 import type { Discipline, DrawSlot, DrawStep, EntrantId, Match, MatchConfig, Pair, Player, Ruleset, TournamentDef } from './types';
 import type { MatchRound } from './knockout';
 
@@ -138,18 +138,37 @@ export interface LiveRequest {
 /** Kembalikan Promise hasil laga untuk memainkannya Live, atau null untuk Auto. */
 export type LiveHook = (req: LiveRequest) => Promise<MatchResult> | null;
 
-/** PlayFn berbasis mesin pertandingan; setiap laga dicatat ke `matches`. */
+/** Kondisi hari itu per peserta selama satu minggu turnamen: bagian acak yang terbawa (`v`) & jumlah kemenangan. */
+export type HotForm = Record<EntrantId, { v: number; wins: number }>;
+
+/** Kondisi hari itu (termasuk bonus kemenangan) untuk laga berikutnya peserta; `hot` diperbarui. */
+export function nextDayForm(hot: HotForm, id: EntrantId, cfg: MatchConfig, rng: Rng) {
+  const { sd, carry, winBonus, winCap } = cfg.dayForm;
+  const h = hot[id];
+  // Sebaran tetap `sd`: carry·v + acak baru dengan simpangan sd·√(1 − carry²).
+  const v = h ? carry * h.v + normal(rng, 0, sd * Math.sqrt(1 - carry ** 2)) : normal(rng, 0, sd);
+  hot[id] = { v, wins: h?.wins ?? 0 };
+  return v + Math.min(winCap, (h?.wins ?? 0) * winBonus);
+}
+
+/** Kondisi hari itu peserta saat ini (laga terakhir minggu ini + bonus kemenangan); dipakai untuk tanda 🔥. */
+export const currentDayForm = (h: HotForm[EntrantId], cfg: MatchConfig) => h.v + Math.min(cfg.dayForm.winCap, h.wins * cfg.dayForm.winBonus);
+
+/** PlayFn berbasis mesin pertandingan; setiap laga dicatat ke `matches`. `hot`: kondisi terbawa antar laga (on fire). */
 export function simPlay(opts: {
   players: Map<string, Player>; pairs: Map<string, Pair>; cfg: MatchConfig; rng: Rng;
-  tournamentId: string; year: number; discipline: Discipline; matches: Match[]; live?: LiveHook;
+  tournamentId: string; year: number; discipline: Discipline; matches: Match[]; live?: LiveHook; hot?: HotForm;
 }): PlayFn {
   const side = (id: EntrantId): SideInput => {
     const pair = opts.pairs.get(id);
+    const day = opts.hot && nextDayForm(opts.hot, id, opts.cfg, opts.rng);
     return pair
-      ? { players: pair.playerIds.map((p) => opts.players.get(p)!), chemistry: pair.chemistry }
-      : { players: [opts.players.get(id)!] };
+      ? { players: pair.playerIds.map((p) => opts.players.get(p)!), chemistry: pair.chemistry, day }
+      : { players: [opts.players.get(id)!], day };
   };
   const record = (a: EntrantId, b: EntrantId, round: MatchRound, r: MatchResult) => {
+    const won = opts.hot?.[r.winner === 0 ? a : b];
+    if (won) won.wins++;
     opts.matches.push({
       ...r, id: `${opts.tournamentId}-${opts.year}-${opts.discipline}-${opts.matches.length + 1}`,
       tournamentId: opts.tournamentId, year: opts.year, discipline: opts.discipline, round, sides: [a, b],

@@ -460,7 +460,7 @@ export const BWF_2026: Ruleset = {
     momentum: { decay: 0.8, weight: 2 },
     // ASUMSI (kalibrasi): 80 morale Tinggi vs 90 Sangat rendah ≈ 60%; 80 vs 90 morale Normal ≈ 11% (kondisi hari itu σ 2).
     morale: { up: 1, down: 1, scale: 4.5, k: 1.5, titleBonus: 1, finalBonus: 0.5, weeklyDecay: 0.88 },
-    dayForm: { sd: 2 },
+    dayForm: { sd: 2, carry: 0.6, winBonus: 0.5, winCap: 2, hotFrom: 2 }, // ASUMSI (kalibrasi): on fire, docs/ASUMSI.md
     ownError: { base: 0.02 }, // ASUMSI (kalibrasi): kesalahan sendiri per reli, lihat docs/ASUMSI.md (Strategi)
     // Sistem skor 3×15 (BWF, mulai 4 Jan 2027): 15 poin, deuce 14–14 unggul 2, batas 21, interval 8.
     // ASUMSI: poin kritis mulai 12 & pemanasan 6 poin (diskalakan dari 18/21 & 8/21).

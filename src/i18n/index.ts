@@ -206,6 +206,7 @@ const id = {
   strat_defensive: 'Bertahan (Defensive)',
   strat_fast: 'Cepat & Agresif',
   strat_deceptive: 'Tipuan (Deceptive)',
+  onFire: 'On fire', onFireHint: 'Sedang on fire: kondisi hari ini bagus (di atas rata-rata) dan sebagian terbawa ke laga berikutnya di turnamen ini; tiap kemenangan menambah sedikit kepercayaan diri.',
   stratInfo_balanced: 'Tanpa bonus atau penalti: smash, net, tipuan & reli dipakai sesuai kemampuan. Energi normal.',
   stratInfo_attacking: 'Lebih sering smash & smash lebih tajam (diadu dengan Defense lawan); pertahanan melemah, reli panjang dihindari, sedikit lebih sering salah sendiri. Energi lebih boros. Cocok bila Smash tinggi atau Defense lawan rendah.',
   stratInfo_defensive: 'Lebih sering reli panjang (adu Consistency), bertahan lebih kuat & lebih jarang salah sendiri; serangan smash, net & tipuan tumpul. Energi lebih hemat. Cocok bila Consistency tinggi atau lawan cepat lelah.',
