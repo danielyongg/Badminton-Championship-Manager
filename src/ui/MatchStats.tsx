@@ -29,7 +29,7 @@ export function MatchStatsView({ s: raw, names, mine, avgOf }: { s: MatchStats; 
       <dl className="ms-facts">
         <div><dt>{t(avgOf ? 'statDurationAvg' : 'statDuration')}</dt><dd>{Math.round(s.sec / 60)} <small>{t('minutesShort')}</small></dd></div>
         <div><dt>{t('statLongest')}</dt><dd>{s.longest} <small>{t('shotsUnit')}</small></dd></div>
-        <div><dt>{t('statFastestSmash')}</dt><dd>{fastest === undefined ? '—' : <>{fmt(s.kmh[fastest])} <small>km/h · {names[fastest].split(' ')[0]}</small></>}</dd></div>
+        <div><dt>{t('statFastestSmash')}</dt><dd>{fastest === undefined ? '—' : <>{fmt(s.kmh[fastest])} <small>km/h</small><small className="who">{names[fastest].split(' ')[0]}</small></>}</dd></div>
       </dl>
 
       <Section title={t('statSectionPoints')}>
