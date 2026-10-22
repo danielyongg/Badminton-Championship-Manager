@@ -17,27 +17,28 @@ export function Calendar({ data, mode, ch }: SectionProps) {
     e.everyYears ? `${e.everyYears.invert ? t('exceptEvery') : t('every')} ${e.everyYears.interval} ${t('years')}` : '';
   return (
     <>
-      <section className="card scroll">
-        <table>
+      <section className="card">
+        <h3>{t('ed_calendar')} <span className="muted-text">({rs.calendar.length})</span></h3>
+        <div className="scroll"><table className="edtable">
           <thead><tr><th>id</th><th>{t('name')}</th><th>{t('city')}</th><th>{t('week')}</th><th>{t('tier')}</th><th>{t('prize')} (USD)</th><th></th><th></th></tr></thead>
           <tbody>{rs.calendar.map((e) => (
             <tr key={e.id}>
               <td><small>{e.id}</small></td><td><Txt o={e} k="name" ch={ch} w={200} /></td><td><Sel o={e} k="cityId" ch={() => { delete e.hosts; delete e.rotation; ch(); }} options={cities} /></td>
               <td><Num o={e} k="week" ch={() => { delete e.weeks; ch(); }} w={50} /></td><td><Sel o={e} k="tierId" ch={ch} options={tiers} /></td>
               <td><Num o={e} k="prizeUsd" ch={ch} w={100} /></td><td><small>{every(e)}</small></td>
-              <td>{mode === 'pack' && <button onClick={() => { removeAt(rs.calendar, e); ch(); }}>✕</button>}</td>
+              <td>{mode === 'pack' && <button className="mini" onClick={() => { removeAt(rs.calendar, e); ch(); }}>✕</button>}</td>
             </tr>
           ))}</tbody>
-        </table>
+        </table></div>
         <AddById taken={[...rs.calendar, ...rs.team.events].map((e) => e.id)} onAdd={(id) => {
           const tier = rs.tiers.at(-1)!;
           rs.calendar.push({ id, name: id, cityId: data.world.cities[0].id, week: 1, tierId: tier.id, prizeUsd: tier.prizeUsd });
           ch();
         }} />
       </section>
-      <section className="card scroll">
-        <h3>{t('tabTeam')}</h3>
-        <table>
+      <section className="card">
+        <h3>{t('tabTeam')} <span className="muted-text">({rs.team.events.length})</span></h3>
+        <div className="scroll"><table className="edtable">
           <thead><tr><th>id</th><th>{t('name')}</th><th>{t('nameMixed')}</th><th>{t('city')}</th><th>{t('week')}</th><th></th></tr></thead>
           <tbody>{rs.team.events.map((e) => (
             <tr key={e.id}>
@@ -46,7 +47,7 @@ export function Calendar({ data, mode, ch }: SectionProps) {
               <td><Num o={e} k="week" ch={() => { delete e.weeks; ch(); }} w={50} /></td><td><small>{e.confederation ?? e.formats?.join(', ')} {every(e)}</small></td>
             </tr>
           ))}</tbody>
-        </table>
+        </table></div>
       </section>
     </>
   );
@@ -61,19 +62,23 @@ export function Tiers({ data, ch }: SectionProps) {
   );
   return (
     <section className="card">
-      <div className="controls">
+      <div className="ed-tools">
         <select value={tier.id} onChange={(e) => setId(e.target.value)}>{rs.tiers.map((x) => <option key={x.id} value={x.id}>{x.id} — {x.name}</option>)}</select>
       </div>
-      <div className="controls">
-        <label>{t('name')}<Txt o={tier} k="name" ch={ch} /></label>
-        <label>Grade<Num o={tier} k="grade" ch={ch} w={50} /></label>
-        <label>{t('prize')} (USD)<Num o={tier} k="prizeUsd" ch={ch} w={110} /></label>
-        <label>{t('wildcard')}<Num o={tier} k="wildcards" ch={ch} w={50} /></label>
-        <label>{t('qualPerSlot')}<Num o={tier} k="qualifyingPerSlot" ch={ch} w={50} /></label>
-        {DISCIPLINES.map((d) => <label key={d}>Draw {d}<Num o={tier.drawSize} k={d} ch={ch} w={60} /></label>)}
+      <div className="ed-form">
+        <label className="wide">{t('name')}<Txt o={tier} k="name" ch={ch} w={0} /></label>
+        <label>Grade<Num o={tier} k="grade" ch={ch} w={0} /></label>
+        <label>{t('prize')} (USD)<Num o={tier} k="prizeUsd" ch={ch} w={0} /></label>
+        <label>{t('wildcard')}<Num o={tier} k="wildcards" ch={ch} w={0} /></label>
+        <label>{t('qualPerSlot')}<Num o={tier} k="qualifyingPerSlot" ch={ch} w={0} /></label>
       </div>
+      <h4>Draw</h4>
+      <div className="ed-form attrs">
+        {DISCIPLINES.map((d) => <label key={d}>{d}<Num o={tier.drawSize} k={d} ch={ch} w={0} /></label>)}
+      </div>
+      <h4>{t('points')} & {t('prize')}</h4>
       <div className="scroll">
-        <table>
+        <table className="edtable">
           <thead><tr><th></th>{ROUNDS.map((r) => <th key={r}>{r}</th>)}</tr></thead>
           <tbody>
             {row(t('points'), tier.points)}
@@ -91,17 +96,18 @@ export function Cities({ data, mode, ch }: SectionProps) {
   const { world } = data;
   const countries = world.countries.map((c): [string, string] => [c.id, c.id]);
   return (
-    <section className="card scroll">
-      <table>
+    <section className="card">
+      <h3>{t('ed_cities')} <span className="muted-text">({world.cities.length})</span></h3>
+      <div className="scroll"><table className="edtable">
         <thead><tr><th>id</th><th>{t('name')}</th><th>{t('country')}</th><th>{t('venue')}</th><th>Lat</th><th>Lon</th><th></th></tr></thead>
         <tbody>{world.cities.map((c) => (
           <tr key={c.id}>
             <td><small>{c.id}</small></td><td><Txt o={c} k="name" ch={ch} w={140} /></td><td><Sel o={c} k="countryId" ch={ch} options={countries} /></td>
             <td><Txt o={c} k="venue" ch={ch} w={220} /></td><td><Num o={c} k="lat" ch={ch} /></td><td><Num o={c} k="lon" ch={ch} /></td>
-            <td>{mode === 'pack' && <button onClick={() => { removeAt(world.cities, c); ch(); }}>✕</button>}</td>
+            <td>{mode === 'pack' && <button className="mini" onClick={() => { removeAt(world.cities, c); ch(); }}>✕</button>}</td>
           </tr>
         ))}</tbody>
-      </table>
+      </table></div>
       <AddById taken={world.cities.map((c) => c.id)} onAdd={(id) => {
         world.cities.push({ id, countryId: world.countries[0].id, name: id, venue: '', lat: 0, lon: 0 });
         ch();
@@ -113,9 +119,10 @@ export function Cities({ data, mode, ch }: SectionProps) {
 export function Countries({ data, mode, ch }: SectionProps) {
   const { world } = data;
   return (
-    <section className="card scroll">
+    <section className="card">
+      <h3>{t('ed_countries')} <span className="muted-text">({world.countries.length})</span></h3>
       <p className="hint">{t('countryHelp')}</p>
-      <table>
+      <div className="scroll"><table className="edtable">
         <thead><tr><th>id</th><th>{t('name')}</th><th>{t('confederation')}</th><th>{t('tradition')}</th><th>{t('namePool')}</th><th></th></tr></thead>
         <tbody>{world.countries.map((c) => (
           <tr key={c.id}>
@@ -123,10 +130,10 @@ export function Countries({ data, mode, ch }: SectionProps) {
             <td><Sel o={c} k="confederation" ch={ch} options={CONFEDERATIONS.map((x) => [x, x])} /></td>
             <td><Num o={c} k="traditionStrength" ch={ch} w={60} /></td>
             <td><Sel o={c} k="namePool" ch={ch} options={NAME_POOLS.map((x) => [x, x])} /></td>
-            <td>{mode === 'pack' && <button onClick={() => { removeAt(world.countries, c); ch(); }}>✕</button>}</td>
+            <td>{mode === 'pack' && <button className="mini" onClick={() => { removeAt(world.countries, c); ch(); }}>✕</button>}</td>
           </tr>
         ))}</tbody>
-      </table>
+      </table></div>
       <AddById taken={world.countries.map((c) => c.id)} onAdd={(id) => {
         world.countries.push({ id, name: id, confederation: 'BA', traditionStrength: 20, namePool: 'generic' });
         ch();
@@ -139,7 +146,7 @@ function Bands({ title, bands, ch }: { title: string; bands: AgeBand[]; ch: () =
   return (
     <div>
       <h4>{title}</h4>
-      <table style={{ width: 'auto' }}>
+      <table className="edtable" style={{ width: 'auto' }}>
         <thead><tr><th>{t('upToAge')}</th><th>min</th><th>max</th></tr></thead>
         <tbody>{bands.map((b, i) => (
           <tr key={i}><td><Num o={b} k="maxAge" ch={ch} w={60} /></td><td><Num o={b} k="min" ch={ch} /></td><td><Num o={b} k="max" ch={ch} /></td></tr>
@@ -170,13 +177,12 @@ function JsonSection({ rs, ch }: { rs: Ruleset; ch: () => void }) {
   return (
     <div>
       <h4>{t('advancedRules')}</h4>
-      <div className="controls">
+      <div className="ed-tools">
         <select value={key} onChange={(e) => choose(e.target.value as typeof key)}>{JSON_SECTIONS.map((k) => <option key={k}>{k}</option>)}</select>
-        <button onClick={apply}>{t('apply')}</button>
+        <button className="primary" onClick={apply}>{t('apply')}</button>
         <small className={msg.startsWith('✓') ? 'up' : 'down'}>{msg}</small>
       </div>
-      <textarea value={text} onChange={(e) => setText(e.target.value)} spellCheck={false}
-        style={{ width: '100%', minHeight: 320, fontFamily: 'ui-monospace, monospace', fontSize: '.8rem' }} />
+      <textarea className="ed-json" value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />
     </div>
   );
 }
@@ -186,11 +192,11 @@ export function RulesetForm({ data, mode, ch }: SectionProps) {
   const dev = rs.development;
   return (
     <section className="card">
-      <div className="controls">
-        <label>{t('name')}<Txt o={rs} k="name" ch={ch} /></label>
-        <label>{t('startYear')}<Num o={rs} k="startYear" ch={ch} disabled={mode === 'save'} /></label>
+      <div className="ed-form">
+        <label className="wide">{t('name')}<Txt o={rs} k="name" ch={ch} w={0} /></label>
+        <label>{t('startYear')}<Num o={rs} k="startYear" ch={ch} w={0} disabled={mode === 'save'} /></label>
       </div>
-      <div className="dash">
+      <div className="ed-bands">
         <Bands title={t('growthByAge')} bands={dev.growthByAge} ch={ch} />
         <Bands title={t('declineByAge')} bands={dev.declineByAge} ch={ch} />
         <Bands title={t('retirementByAge')} bands={dev.retirementByAge} ch={ch} />

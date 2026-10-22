@@ -317,6 +317,51 @@ td.strong { font-weight: 700; }
 .momentum { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
 .momentum .track { position: relative; flex: 1; max-width: 300px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--danger), var(--line), var(--accent)); }
 .momentum .marker { position: absolute; top: -3px; width: 4px; height: 16px; background: currentColor; transform: translateX(-2px); }
+/* Editor: status + tombol satu baris, daftar atlet | form atlet (HP: form di atas daftar), form berlabel di atas kolom. */
+.ed-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0 0 12px; }
+.ed-status .hint { margin: 0; }
+.ed-toolbar { display: inline-flex; gap: 8px; margin-left: auto; }
+.ed-errors { margin: -4px 0 12px; }
+.ed-split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (min-width: 900px) { .ed-split.has-sel { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); } .ed-detail { position: sticky; top: 12px; } }
+@media (max-width: 899px) { .ed-split.has-sel .ed-detail { order: -1; scroll-margin-top: 72px; } } /* tidak tertutup bilah tab saat digulir */
+.ed-tools { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-bottom: 10px; }
+@media (min-width: 600px) { .ed-tools { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; } .ed-tools .seg { grid-column: 1 / -1; } }
+.ed-tools > * { min-width: 0; }
+.ed-tools select, .ed-tools input { width: 100%; box-sizing: border-box; }
+.ed-tools .seg button { flex: 1; }
+.ed-tools .count { font-size: .85rem; }
+.ed-scroll { max-height: 520px; overflow-y: auto; }
+.edtable { width: 100%; }
+.edtable th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+.edtable tbody tr[class] td, .ed-list .edtable tbody tr { cursor: pointer; }
+.ed-list .edtable tbody tr:hover td { background: var(--accent-soft); }
+.edtable tr.sel td { background: var(--accent-soft); box-shadow: inset 0 -1px var(--accent); }
+.edtable tr.sel td:first-child { font-weight: 700; color: var(--accent-strong); }
+.edtable td input, .edtable td select { padding-top: 4px; padding-bottom: 4px; }
+.ed-names span:not(.chip) { display: block; }
+.edtable td.ed-pname { white-space: normal; }
+.ed-pname .chip { margin-left: 4px; font-size: .65rem; }
+.card .scroll table.edtable td:first-child { max-width: none; min-width: 0; } /* nama penuh di tabel Editor (aturan tabel HP umum membatasi 140px) */
+.edtable .ed-names { min-width: 11em !important; }
+.ed-names .chip { float: right; margin-left: 8px; }
+.ed-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.ed-detail-head h3 { margin: 4px 0 10px; font-size: 1.05rem; text-transform: none; letter-spacing: normal; color: var(--fg); }
+.ed-detail-head h3 small { font-size: .72rem; font-weight: 400; margin-left: 4px; }
+.ed-detail-head .close { flex: none; }
+.ed-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); gap: 10px 12px; margin-bottom: 4px; }
+.ed-form.attrs { grid-template-columns: repeat(auto-fill, minmax(min(110px, 45%), 1fr)); }
+.ed-form label { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.ed-form label.wide { grid-column: 1 / -1; }
+@media (min-width: 600px) { .ed-form label.wide { grid-column: span 2; } }
+.ed-form input, .ed-form select { width: 100%; box-sizing: border-box; font-size: .95rem; text-transform: none; letter-spacing: normal; color: var(--fg); }
+.ed-pair { display: grid; grid-template-columns: 3fr 2fr; gap: 6px; }
+.ed-detail h4, .ed-list h4 { margin-top: 14px; }
+.ed-ab { color: var(--accent-strong); font-size: .9rem; margin-left: 4px; }
+.ed-actions { margin: 14px 0 4px; }
+button.danger { color: var(--danger); border-color: var(--danger); background: var(--surface); }
+.ed-bands { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 24px; margin: 8px 0 12px; }
+.ed-json { width: 100%; box-sizing: border-box; min-height: 320px; font-family: ui-monospace, monospace; font-size: .8rem; line-height: 1.45; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
 /* Statistik laga (MatchStatsView): warna sisi 0/1 (atlet sendiri = aksen), baris nilai · label · nilai + bar perbandingan. */
 .mstats { --c0: var(--series-1); --c1: var(--series-2); font-size: .85rem; }
 .mstats.mine-0 { --c0: var(--accent); }
