@@ -216,6 +216,9 @@ export function RankingDetail({ state, ruleset, id, discipline: d, junior, onOpe
   const best = ranked.length ? Math.min(...ranked.map((h) => h.rank!)) : undefined;
   const race = junior ? undefined : computeRace(state.results, d, state.date.year, ruleset).find((r) => r.entrantId === id);
   const expiring = expiringPoints(results, id, d, now, 12, ruleset);
+  // Minggu di peringkat saat ini (dicatat tiap akhir minggu; total hanya untuk peringkat 1–100).
+  const rw = !junior && me ? state.rankWeeks?.[d]?.[id] : undefined;
+  const atRank = rw && rw.r === me!.rank ? rw : undefined;
   const atRisk = expiring.filter((e) => e.counted).reduce((sum, e) => sum + e.entry.points, 0);
   const num = (n: number) => n.toLocaleString(numLocale());
   // Poin awal pra-musim (bukan turnamen): tanpa tautan & tanpa badge tier.
@@ -241,6 +244,8 @@ export function RankingDetail({ state, ruleset, id, discipline: d, junior, onOpe
         {fact(t('tournaments'), active.length, t('rankCountedOf', { n: Math.min(active.length, bestOf), b: bestOf }))}
         {!junior && fact(t('bestRank'), best ? `#${best}` : '—')}
         {race && fact(`${t('raceToFinals')} ${state.date.year}`, `#${race.rank}`, `${num(race.points)}`)}
+        {atRank && atRank.at[me!.rank] !== undefined && fact(t('weeksAtRank', { r: me!.rank }), num(atRank.at[me!.rank]), t('weeksTotal'))}
+        {atRank && fact(t('weeksAtRankRun', { r: me!.rank }), num(atRank.run), t('weeksConsecutive'))}
         {fact(t('expiringShort'), atRisk ? `−${num(atRisk)}` : '0', t('next12Weeks'))}
       </dl>
       {!junior && <><h4>{t('rankHistory')}</h4><RankChart history={history} /></>}

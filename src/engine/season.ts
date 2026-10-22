@@ -34,6 +34,10 @@ export interface Violation {
   year: number;
 }
 
+export interface RankWeeks { r: number; run: number; at: Record<number, number> }
+/** Total minggu hanya disimpan untuk peringkat teratas ini (hemat ukuran save). */
+export const RANK_WEEKS_TOP = 100;
+
 export interface SeasonState {
   date: GameDate;
   players: Player[];
@@ -64,6 +68,12 @@ export interface SeasonState {
   entriesSubmitted?: Record<string, true>;
   /** Snapshot ranking tiap 4 minggu (top 300 per nomor) untuk grafik riwayat peringkat. */
   rankSnapshots: { absWeek: number; discipline: Discipline; ids: string[] }[];
+  /**
+   * Minggu di peringkat (ranking senior, dicatat tiap akhir minggu): per nomor → peserta → peringkat terakhir (`r`, 0 = di
+   * luar 300 besar), minggu beruntun di peringkat itu (`run`), total minggu per peringkat (`at`, hanya peringkat 1–100).
+   * Save lama diisi awal dari snapshot 4-mingguan (perkiraan).
+   */
+  rankWeeks?: Partial<Record<Discipline, Record<string, RankWeeks>>>;
   /** Peserta putaran final beregu yang sudah ditetapkan: "tahun:format" → negara. */
   teamQualifiers?: Record<string, string[]>;
   /** Kontingen multi-event: "tahun:eventId" (nomor perorangan) → negara → atlet. */
@@ -570,6 +580,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   if (week >= 52) endYear(state, rs, world, rng);
   state.date = week >= 52 ? { year: year + 1, week: 1 } : { year, week: week + 1 };
   if (week >= 52) startYear(state, rs, rng, world); // target & Top Committed musim baru langsung terlihat di minggu 1
+  updateRankWeeks(state, rs); // ranking yang berlaku selama minggu baru (poin kedaluwarsa sudah lepas)
 }
 
 /**
@@ -895,6 +906,40 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
 }
 
 /** Riwayat peringkat dari snapshot (tiap 4 minggu). */
+/** Satu minggu (atau `weeks` minggu dari snapshot) di peringkat `rank` untuk peserta `id`. */
+function addRankWeeks(byId: Record<string, RankWeeks>, id: string, rank: number, weeks: number) {
+  const e = (byId[id] ??= { r: 0, run: 0, at: {} });
+  e.run = e.r === rank ? e.run + weeks : weeks;
+  e.r = rank;
+  if (rank <= RANK_WEEKS_TOP) e.at[rank] = (e.at[rank] ?? 0) + weeks;
+}
+
+/** Akhir minggu: catat peringkat senior tiap peserta (300 besar); yang keluar dari 300 besar rentetannya berhenti. */
+function updateRankWeeks(state: SeasonState, rs: Ruleset) {
+  if (!state.rankWeeks) {
+    // Save lama: isi awal dari snapshot 4-mingguan (tiap snapshot ≈ 4 minggu di peringkat itu).
+    state.rankWeeks = {};
+    for (const s of state.rankSnapshots) {
+      const byId = (state.rankWeeks[s.discipline] ??= {});
+      const seen = new Set(s.ids);
+      s.ids.forEach((id, i) => addRankWeeks(byId, id, i + 1, 4));
+      for (const [id, e] of Object.entries(byId)) if (!seen.has(id)) { e.r = 0; e.run = 0; }
+    }
+  }
+  const now = absWeek(state.date);
+  for (const d of DISCIPLINES) {
+    const byId = (state.rankWeeks[d] ??= {});
+    const ranked = computeRanking(state.results, d, now, rs).slice(0, 300);
+    const seen = new Set<string>();
+    for (const r of ranked) { addRankWeeks(byId, r.entrantId, r.rank, 1); seen.add(r.entrantId); }
+    for (const [id, e] of Object.entries(byId)) {
+      if (seen.has(id)) continue;
+      e.r = 0; e.run = 0;
+      if (!Object.keys(e.at).length) delete byId[id]; // tidak pernah di 100 besar: tidak perlu disimpan
+    }
+  }
+}
+
 export function rankFromSnapshots(state: SeasonState, entrantId: string, d: Discipline) {
   return state.rankSnapshots.filter((s) => s.discipline === d).map((s) => {
     const i = s.ids.indexOf(entrantId);
