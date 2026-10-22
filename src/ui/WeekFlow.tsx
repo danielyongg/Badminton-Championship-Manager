@@ -6,8 +6,7 @@ import { dataName, t } from '../i18n';
 import { Flag } from './Flag';
 import { EntryTable, JuniorEntryTable } from './Entries';
 import { EntryLists } from './EventViews';
-import { currentDayForm, type EntriesShow } from '../engine/tournament';
-import { absWeek } from '../engine/ranking';
+import type { EntriesShow } from '../engine/tournament';
 import { entrantLabel, eventName, saveGame, useGame, TierBadge } from './game';
 import { formatName } from './Team';
 
@@ -95,10 +94,6 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   // Nomor unggulan di turnamen ini (dari hasil undian nomor itu); beregu tanpa unggulan.
   const seedOf = (key: string, id: string) => state.eventRecords
     .find((r) => r.tournamentId === show.tournamentId && r.year === state.date.year && r.discipline === key)?.slots.find((x) => x.entrant === id)?.seed;
-  // 🔥 peserta yang sedang on fire minggu ini (individu; beregu = negara).
-  const hot = state.hotForm?.absWeek === absWeek(state.date) ? state.hotForm.by : {};
-  const fireTag = (id: string) => !team && hot[id] && currentDayForm(hot[id], ruleset.match) >= ruleset.match.dayForm.hotFrom
-    ? <><span className="fire" title={t('onFireHint')} aria-label={t('onFire')}>🔥</span> </> : null; // di depan nama: nama panjang dipotong "…"
   const seedTag = (key: string, id: string) => { const n = seedOf(key, id); return n ? <> <small className="seed">[{n}]</small></> : null; }; // spasi di luar: unggulan boleh turun baris
   const isMine = (id: string) => label(id).country === managed;
   const mineKeys = new Set(show.matches.filter((m) => m.sides.some(isMine)).map((m) => m.key));
@@ -153,9 +148,9 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
             const k = rowKey(m);
             return (
               <tr key={k} className={[mine && 'mine-row', m === current && 'current'].filter(Boolean).join(' ') || undefined}>
-                <td className={w === 0 ? 'win' : undefined}><Flag id={sides[0].country} />{fireTag(m.sides[0])}{sides[0].name}{seedTag(m.key, m.sides[0])}</td>
+                <td className={w === 0 ? 'win' : undefined}><Flag id={sides[0].country} />{sides[0].name}{seedTag(m.key, m.sides[0])}</td>
                 <td className="muted-text">vs</td>
-                <td className={w === 1 ? 'win' : undefined}><Flag id={sides[1].country} />{fireTag(m.sides[1])}{sides[1].name}{seedTag(m.key, m.sides[1])}</td>
+                <td className={w === 1 ? 'win' : undefined}><Flag id={sides[1].country} />{sides[1].name}{seedTag(m.key, m.sides[1])}</td>
                 <td className="num">{score || (m === current ? '…'
                   : mine && !done && <button className="rowtoggle" title={t('rowToggleHint')} aria-label={t(skipped.has(k) ? 'rowSkip' : 'rowLive')} onClick={() => toggle(k)}>
                     {/* HP: ikon saja agar muat di kolom skor; teks di layar lebar. */}

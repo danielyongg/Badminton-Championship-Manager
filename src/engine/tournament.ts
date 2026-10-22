@@ -151,9 +151,6 @@ export function nextDayForm(hot: HotForm, id: EntrantId, cfg: MatchConfig, rng: 
   return v + Math.min(winCap, (h?.wins ?? 0) * winBonus);
 }
 
-/** Kondisi hari itu peserta saat ini (laga terakhir minggu ini + bonus kemenangan); dipakai untuk tanda 🔥. */
-export const currentDayForm = (h: HotForm[EntrantId], cfg: MatchConfig) => h.v + Math.min(cfg.dayForm.winCap, h.wins * cfg.dayForm.winBonus);
-
 /** PlayFn berbasis mesin pertandingan; setiap laga dicatat ke `matches`. `hot`: kondisi terbawa antar laga (on fire). */
 export function simPlay(opts: {
   players: Map<string, Player>; pairs: Map<string, Pair>; cfg: MatchConfig; rng: Rng;
