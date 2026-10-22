@@ -90,7 +90,7 @@ export const en: Record<TextKey, string> = {
   retired: 'Retired',
   attrShowChart: 'Show on chart', attrDeltaHint: 'Tap an attribute to show it on the chart. ▲▼ = change since end of season {y}.',
   statDurationAvg: 'Average duration', statsAvgHint: 'Per-match average over {n} matches (fastest smash & longest rally: best).',
-  profH2HTab: 'H2H', noStatsYet: 'No matches with stored stats yet.', profStats: 'Stats', opponentsAvg: 'Opponents (avg)', h2hOpponent: 'Opponent', h2hMeetings: '{n} meetings', h2hHistory: 'Meetings', h2hAvgStats: 'Average stats in meetings',
+  profH2HTab: 'H2H', noStatsYet: 'No matches with stored stats yet.', winRate: 'won', profStats: 'Stats', opponentsAvg: 'Opponents (avg)', h2hOpponent: 'Opponent', h2hMeetings: '{n} meetings', h2hHistory: 'Meetings', h2hAvgStats: 'Average stats in meetings',
   now: 'Now',
   speed: 'Speed',
   stamina: 'Stamina',

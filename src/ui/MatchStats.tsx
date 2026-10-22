@@ -100,3 +100,70 @@ function Row({ label, v, show, fewer, strong }: { label: string; v: Pair; show?:
     </div>
   );
 }
+
+/**
+ * Statistik pribadi di profil: rata-rata per laga dari `n` laga (sisi 0 = peserta ini; sisi 1 hanya untuk poin saat
+ * menerima). Kotak angka utama, lalu kelompok baris dengan bar persentase & komposisi winner / panjang reli.
+ */
+export function PlayerStatsView({ s, n, record }: { s: MatchStats; n: number; record: [number, number] }) {
+  const f = (x: number, d = 1) => x.toLocaleString(numLocale(), { maximumFractionDigits: d });
+  const per = (x: number) => f(x / n);
+  const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
+  const recv = s.srv[1] - s.srvWon[1];
+  const shots = [...WINNER_SHOTS.map((k) => ({ k: t(k), v: s.win[k][0] })), { k: t('statServiceWinners'), v: s.sw[0] }];
+  const winners = shots.reduce((a, x) => a + x.v, 0);
+  const rallies = s.rallies[0] + s.rallies[1] + s.rallies[2];
+  const played = record[0] + record[1];
+  const tile = (label: string, value: ReactNode, sub?: ReactNode) => <div><dt>{label}</dt><dd>{value}</dd>{sub && <small>{sub}</small>}</div>;
+  const row = (label: string, value: string, bar?: number) => (
+    <div className="ps-row"><span>{label}</span><b>{value}</b>{bar !== undefined && <span className="ps-bar"><i style={{ width: `${bar}%` }} /></span>}</div>
+  );
+  return (
+    <div className="pstats">
+      <dl className="ps-tiles">
+        {tile(t('profRecord'), `${record[0]}–${record[1]}`, played ? `${pct(record[0], played)}% ${t('winRate')}` : undefined)}
+        {tile(t('statWinnersTotal'), per(winners), `/${t('perMatch')}`)}
+        {tile(t('statUE'), per(s.ue[0]), `/${t('perMatch')}`)}
+        {tile(t('statDurationAvg'), <>{Math.round(s.sec / n / 60)} <small>{t('minutesShort')}</small></>)}
+        {tile(t('statFastestSmash'), s.kmh[0] ? <>{f(s.kmh[0], 0)} <small>km/h</small></> : '—')}
+        {tile(t('statLongest'), <>{s.longest} <small>{t('shotsUnit')}</small></>)}
+      </dl>
+      <div className="ps-groups">
+        <section>
+          <h4>{t('statSectionPoints')}</h4>
+          {row(t('statServePts'), `${pct(s.srvWon[0], s.srv[0])}%`, pct(s.srvWon[0], s.srv[0]))}
+          {row(t('statReceivePts'), `${pct(recv, s.srv[1])}%`, pct(recv, s.srv[1]))}
+          {row(t('statStreak'), per(s.streak[0]))}
+          {row(t('statGamePoints'), per(s.gp[0]))}
+          {row(t('statGpSaved'), per(s.gps[0]))}
+          {row(t('statMpSaved'), per(s.mps[0]))}
+        </section>
+        <section>
+          <h4>{t('statSectionWinners')}</h4>
+          <div className="ms-dist ps-mix" role="img" aria-label={t('statSectionWinners')}>
+            {shots.map((x, i) => x.v > 0 && <i key={i} className={`w${i}`} style={{ flexGrow: x.v }} />)}
+          </div>
+          <ul className="ms-legend ps-legend">
+            {shots.map((x, i) => <li key={i}><i className={`w${i}`} />{x.k} <b>{per(x.v)}</b> <span>({pct(x.v, winners)}%)</span></li>)}
+          </ul>
+        </section>
+        <section>
+          <h4>{t('statSectionErrors')}</h4>
+          {row(t('statUE'), per(s.ue[0]))}
+          {row(t('statFE'), per(s.fe[0]))}
+          {row(t('statServiceFaults'), per(s.sf[0]))}
+        </section>
+        <section>
+          <h4>{t('statRallyLen')}</h4>
+          <div className="ms-dist ps-mix" role="img" aria-label={t('statRallyLen')}>
+            {s.rallies.map((x, i) => x > 0 && <i key={i} className={`r${i}`} style={{ flexGrow: x }} />)}
+          </div>
+          <ul className="ms-legend ps-legend">
+            {(['rallyShort', 'rallyMid', 'rallyLong'] as const).map((k, i) => <li key={k}><i className={`r${i}`} />{t(k)} <b>{pct(s.rallies[i], rallies)}%</b></li>)}
+          </ul>
+        </section>
+      </div>
+      <p className="hint">{t('statsAvgHint', { n })} {t('statsEstimateHint')}</p>
+    </div>
+  );
+}

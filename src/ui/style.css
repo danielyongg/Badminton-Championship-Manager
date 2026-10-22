@@ -779,3 +779,23 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
   .news .drow { flex-direction: column; gap: 3px; }
   .news .drow > .badge { min-width: 0; margin-top: 0; }
 }
+/* Profil → Statistik pribadi: kotak angka utama + kelompok baris (bar persentase, komposisi winner & reli). */
+.pstats { --w0: var(--accent); --w1: var(--series-1); --w2: var(--series-2); --w3: var(--gold); --w4: var(--violet); }
+.ps-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }
+.ps-tiles > div { background: var(--bg); border-radius: 6px; padding: 8px 10px; }
+.ps-tiles dt { font-size: .66rem; line-height: 1.3; min-height: 2.6em; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.ps-tiles dd { margin: 2px 0 0; font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.ps-tiles dd small { font-size: .72rem; font-weight: 500; color: var(--muted); }
+.ps-tiles > div > small { display: block; font-size: .72rem; color: var(--muted); }
+.ps-groups { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px 28px; }
+@media (min-width: 900px) { .ps-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ps-tiles { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.ps-groups h4 { margin: 10px 0 4px; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+.ps-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; padding: 5px 0; font-size: .9rem; }
+.ps-row b { font-variant-numeric: tabular-nums; }
+.ps-bar { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.ps-bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.ps-mix { height: 14px; }
+.pstats .w0 { background: var(--w0); } .pstats .w1 { background: var(--w1); } .pstats .w2 { background: var(--w2); }
+.pstats .w3 { background: var(--w3); } .pstats .w4 { background: var(--w4); }
+.pstats .r0 { background: var(--teal); } .pstats .r1 { background: var(--blue); } .pstats .r2 { background: var(--violet); }
+.ps-legend li span { color: var(--muted); }

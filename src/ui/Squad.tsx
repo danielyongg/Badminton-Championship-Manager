@@ -13,7 +13,7 @@ import { ownPairs, Pairs } from './Pairs';
 import { CommitmentChips, RankChart, RankingDetail } from './Ranking';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
-import { MatchStatsView } from './MatchStats';
+import { MatchStatsView, PlayerStatsView } from './MatchStats';
 
 
 /** Cedera: "Cedera berat: Robek otot betis · 14 mg · kembali minggu 33" (tahun ditulis bila melewati musim ini). */
@@ -540,7 +540,8 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         const sideMatches = mine.filter((m) => m.sides.includes(side));
         const years = [...new Set(sideMatches.filter((m) => v2(m)).map((m) => m.year))].sort((a, b) => b - a);
         const y = statYear !== 'all' && years.includes(statYear) ? statYear : 'all';
-        const tot = statTotals(state.statArchive, y === 'all' ? sideMatches : sideMatches.filter((m) => m.year === y), side, y === 'all');
+        const scope = (y === 'all' ? sideMatches : sideMatches.filter((m) => m.year === y)).filter((m) => !m.walkover);
+        const tot = statTotals(state.statArchive, scope, side, y === 'all');
         const label = (e: string) => e === id && !pair ? (lookup(state).pairs.get(e)?.discipline ?? singles) : lookup(state).pairs.get(e)?.discipline ?? singles;
         return <>
           {options.length > 1 && <nav className="controls subnav">
@@ -555,7 +556,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           </nav>
           <section className="card statcard capped">
             {tot.n === 0 ? <p className="hint">{t('noStatsYet')}</p>
-              : <MatchStatsView s={tot.s} names={[entrantLabel(state, side).name, t('opponentsAvg')]} mine={0} avgOf={tot.n} />}
+              : <><h3>{entrantLabel(state, side).name}</h3><PlayerStatsView s={tot.s} n={tot.n} record={[scope.filter(won).length, scope.filter((m) => !won(m)).length]} /></>}
           </section>
         </>;
       })()}
