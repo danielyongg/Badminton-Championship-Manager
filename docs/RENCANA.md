@@ -32,6 +32,15 @@ Prinsip: game tetap ringan — tanpa latihan, anggaran, atau pelatih.
 - [x] **Pencarian bakat junior**: manajer ikut memilih junior baru yang masuk pelatnas pratama. Spesifikasi: `docs/superpowers/specs/2026-10-15-pencarian-bakat-junior-design.md`.
 - [x] **Ringkasan rencana musim**: satu layar yang memperlihatkan siapa main di turnamen mana untuk beberapa minggu ke depan. Spesifikasi: `docs/superpowers/specs/2026-10-15-ringkasan-rencana-musim-design.md`.
 
+## Fitur berikutnya (disetujui 2026-10-22)
+Prinsip tetap: ringan — menambah kenyamanan/informasi, tanpa sistem manajemen baru. Urutan kerja yang disarankan: 1 → 2 → 4 → 3 → 5.
+- [ ] **1. Ekspor/impor save karier**: unduh save sebagai file & buka di perangkat lain (web app iOS punya penyimpanan terpisah dari Safari & bisa terhapus).
+- [ ] **2. Ringkasan turnamen atlet sendiri**: kartu setelah turnamen selesai — babak dicapai, poin ranking didapat, ranking naik/turun, momen terbaik (mis. mengalahkan unggulan 1).
+- [ ] **3. Berita mingguan** di Dashboard: judul singkat dari data yang ada (kejutan minggu ini, juara beruntun, rekor reli/smash, atlet on fire).
+- [ ] **4. Kartu pra-laga di Live Match**: H2H, pertemuan terakhir, ranking, kondisi 🔥, saran strategi singkat dari atribut lawan.
+- [ ] **5. Statistik karier atlet** di profil (dari `Match.stats`): smash tercepat sepanjang karier, total winner, rasio menang di game ketiga, poin beruntun terpanjang. Catatan: `stats` dibuang untuk musim > 2 tahun lalu (`endYear`), jadi statistik karier perlu diakumulasi ke data atlet sebelum dibuang.
+- Ide lain (belum disetujui): pencapaian (achievements), skenario saat New Game.
+
 ## Tahap akhir — Percantik UI & perbaikan UX (setelah semua fitur selesai)
 - [x] Desain visual baru: gaya "Arena" (rapat ala game manajer) + palet hijau "Lapangan", tema terang/gelap dengan pilihan Otomatis/Terang/Gelap, huruf Barlow, bendera 47 negara, bagan bertema, papan skor Live Match ala TV. Spesifikasi: `docs/superpowers/specs/2026-10-13-percantik-ui-design.md`.
 - [ ] Perbaikan UX: daftar keluhan/temuan user dikumpulkan di sini sebelum tahap ini dimulai.
