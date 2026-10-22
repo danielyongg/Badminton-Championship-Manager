@@ -206,7 +206,7 @@ const id = {
   strat_defensive: 'Bertahan (Defensive)',
   strat_fast: 'Cepat & Agresif',
   strat_deceptive: 'Tipuan (Deceptive)',
-  newTournament: 'Turnamen baru', newCity: 'Kota baru', addTournament: 'Tambah turnamen', addCity: 'Tambah kota', roundCol: 'Babak',
+  newTournament: 'Turnamen baru', newCity: 'Kota baru', addTournament: 'Tambah turnamen', addCity: 'Tambah kota', roundCol: 'Babak', addCountry: 'Tambah negara',
   birthWeek: 'Minggu lahir (1–52)', birthWeekHint: 'Minggu dalam tahun lahir: menentukan kapan umur atlet bertambah (mis. kapan tidak lagi U19).',
   cannotDeleteHistory: 'Atlet ini sudah punya riwayat (laga, poin, atau skuad beregu), jadi tidak bisa dihapus dari save berjalan.',
   weeksAtRank: 'Minggu di #{r}', weeksAtRankRun: 'Beruntun di #{r}', weeksTotal: 'minggu total', weeksConsecutive: 'minggu berturut-turut',

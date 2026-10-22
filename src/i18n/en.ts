@@ -206,7 +206,7 @@ export const en: Record<TextKey, string> = {
   strat_defensive: 'Defensive',
   strat_fast: 'Fast & Aggressive',
   strat_deceptive: 'Deceptive',
-  newTournament: 'New tournament', newCity: 'New city', addTournament: 'Add tournament', addCity: 'Add city', roundCol: 'Round',
+  newTournament: 'New tournament', newCity: 'New city', addTournament: 'Add tournament', addCity: 'Add city', roundCol: 'Round', addCountry: 'Add country',
   birthWeek: 'Birth week (1–52)', birthWeekHint: 'Week of the birth year: decides when the player gets a year older (e.g. when they stop being U19).',
   cannotDeleteHistory: 'This player already has history (matches, points or a team squad), so they cannot be deleted from a running save.',
   weeksAtRank: 'Weeks at #{r}', weeksAtRankRun: 'Streak at #{r}', weeksTotal: 'weeks in total', weeksConsecutive: 'consecutive weeks',

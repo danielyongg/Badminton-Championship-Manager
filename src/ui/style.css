@@ -360,31 +360,14 @@ td.strong { font-weight: 700; }
 .ed-actions { margin: 14px 0 4px; }
 button.danger { color: var(--danger); border-color: var(--danger); background: var(--surface); }
 .ed-bands { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 12px 24px; margin: 8px 0 16px; }
-/* Editor: daftar baris berlabel (laptop = kolom berjudul; HP = kartu dua kolom dengan label, tanpa geser ke samping). */
+/* Editor: tabel angka kecil berkolom (poin tier, tabel umur). */
 .ed-rhead, .ed-row { display: grid; grid-template-columns: var(--cols); gap: 8px; align-items: center; }
 .ed-rhead { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; padding: 0 0 6px; border-bottom: 1px solid var(--line); }
 .ed-row { padding: 6px 0; border-bottom: 1px solid var(--line); }
-.ed-cell { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.ed-cell input, .ed-cell select, .ed-row > input { width: 100%; box-sizing: border-box; min-width: 0; }
-.ed-cell small { font-size: .7rem; }
-.ed-lbl { display: none; font-size: .64rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
-.ed-act { display: flex; justify-content: flex-end; }
-.ed-code, .ed-round { font-variant-numeric: tabular-nums; }
-@media (max-width: 699px) {
-  .ed-rows:not(.keep) .ed-rhead { display: none; }
-  .ed-rows:not(.keep) .ed-row { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px 10px; padding: 10px 0 12px; position: relative; }
-  .ed-rows:not(.keep) .ed-cell { grid-column: span 3; }
-  .ed-rows:not(.keep) .ed-cell.wide { grid-column: 1 / -1; }
-  .ed-rows:not(.keep) .ed-cell.third { grid-column: span 2; }
-  .ed-rows:not(.keep) .ed-cell.ed-empty { display: none; }
-  .ed-rows:not(.keep) .ed-lbl { display: block; }
-  .ed-rows:not(.keep) .ed-act { position: absolute; top: 6px; right: 0; }
-  .ed-rows:not(.keep) .ed-act:empty { display: none; }
-  .ed-rows:not(.keep) .ed-code { grid-column: 1 / -1; }
-  .ed-rows:not(.keep) .ed-row:has(.ed-act button) .ed-cell.wide:first-of-type { padding-right: 40px; }
-  .ed-rows.keep .ed-rhead { font-size: .6rem; }
-  .ed-rows.keep .ed-rhead, .ed-rows.keep .ed-row { gap: 6px; }
-}
+.ed-cell { min-width: 0; }
+.ed-cell input, .ed-row > input { width: 100%; box-sizing: border-box; min-width: 0; }
+.ed-round { font-variant-numeric: tabular-nums; }
+@media (max-width: 699px) { .ed-rhead { font-size: .6rem; } .ed-rhead, .ed-row { gap: 6px; } }
 .ed-tools.json { grid-template-columns: minmax(0, 1fr) auto; }
 @media (min-width: 600px) { .ed-tools.pick { grid-template-columns: minmax(0, 1fr) auto; } } /* laptop: pilihan + tombol sebaris; HP: bertumpuk */
 .ed-json { width: 100%; box-sizing: border-box; min-height: 320px; font-family: ui-monospace, monospace; font-size: .8rem; line-height: 1.45; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }

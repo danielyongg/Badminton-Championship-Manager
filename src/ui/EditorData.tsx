@@ -5,8 +5,8 @@ import { dataName, numLocale, t } from '../i18n';
 import { AddById, Num, removeAt, Sel, Txt, type SectionProps } from './Editor';
 
 // Bagian Editor untuk data ruleset & dunia: kalender, tier, kota, negara, aturan lain.
-// Daftar memakai baris berlabel (`Rows`): kolom dengan judul di laptop, kartu dua kolom dengan label di HP — tanpa
-// geser ke samping. Id turnamen & kota dibuat otomatis dari nama saat ditambah (tidak bisa diubah: dirujuk data lain).
+// Turnamen, kota & negara: pilih satu dari dropdown lalu edit lewat form (tidak memanjang di HP). Id turnamen & kota
+// dibuat otomatis dari nama saat ditambah (tidak bisa diubah: dirujuk data lain).
 
 const NAME_POOLS: NamePool[] = ['id', 'cn', 'jp', 'kr', 'th', 'my', 'in', 'vn', 'nordic', 'en', 'fr', 'de', 'es', 'generic'];
 
@@ -18,20 +18,15 @@ const uniqueId = (name: string, taken: string[]) => {
   return id;
 };
 
-/** Daftar baris berlabel. `cols`: kolom grid di laptop; `keep`: tetap berkolom di HP (tabel angka kecil). */
-function Rows({ cols, head, keep, children }: { cols: string; head: ReactNode[]; keep?: boolean; children: ReactNode }) {
+/** Tabel angka kecil berkolom (poin tier, tabel umur): `cols` = kolom grid, judul di atas; muat juga di HP. */
+function Rows({ cols, head, children }: { cols: string; head: ReactNode[]; children: ReactNode }) {
   return (
-    <div className={`ed-rows${keep ? ' keep' : ''}`} style={{ '--cols': cols } as CSSProperties}>
+    <div className="ed-rows" style={{ '--cols': cols } as CSSProperties}>
       <div className="ed-rhead">{head.map((h, i) => <span key={i}>{h}</span>)}</div>
       {children}
     </div>
   );
 }
-/** Satu sel: label kecil (hanya tampil di HP) + isian. `wide` = selebar baris di HP. */
-const cell = (label: string, node: ReactNode, cls = '') => (
-  <label className={`ed-cell ${cls}`}><span className="ed-lbl">{label}</span>{node}</label>
-);
-const delBtn = (onClick: () => void) => <button className="mini" aria-label={t('delete')} title={t('delete')} onClick={onClick}>✕</button>;
 
 // Mengubah kota / minggu di Editor = tetap tiap tahun (tuan rumah / jadwal per tahun bawaan preset dihapus).
 // Satu turnamen diedit sekaligus: pilih dari dropdown (individu & beregu, urut minggu), isian tampil sebagai form.
@@ -120,7 +115,7 @@ export function Tiers({ data, ch }: SectionProps) {
         {DISCIPLINES.map((d) => <label key={d}>{d}<Num o={tier.drawSize} k={d} ch={ch} w={0} /></label>)}
       </div>
       <h4>{t('points')} & {t('prize')}</h4>
-      <Rows keep cols={`44px repeat(${cols.length}, minmax(0, 1fr))`} head={[t('roundCol'), ...cols.map((c) => c.label)]}>
+      <Rows cols={`44px repeat(${cols.length}, minmax(0, 1fr))`} head={[t('roundCol'), ...cols.map((c) => c.label)]}>
         {ROUNDS.map((r, i) => (
           <div className="ed-row" key={r}>
             <b className="ed-round">{r}</b>
@@ -132,55 +127,70 @@ export function Tiers({ data, ch }: SectionProps) {
   );
 }
 
+// Kota & negara: satu data diedit sekaligus — pilih dari dropdown (urut nama), isian tampil sebagai form.
 export function Cities({ data, mode, ch }: SectionProps) {
   const { world } = data;
-  const countries = world.countries.map((c): [string, string] => [c.id, c.id]);
+  const countries = world.countries.map((c): [string, string] => [c.id, `${c.id} — ${dataName(c.name)}`]);
+  const [id, setId] = useState(world.cities[0]?.id);
+  const c = world.cities.find((x) => x.id === id);
   const add = () => {
     const name = t('newCity');
-    world.cities.push({ id: uniqueId(name, world.cities.map((c) => c.id)), countryId: world.countries[0].id, name, venue: '', lat: 0, lon: 0 });
+    const nid = uniqueId(name, world.cities.map((x) => x.id));
+    world.cities.push({ id: nid, countryId: world.countries[0].id, name, venue: '', lat: 0, lon: 0 });
+    setId(nid);
     ch();
   };
+  const sorted = [...world.cities].sort((a, b) => dataName(a.name).localeCompare(dataName(b.name)));
   return (
     <section className="card">
       <h3>{t('ed_cities')} <span className="muted-text">({world.cities.length})</span></h3>
-      <Rows cols="minmax(0, 1.3fr) 96px minmax(0, 1.7fr) 84px 84px 32px" head={[t('name'), t('country'), t('venue'), 'Lat', 'Lon', '']}>
-        {world.cities.map((c) => (
-          <div className="ed-row" key={c.id}>
-            {cell(t('name'), <Txt o={c} k="name" ch={ch} w={0} />)}
-            {cell(t('country'), <Sel o={c} k="countryId" ch={ch} options={countries} />)}
-            {cell(t('venue'), <Txt o={c} k="venue" ch={ch} w={0} />, 'wide')}
-            {cell('Lat', <Num o={c} k="lat" ch={ch} w={0} />)}
-            {cell('Lon', <Num o={c} k="lon" ch={ch} w={0} />)}
-            <span className="ed-act">{mode === 'pack' && delBtn(() => { removeAt(world.cities, c); ch(); })}</span>
-          </div>
-        ))}
-      </Rows>
-      <p className="controls ed-actions"><button onClick={add}>+ {t('addCity')}</button></p>
+      <div className="ed-tools pick">
+        <select value={id} onChange={(e) => setId(e.target.value)}>
+          {sorted.map((x) => <option key={x.id} value={x.id}>{dataName(x.name)} ({x.countryId})</option>)}
+        </select>
+        <button onClick={add}>+ {t('addCity')}</button>
+      </div>
+      {c && <>
+        <div className="ed-form">
+          <label className="wide">{t('name')}<Txt o={c} k="name" ch={ch} w={0} /></label>
+          <label className="wide">{t('country')}<Sel o={c} k="countryId" ch={ch} options={countries} /></label>
+          <label className="wide">{t('venue')}<Txt o={c} k="venue" ch={ch} w={0} /></label>
+          <label>Lat<Num o={c} k="lat" ch={ch} w={0} /></label>
+          <label>Lon<Num o={c} k="lon" ch={ch} w={0} /></label>
+        </div>
+        {mode === 'pack' && <p className="controls ed-actions"><button className="danger" onClick={() => { removeAt(world.cities, c); setId(world.cities[0]?.id); ch(); }}>{t('delete')}</button></p>}
+      </>}
     </section>
   );
 }
 
 export function Countries({ data, mode, ch }: SectionProps) {
   const { world } = data;
+  const [id, setId] = useState(world.countries[0]?.id);
+  const c = world.countries.find((x) => x.id === id);
   return (
     <section className="card">
       <h3>{t('ed_countries')} <span className="muted-text">({world.countries.length})</span></h3>
       <p className="hint">{t('countryHelp')}</p>
-      <Rows cols="52px minmax(0, 1.6fr) 104px 84px 112px 32px" head={['', t('name'), t('confederation'), t('tradition'), t('namePool'), '']}>
-        {world.countries.map((c) => (
-          <div className="ed-row" key={c.id}>
-            <b className="ed-code">{c.id}</b>
-            {cell(t('name'), <Txt o={c} k="name" ch={ch} w={0} />, 'wide')}
-            {cell(t('confederation'), <Sel o={c} k="confederation" ch={ch} options={CONFEDERATIONS.map((x) => [x, x])} />, 'third')}
-            {cell(t('tradition'), <Num o={c} k="traditionStrength" ch={ch} w={0} />, 'third')}
-            {cell(t('namePool'), <Sel o={c} k="namePool" ch={ch} options={NAME_POOLS.map((x) => [x, x])} />, 'third')}
-            <span className="ed-act">{mode === 'pack' && delBtn(() => { removeAt(world.countries, c); ch(); })}</span>
-          </div>
-        ))}
-      </Rows>
+      <div className="ed-tools">
+        <select value={id} onChange={(e) => setId(e.target.value)}>
+          {world.countries.map((x) => <option key={x.id} value={x.id}>{x.id} — {dataName(x.name)}</option>)}
+        </select>
+      </div>
+      {c && <>
+        <div className="ed-form">
+          <label className="wide">{t('name')}<Txt o={c} k="name" ch={ch} w={0} /></label>
+          <label>{t('confederation')}<Sel o={c} k="confederation" ch={ch} options={CONFEDERATIONS.map((x) => [x, x])} /></label>
+          <label>{t('tradition')}<Num o={c} k="traditionStrength" ch={ch} w={0} /></label>
+          <label>{t('namePool')}<Sel o={c} k="namePool" ch={ch} options={NAME_POOLS.map((x) => [x, x])} /></label>
+        </div>
+        {mode === 'pack' && <p className="controls ed-actions"><button className="danger" onClick={() => { removeAt(world.countries, c); setId(world.countries[0]?.id); ch(); }}>{t('delete')}</button></p>}
+      </>}
       {/* Id negara = kode (mis. INA) yang tampil di seluruh game, jadi diisi sendiri. */}
-      <AddById taken={world.countries.map((c) => c.id)} onAdd={(id) => {
-        world.countries.push({ id, name: id, confederation: 'BA', traditionStrength: 20, namePool: 'generic' });
+      <h4>{t('addCountry')}</h4>
+      <AddById taken={world.countries.map((x) => x.id)} onAdd={(nid) => {
+        world.countries.push({ id: nid, name: nid, confederation: 'BA', traditionStrength: 20, namePool: 'generic' });
+        setId(nid);
         ch();
       }} />
     </section>
@@ -191,7 +201,7 @@ function Bands({ title, bands, ch }: { title: string; bands: AgeBand[]; ch: () =
   return (
     <div>
       <h4>{title}</h4>
-      <Rows keep cols="repeat(3, minmax(0, 1fr))" head={[t('upToAge'), 'min', 'max']}>
+      <Rows cols="repeat(3, minmax(0, 1fr))" head={[t('upToAge'), 'min', 'max']}>
         {bands.map((b, i) => (
           <div className="ed-row" key={i}>
             <Num o={b} k="maxAge" ch={ch} w={0} /><Num o={b} k="min" ch={ch} w={0} /><Num o={b} k="max" ch={ch} w={0} />
