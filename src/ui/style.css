@@ -148,6 +148,7 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 /* Kartu & tata letak */
 .menu { max-width: 900px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; }
+.card > :last-child { margin-bottom: 0; } /* tanpa ruang kosong ekstra di bawah isi kartu (padding kartu cukup) */
 .card h2, .card h3 { margin: 4px 0 8px; font-size: .82rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .card h4 { margin: 8px 0 4px; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
@@ -169,7 +170,7 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .pairtable .pname:hover { text-decoration: underline; }
 .pairtable td:first-child .tag { margin-top: 2px; }
 .dash { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 12px; align-items: start; }
-.dash > * { overflow-x: auto; }
+.dash > * { overflow-x: auto; margin-bottom: 0; } /* jarak antar kartu cukup dari gap grid (laptop: kolom mengalir, lihat media ≥1024px) */
 /* Kartu panjang (hasil turnamen) membentang beberapa baris; kartu pendek mengisi celah di kolom lain. */
 .dash { grid-auto-flow: row dense; }
 .dash > .tall { grid-row: span 6; }
