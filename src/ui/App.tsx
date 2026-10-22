@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
-import { deleteSave, listPacks, listSaves, readSave } from '../db/saves';
+import { deleteSave, exportSave, importSave, listPacks, listSaves, readSave } from '../db/saves';
 import { presetPack, PRESETS, validatePack } from '../engine/pack';
 import { WORLD } from '../engine/presets/world';
 import { makeRng } from '../engine/rng';
@@ -8,7 +8,7 @@ import { newSeason } from '../engine/season';
 import type { SaveMeta } from '../engine/types';
 import { dataName, t } from '../i18n';
 import { CareerShell } from './Career';
-import { PackManager } from './Editor';
+import { downloadJson, PackManager } from './Editor';
 import { LangSelect } from './LangSelect';
 import { ThemeSelect } from './ThemeSelect';
 import { GameContext, gameFromBlob, saveGame, type Game } from './game';
@@ -43,6 +43,7 @@ function MainMenu({ onStart, onLab, onEditor, onLang }: { onStart: (g: Game) => 
   const pack = packs.find((p) => p.id === packId) ?? packs[0];
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e6));
   const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
 
   const start = async () => {
     const errors = validatePack(pack);
@@ -63,6 +64,19 @@ function MainMenu({ onStart, onLab, onEditor, onLang }: { onStart: (g: Game) => 
   const load = async (meta: SaveMeta) => {
     const blob = await readSave(meta.id);
     if (blob) onStart(gameFromBlob(meta, blob));
+  };
+
+  const exportFile = async (meta: SaveMeta) => {
+    const f = await exportSave(meta);
+    if (f) downloadJson(`${meta.name} ${meta.date.year}-${meta.date.week}`, f);
+  };
+  const importFile = async (file: File) => {
+    try {
+      const meta = await importSave(JSON.parse(await file.text()));
+      setMsg(`${t('imported')} (${meta.name})`);
+    } catch (e) {
+      setMsg(`${t('importFailed')}: ${(e as Error).message}`);
+    }
   };
 
   const countryName = (id: string | null) => (id ? dataName(WORLD.countries.find((c) => c.id === id)?.name) ?? id : t('observer'));
@@ -96,16 +110,21 @@ function MainMenu({ onStart, onLab, onEditor, onLang }: { onStart: (g: Game) => 
           <table>
             <tbody>{saves.map((s) => (
               <tr key={s.id}>
-                <td><b>{s.name}</b></td>
+                <td><b>{s.name}</b><br /><small>{s.date.year} · {t('week')} {s.date.week}</small></td>
                 <td className="hide-sm">{countryName(s.countryId)}</td>
                 <td className="hide-sm">{s.rulesetName}</td>
-                <td>{s.date.year} · {t('week')} {s.date.week}</td>
                 <td><button onClick={() => load(s)}>{t('load')}</button></td>
+                <td><button onClick={() => exportFile(s)}>{t('exportSave')}</button></td>
                 <td><button className="btn-danger" onClick={() => confirm(t('confirmDelete')) && deleteSave(s.id)}>{t('delete')}</button></td>
               </tr>
             ))}</tbody>
           </table>
         )}
+        <p className="hint">{t('saveFileHelp')}</p>
+        <label>{t('importSave')}{' '}
+          <input type="file" accept=".json,application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importFile(f); e.target.value = ''; }} />
+        </label>
+        {msg && <p>{msg}</p>}
       </section>
       <p><button onClick={onEditor}>{t('openEditor')}</button></p>
       <p><button onClick={onLab}>{t('openLab')}</button></p>

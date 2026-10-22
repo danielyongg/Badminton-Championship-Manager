@@ -34,7 +34,7 @@ Prinsip: game tetap ringan — tanpa latihan, anggaran, atau pelatih.
 
 ## Fitur berikutnya (disetujui 2026-10-22)
 Prinsip tetap: ringan — menambah kenyamanan/informasi, tanpa sistem manajemen baru. Urutan kerja yang disarankan: 1 → 2 → 4 → 3 → 5.
-- [ ] **1. Ekspor/impor save karier**: unduh save sebagai file & buka di perangkat lain (web app iOS punya penyimpanan terpisah dari Safari & bisa terhapus).
+- [x] **1. Ekspor/impor save karier**: unduh save sebagai file & buka di perangkat lain (web app iOS punya penyimpanan terpisah dari Safari & bisa terhapus).
 - [ ] **2. Ringkasan turnamen atlet sendiri**: kartu setelah turnamen selesai — babak dicapai, poin ranking didapat, ranking naik/turun, momen terbaik (mis. mengalahkan unggulan 1).
 - [ ] **3. Berita mingguan** di Dashboard: judul singkat dari data yang ada (kejutan minggu ini, juara beruntun, rekor reli/smash, atlet on fire).
 - [ ] **4. Kartu pra-laga di Live Match**: H2H, pertemuan terakhir, ranking, kondisi 🔥, saran strategi singkat dari atribut lawan.

@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie';
 import type { DataPack } from '../engine/pack';
+import { t } from '../i18n';
 import type { SeasonState } from '../engine/season';
 import type { Ruleset, SaveMeta, World } from '../engine/types';
 
@@ -46,4 +47,24 @@ export async function deleteSave(id: string) {
     await db.saves.delete(id);
     await db.blobs.delete(id);
   });
+}
+
+/** Isi file ekspor save: meta + isi lengkap. Untuk memindah karier antarperangkat/peramban (web app iOS terpisah dari Safari). */
+export interface SaveFile { bcmSave: 1; meta: SaveMeta; blob: SaveBlob }
+
+export async function exportSave(meta: SaveMeta): Promise<SaveFile | undefined> {
+  const blob = await readSave(meta.id);
+  return blob && { bcmSave: 1, meta, blob };
+}
+
+/** Simpan file ekspor sebagai slot baru (id baru → tak menimpa save yang ada). Save lama dimigrasi saat dimuat (gameFromBlob). */
+export async function importSave(data: unknown): Promise<SaveMeta> {
+  const f = data as Partial<SaveFile> | null;
+  const b = f?.blob;
+  if (f?.bcmSave !== 1 || !f.meta?.name || !b?.state?.players || !b.ruleset || !b.world || typeof b.rngState !== 'number')
+    throw new Error(t('notSaveFile'));
+  const id = crypto.randomUUID();
+  const meta = { ...f.meta, id };
+  await writeSave(meta, { ...b, id });
+  return meta;
 }

@@ -239,10 +239,17 @@ function Pairs({ data, mode, date, ch, country: initial }: SectionProps) {
 }
 
 /** Unduh paket sebagai file JSON. */
-export function downloadPack(pack: DataPack) {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(pack, null, 1)], { type: 'application/json' }));
-  const a = Object.assign(document.createElement('a'), { href: url, download: `${pack.name.replace(/[^\w-]+/g, '_')}.json` });
-  a.click();
+export const downloadPack = (pack: DataPack) => downloadJson(pack.name, pack, 1);
+
+/** Unduh data sebagai file JSON. Di HP pakai lembar Bagikan bila ada (web app iOS tak bisa mengunduh biasa). */
+export function downloadJson(name: string, data: unknown, indent?: number) {
+  const file = new File([JSON.stringify(data, null, indent)], `${name.replace(/[^\w-]+/g, '_')}.json`, { type: 'application/json' });
+  if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] })) {
+    navigator.share({ files: [file] }).catch(() => { /* dibatalkan */ });
+    return;
+  }
+  const url = URL.createObjectURL(file);
+  Object.assign(document.createElement('a'), { href: url, download: file.name }).click();
   URL.revokeObjectURL(url);
 }
 
