@@ -110,6 +110,11 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
   const OLD = { IC: [25, 400], IS: [40, 9999], FS: [60, 9999] } as const;
   if (range) for (const k of ['IC', 'IS', 'FS'] as const)
     if (range[k]?.[0] === OLD[k][0] && range[k]?.[1] === OLD[k][1] && preset.ai.rankRange[k]) range[k] = [...preset.ai.rankRange[k]];
+  // Save sebelum unforced error menentukan reli: nilai strategi bawaan lama (risiko 0,03/0,03/0,04) diganti hasil
+  // kalibrasi baru dari preset (ubahan Editor dibiarkan).
+  const strat = blob.ruleset.match?.strategies;
+  if (strat && !blob.ruleset.match.ownError && strat.attacking?.error === 0.03 && strat.fast?.error === 0.03 && strat.deceptive?.error === 0.04)
+    blob.ruleset.match.strategies = structuredClone(preset.match.strategies);
   // Save sebelum aturan wildcard GCR 7.11 (grade 3, S300, S100) & slot qualifier S100 MS: ambil dari preset bila belum diatur.
   for (const tier of blob.ruleset.tiers) {
     const p = preset.tiers.find((x) => x.id === tier.id);

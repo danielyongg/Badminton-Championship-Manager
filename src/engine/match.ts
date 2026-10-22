@@ -130,6 +130,14 @@ function spendEnergy(st: MatchState, mult: number, cfg: MatchConfig) {
   }
 }
 
+/** Sisi yang salah sendiri di reli ini (atau tidak ada): risiko strategi, diperbesar bila Consistency rendah. */
+function ownError(st: MatchState, cfg: MatchConfig, rng: Rng): 0 | 1 | undefined {
+  const p = ([0, 1] as const).map((x) => Math.max(0, cfg.ownError.base + cfg.strategies[st.sides[x].strategy].error)
+    * (150 - eff(st, x, 'consistency', cfg)) / 100);
+  const r = rng();
+  return r < p[0] ? 0 : r < p[0] + p[1] ? 1 : undefined;
+}
+
 const recover = (st: MatchState, amount: number) => st.sides.forEach((s) => (s.energy = clamp(s.energy + amount, 0, 100)));
 
 export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEvent {
@@ -139,6 +147,7 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
   let winner: 0 | 1;
   let type: PointType;
   let energyMult = 1;
+  let erred: 0 | 1 | undefined;
 
   const serveProb = cfg.serviceEvent.base + (100 - eff(st, srv, 'serve', cfg)) * cfg.serviceEvent.perMissingServe;
   if (rng() < serveProb) {
@@ -146,6 +155,11 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
     winner = rng() < 0.2 + (eff(st, srv, 'serve', cfg) / 100) * 0.5 ? srv : rcv;
     type = 'service';
     energyMult = 0.2;
+  } else if ((erred = ownError(st, cfg, rng)) !== undefined) {
+    // Kesalahan sendiri sebelum pola berkembang: lawan dapat poin.
+    winner = (1 - erred) as 0 | 1;
+    type = 'error';
+    energyMult = 0.5;
   } else {
     const p = pickPattern(patterns(st, cfg), rng);
     const x = p.attacker;
@@ -159,10 +173,10 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
     diff += cfg.momentum.weight * (x === 0 ? st.momentum : -st.momentum);
     winner = rng() < logistic(diff / cfg.duelScale) ? x : y;
     type = winner === x ? p.winType : p.loseType;
-    // Sebagian poin sebenarnya kesalahan sendiri lawan; makin rendah Consistency, makin sering.
+    // Label statistik: sebagian poin duel tercatat sebagai kesalahan lawan; makin rendah Consistency, makin sering.
+    // (Kesalahan sendiri yang menentukan reli ada di ownError.)
     const loser = (1 - winner) as 0 | 1;
-    const errorRisk = cfg.strategies[st.sides[loser].strategy].error;
-    if (rng() < 0.18 + errorRisk + ((100 - eff(st, loser, 'consistency', cfg)) / 100) * 0.3) type = 'error';
+    if (rng() < 0.18 + ((100 - eff(st, loser, 'consistency', cfg)) / 100) * 0.3) type = 'error';
     energyMult = p.energyMult * clamp(normal(rng, 1, 0.3), 0.3, 2);
   }
 

@@ -237,6 +237,11 @@ export interface MatchConfig {
   morale: { up: number; down: number; scale: number; k: number; titleBonus: number; finalBonus: number; weeklyDecay: number };
   /** Kondisi hari itu: bonus/penalti acak semua atribut per sisi per laga (simpangan baku). */
   dayForm: { sd: number };
+  /**
+   * Kesalahan sendiri (unforced error) yang benar-benar menentukan reli: tiap reli (selain poin servis) tiap sisi bisa
+   * kehilangan poin langsung dengan peluang (base + risiko strategi) × (150 − Consistency efektif) / 100.
+   */
+  ownError: { base: number };
   strategies: Record<Strategy, StrategyEffect>;
   /** Sistem skor baru mulai tahun tertentu (BWF 3×15 mulai 2027): menggantikan poin, batas, interval, poin kritis & pemanasan. */
   newScoring?: { fromYear: number; pointsToWin: number; cap: number; intervalAt: number; pressureFrom: number; warmupPoints: number };
@@ -250,7 +255,7 @@ export interface StrategyEffect {
   weight: Record<PatternKind, number>; // pengali peluang pola yang dimulai sisi ini
   attack: Partial<Record<PatternKind, number>>; // bonus poin atribut saat menyerang dengan pola ini
   defend: number; // bonus poin atribut saat bertahan
-  error: number; // tambahan peluang unforced error
+  error: number; // tambahan peluang unforced error per reli (lihat MatchConfig.ownError)
   energy: number; // pengali biaya energi
 }
 

@@ -461,16 +461,17 @@ export const BWF_2026: Ruleset = {
     // ASUMSI (kalibrasi): 80 morale Tinggi vs 90 Sangat rendah ≈ 60%; 80 vs 90 morale Normal ≈ 11% (kondisi hari itu σ 2).
     morale: { up: 1, down: 1, scale: 4.5, k: 1.5, titleBonus: 1, finalBonus: 0.5, weeklyDecay: 0.88 },
     dayForm: { sd: 2 },
+    ownError: { base: 0.02 }, // ASUMSI (kalibrasi): kesalahan sendiri per reli, lihat docs/ASUMSI.md (Strategi)
     // Sistem skor 3×15 (BWF, mulai 4 Jan 2027): 15 poin, deuce 14–14 unggul 2, batas 21, interval 8.
     // ASUMSI: poin kritis mulai 12 & pemanasan 6 poin (diskalakan dari 18/21 & 8/21).
     newScoring: { fromYear: 2027, pointsToWin: 15, cap: 21, intervalAt: 8, pressureFrom: 12, warmupPoints: 6 },
-    // Strategi Live (ASUMSI: kalibrasi). Mode Auto memakai 'balanced'.
+    // Strategi Live (ASUMSI: kalibrasi, docs/ASUMSI.md). Mode Auto memakai 'balanced'. `error` = risiko salah sendiri per reli.
     strategies: {
       balanced: { weight: { smash: 1, net: 1, deception: 1, rally: 1 }, attack: {}, defend: 0, error: 0, energy: 1 },
-      attacking: { weight: { smash: 1.6, net: 1, deception: 0.8, rally: 0.7 }, attack: { smash: 4 }, defend: -2, error: 0.03, energy: 1.15 },
-      defensive: { weight: { smash: 0.7, net: 1, deception: 0.8, rally: 1.6 }, attack: { smash: -3, net: -2, deception: -2, rally: 2 }, defend: 1.5, error: -0.01, energy: 0.95 },
-      fast: { weight: { smash: 1.2, net: 1.6, deception: 0.8, rally: 0.6 }, attack: { net: 4, smash: 1 }, defend: -1, error: 0.03, energy: 1.3 },
-      deceptive: { weight: { smash: 0.8, net: 1.1, deception: 1.8, rally: 0.8 }, attack: { deception: 3 }, defend: -1, error: 0.04, energy: 1.05 },
+      attacking: { weight: { smash: 1.6, net: 1, deception: 0.8, rally: 0.7 }, attack: { smash: 5 }, defend: -2, error: 0.006, energy: 1.15 },
+      defensive: { weight: { smash: 0.7, net: 1, deception: 0.8, rally: 1.6 }, attack: { smash: -3, net: -2, deception: -2, rally: 1.5 }, defend: 1, error: -0.006, energy: 0.95 },
+      fast: { weight: { smash: 1.2, net: 1.6, deception: 0.8, rally: 0.6 }, attack: { net: 7, smash: 1 }, defend: -1, error: 0.012, energy: 1.3 },
+      deceptive: { weight: { smash: 0.8, net: 1.1, deception: 1.8, rally: 0.8 }, attack: { deception: 7 }, defend: -1, error: 0.012, energy: 1.05 },
     },
   },
   // Kelelahan 0–100: naik per laga & jarak perjalanan, pulih tiap minggu. (ASUMSI: kalibrasi)

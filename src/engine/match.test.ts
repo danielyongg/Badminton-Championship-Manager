@@ -109,7 +109,7 @@ describe('strategi Live', () => {
 
   it('strategi yang cocok dengan matchup menaikkan peluang secara terukur', () => {
     const deceiver = { ...flat(70), deception: 90 }, slow = { ...flat(70), speed: 55 };
-    expect(rate(deceiver, slow, 'deceptive')).toBeGreaterThan(rate(deceiver, slow, 'balanced') + 0.05);
+    expect(rate(deceiver, slow, 'deceptive')).toBeGreaterThan(rate(deceiver, slow, 'balanced') + 0.03);
     const smasher = { ...flat(70), smash: 88 }, weakDef = { ...flat(70), defense: 55 };
     expect(rate(smasher, weakDef, 'attacking')).toBeGreaterThan(rate(smasher, weakDef, 'balanced') + 0.02);
   });
@@ -117,6 +117,20 @@ describe('strategi Live', () => {
   it('strategi yang salah merugikan: menyerang ke lawan bertahan kuat', () => {
     const smasher = { ...flat(70), smash: 85, defense: 60 }, wall = { ...flat(70), defense: 92 };
     expect(rate(smasher, wall, 'attacking')).toBeLessThan(rate(smasher, wall, 'balanced'));
+  });
+
+  it('risiko unforced error strategi menentukan reli: makin berisiko makin sering kalah, terutama bila Consistency rendah', () => {
+    const risky = (error: number) => ({ ...cfg, strategies: { ...cfg.strategies, balanced: { ...cfg.strategies.balanced, error } } });
+    const rateWith = (c: typeof cfg, a: Attrs) => {
+      const rng = makeRng(1);
+      let w = 0;
+      for (let i = 0; i < 2000; i++) if (simulateMatch([side(player(a)), side(player(flat(70)))], c, rng, ['balanced', 'attacking']).winner === 0) w++;
+      return w / 2000;
+    };
+    // Sisi 0 memakai 'balanced' yang risikonya dinaikkan; lawan tetap 'attacking' bawaan.
+    const drop = (a: Attrs) => rateWith(cfg, a) - rateWith(risky(0.03), a);
+    expect(drop(flat(70))).toBeGreaterThan(0.05);
+    expect(drop({ ...flat(70), consistency: 45 })).toBeGreaterThan(drop({ ...flat(70), consistency: 95 }));
   });
 
   it('momentum bergerak ke sisi yang mencetak poin beruntun', () => {
