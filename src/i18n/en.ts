@@ -175,7 +175,7 @@ export const en: Record<TextKey, string> = {
   matchesTogether: 'Matches together',
   rank: 'Rank',
   matchesPlayed: 'Matches played', careerStats: 'Career stats', perMatch: 'match', deciderRecord: 'Deciding games (3rd game)',
-  newsTitle: 'This week\'s news', newsUpset: 'Upset', newsStreak: 'won {n} tournaments in a row', newsSmash: 'Fastest smash', newsRally: 'Longest rally', newsRecord: 'season record!', newsFire: 'is on fire: {n} wins this week', unranked: 'unranked',
+  newsStreakTag: 'Streak', newsTitle: 'This week\'s news', newsUpset: 'Upset', newsStreak: 'won {n} tournaments in a row', newsSmash: 'Smash', newsRally: 'Rally', newsRecord: 'Season record', newsFire: '{n} wins this week', unranked: 'unranked',
   stratTip: 'Suggested strategy', useTip: 'Use', neverMet: 'never met', lastMeeting: 'Last meeting',
   pts: 'pts', newRank: 'new entry', bestMoment: 'Best moment: {name} beat #{rank} {opp} ({round})',
   entryWeek: 'Week',

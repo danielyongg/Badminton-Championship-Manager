@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { weekRunning } from './UpdateBar';
 import { matchConfigFor, simulateMatch, type MatchResult } from '../engine/match';
 import type { DrawHook, DrawShow, EntriesHook, EntriesShow, LiveHook, LiveRequest } from '../engine/tournament';
@@ -688,20 +688,31 @@ function NewsCard({ onOpen }: { onOpen: (id: string) => void }) {
       {m.scores.map((g) => `${g[m.winner]}-${g[1 - m.winner]}`).join(', ')}
     </MatchLink>
   );
-  const where = (m: Match) => <small className="muted-text"> · {eventName(ruleset, m.tournamentId, m.year)} {m.discipline} {m.round} · {score(m)}</small>;
-  const line = (n: NewsItem) => {
+  const where = (m: Match) => <small className="muted-text">{eventName(ruleset, m.tournamentId, m.year)} · {m.discipline} {m.round} · {score(m)}</small>;
+  const record = (on: boolean) => on && <> <span className="badge gold">{t('newsRecord')}</span></>;
+  // Tiap berita: badge jenis (lebar tetap, warna per jenis) + kalimat utama + baris keterangan.
+  const row = (n: NewsItem): [string, ReactNode, ReactNode] => {
     switch (n.kind) {
-      case 'upset': return <>😮 <b>{t('newsUpset')}</b>: {who(n.winner)} ({n.wr ? `#${n.wr}` : t('unranked')}) {t('beat')} {who(n.loser)} (#{n.lr}){where(n.m)}</>;
-      case 'streak': return <>🏆 {who(n.id)} {t('newsStreak', { n: n.n })} <small className="muted-text">· {eventName(ruleset, n.tournamentId, state.date.week > 1 ? state.date.year : state.date.year - 1)}</small></>;
-      case 'smash': return <>💥 <b>{t('newsSmash')}</b>: {n.kmh} km/h · {who(n.id)}{n.record && <b className="up"> {t('newsRecord')}</b>}{where(n.m)}</>;
-      case 'rally': return <>🔁 <b>{t('newsRally')}</b>: {n.shots} {t('shotsUnit')} · {who(n.m.sides[0])} vs {who(n.m.sides[1])}{n.record && <b className="up"> {t('newsRecord')}</b>}{where(n.m)}</>;
-      case 'fire': return <>🔥 {who(n.id)} {t('newsFire', { n: n.wins })}</>;
+      case 'upset': return [t('newsUpset'), <>{who(n.winner)} <span className="muted-text">({n.wr ? `#${n.wr}` : t('unranked')})</span> {t('beat')} {who(n.loser)} <span className="muted-text">(#{n.lr})</span></>, where(n.m)];
+      case 'streak': return [t('newsStreakTag'), <>{who(n.id)} {t('newsStreak', { n: n.n })}</>,
+        <small className="muted-text">{eventName(ruleset, n.tournamentId, state.date.week > 1 ? state.date.year : state.date.year - 1)}</small>];
+      case 'smash': return [t('newsSmash'), <><b>{n.kmh} km/h</b> · {who(n.id)}{record(n.record)}</>, where(n.m)];
+      case 'rally': return [t('newsRally'), <><b>{n.shots} {t('shotsUnit')}</b> · {who(n.m.sides[0])} vs {who(n.m.sides[1])}{record(n.record)}</>, where(n.m)];
+      case 'fire': return [t('onFire'), <>{who(n.id)}</>, <small className="muted-text">{t('newsFire', { n: n.wins })}</small>];
     }
   };
   return (
     <section className="card news">
       <h3>{t('newsTitle')}</h3>
-      {items.map((n, i) => <p key={i}>{line(n)}</p>)}
+      {items.map((n, i) => {
+        const [tag, main, sub] = row(n);
+        return (
+          <div key={i} className="drow">
+            <span className={`badge news-${n.kind}`}>{tag}</span>
+            <span className="grow"><span>{main}</span>{sub}</span>
+          </div>
+        );
+      })}
     </section>
   );
 }

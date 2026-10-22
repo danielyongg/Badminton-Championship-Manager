@@ -175,7 +175,7 @@ const id = {
   matchesTogether: 'Laga bersama',
   rank: 'Rank',
   matchesPlayed: 'Laga dimainkan', careerStats: 'Statistik karier', perMatch: 'laga', deciderRecord: 'Rubber game (game ke-3)',
-  newsTitle: 'Berita minggu ini', newsUpset: 'Kejutan', newsStreak: 'juara {n} turnamen beruntun', newsSmash: 'Smash tercepat', newsRally: 'Reli terpanjang', newsRecord: 'rekor musim ini!', newsFire: 'sedang on fire: {n} kemenangan minggu ini', unranked: 'tanpa peringkat',
+  newsStreakTag: 'Beruntun', newsTitle: 'Berita minggu ini', newsUpset: 'Kejutan', newsStreak: 'juara {n} turnamen beruntun', newsSmash: 'Smash', newsRally: 'Reli', newsRecord: 'Rekor musim', newsFire: '{n} kemenangan minggu ini', unranked: 'tanpa peringkat',
   stratTip: 'Saran strategi', useTip: 'Pakai', neverMet: 'belum pernah bertemu', lastMeeting: 'Pertemuan terakhir',
   pts: 'poin', newRank: 'baru masuk', bestMoment: 'Momen terbaik: {name} mengalahkan #{rank} {opp} ({round})',
   entryWeek: 'Minggu',
