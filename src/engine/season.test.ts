@@ -35,7 +35,7 @@ describe('satu musim penuh (BWF 2026)', () => {
     for (const d of DISCIPLINES) {
       const byId = state.rankWeeks![d]!;
       const weeks1 = Object.values(byId).reduce((sum, e) => sum + (e.at[1] ?? 0), 0);
-      expect(weeks1).toBe(52); // 52 akhir minggu musim 2026
+      expect(weeks1).toBe(53); // minggu 1–52 musim 2026 + minggu 1 musim 2027 (dicatat saat minggu dimulai)
       for (const e of Object.values(byId)) if (e.r && e.r <= 100) expect(e.run).toBeLessThanOrEqual(e.at[e.r]);
       const top = computeRanking(state.results, d, absWeek(state.date), rs)[0];
       expect(byId[top.entrantId].r).toBe(1);

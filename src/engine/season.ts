@@ -239,6 +239,7 @@ export function newSeason(
   state.managedCountryId = countryId;
   state.results = bootstrapResults(state, ruleset);
   startYear(state, ruleset, makeRng(seed + 1), world);
+  ensureRankWeeks(state, ruleset);
   return state;
 }
 
@@ -915,6 +916,12 @@ function addRankWeeks(byId: Record<string, RankWeeks>, id: string, rank: number,
 }
 
 /** Akhir minggu: catat peringkat senior tiap peserta (300 besar); yang keluar dari 300 besar rentetannya berhenti. */
+/** Minggu di peringkat tersedia sejak awal (karier baru / save lama saat dimuat): catat minggu berjalan bila belum ada. */
+export function ensureRankWeeks(state: SeasonState, rs: Ruleset) {
+  if (!state.rankWeeks) updateRankWeeks(state, rs);
+}
+
+/** Catat ranking minggu berjalan (dipanggil saat minggu baru dimulai). */
 function updateRankWeeks(state: SeasonState, rs: Ruleset) {
   if (!state.rankWeeks) {
     // Save lama: isi awal dari snapshot 4-mingguan (tiap snapshot ≈ 4 minggu di peringkat itu).

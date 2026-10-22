@@ -6,7 +6,7 @@ import { PRESETS, syncOfficialCalendar, withDefaults } from '../engine/pack';
 import { BWF_2026 } from '../engine/presets/bwf2026';
 import { dataName, t } from '../i18n';
 import { makeRng, type Rng } from '../engine/rng';
-import { playWeek, teamFormatsIn, weekOf, type SeasonState, type WeekHooks } from '../engine/season';
+import { ensureRankWeeks, playWeek, teamFormatsIn, weekOf, type SeasonState, type WeekHooks } from '../engine/season';
 import { isJuniorFormat, type Ruleset, type Tier, type SaveMeta, type World } from '../engine/types';
 
 // Satu permainan aktif (save yang sedang dimainkan). Engine mengubah `state` di tempat; `version` memicu render ulang.
@@ -122,7 +122,10 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
       Object.assign(tier, { wildcardOnlyIfHostAbsent: true, zeroPointsForR1WildcardLoss: p.zeroPointsForR1WildcardLoss });
     if (p?.qualifierSlots && !tier.qualifierSlots) tier.qualifierSlots = { ...p.qualifierSlots };
   }
-  return { meta, state: blob.state, ruleset: withDefaults(blob.ruleset, preset), world: blob.world, rng: makeRng(blob.rngState) };
+  const ruleset = withDefaults(blob.ruleset, preset);
+  // Save sebelum minggu di peringkat: isi dari snapshot + minggu berjalan, agar langsung tampil tanpa menunggu minggu berikutnya.
+  ensureRankWeeks(blob.state, ruleset);
+  return { meta, state: blob.state, ruleset, world: blob.world, rng: makeRng(blob.rngState) };
 }
 
 export async function saveGame(g: Game) {
