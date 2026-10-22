@@ -113,7 +113,7 @@ function MainMenu({ onStart, onLab, onEditor, onLang }: { onStart: (g: Game) => 
                 <td><b>{s.name}</b><br /><small>{s.date.year} · {t('week')} {s.date.week}</small></td>
                 <td className="hide-sm">{countryName(s.countryId)}</td>
                 <td className="hide-sm">{s.rulesetName}</td>
-                <td><button onClick={() => load(s)}>{t('load')}</button></td>
+                <td><button className="primary" onClick={() => load(s)}>{t('load')}</button></td>
                 <td><button onClick={() => exportFile(s)}>{t('exportSave')}</button></td>
                 <td><button className="btn-danger" onClick={() => confirm(t('confirmDelete')) && deleteSave(s.id)}>{t('delete')}</button></td>
               </tr>
