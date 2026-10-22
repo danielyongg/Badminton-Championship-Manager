@@ -9,7 +9,7 @@ import type { RoundHook, RoundShow } from '../engine/gate';
 import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
 import { DISCIPLINES, ROUNDS, type Discipline, type Match, type TeamFormat } from '../engine/types';
-import { absWeek, computeRanking } from '../engine/ranking';
+import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import type { Challenge, FederationGoal, Ruleset, SeasonReport, TournamentDef } from '../engine/types';
 import { dataName, numLocale, t, type TextKey } from '../i18n';
 import { downloadPack, Editor, useDebounced } from './Editor';
@@ -495,11 +495,33 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
   const selYear = Math.floor((sel ?? 0) / 100), selWeek = (sel ?? 0) % 100;
   // Laga terakhir tiap peserta negara ini di turnamen minggu terpilih.
   const last = new Map<string, { event: string; id: string; m: Match; i: 0 | 1 }>();
+  const wins: { id: string; m: Match; i: 0 | 1 }[] = [];
   for (const m of state.matches) {
     if (m.year !== selYear || weekIn(m.tournamentId, m.year) !== selWeek || teamEventIds.has(m.tournamentId)) continue; // partai beregu: lihat baris Tim
     m.sides.forEach((side, i) => {
-      if (mine.has(side)) last.set(`${m.tournamentId}:${side}`, { event: m.tournamentId, id: side, m, i: i as 0 | 1 });
+      if (!mine.has(side)) return;
+      last.set(`${m.tournamentId}:${side}`, { event: m.tournamentId, id: side, m, i: i as 0 | 1 });
+      if (m.winner === i && !m.walkover) wins.push({ id: side, m, i: i as 0 | 1 });
     });
+  }
+  // Ringkasan: poin turnamen & ranking sebelum/sesudah minggu turnamen (junior: ranking junior); momen terbaik = kemenangan atas lawan berperingkat tertinggi.
+  const tierOf = new Map(ruleset.calendar.map((e) => [e.id, ruleset.tiers.find((x) => x.id === e.tierId)]));
+  const rankCache = new Map<string, Map<string, number>>();
+  const rankAt = (event: string, d: Discipline, abs: number) => {
+    const junior = !!tierOf.get(event)?.junior, k = `${junior}:${d}:${abs}`;
+    if (!rankCache.has(k)) rankCache.set(k, rankMap(computeRanking(junior ? state.juniorResults : state.results, d, abs, ruleset)));
+    return rankCache.get(k)!;
+  };
+  const selAbs = selYear * 52 + selWeek;
+  const summaryOf = (event: string, id: string, d: Discipline) => ({
+    points: (tierOf.get(event)?.junior ? state.juniorResults : state.results).find((r) => r.entrantId === id && r.tournamentId === event && r.year === selYear)?.points,
+    before: rankAt(event, d, selAbs - 1).get(id), after: rankAt(event, d, selAbs).get(id),
+  });
+  const best = new Map<string, { id: string; m: Match; i: 0 | 1; oppRank: number }>();
+  for (const w of wins) {
+    const pre = rankAt(w.m.tournamentId, w.m.discipline, selAbs - 1);
+    const oppRank = pre.get(w.m.sides[1 - w.i]) ?? Infinity;
+    if (oppRank < (pre.get(w.id) ?? Infinity) && oppRank < (best.get(w.m.tournamentId)?.oppRank ?? Infinity)) best.set(w.m.tournamentId, { ...w, oppRank });
   }
   // Per turnamen, urut dari babak terjauh (juara dulu).
   const reachedOf = (r: { m: Match; i: 0 | 1 }) => (r.m.winner === r.i && r.m.round === 'F' ? 'W' : r.m.round);
@@ -589,15 +611,34 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
             [...byEvent].map(([event, list]) => (
               <div key={event} className="dlist">
                 <h4><EventLink id={event} year={selYear} onOpen={onOpenEvent} /></h4>
+                {(() => {
+                  const b = best.get(event);
+                  if (!b) return null;
+                  const opp = b.m.sides[1 - b.i];
+                  return (
+                    <p className="moment">⭐ {t('bestMoment', { name: entrantLabel(state, b.id).name, rank: b.oppRank, opp: entrantLabel(state, opp).name, round: b.m.round })}{' '}
+                      <MatchLink m={b.m} name={(x) => entrantLabel(state, x).name} title={eventName(ruleset, b.m.tournamentId, b.m.year)}>{b.m.scores.map((g) => `${g[b.i]}-${g[1 - b.i]}`).join(', ')}</MatchLink>
+                    </p>
+                  );
+                })()}
                 {list.map(({ id, m, i }) => {
                   const reached = reachedOf({ m, i });
                   const opp = m.sides[1 - i];
+                  const sum = summaryOf(event, id, m.discipline);
+                  const move = sum.before && sum.after ? sum.before - sum.after : undefined;
                   return (
                     <div key={id} className={`drow${reached === 'W' ? ' champ' : ''}`}>
                       <span className="chip">{m.discipline}</span>
                       <span className="grow">
                         <a href="#" onClick={(e) => { e.preventDefault(); onOpen(id); }}>{entrantLabel(state, id).name}</a>
                         <small className="muted-text">{m.winner === i ? t('wins') : t('lost')} vs <Flag id={opp} />{entrantLabel(state, opp).name} · <MatchLink m={m} name={(x) => entrantLabel(state, x).name} title={eventName(ruleset, m.tournamentId, m.year)}>{m.scores.map((g) => `${g[i]}-${g[1 - i]}`).join(', ')}</MatchLink></small>
+                        {(sum.points || sum.after) && (
+                          <small className="muted-text">
+                            {sum.points ? `+${sum.points.toLocaleString(numLocale())} ${t('pts')}` : ''}
+                            {sum.points && sum.after ? ' · ' : ''}
+                            {sum.after && <>{t('rank')} {sum.before && sum.before !== sum.after ? `${sum.before} → ` : ''}{sum.after}{move ? <span className={move > 0 ? 'up' : 'down'}> {move > 0 ? '▲' : '▼'}{Math.abs(move)}</span> : !sum.before ? ` (${t('newRank')})` : ''}</>}
+                          </small>
+                        )}
                       </span>
                       <span className={`badge${reached === 'W' ? ' gold' : reached === 'F' || reached === 'SF' ? ' good' : ''}`}>{reached === 'W' ? `🏆 ${t('champion')}` : reached}</span>
                     </div>

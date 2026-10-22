@@ -171,6 +171,7 @@ export const en: Record<TextKey, string> = {
   formPair: 'Form a new pair',
   matchesTogether: 'Matches together',
   rank: 'Rank',
+  pts: 'pts', newRank: 'new entry', bestMoment: 'Best moment: {name} beat #{rank} {opp} ({round})',
   entryWeek: 'Week',
   auto: 'Automatic (AI)',
   rest: 'Rest',
