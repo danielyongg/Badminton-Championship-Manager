@@ -201,6 +201,8 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .stats > div { background: var(--line); border-radius: 4px; padding: 6px 8px; display: flex; flex-direction: column; }
 .stats b { font-size: 1.3rem; line-height: 1.2; }
 .stats small { color: var(--muted); font-size: .72rem; }
+.stats small.sub { font-size: .68rem; opacity: .85; }
+.stats.auto { grid-template-columns: repeat(auto-fill, minmax(min(104px, 30%), 1fr)); margin-bottom: 4px; } /* rincian ranking: jumlah kolom mengikuti lebar panel */
 /* Daftar dashboard: judul kelompok (minggu/turnamen) + baris rapat dengan chip di kiri & badge di kanan. */
 .dlist + .dlist { margin-top: 10px; }
 .dlist h4 { margin: 0 0 2px; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }

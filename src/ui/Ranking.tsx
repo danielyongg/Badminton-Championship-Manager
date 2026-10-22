@@ -234,20 +234,22 @@ export function RankingDetail({ state, ruleset, id, discipline: d, junior, onOpe
     const last = state.matches.filter((m) => m.tournamentId === e.tournamentId && m.year === e.year && m.discipline === d && m.sides.includes(id)).at(-1);
     return !last ? '' : last.round === 'F' && last.sides[last.winner] === id ? `🏆 ${t('champion')}` : last.round;
   };
-  const fact = (k: string, v: ReactNode, sub?: ReactNode) => <div><dt>{k}</dt><dd>{v}{sub && <small className="muted-text"> {sub}</small>}</dd></div>;
+  const tile = (k: string, v: ReactNode, sub?: ReactNode) => <div><b>{v}</b><small>{k}</small>{sub && <small className="sub">{sub}</small>}</div>;
   if (!active.length && !ranked.length) return <p className="hint">{t('noRankPoints')}</p>;
   return (
     <div className={`rankdetail${wide ? ' wide' : ''}`}>
       <div>
-      <dl className="facts">
-        {fact(t(junior ? 'juniorRanking' : 'worldRanking'), me ? `#${me.rank}` : '—', me && `${num(me.points)} ${t('points').toLowerCase()}`)}
-        {fact(t('tournaments'), active.length, t('rankCountedOf', { n: Math.min(active.length, bestOf), b: bestOf }))}
-        {!junior && fact(t('bestRank'), best ? `#${best}` : '—')}
-        {race && fact(`${t('raceToFinals')} ${state.date.year}`, `#${race.rank}`, `${num(race.points)}`)}
-        {atRank && atRank.at[me!.rank] !== undefined && fact(t('weeksAtRank', { r: me!.rank }), num(atRank.at[me!.rank]), t('weeksTotal'))}
-        {atRank && fact(t('weeksAtRankRun', { r: me!.rank }), num(atRank.run), t('weeksConsecutive'))}
-        {fact(t('expiringShort'), atRisk ? `−${num(atRisk)}` : '0', t('next12Weeks'))}
-      </dl>
+      {/* Ringkasan: kotak angka besar + label (gaya statistik Federasi). */}
+      <div className="stats auto">
+        {tile(t(junior ? 'juniorRanking' : 'worldRanking'), me ? `#${me.rank}` : '—')}
+        {me && tile(t('points'), num(me.points))}
+        {tile(t('tournaments'), active.length, t('rankCountedOf', { n: Math.min(active.length, bestOf), b: bestOf }))}
+        {!junior && tile(t('bestRank'), best ? `#${best}` : '—')}
+        {race && tile(`${t('raceToFinals')} ${state.date.year}`, `#${race.rank}`, `${num(race.points)} ${t('points').toLowerCase()}`)}
+        {atRank && atRank.at[me!.rank] !== undefined && tile(t('weeksAtRank', { r: me!.rank }), num(atRank.at[me!.rank]), t('weeksTotal'))}
+        {atRank && tile(t('weeksAtRankRun', { r: me!.rank }), num(atRank.run), t('weeksConsecutive'))}
+        {tile(t('expiringShort'), atRisk ? `−${num(atRisk)}` : '0', t('next12Weeks'))}
+      </div>
       {!junior && <><h4>{t('rankHistory')}</h4><RankChart history={history} /></>}
       <h4>{t('expiringSoon')}</h4>
       {expiring.length > 0 && <p className="hint">{t('expiringHint')}</p>}
