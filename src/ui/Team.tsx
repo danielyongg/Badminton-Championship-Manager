@@ -74,31 +74,44 @@ export function SquadPicker({ pool, value, onChange, size }: {
 }) {
   const { game } = useGame();
   const { players } = lookup(game.state);
-  // Urutan tetap selama daftar terbuka: yang sudah terpilih (saran) di atas, agar langsung terlihat.
-  const order = useMemo(() => { const all = poolPlayers(pool); return [...all.filter((id) => value.includes(id)), ...all.filter((id) => !value.includes(id))]; }, [pool]);
-  const plays = (id: string) => Object.entries(pool).filter(([, list]) => list.some((e) => e.playerIds.includes(id))).map(([d]) => d).join(', ');
+  const plays = (id: string) => Object.entries(pool).filter(([, list]) => list.some((e) => e.playerIds.includes(id))).map(([d]) => d);
+  // Dikelompokkan per sektor utama (tunggal > ganda sejenis > campuran); urutan tetap selama daftar terbuka,
+  // yang sudah terpilih (saran) di atas tiap sektor agar langsung terlihat.
+  const groups = useMemo(() => {
+    const sector = (id: string) => SECTOR_ORDER.find((d) => plays(id).includes(d)) ?? plays(id)[0];
+    const all = poolPlayers(pool);
+    const sorted = [...all.filter((id) => value.includes(id)), ...all.filter((id) => !value.includes(id))];
+    return SECTOR_ORDER.map((d) => ({ d, ids: sorted.filter((id) => sector(id) === d) })).filter((g) => g.ids.length);
+  }, [pool]);
   return (
     <div>
       <p className="squad-count">{t('squadCount')}: <b className={value.length < size.min || value.length > size.max ? 'down' : undefined}>{value.length}</b> <span className="muted-text">({size.min}–{size.max})</span></p>
       <div className="squadlist">
-        {order.map((id) => {
-          const p = players.get(id)!;
-          const on = value.includes(id);
-          return (
-            <label key={id} className={`pickrow${on ? ' sel' : ''}`}>
-              <input type="checkbox" checked={on} onChange={() => onChange(on ? value.filter((x) => x !== id) : [...value, id])} />
-              <span className="grow">
-                <b>{p.name}</b>
-                <small className="muted-text">{p.gender} · {ageAt(p.birth, game.state.date)} {t('yearsShort')} · {plays(id).split(', ').map((d) => <span key={d} className="chip">{d}</span>)}</small>
-              </span>
-              <span className="val" title={t('ability')}>{currentAbility(p.attrs)}</span>
-            </label>
-          );
-        })}
+        {groups.map(({ d, ids }) => (
+          <div key={d}>
+            <h5 className="pick-sector"><span className="chip">{d}</span> <span className="muted-text">{t('pickedOf', { a: ids.filter((id) => value.includes(id)).length, b: ids.length })}</span></h5>
+            {ids.map((id) => {
+              const p = players.get(id)!;
+              const on = value.includes(id);
+              return (
+                <label key={id} className={`pickrow${on ? ' sel' : ''}`}>
+                  <input type="checkbox" checked={on} onChange={() => onChange(on ? value.filter((x) => x !== id) : [...value, id])} />
+                  <span className="grow">
+                    <b>{p.name}</b>
+                    <small className="muted-text">{p.gender} · {ageAt(p.birth, game.state.date)} {t('yearsShort')} · {plays(id).map((x) => <span key={x} className="chip">{x}</span>)}</small>
+                  </span>
+                  <span className="val" title={t('ability')}>{currentAbility(p.attrs)}</span>
+                </label>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
 }
+
+const SECTOR_ORDER = ['MS', 'WS', 'MD', 'WD', 'XD'];
 
 /** Validasi line-up di UI (sama seperti engine): pasangan terdaftar di skuad + ganda dadakan dari atlet skuad. */
 function lineupProblem(l: Lineup, order: Discipline[], pool: Record<string, TeamEntrant[]>, squad: string[], max: number, gender: (id: string) => string | undefined) {

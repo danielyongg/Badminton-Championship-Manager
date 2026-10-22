@@ -258,7 +258,7 @@ button.mini { font-size: .72rem; padding: 0 8px; }
 .goals .up { font-size: inherit; font-weight: 700; }
 .bar { display: inline-block; width: 60px; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; vertical-align: middle; }
 .bar span { display: block; height: 100%; }
-.squadlist { max-height: 300px; }
+.squadlist { max-height: 420px; }
 .show-sm { display: none; }
 
 /* Header karier */
@@ -813,3 +813,5 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 .pickrow .val { flex: none; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 2ch; text-align: right; }
 .pickrow.sel { background: var(--accent-soft); box-shadow: inset 3px 0 var(--accent); }
 .form-err { margin: 0; color: var(--danger); font-size: .85rem; }
+.pick-sector { margin: 10px 0 0; padding: 4px 8px; font-size: .78rem; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 6px; }
+.squadlist > div:first-child .pick-sector { margin-top: 0; }
