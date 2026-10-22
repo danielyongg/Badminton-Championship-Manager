@@ -89,6 +89,8 @@ const id = {
   status: 'Status',
   retired: 'Pensiun',
   attrShowChart: 'Tampilkan di grafik', attrDeltaHint: 'Pencet atribut untuk menampilkannya di grafik. ▲▼ = perubahan sejak akhir musim {y}.',
+  statDurationAvg: 'Durasi rata-rata', statsAvgHint: 'Rata-rata per laga dari {n} laga (smash tercepat & reli terpanjang: tertinggi).',
+  profH2HTab: 'H2H', noStatsYet: 'Belum ada laga dengan statistik tersimpan.', profStats: 'Statistik', opponentsAvg: 'Lawan (rata-rata)', h2hOpponent: 'Lawan', h2hMeetings: '{n} pertemuan', h2hHistory: 'Riwayat pertemuan', h2hAvgStats: 'Rata-rata statistik pertemuan',
   now: 'Kini',
   speed: 'Speed',
   stamina: 'Stamina',

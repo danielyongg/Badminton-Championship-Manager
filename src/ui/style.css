@@ -746,3 +746,14 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 .attrrow .delta { font-size: .8rem; text-align: right; }
 .attrrow .delta .up, .attrrow .delta .down { font-size: inherit; }
 .attrlist-only { max-width: 560px; }
+/* Profil → H2H: skor pertemuan besar di tengah, nama kedua sisi di kiri/kanan. */
+.h2h-head { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; }
+.h2h-head .side { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.h2h-head .side:last-child { justify-content: flex-end; text-align: right; }
+.h2h-score { font-size: 2.2rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; white-space: nowrap; }
+.h2h-score small { margin: 0 6px; opacity: .5; }
+.h2h-score.ahead { color: var(--accent-strong); }
+.h2h-score.behind { color: var(--danger); }
+.h2h-sub { text-align: center; margin: 8px 0 0; }
+.capped { max-width: 760px; }
+.h2h-head, .h2h-sub { max-width: 720px; margin-left: auto; margin-right: auto; }

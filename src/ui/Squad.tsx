@@ -1,8 +1,8 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { dissolvePair, potentialStars, promoteJunior, recallPlayer, releasePlayer } from '../engine/career';
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
-import { headToHead, moraleTier, pairAbility } from '../engine/match';
-import { careerStats } from '../engine/careerStats';
+import { emptyStats, moraleTier, pairAbility } from '../engine/match';
+import { addOriented, careerStats, statTotals, v2 } from '../engine/careerStats';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { rankFromSnapshots } from '../engine/season';
 import { ATTRS, DISCIPLINES, type Attr, type Discipline, type GameDate, type Pair, type Player } from '../engine/types';
@@ -13,6 +13,7 @@ import { ownPairs, Pairs } from './Pairs';
 import { CommitmentChips, RankChart, RankingDetail } from './Ranking';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
+import { MatchStatsView } from './MatchStats';
 
 
 /** Cedera: "Cedera berat: Robek otot betis · 14 mg · kembali minggu 33" (tahun ditulis bila melewati musim ini). */
@@ -250,7 +251,7 @@ export function TierPrefs({ id }: { id: string }) {
   );
 }
 
-type ProfileTab = 'summary' | 'ranking' | 'titles' | 'events' | 'matches';
+type ProfileTab = 'summary' | 'stats' | 'ranking' | 'events' | 'h2h' | 'matches';
 
 /**
  * Profil atlet: kartu identitas (selalu tampil) + sub-tab Ringkasan (statistik, ranking, atribut, cedera),
@@ -275,6 +276,9 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
   const [tab, setTab] = useState<ProfileTab>('summary');
   const [matchYear, setMatchYear] = useState<number | 'all'>('all');
   const [shown, setShown] = useState(30);
+  const [h2hOpp, setH2hOpp] = useState<string>();
+  const [statSide, setStatSide] = useState<string>();
+  const [statYear, setStatYear] = useState<number | 'all'>('all');
   const pairs = useMemo(() => (pair ? [] : state.pairs.filter((x) => x.playerIds.includes(id))), [version, id]);
   const singles: Discipline = p?.gender === 'F' ? 'WS' : 'MS';
   // Ranking dunia saat ini: tunggal + tiap pasangan aktif.
@@ -293,7 +297,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
   const season = mine.filter((m) => m.year === year);
   const titles = state.champions.filter((c) => sides.has(c.winner));
   const activePairs = pairs.filter((x) => !x.dissolved);
-  const openOpp = (opp: string) => onOpen(opp); // lawan ganda → profil pasangannya
+  const openOpp = (opp: string) => { setH2hOpp(opp); setTab('h2h'); }; // nama lawan → H2H dengan lawan itu
   const evLink = (eid: string, y: number) => onOpenEvent
     ? <a href="#" onClick={(e) => { e.preventDefault(); onOpenEvent(eid, y); }}>{eventName(eid, y)}</a> : eventName(eid, y);
   const fact = (k: string, v: ReactNode) => <div><dt>{k}</dt><dd>{v}</dd></div>;
@@ -322,10 +326,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
 
   const opponents = new Map<string, number>();
   for (const m of mine) { const o = m.sides[1 - myIdx(m)]; opponents.set(o, (opponents.get(o) ?? 0) + 1); }
-  const h2h = [...opponents].sort((a, b) => b[1] - a[1]).slice(0, 15).map(([o]) => {
-    const own = mine.find((m) => m.sides.includes(o))!.sides[myIdx(mine.find((m) => m.sides.includes(o))!)];
-    return { o, rec: headToHead(mine, own, o) };
-  });
+
   const mineIds = new Set(mine.map((m) => m.id));
   // Gelar karier: individu + beregu (tim negaranya juara, atlet di skuad atau ikut bermain); urut tier tertinggi, lalu tahun terbaru.
   const titleRows = [
@@ -359,6 +360,21 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
       </dl>
     </section>
   );
+  const matchRow = (m: (typeof mine)[number]) => {
+    const i = myIdx(m), opp = m.sides[1 - i];
+    return (
+      <div key={m.id} className={`mrow ${won(m) ? 'w' : 'l'}`}>
+        <span className={`badge ${won(m) ? 'good' : 'danger'}`}>{won(m) ? 'W' : 'L'}</span>
+        <div className="grow">
+          <div><a href="#" onClick={(e) => { e.preventDefault(); openOpp(opp); }}><Flag id={entrantLabel(state, opp).country} />{entrantLabel(state, opp).name}</a></div>
+          <small className="muted-text">{evLink(m.tournamentId, m.year)} · {m.year} · {m.discipline} {m.round}</small>
+        </div>
+        <MatchLink m={m} name={(x) => entrantLabel(state, x).name} title={eventName(m.tournamentId, m.year)}>
+          {m.scores.map(([a, b]) => (i === 0 ? `${a}-${b}` : `${b}-${a}`)).join(' ')}{m.walkover ? ' w/o' : m.retired ? ' ret.' : ''}
+        </MatchLink>
+      </div>
+    );
+  };
   const wl = (ms: typeof mine) => { const w = ms.filter(won).length; return `${w}–${ms.length - w}`; };
 
   return (
@@ -386,8 +402,8 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         )}
       </section>}
       <nav className="controls">
-        {(['summary', 'ranking', 'titles', 'events', 'matches'] as const).map((x) => (
-          <button key={x} aria-pressed={tab === x} onClick={() => setTab(x)}>{t(({ summary: 'profSummary', ranking: 'profRanking', titles: 'profTitles', events: 'profEvents', matches: 'profMatches' } as const)[x])}</button>
+        {(['summary', 'stats', 'ranking', 'events', 'h2h', 'matches'] as const).map((x) => (
+          <button key={x} aria-pressed={tab === x} onClick={() => setTab(x)}>{t(({ summary: 'profSummary', stats: 'profStats', ranking: 'profRanking', events: 'profEvents', h2h: 'profH2HTab', matches: 'profMatches' } as const)[x])}</button>
         ))}
       </nav>
 
@@ -467,7 +483,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         ))}</div>;
       })()}
 
-      {tab === 'titles' && <section className="card">
+      {tab === 'events' && <section className="card">
         <h3>{t('profTitlesAll')} <span className="muted-text">({titleRows.length})</span></h3>
         {titleRows.length === 0 ? <p className="hint">{t('profTitlesNone')}</p> : <>
           <p className="title-counts">{[...new Set(titleRows.map(titleKey))].map((k) => {
@@ -515,6 +531,78 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         </aside>
       </div>}
 
+      {tab === 'stats' && (() => {
+        // Satu peserta per tampilan (tunggal atau satu pasangan) agar rata-rata tidak tercampur antar nomor.
+        const count = (e: string) => mine.filter((m) => m.sides.includes(e)).length;
+        const options = [...sides].filter((e) => count(e) > 0 || state.statArchive?.[e]?.s).sort((a, b) => count(b) - count(a));
+        const side = statSide && options.includes(statSide) ? statSide : options[0];
+        if (!side) return <p className="hint">{t('profNoEvents')}</p>;
+        const sideMatches = mine.filter((m) => m.sides.includes(side));
+        const years = [...new Set(sideMatches.filter((m) => v2(m)).map((m) => m.year))].sort((a, b) => b - a);
+        const y = statYear !== 'all' && years.includes(statYear) ? statYear : 'all';
+        const tot = statTotals(state.statArchive, y === 'all' ? sideMatches : sideMatches.filter((m) => m.year === y), side, y === 'all');
+        const label = (e: string) => e === id && !pair ? (lookup(state).pairs.get(e)?.discipline ?? singles) : lookup(state).pairs.get(e)?.discipline ?? singles;
+        return <>
+          {options.length > 1 && <nav className="controls subnav">
+            {options.map((e) => (
+              <button key={e} aria-pressed={e === side} onClick={() => setStatSide(e)}>
+                {label(e)}{e !== id && !pair && <span className="muted-text"> {lookup(state).pairs.get(e)?.playerIds.filter((x) => x !== id).map((x) => lookup(state).players.get(x)?.name.split(' ')[0])}</span>}
+              </button>
+            ))}
+          </nav>}
+          <nav className="controls subnav">
+            {(['all', ...years] as const).map((x) => <button key={x} aria-pressed={x === y} onClick={() => setStatYear(x)}>{x === 'all' ? t('all') : x}</button>)}
+          </nav>
+          <section className="card statcard capped">
+            {tot.n === 0 ? <p className="hint">{t('noStatsYet')}</p>
+              : <MatchStatsView s={tot.s} names={[entrantLabel(state, side).name, t('opponentsAvg')]} mine={0} avgOf={tot.n} />}
+          </section>
+        </>;
+      })()}
+
+      {tab === 'h2h' && (() => {
+        const opps = [...opponents].sort((a, b) => b[1] - a[1]).map(([o]) => o);
+        const opp = h2hOpp && opps.includes(h2hOpp) ? h2hOpp : opps[0];
+        if (!opp) return <p className="hint">{t('profNoEvents')}</p>;
+        const meet = mine.filter((m) => m.sides.includes(opp));
+        const w = meet.filter(won).length;
+        const own = meet[0].sides[myIdx(meet[0])];
+        const rubber = meet.filter((m) => m.scores.length === 3 && !m.walkover && !m.retired);
+        const rw = rubber.filter(won).length;
+        const sum = emptyStats();
+        let n = 0;
+        for (const m of meet) { const st = v2(m); if (st) { addOriented(sum, st, myIdx(m)); n++; } }
+        const recOf = (o: string) => { const ms = mine.filter((m) => m.sides.includes(o)); const x = ms.filter(won).length; return `${x}–${ms.length - x}`; };
+        return <>
+          <div className="controls">
+            <label>{t('h2hOpponent')}
+              <select value={opp} onChange={(e) => setH2hOpp(e.target.value)}>
+                {opps.map((o) => <option key={o} value={o}>{entrantLabel(state, o).name} ({recOf(o)})</option>)}
+              </select>
+            </label>
+          </div>
+          <section className="card h2hcard">
+            <div className="h2h-head">
+              <span className="side"><Flag id={entrantLabel(state, own).country} /><b>{entrantLabel(state, own).name}</b></span>
+              <span className={`h2h-score ${w > meet.length - w ? 'ahead' : w < meet.length - w ? 'behind' : ''}`}>{w}<small>–</small>{meet.length - w}</span>
+              <span className="side"><a href="#" onClick={(e) => { e.preventDefault(); onOpen(opp); }}><Flag id={entrantLabel(state, opp).country} /><b>{entrantLabel(state, opp).name}</b></a></span>
+            </div>
+            <p className="h2h-sub muted-text">{t('h2hMeetings', { n: meet.length })}{rubber.length > 0 && <> · {t('deciderRecord')}: {rw}–{rubber.length - rw}</>}</p>
+          </section>
+          <div className="split">
+            <section className="card">
+              <h3>{t('h2hHistory')}</h3>
+              <div className="mlist">{[...meet].reverse().map(matchRow)}</div>
+            </section>
+            <section className="card statcard">
+              <h3>{t('h2hAvgStats')}</h3>
+              {n === 0 ? <p className="hint">{t('noStatsYet')}</p>
+                : <MatchStatsView s={sum} names={[entrantLabel(state, own).name, entrantLabel(state, opp).name]} mine={0} avgOf={n} />}
+            </section>
+          </div>
+        </>;
+      })()}
+
       {tab === 'matches' && <>
         <nav className="controls subnav">
           {(['all', ...matchYears] as const).map((y) => (
@@ -523,17 +611,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
             </button>
           ))}
         </nav>
-        {/* H2H & partner (sebelumnya sub-tab sendiri): ringkas & bisa dibuka, di atas daftar laga. */}
         <div className="split">
-          {h2h.length > 0 && <details className="card foldcard">
-            <summary><h3>{t('h2h')} <span className="muted-text">({h2h.length})</span></h3></summary>
-            <table className="fit"><tbody>{h2h.map(({ o, rec }) => (
-              <tr key={o}>
-                <td><a href="#" onClick={(e) => { e.preventDefault(); openOpp(o); }}><Flag id={entrantLabel(state, o).country} />{entrantLabel(state, o).name}</a></td>
-                <td className={`num h2h ${rec[0] > rec[1] ? 'ahead' : rec[0] < rec[1] ? 'behind' : ''}`}>{rec[0]} – {rec[1]}</td>
-              </tr>
-            ))}</tbody></table>
-          </details>}
           {!pair && pairs.length > 0 && <details className="card foldcard">
             <summary><h3>{t('profPartners')} <span className="muted-text">({pairs.length})</span></h3></summary>
             <table className="fit">
@@ -550,21 +628,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           </details>}
         </div>
         {list.length === 0 ? <p className="hint">{t('profNoEvents')}</p> : (
-          <div className="mlist">{list.slice(0, shown).map((m) => {
-            const i = myIdx(m), opp = m.sides[1 - i];
-            return (
-              <div key={m.id} className={`mrow ${won(m) ? 'w' : 'l'}`}>
-                <span className={`badge ${won(m) ? 'good' : 'danger'}`}>{won(m) ? 'W' : 'L'}</span>
-                <div className="grow">
-                  <div><a href="#" onClick={(e) => { e.preventDefault(); openOpp(opp); }}><Flag id={entrantLabel(state, opp).country} />{entrantLabel(state, opp).name}</a></div>
-                  <small className="muted-text">{evLink(m.tournamentId, m.year)} · {m.year} · {m.discipline} {m.round}</small>
-                </div>
-                <MatchLink m={m} name={(x) => entrantLabel(state, x).name} title={eventName(m.tournamentId, m.year)}>
-                  {m.scores.map(([a, b]) => (i === 0 ? `${a}-${b}` : `${b}-${a}`)).join(' ')}{m.walkover ? ' w/o' : m.retired ? ' ret.' : ''}
-                </MatchLink>
-              </div>
-            );
-          })}</div>
+          <div className="mlist">{list.slice(0, shown).map(matchRow)}</div>
         )}
         {list.length > shown && <p><button onClick={() => setShown(shown + 30)}>{t('showMore')} ({list.length - shown})</button></p>}
       </>}
