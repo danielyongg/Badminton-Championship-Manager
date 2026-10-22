@@ -10,6 +10,7 @@ import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
 import { DISCIPLINES, ROUNDS, type Discipline, type Match, type TeamFormat } from '../engine/types';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
+import { weeklyNews, type NewsItem } from '../engine/news';
 import type { Challenge, FederationGoal, Ruleset, SeasonReport, TournamentDef } from '../engine/types';
 import { dataName, numLocale, t, type TextKey } from '../i18n';
 import { downloadPack, Editor, useDebounced } from './Editor';
@@ -553,6 +554,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
           <GoalTable goals={lastReport.goals} year={lastReport.year} />
         </section>
       )}
+      <NewsCard onOpen={onOpen} />
       <section className="card upcoming">
         <h3>{t('upcoming')}</h3>
         {upcoming.length === 0 ? <p>—</p> : [...byWeek].map(([w, list]) => (
@@ -671,6 +673,36 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
         </section>
       )}
     </div>
+  );
+}
+
+/** Berita mingguan: kejutan, juara beruntun, smash & reli terpanjang, atlet on fire (dari laga minggu lalu). */
+function NewsCard({ onOpen }: { onOpen: (id: string) => void }) {
+  const { game, version } = useGame();
+  const { state, ruleset } = game;
+  const items = useMemo(() => weeklyNews(state, ruleset), [version]);
+  if (!items.length) return null;
+  const who = (id: string) => <a href="#" onClick={(e) => { e.preventDefault(); onOpen(id); }}><Flag id={id} />{entrantLabel(state, id).name}</a>;
+  const score = (m: Match) => (
+    <MatchLink m={m} name={(x) => entrantLabel(state, x).name} title={eventName(ruleset, m.tournamentId, m.year)}>
+      {m.scores.map((g) => `${g[m.winner]}-${g[1 - m.winner]}`).join(', ')}
+    </MatchLink>
+  );
+  const where = (m: Match) => <small className="muted-text"> · {eventName(ruleset, m.tournamentId, m.year)} {m.discipline} {m.round} · {score(m)}</small>;
+  const line = (n: NewsItem) => {
+    switch (n.kind) {
+      case 'upset': return <>😮 <b>{t('newsUpset')}</b>: {who(n.winner)} ({n.wr ? `#${n.wr}` : t('unranked')}) {t('beat')} {who(n.loser)} (#{n.lr}){where(n.m)}</>;
+      case 'streak': return <>🏆 {who(n.id)} {t('newsStreak', { n: n.n })} <small className="muted-text">· {eventName(ruleset, n.tournamentId, state.date.week > 1 ? state.date.year : state.date.year - 1)}</small></>;
+      case 'smash': return <>💥 <b>{t('newsSmash')}</b>: {n.kmh} km/h · {who(n.id)}{n.record && <b className="up"> {t('newsRecord')}</b>}{where(n.m)}</>;
+      case 'rally': return <>🔁 <b>{t('newsRally')}</b>: {n.shots} {t('shotsUnit')} · {who(n.m.sides[0])} vs {who(n.m.sides[1])}{n.record && <b className="up"> {t('newsRecord')}</b>}{where(n.m)}</>;
+      case 'fire': return <>🔥 {who(n.id)} {t('newsFire', { n: n.wins })}</>;
+    }
+  };
+  return (
+    <section className="card news">
+      <h3>{t('newsTitle')}</h3>
+      {items.map((n, i) => <p key={i}>{line(n)}</p>)}
+    </section>
   );
 }
 
