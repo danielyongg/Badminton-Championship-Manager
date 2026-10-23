@@ -61,7 +61,9 @@ export function juniorEntries(
           .map((p) => ({ id: p.id, countryId: p.countryId, playerIds: [p.id] }));
       const strength = (e: { playerIds: string[] }) => e.playerIds.reduce((s, id) => s + ca(id), 0);
       const rank = ranks.get(d)!;
-      const sorted = list.sort((a, b) => Number(forced.has(b.id)) - Number(forced.has(a.id)) || (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity) || strength(b) - strength(a));
+      const byRank = (a: (typeof list)[number], b: (typeof list)[number]) => (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity) || strength(b) - strength(a);
+      // Pilihan manajer didahulukan hanya untuk kuota negara, bukan untuk peringkat entry/unggulan.
+      const sorted = list.sort((a, b) => Number(forced.has(b.id)) - Number(forced.has(a.id)) || byRank(a, b));
       const per = new Map<string, number>();
       const picked = sorted.filter((e) => {
         const n = per.get(e.countryId) ?? 0;
@@ -70,7 +72,7 @@ export function juniorEntries(
         return true;
       });
       // Peringkat entry: ranking junior, yang belum punya diurutkan menurut kemampuan (agar unggulan masuk akal).
-      byD.set(d, picked.map((e, i) => ({ id: e.id, countryId: e.countryId, rank: i + 1 })));
+      byD.set(d, [...picked].sort(byRank).map((e, i) => ({ id: e.id, countryId: e.countryId, rank: i + 1 })));
       for (const e of picked) e.playerIds.forEach((id) => busy.add(id));
     }
     entries.set(ev.id, byD);

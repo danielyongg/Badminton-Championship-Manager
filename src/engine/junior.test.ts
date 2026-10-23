@@ -107,5 +107,8 @@ describe('spesialis ganda', () => {
     const entered = [...rec.entry.main, ...rec.entry.qualifying, ...rec.entry.reserves].map((c) => c.id);
     expect(entered).toContain(weakest.id);
     expect(entered).not.toContain(best.id);
+    // Didahulukan hanya untuk kuota: peringkat entry (unggulan) tetap menurut ranking junior/kemampuan.
+    const all = [...rec.entry.main, ...rec.entry.qualifying, ...rec.entry.reserves];
+    expect(all.find((c) => c.id === weakest.id)!.rank).toBeGreaterThan(1);
   }, 60000);
 });
