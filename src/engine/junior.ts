@@ -57,8 +57,7 @@ export function juniorEntries(
       const cap = isDoubles(d) ? quota.doubles : quota.singles;
       const list: { id: string; countryId: string; playerIds: string[] }[] = isDoubles(d)
         ? juniorPairs(state, d as 'MD' | 'WD' | 'XD', eligible, free, forced, cap, created, rng)
-        : state.players.filter((p) => p.gender === (d === 'MS' ? 'M' : 'F') && eligible(p))
-          .sort((a, b) => Number(a.focus === 'D') - Number(b.focus === 'D')) // spesialis tunggal didahulukan
+        : state.players.filter((p) => p.gender === (d === 'MS' ? 'M' : 'F') && p.focus !== 'D' && eligible(p)) // spesialis ganda: tidak di nomor tunggal
           .map((p) => ({ id: p.id, countryId: p.countryId, playerIds: [p.id] }));
       const strength = (e: { playerIds: string[] }) => e.playerIds.reduce((s, id) => s + ca(id), 0);
       const rank = ranks.get(d)!;

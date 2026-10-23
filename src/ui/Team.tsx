@@ -74,22 +74,28 @@ export function SquadPicker({ pool, value, onChange, size }: {
 }) {
   const { game } = useGame();
   const { players } = lookup(game.state);
-  const plays = (id: string) => Object.entries(pool).filter(([, list]) => list.some((e) => e.playerIds.includes(id))).map(([d]) => d);
-  // Dikelompokkan per sektor utama (tunggal > ganda sejenis > campuran); urutan tetap selama daftar terbuka,
-  // yang sudah terpilih (saran) di atas tiap sektor agar langsung terlihat.
+  const plays = (id: string) => SECTOR_ORDER.filter((d) => pool[d]?.some((e) => e.playerIds.includes(id)));
+  // Pasangan terdaftar atlet di satu nomor ganda (ganda dadakan tidak ditampilkan).
+  const partners = (id: string, d: string) => (pool[d] ?? []).filter((e) => !e.id.startsWith(AD_HOC) && e.playerIds.includes(id))
+    .map((e) => players.get(e.playerIds.find((x) => x !== id)!)?.name).filter(Boolean).join(' / ');
+  // Dua kelompok: Single (atlet yang bisa main tunggal) & Pairs (sisanya); urutan tetap selama daftar terbuka,
+  // yang sudah terpilih (saran) di atas tiap kelompok agar langsung terlihat.
   const groups = useMemo(() => {
-    const sector = (id: string) => SECTOR_ORDER.find((d) => plays(id).includes(d)) ?? plays(id)[0];
     const all = poolPlayers(pool);
     const sorted = [...all.filter((id) => value.includes(id)), ...all.filter((id) => !value.includes(id))];
-    return SECTOR_ORDER.map((d) => ({ d, ids: sorted.filter((id) => sector(id) === d) })).filter((g) => g.ids.length);
+    const single = (id: string) => plays(id).some((d) => !isDoubles(d as Discipline));
+    return [
+      { label: t('sector_singles'), ids: sorted.filter(single) },
+      { label: t('sector_pairs'), ids: sorted.filter((id) => !single(id)) },
+    ].filter((g) => g.ids.length);
   }, [pool]);
   return (
     <div>
       <p className="squad-count">{t('squadCount')}: <b className={value.length < size.min || value.length > size.max ? 'down' : undefined}>{value.length}</b> <span className="muted-text">({size.min}–{size.max})</span></p>
       <div className="squadlist">
-        {groups.map(({ d, ids }) => (
-          <div key={d}>
-            <h5 className="pick-sector"><span className="chip">{d}</span> <span className="muted-text">{t('pickedOf', { a: ids.filter((id) => value.includes(id)).length, b: ids.length })}</span></h5>
+        {groups.map(({ label, ids }) => (
+          <div key={label}>
+            <h5 className="pick-sector">{label} <span className="muted-text">{t('pickedOf', { a: ids.filter((id) => value.includes(id)).length, b: ids.length })}</span></h5>
             {ids.map((id) => {
               const p = players.get(id)!;
               const on = value.includes(id);
@@ -98,7 +104,10 @@ export function SquadPicker({ pool, value, onChange, size }: {
                   <input type="checkbox" checked={on} onChange={() => onChange(on ? value.filter((x) => x !== id) : [...value, id])} />
                   <span className="grow">
                     <b>{p.name}</b>
-                    <small className="muted-text">{p.gender} · {ageAt(p.birth, game.state.date)} {t('yearsShort')} · {plays(id).map((x) => <span key={x} className="chip">{x}</span>)}</small>
+                    <small className="pick-plays"><span className="muted-text">{p.gender} · {ageAt(p.birth, game.state.date)} {t('yearsShort')}</span>{plays(id).map((d) => {
+                      const mate = isDoubles(d as Discipline) && partners(id, d);
+                      return <span key={d}><span className="chip">{d}</span>{mate && <span className="muted-text">{mate}</span>}</span>;
+                    })}</small>
                   </span>
                   <span className="val" title={t('ability')}>{currentAbility(p.attrs)}</span>
                 </label>

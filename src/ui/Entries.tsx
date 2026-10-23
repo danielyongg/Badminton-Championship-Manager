@@ -291,7 +291,7 @@ export function JuniorEntryTable({ ev, onSubmit }: { ev: TournamentDef; onSubmit
   const junior = (id: string) => { const p = players.get(id); return !!p && p.countryId === country && p.retired === undefined && p.released === undefined && isJuniorAge(p, { year, week: w }); };
   const rows = DISCIPLINES.filter((d) => tier.drawSize[d] > 0).flatMap((d) => (isDoubles(d)
     ? state.pairs.filter((p) => p.discipline === d && !p.dissolved && !p.trial && !p.adHoc && p.playerIds.every(junior)).map((p) => ({ id: p.id, playerIds: p.playerIds }))
-    : state.players.filter((p) => p.gender === (d === 'MS' ? 'M' : 'F') && junior(p.id)).map((p) => ({ id: p.id, playerIds: [p.id] })))
+    : state.players.filter((p) => p.gender === (d === 'MS' ? 'M' : 'F') && p.focus !== 'D' && junior(p.id)).map((p) => ({ id: p.id, playerIds: [p.id] })))
     .map((e) => ({ ...e, d, rank: ranks.get(d)!.get(e.id) }))
     .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9)));
   const sectors = DISCIPLINES.filter((d) => tier.drawSize[d] > 0);
