@@ -106,16 +106,19 @@ export function SquadPicker({ pool, value, onChange, size, suggestion }: {
             {ids.map((id) => {
               const p = players.get(id)!;
               const on = value.includes(id);
+              const mates = (d: string) => isDoubles(d as Discipline) && partners(id, d);
               return (
                 <label key={id} className={`pickrow${on ? ' sel' : ''}`}>
                   <input type="checkbox" checked={on} onChange={() => onChange(on ? value.filter((x) => x !== id) : [...value, id])} />
                   <span className="grow">
                     <b>{p.name}</b>
+                    {/* Baris 2: data atlet + nomor tanpa pasangan terdaftar; tiap nomor ganda berpasangan di baris sendiri. */}
                     <small className="pick-plays"><span className="muted-text">{p.gender} · {ageAt(p.birth, game.state.date)} {t('yearsShort')}</span>
-                      <FitStatus ps={[p]} /><MoraleTag short value={p.form} />{plays(id).map((d) => {
-                      const mate = isDoubles(d as Discipline) && partners(id, d);
-                      return <span key={d} className="pick-sec"><span className="chip">{d}</span>{mate && <span className="muted-text">{mate}</span>}</span>;
-                    })}</small>
+                      <FitStatus ps={[p]} /><MoraleTag short value={p.form} />
+                      {plays(id).filter((d) => !mates(d)).map((d) => <span key={d} className="chip">{d}</span>)}</small>
+                    {plays(id).filter(mates).map((d) => (
+                      <small key={d} className="pick-mate"><span className="chip">{d}</span><span className="muted-text">{mates(d)}</span></small>
+                    ))}
                   </span>
                   <span className="val" title={t('ability')}>{currentAbility(p.attrs)}</span>
                 </label>
