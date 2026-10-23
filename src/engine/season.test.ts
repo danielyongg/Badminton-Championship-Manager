@@ -5,7 +5,7 @@ import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
 import { presetPack, PRESETS } from './pack';
 import { makeRng } from './rng';
-import { aiEventChoice, formPairs, isHeld, newSeason, playWeek, scheduleYear, weekOf, wtfQualifiers } from './season';
+import { aiEventChoice, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, weekOf, wtfQualifiers } from './season';
 import { ATTRS, DISCIPLINES } from './types';
 
 describe('satu musim penuh (BWF 2026)', () => {
@@ -268,6 +268,17 @@ it('kalender musim baru: tahun resmi tetap, tahun berikutnya bergeser ±1 minggu
   const wc = weekOf(ev('world-championships'), 2029);
   expect(big).not.toContain(wc);
   expect(state.date.year).toBe(2027);
+});
+
+it('kalender musim baru: turnamen di negara yang sama berjarak (Malaysia & Indonesia 2029)', () => {
+  const rs = structuredClone(BWF_2027);
+  scheduleYear(rs, 2029, makeRng(5), WORLD);
+  const country = new Map(WORLD.cities.map((c) => [c.id, c.countryId]));
+  for (const c of ['MAS', 'INA']) {
+    const weeks = [...rs.calendar, ...rs.team.events].filter((e) => isHeld(e, 2029) && country.get(hostCityId(e, 2029)) === c)
+      .map((e) => weekOf(e, 2029)).sort((a, b) => a - b);
+    for (let i = 1; i < weeks.length; i++) expect(weeks[i] - weeks[i - 1]).toBeGreaterThanOrEqual(HOST_GAP);
+  }
 });
 
 it('negara manajer hanya bisa memilih event yang terbuka untuknya (kontinental benua lain & multi-event non-anggota disimulasikan)', async () => {

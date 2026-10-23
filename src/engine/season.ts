@@ -52,6 +52,8 @@ export interface SeasonState {
   juniorPromotion?: true;
   /** Koreksi tradisi atlet junior asli sudah diterapkan (save lama disesuaikan sekali saat dimuat). */
   juniorCalibrated?: true;
+  /** Turnamen kecil di negara yang sama sudah disebar (`spreadHosts`). Save lama: tidak ada. */
+  hostsSpread?: true;
   /** Top Committed Players musim ini: entrantId → id turnamen wajib. */
   commitments: Record<EntrantId, string[]>;
   commitmentsYear?: number;
@@ -156,7 +158,46 @@ const BIG_TIERS = new Set(['S1000', 'S750', 'S500']);
  * bawaannya (ASUMSI, meniru pergeseran tanggal antarmusim). Super 500 ke atas tidak sepekan dengan Super 500+ lain,
  * Olimpiade/Kejuaraan Dunia, atau final beregu. Event besar, multi-event, beregu & junior tetap.
  */
-export function scheduleYear(rs: Ruleset, year: number, rng: Rng) {
+export function scheduleYear(rs: Ruleset, year: number, rng: Rng, world?: World) {
+  const auto = new Set(rs.calendar.filter((e) => isHeld(e, year) && e.weeks?.[year] === undefined).map((e) => e.id));
+  scheduleShift(rs, year, rng);
+  if (world) spreadHosts(rs, year, rng, world, (e) => auto.has(e.id));
+}
+
+/** Jarak minimal (minggu) antar turnamen di negara yang sama. ASUMSI: kalibrasi, docs/ASUMSI.md. */
+export const HOST_GAP = 4;
+
+/**
+ * Sebar turnamen kecil (Super 300 ke bawah, grade 3, junior internasional) yang `movable` agar turnamen di negara yang
+ * sama berjarak ≥ HOST_GAP minggu; minggu terdekat dari jadwalnya yang tidak bentrok (bila mustahil: bentrok paling
+ * sedikit). Turnamen junior internasional tetap satu per minggu & tidak sepekan dengan event junior lain.
+ */
+export function spreadHosts(rs: Ruleset, year: number, rng: Rng, world: World, movable: (e: TournamentDef) => boolean, fromWeek = 1) {
+  const cityCountry = new Map(world.cities.map((c) => [c.id, c.countryId]));
+  const juniorTier = new Set(rs.tiers.filter((x) => x.junior).map((x) => x.id));
+  const smallTier = (e: TournamentDef) => !ANCHOR_TIERS.has(e.tierId) && !BIG_TIERS.has(e.tierId) && e.tierId !== 'WJC';
+  const held = rs.calendar.filter((e) => isHeld(e, year));
+  const moving = shuffle(rng, held.filter((e) => movable(e) && smallTier(e) && !e.countries && !e.confederation));
+  const placed: { country?: string; week: number; junior: boolean }[] = [
+    ...held.filter((e) => !moving.includes(e)).map((e) => ({ country: cityCountry.get(hostCityId(e, year)), week: weekOf(e, year), junior: juniorTier.has(e.tierId) })),
+    ...rs.team.events.filter((e) => isHeld(e, year)).map((e) => ({ country: cityCountry.get(hostCityId(e, year)), week: weekOf(e, year), junior: !!e.formats?.some(isJuniorFormat) })),
+  ];
+  const wtf = Math.min(...held.filter((e) => e.tierId === 'WTF').map((e) => weekOf(e, year)), 53);
+  for (const e of moving) {
+    const country = cityCountry.get(hostCityId(e, year)), w0 = weekOf(e, year), junior = juniorTier.has(e.tierId);
+    let best = w0, bestScore = Infinity;
+    for (let w = fromWeek; w <= Math.max(wtf - 1, w0); w++) {
+      if (junior && placed.some((p) => p.junior && p.week === w)) continue;
+      const clash = placed.reduce((s, p) => s + (p.country === country ? Math.max(0, HOST_GAP - Math.abs(p.week - w)) : 0), 0);
+      const score = clash * 100 + Math.abs(w - w0);
+      if (score < bestScore) [best, bestScore] = [w, score];
+    }
+    (e.weeks ??= {})[year] = best;
+    placed.push({ country, week: best, junior });
+  }
+}
+
+function scheduleShift(rs: Ruleset, year: number, rng: Rng) {
   const junior = new Set(rs.tiers.filter((x) => x.junior).map((x) => x.id));
   const held = rs.calendar.filter((e) => isHeld(e, year));
   const blocked = new Set([
@@ -238,7 +279,7 @@ export function newSeason(
   const state: SeasonState = {
     date, players: [...structuredClone(roster?.players ?? []), ...w.players], pairs: [...structuredClone(roster?.pairs ?? []), ...w.pairs],
     results: [], juniorResults: [], matches: [], champions: [], commitments: {}, violations: [],
-    juniorPromotion: true, juniorCalibrated: true, entriesSubmittedKinds: true, experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
+    juniorPromotion: true, juniorCalibrated: true, hostsSpread: true, entriesSubmittedKinds: true, experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
     career: { countryId, goals: [], reports: [], reputation: 50 },
   };
   if (roster?.players.length) {
@@ -270,7 +311,7 @@ const tierOf = (rs: Ruleset, e: TournamentDef) => rs.tiers.find((t) => t.id === 
  */
 export function startYear(state: SeasonState, rs: Ruleset, rng: Rng, world?: World) {
   const { year } = state.date;
-  if (year > rs.startYear) scheduleYear(rs, year, rng); // musim pertama = kalender asli preset
+  if (year > rs.startYear) scheduleYear(rs, year, rng, world); // musim pertama = kalender asli preset
   const now = absWeek(state.date);
   const tc = rs.topCommitted;
   const held = rs.calendar.filter((e) => isHeld(e, year));
