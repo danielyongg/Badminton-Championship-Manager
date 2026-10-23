@@ -1,13 +1,14 @@
 import { WORLD } from '../engine/presets/world';
 import { createContext, useContext } from 'react';
-import { INJURY_TYPES } from '../engine/development';
+import { capToPa, INJURY_TYPES } from '../engine/development';
+import { juniorRecalibration } from '../engine/presets/realPlayers';
 import { writeSave } from '../db/saves';
 import { PRESETS, syncOfficialCalendar, withDefaults } from '../engine/pack';
 import { BWF_2026 } from '../engine/presets/bwf2026';
 import { dataName, t } from '../i18n';
 import { makeRng, type Rng } from '../engine/rng';
 import { ensureRankWeeks, playWeek, teamFormatsIn, weekOf, type SeasonState, type WeekHooks } from '../engine/season';
-import { isJuniorFormat, type Ruleset, type Tier, type SaveMeta, type World } from '../engine/types';
+import { ATTRS, isJuniorFormat, type Ruleset, type Tier, type SaveMeta, type World } from '../engine/types';
 
 // Satu permainan aktif (save yang sedang dimainkan). Engine mengubah `state` di tempat; `version` memicu render ulang.
 
@@ -126,6 +127,20 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
     if (p?.wildcardOnlyIfHostAbsent && tier.wildcardOnlyIfHostAbsent === undefined)
       Object.assign(tier, { wildcardOnlyIfHostAbsent: true, zeroPointsForR1WildcardLoss: p.zeroPointsForR1WildcardLoss });
     if (p?.qualifierSlots && !tier.qualifierSlots) tier.qualifierSlots = { ...p.qualifierSlots };
+  }
+  if (!blob.state.juniorCalibrated) {
+    // Save sebelum koreksi tradisi junior: atlet asli yang terkena diturunkan sebesar selisih level & PA versi lama − baru
+    // (riwayat atribut ikut, agar grafik & ▲▼ tidak menampilkan penurunan palsu).
+    const delta = PRESETS.some((r) => r.id === blob.ruleset.id) ? juniorRecalibration(blob.ruleset.startYear) : new Map();
+    for (const p of blob.state.players) {
+      const d = delta.get(p.id);
+      if (!d) continue;
+      p.pa = Math.max(20, p.pa - d.pa);
+      for (const a of ATTRS) p.attrs[a] -= d.level;
+      for (const h of p.attrHistory ?? []) for (const a of ATTRS) h.attrs[a] = Math.max(1, h.attrs[a] - d.level);
+      capToPa(p);
+    }
+    blob.state.juniorCalibrated = true;
   }
   const ruleset = withDefaults(blob.ruleset, preset);
   // Save sebelum minggu di peringkat: isi dari snapshot + minggu berjalan, agar langsung tampil tanpa menunggu minggu berikutnya.

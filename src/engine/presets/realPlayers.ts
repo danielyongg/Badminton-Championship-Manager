@@ -38,7 +38,8 @@ const TRADITION = new Map(WORLD.countries.map((c) => [c.id, c.traditionStrength]
 const JUNIOR_CUT = 20, GROWTH_MIN = 0.3;
 const growthOf = (tradition: number) => GROWTH_MIN + (1 - GROWTH_MIN) * tradition / 100;
 
-function toPlayer([bwfId, name, countryId, gender, dob, focus, level, junior]: Row, startYear: number): Player {
+/** Level & PA bawaan atlet asli. `v1` = kalibrasi sebelum koreksi junior 2026-10-23 (untuk menyesuaikan save lama). */
+function levelPa([, , countryId, , dob, , level, junior]: Row, startYear: number, v1 = false) {
   if (junior && JUNIOR_V1) level = Math.round(82 - 1.125 * (72 - level));
   // ASUMSI: di luar papan atas, peringkat pemain negara bertradisi lemah banyak dari turnamen kecil di kawasannya →
   // level dikurangi s/d 8 (tradisi 0) secara bertahap di bawah level 86; negara kuat hampir tidak berubah.
@@ -46,18 +47,36 @@ function toPlayer([bwfId, name, countryId, gender, dob, focus, level, junior]: R
   const tradition = TRADITION.get(countryId) ?? 50;
   const birth = birthOf(dob, junior);
   const age = startYear - birth.year;
-  const cut = junior || age <= JUNIOR_MAX_AGE ? JUNIOR_CUT : 8;
+  const cut = !v1 && (junior || age <= JUNIOR_MAX_AGE) ? JUNIOR_CUT : 8;
   level -= Math.round((1 - tradition / 100) * cut * Math.min(1, Math.max(0, (86 - level) / 10)));
+  const growth = Math.max(1, (24 - age) * 2 * (v1 ? 1 : growthOf(tradition)));
+  return { level, pa: Math.min(99, level + Math.round(growth)), birth };
+}
+
+function toPlayer(row: Row, startYear: number): Player {
+  const [bwfId, name, countryId, gender, , focus, , junior] = row;
+  const { level, pa, birth } = levelPa(row, startYear);
   // Variasi kecil per atlet (tetap sama tiap New Game), lalu digeser agar rata-rata = level.
   const raw = ATTRS.map((a) => level + (SHAPE[focus][a] ?? 0) + (hash(name + a) % 7) - 3);
   const shift = level - raw.reduce((s, x) => s + x, 0) / raw.length;
   const attrs = Object.fromEntries(ATTRS.map((a, i) => [a, Math.max(1, Math.min(100, Math.round(raw[i] + shift)))])) as Attrs;
   return {
     id: `${countryId}-r-${bwfId}`, name, countryId, gender, hand: 'R', birth,
-    attrs, pa: Math.min(99, level + Math.round(Math.max(1, (24 - age) * 2 * growthOf(tradition)))), form: 0, fatigue: 0, ...(focus === 'D' && { focus }),
+    attrs, pa, form: 0, fatigue: 0, ...(focus === 'D' && { focus }),
     ...(!junior && { promoted: true }), // atlet ranking senior BWF: sudah di sirkuit senior walau masih U19
     attrHistory: [{ year: startYear - 1, attrs: { ...attrs } }],
   };
+}
+
+/** Save sebelum koreksi junior: selisih (lama − baru) level & PA atlet asli yang terkena, per id atlet. */
+export function juniorRecalibration(startYear: number) {
+  const out = new Map<string, { level: number; pa: number }>();
+  for (const row of ROWS) {
+    const before = levelPa(row, startYear, true), after = levelPa(row, startYear);
+    if (before.level !== after.level || before.pa !== after.pa)
+      out.set(`${row[2]}-r-${row[0]}`, { level: before.level - after.level, pa: before.pa - after.pa });
+  }
+  return out;
 }
 
 /** Atlet & pasangan asli untuk paket bawaan. */

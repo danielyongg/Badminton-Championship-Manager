@@ -3,7 +3,7 @@ import { ROUNDS } from '../types';
 import { BWF_2026 } from './bwf2026';
 import { BWF_2027 } from './bwf2027';
 import { hostCityId, isHeld, weekOf } from '../season';
-import { realRoster } from './realPlayers';
+import { juniorRecalibration, realRoster } from './realPlayers';
 import { WORLD } from './world';
 
 const count = (rs: typeof BWF_2026, tier: string, year = rs.startYear) => rs.calendar.filter((e) => e.tierId === tier && isHeld(e, year)).length;
@@ -94,4 +94,12 @@ it('tuan rumah per tahun: asli bila sudah diumumkan, bergilir bila belum; semua 
   const cities = new Set(WORLD.cities.map((c) => c.id));
   for (const e of [...BWF_2027.calendar, ...BWF_2027.team.events])
     for (const c of [...Object.values(e.hosts ?? {}), ...(e.rotation ?? [])]) expect(cities, `${e.id} → ${c}`).toContain(c);
+});
+
+it('koreksi junior: remaja negara bertradisi lemah turun jauh, negara kuat hampir tidak berubah (selisih untuk save lama)', () => {
+  const delta = juniorRecalibration(2026);
+  const avg = (c: string) => { const l = [...delta].filter(([id]) => id.startsWith(`${c}-r-`)).map(([, d]) => d.pa); return l.reduce((a, x) => a + x, 0) / Math.max(1, l.length); };
+  expect(avg('NZL')).toBeGreaterThan(10);
+  expect(avg('CHN')).toBeLessThan(2);
+  for (const d of delta.values()) { expect(d.level).toBeGreaterThanOrEqual(0); expect(d.pa).toBeGreaterThanOrEqual(0); }
 });

@@ -50,6 +50,8 @@ export interface SeasonState {
   juniorResults: RankingEntry[];
   /** Sistem promosi junior aktif (save lama dimigrasi sekali saat dimuat). */
   juniorPromotion?: true;
+  /** Koreksi tradisi atlet junior asli sudah diterapkan (save lama disesuaikan sekali saat dimuat). */
+  juniorCalibrated?: true;
   /** Top Committed Players musim ini: entrantId → id turnamen wajib. */
   commitments: Record<EntrantId, string[]>;
   commitmentsYear?: number;
@@ -231,7 +233,7 @@ export function newSeason(
   const state: SeasonState = {
     date, players: [...structuredClone(roster?.players ?? []), ...w.players], pairs: [...structuredClone(roster?.pairs ?? []), ...w.pairs],
     results: [], juniorResults: [], matches: [], champions: [], commitments: {}, violations: [],
-    juniorPromotion: true, experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
+    juniorPromotion: true, juniorCalibrated: true, experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
     career: { countryId, goals: [], reports: [], reputation: 50 },
   };
   if (roster?.players.length) {
