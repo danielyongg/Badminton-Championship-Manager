@@ -5,7 +5,7 @@ import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
 import { presetPack, PRESETS } from './pack';
 import { makeRng } from './rng';
-import { formPairs, isHeld, newSeason, playWeek, scheduleYear, weekOf, wtfQualifiers } from './season';
+import { aiEventChoice, formPairs, isHeld, newSeason, playWeek, scheduleYear, weekOf, wtfQualifiers } from './season';
 import { ATTRS, DISCIPLINES } from './types';
 
 describe('satu musim penuh (BWF 2026)', () => {
@@ -281,4 +281,13 @@ it('negara manajer hanya bisa memilih event yang terbuka untuknya (kontinental b
   expect(offered).toContain('asia-team');
   expect(offered).not.toContain('europe-team');
   expect(state.teamResults.some((r) => r.eventId === 'europe-team')).toBe(true); // tetap dimainkan otomatis
+});
+
+it('AI: dua turnamen grade 3 yang cocok di minggu yang sama (IC & FS) sama-sama kebagian; tanpa rng (Saran) tetap yang tertinggi', () => {
+  const options = [{ id: 'ic', tierId: 'IC' }, { id: 'fs', tierId: 'FS' }];
+  const rng = makeRng(3);
+  const picks = new Set(Array.from({ length: 40 }, () => aiEventChoice(options, BWF_2026, 300, undefined, rng)!.id));
+  expect([...picks].sort()).toEqual(['fs', 'ic']);
+  expect(aiEventChoice(options, BWF_2026, 300)!.id).toBe('ic');
+  expect(aiEventChoice(options, BWF_2026, 80, undefined, rng)!.id).toBe('ic'); // peringkat 80: belum boleh FS
 });

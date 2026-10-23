@@ -389,7 +389,7 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
       // IC/IS/FS: AI terutama mendaftar di benuanya sendiri (sesekali ke luar).
       const local = !world || rng() < (rs.ai.awayGrade3 ?? 1) ? options
         : options.filter((ev) => tierOf(rs, ev).grade !== 3 || confOf(hostCountryOf(ev)) === confOf(e.countryId));
-      const ev = aiEventChoice(local, rs, rank, prefs);
+      const ev = aiEventChoice(local, rs, rank, prefs, rng);
       // prioritas manajer: selalu diikuti (kecuali lelah); tanpa prioritas: peluang ikut per tier & kelelahan
       if (ev && tired <= rs.ai.restAbove && (prefs?.length || rng() < (rs.ai.playProb[ev.tierId] ?? 0.5) * (1 - tired / 150))) choice = ev;
     }
@@ -402,12 +402,17 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
 
 /**
  * Turnamen pilihan AI sebelum peluang ikut & kelelahan (`options` urut tier tertinggi dulu):
- * prioritas tier manajer bila ada, selain itu turnamen pertama yang rentang rankingnya cocok.
+ * prioritas tier manajer bila ada, selain itu turnamen pertama yang rentang rankingnya cocok. Dengan `rng`: bila yang
+ * pertama grade 3 dan ada grade 3 lain yang juga cocok minggu itu (mis. IC & FS di benua yang sama), dipilih acak di
+ * antaranya — tanpa ini turnamen grade 3 yang lebih rendah kosong. Tanpa `rng` (Saran, rencana musim): yang pertama.
  */
-export function aiEventChoice<T extends { tierId: string }>(options: T[], rs: Ruleset, rank: number | undefined, prefs?: string[]) {
+export function aiEventChoice<T extends { tierId: string }>(options: T[], rs: Ruleset, rank: number | undefined, prefs?: string[], rng?: Rng) {
   if (prefs?.length) return options.find((x) => prefs.includes(x.tierId));
   const r = rank ?? 9999;
-  return options.find((x) => { const [lo, hi] = rs.ai.rankRange[x.tierId] ?? [1, 9999]; return r >= lo && r <= hi; });
+  const fits = options.filter((x) => { const [lo, hi] = rs.ai.rankRange[x.tierId] ?? [1, 9999]; return r >= lo && r <= hi; });
+  const grade3 = (x: T) => rs.tiers.find((t) => t.id === x.tierId)?.grade === 3;
+  const same = rng && fits[0] && grade3(fits[0]) ? fits.filter(grade3) : [];
+  return same.length > 1 ? same[Math.floor(rng!() * same.length)] : fits[0];
 }
 
 /** Pilihan turnamen minggu ini: id turnamen yang dimainkan manajer, atau null = simulasikan sisanya. */
