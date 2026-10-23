@@ -1,4 +1,5 @@
 import { ATTRS, type Attrs, type Pair, type Player } from '../types';
+import { JUNIOR_MAX_AGE } from '../generator';
 import data from './bwfPlayers.json';
 import { WORLD } from './world';
 
@@ -33,21 +34,27 @@ function birthOf(dob: string | null, junior: number) {
 const JUNIOR_V1 = !('juniorLevel' in data);
 const TRADITION = new Map(WORLD.countries.map((c) => [c.id, c.traditionStrength]));
 
+// ASUMSI: ruang tumbuh (PA − level) atlet muda ikut lingkungan latihan negaranya: tradisi 100 → penuh, tradisi 0 → GROWTH_MIN.
+const JUNIOR_CUT = 20, GROWTH_MIN = 0.3;
+const growthOf = (tradition: number) => GROWTH_MIN + (1 - GROWTH_MIN) * tradition / 100;
+
 function toPlayer([bwfId, name, countryId, gender, dob, focus, level, junior]: Row, startYear: number): Player {
   if (junior && JUNIOR_V1) level = Math.round(82 - 1.125 * (72 - level));
   // ASUMSI: di luar papan atas, peringkat pemain negara bertradisi lemah banyak dari turnamen kecil di kawasannya →
   // level dikurangi s/d 8 (tradisi 0) secara bertahap di bawah level 86; negara kuat hampir tidak berubah.
+  // U19 (ranking junior, atau remaja di ranking senior negara kecil) dikurangi s/d JUNIOR_CUT: lapangan junior kawasan lebih tipis lagi.
   const tradition = TRADITION.get(countryId) ?? 50;
-  level -= Math.round((1 - tradition / 100) * 8 * Math.min(1, Math.max(0, (86 - level) / 10)));
+  const birth = birthOf(dob, junior);
+  const age = startYear - birth.year;
+  const cut = junior || age <= JUNIOR_MAX_AGE ? JUNIOR_CUT : 8;
+  level -= Math.round((1 - tradition / 100) * cut * Math.min(1, Math.max(0, (86 - level) / 10)));
   // Variasi kecil per atlet (tetap sama tiap New Game), lalu digeser agar rata-rata = level.
   const raw = ATTRS.map((a) => level + (SHAPE[focus][a] ?? 0) + (hash(name + a) % 7) - 3);
   const shift = level - raw.reduce((s, x) => s + x, 0) / raw.length;
   const attrs = Object.fromEntries(ATTRS.map((a, i) => [a, Math.max(1, Math.min(100, Math.round(raw[i] + shift)))])) as Attrs;
-  const birth = birthOf(dob, junior);
-  const age = startYear - birth.year;
   return {
     id: `${countryId}-r-${bwfId}`, name, countryId, gender, hand: 'R', birth,
-    attrs, pa: Math.min(99, level + Math.max(1, (24 - age) * 2)), form: 0, fatigue: 0, ...(focus === 'D' && { focus }),
+    attrs, pa: Math.min(99, level + Math.round(Math.max(1, (24 - age) * 2 * growthOf(tradition)))), form: 0, fatigue: 0, ...(focus === 'D' && { focus }),
     ...(!junior && { promoted: true }), // atlet ranking senior BWF: sudah di sirkuit senior walau masih U19
     attrHistory: [{ year: startYear - 1, attrs: { ...attrs } }],
   };
