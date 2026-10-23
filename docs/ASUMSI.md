@@ -66,7 +66,7 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Target federasi**: gelar (tier S100 ke atas + Kejuaraan Dunia/Olimpiade/WTF, semua nomor) = gelar musim lalu (musim pertama: 1,5 × jumlah entri top 10); top 10 = pertahankan jumlah saat awal musim. Target beregu: lihat Fase 9.
 - **Rapor**: rata-rata pencapaian (maks 150% per target) → A ≥ 100%, B ≥ 80%, C ≥ 60%, D ≥ 40%, E; ≥ 3 pelanggaran turun satu nilai. Reputasi awal 50: A +10, B +5, C 0, D −5, E −10; tiap pelanggaran Top Committed −3.
 - **Perkiraan potensi** (bintang ½–5): galat tetap per atlet, simpangan menyusut dari ±15 (usia 15, belum bertanding) ke ±2 poin PA (usia & laga bertambah).
-- **Junior** di layar Skuad = usia ≤ 18 (U19).
+- **Junior** di layar Skuad = U19 menurut tahun kalender (tahun − tahun lahir ≤ 18), lihat di bawah.
 - **Entry manual**: tanpa keputusan = asisten AI memilih (mematuhi Top Committed). Pilihan manajer tetap tunduk pada aturan entry (peringkat, kuota, kualifikasi/cadangan).
 - **Ukuran save**: statistik per laga hanya disimpan 2 musim terakhir (skor & head-to-head tetap selamanya); hasil ranking > 2 tahun dibuang; riwayat peringkat disimpan sebagai snapshot top 300 tiap 4 minggu (peringkat seri ditampilkan berurutan di grafik).
 - **Save**: otomatis setelah tiap "Lanjut" dan setiap perubahan entry/pasangan. Tiap save menyimpan salinan ruleset & data dunianya sendiri.
@@ -150,7 +150,7 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Atur sektor**: centang tunggal = ikut didaftarkan otomatis di tunggal (tanpa centang = spesialis ganda; entry manual tetap bisa). Centang nomor ganda = pilih partner (atlet negara sendiri, gender sesuai, belum punya pasangan utama di nomor itu) → pasangan utama baru; hapus centang = bubarkan pasangan utama (konfirmasi).
 
 ## Junior: promosi pelatnas (tahap 1 fitur junior)
-- **Junior** = usia ≤ 18 (U19), `JUNIOR_MAX_AGE` di `src/engine/generator.ts`.
+- **Junior** = U19 menurut tahun kalender seperti BWF Junior Tournament Regulations (tetap di bawah 19 sepanjang tahun turnamen): tahun − tahun lahir ≤ 18, `isJuniorAge` di `src/engine/generator.ts`. Status junior/senior hanya berganti di awal tahun, tidak saat ulang tahun (sebelum 2026-10-23: usia ≤ 18 pada hari itu, sehingga pasangan junior bisa pindah ke Senior di tengah musim).
 - Junior negara manajer berstatus **Pratama** (belum dipromosikan) atau **Utama** (`Player.promoted`). Pratama tidak didaftarkan otomatis ke turnamen senior (entry manual tetap bisa, beregu tetap boleh). Usia 19 = otomatis senior.
 - Negara AI tidak memakai status ini: junior mereka tetap ikut sirkuit senior menurut peringkat.
 - Paket bawaan: atlet dari ranking **senior** BWF yang masih U19 langsung Utama; atlet dari ranking junior & junior fiktif = Pratama.
@@ -158,7 +158,7 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 
 ## Junior: turnamen junior individu & ranking junior (tahap 2)
 - **Kalender** (2026 & 2027+): minggu 28 Kejuaraan Junior Kontinental — Asia (Surabaya) & Eropa (Brno) tier `JC`; Pan Am (Lima), Afrika (Lagos), Oseania (Sydney) tier `JC2` (poin lebih kecil karena persaingan lebih ringan); minggu 41 BWF World Junior Championships (Guwahati) tier `WJC`. Kota & minggu disederhanakan.
-- **Peserta** U19 (usia ≤ 18 saat turnamen), dipilih otomatis per negara: maks 3 tunggal & 2 pasangan (Dunia Junior), 4 & 3 (kontinental). Kontinental hanya negara konfederasinya. Urutan: ranking junior, lalu kemampuan. Junior pratama ikut. Keputusan entry manajer minggu itu (istirahat / turnamen senior) dihormati — atlet itu tidak ikut turnamen junior. Tab Kalender & Entry tidak menampilkan turnamen junior.
+- **Peserta** U19 (tahun − tahun lahir ≤ 18), dipilih otomatis per negara: maks 3 tunggal & 2 pasangan (Dunia Junior), 4 & 3 (kontinental). Kontinental hanya negara konfederasinya. Urutan: ranking junior, lalu kemampuan. Junior pratama ikut. Keputusan entry manajer minggu itu (istirahat / turnamen senior) dihormati — atlet itu tidak ikut turnamen junior. Tab Kalender & Entry tidak menampilkan turnamen junior.
 - **Undian**: Dunia Junior 128 tunggal / 64 ganda; kontinental 64 / 32; tanpa kualifikasi & wildcard.
 - **Bentrok**: atlet yang ikut turnamen junior tidak didaftarkan otomatis ke turnamen senior minggu yang sama.
 - **Ganda junior**: pasangan aktif yang kedua atletnya U19 dipakai; sisanya dipasangkan otomatis per negara (pasangan `junior` + `adHoc`: tidak ikut turnamen senior, tidak tampil di daftar pasangan, dipakai ulang bila atletnya sama). **Negara manajer** (sejak 2026-10-22): tanpa pasangan junior otomatis — ganda junior hanya dari pasangan yang dibentuk manajer, sama seperti senior; pasangan dadakan lama di save diakhiri saat dimuat (riwayat tetap).

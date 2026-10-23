@@ -40,9 +40,12 @@ function makeName(rng: Rng, country: Country, gender: 'M' | 'F', used = new Set<
   return name;
 }
 
-/** Junior = usia ≤ 18 (U19). ASUMSI: batas usia junior BWF. */
+/**
+ * Junior (U19) menurut tahun kalender, seperti BWF Junior Tournament Regulations: tetap di bawah 19 sepanjang tahun
+ * (tahun − tahun lahir ≤ 18). Status tidak berubah di tengah musim saat atlet berulang tahun.
+ */
 export const JUNIOR_MAX_AGE = 18;
-export const isJuniorAge = (p: Pick<Player, 'birth'>, date: GameDate) => ageAt(p.birth, date) <= JUNIOR_MAX_AGE;
+export const isJuniorAge = (p: Pick<Player, 'birth'>, date: GameDate) => date.year - p.birth.year <= JUNIOR_MAX_AGE;
 /** Junior pelatnas pratama: belum dipromosikan → tidak didaftarkan otomatis ke turnamen senior (hanya negara manajer). */
 export const isPratama = (p: Pick<Player, 'birth' | 'promoted'>, date: GameDate) => isJuniorAge(p, date) && !p.promoted;
 
