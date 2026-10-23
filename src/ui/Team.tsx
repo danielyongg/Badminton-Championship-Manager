@@ -110,7 +110,12 @@ export function SquadPicker({ pool, value, onChange, size, suggestion }: {
 }
 
 const SECTOR_ORDER = ['MS', 'WS', 'MD', 'WD', 'XD'];
-const playsIn = (pool: Record<string, TeamEntrant[]>, id: string) => SECTOR_ORDER.filter((d) => pool[d]?.some((e) => e.playerIds.includes(id)));
+/** Nomor atlet di pool: tunggal & pasangan terdaftar; ganda dadakan (pasangan otomatis junior) hanya bila tidak ada yang lain. */
+const playsIn = (pool: Record<string, TeamEntrant[]>, id: string) => {
+  const has = (adHoc: boolean) => SECTOR_ORDER.filter((d) => pool[d]?.some((e) => e.id.startsWith(AD_HOC) === adHoc && e.playerIds.includes(id)));
+  const real = has(false);
+  return real.length ? real : has(true);
+};
 
 /**
  * Satu baris pilih atlet (skuad beregu & kontingen multi-event): nama; data atlet, kondisi, morale, status Development
