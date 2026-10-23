@@ -43,7 +43,7 @@ Prinsip tetap: ringan — menambah kenyamanan/informasi, tanpa sistem manajemen 
 
 ## Tahap akhir — Percantik UI & perbaikan UX (setelah semua fitur selesai)
 - [x] Desain visual baru: gaya "Arena" (rapat ala game manajer) + palet hijau "Lapangan", tema terang/gelap dengan pilihan Otomatis/Terang/Gelap, huruf Barlow, bendera 47 negara, bagan bertema, papan skor Live Match ala TV. Spesifikasi: `docs/superpowers/specs/2026-10-13-percantik-ui-design.md`.
-- [ ] Perbaikan UX: daftar keluhan/temuan user dikumpulkan di sini sebelum tahap ini dimulai.
+- [x] Perbaikan UX: dikerjakan terus-menerus dari temuan user, satu commit per perbaikan (rinciannya di riwayat git sejak 2026-10-13). Temuan baru langsung dikerjakan, tidak perlu dikumpulkan dulu di sini. Contoh:
   - [x] Header karier satu baris; pengaturan karier pindah ke tab sendiri (satu pengaturan per baris).
   - [x] Dashboard: turnamen mendatang per minggu, kartu Hasil turnamen bisa dimaju-mundurkan per minggu (juara disorot emas), kartu Cedera bergaya baris, Ranking BWF 10 besar dunia per nomor (atlet negara sendiri disorot, poin ranking), target musim bertumpuk.
   - [x] Pop-up detail laga (skor per game, statistik poin) dari bagan, dashboard & profil; detail beregu per partai (save lama direkonstruksi).
@@ -58,8 +58,7 @@ Prinsip tetap: ringan — menambah kenyamanan/informasi, tanpa sistem manajemen 
   - [x] Tabel Pairs di HP: sektor & status pindah ke sel nama, tombol Promote ke kolom aksi.
   - [x] Lepas dari pelatnas (tombol di profil atlet): atlet tetap bertanding diatur AI, keluar dari tim manajer; bisa dipanggil kembali dari Skuad → Non-pelatnas. Spesifikasi: `docs/superpowers/specs/2026-10-15-lepas-dari-pelatnas-design.md`.
   - [x] Audit tampilan HP (2026-10-15): tombol Live/Lewati di layar babak tidak terpotong, kolom Gender & Kelelahan Skuad disembunyikan di HP, isian 16px di iOS (tanpa zoom otomatis), safe area untuk bilah bawah & pop-up, tombol hapus save merah.
-  - [x] Web app (Add to Home Screen): `public/manifest.webmanifest`, ikon PNG 180/192/512, meta iOS. Belum offline (tanpa service worker).
-  - (tambahkan temuan di sini)
+  - [x] Web app (Add to Home Screen): `public/manifest.webmanifest`, ikon PNG 180/192/512, meta iOS. Mode offline (service worker) & cek versi otomatis menyusul 2026-10-21.
 - Catatan urutan: tampilan responsif dari Fase 11 sebaiknya dikerjakan bersama tahap ini; deploy GitHub Pages sudah otomatis.
 
 ## Koreksi aturan beregu (temuan saat mencari nama resmi)
