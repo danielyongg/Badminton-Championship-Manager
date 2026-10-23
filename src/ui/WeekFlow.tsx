@@ -30,7 +30,7 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
       <h3>{eventName(ruleset, editing, year)} · {t('entryStatus')}</h3>
       {(() => {
         const ev = ruleset.calendar.find((e) => e.id === editing);
-        const submit = () => { (state.entriesSubmitted ??= {})[`${year}:${editing}`] = true; changed(); void saveGame(game); setEditing(undefined); };
+        const submit = (ai?: boolean) => { (state.entriesSubmitted ??= {})[`${year}:${editing}`] = ai ? 'ai' : true; changed(); void saveGame(game); setEditing(undefined); };
         const junior = ev && ruleset.tiers.find((x) => x.id === ev.tierId)?.junior;
         return <>
           {junior ? <JuniorEntryTable ev={ev} onSubmit={submit} /> : <EntryTable week={ask.week} eventId={editing} onSubmit={submit} />}

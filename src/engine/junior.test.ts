@@ -5,7 +5,7 @@ import { BWF_2027 } from './presets/bwf2027';
 import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
 import { makeRng } from './rng';
-import { entrantsFor, newSeason, playWeek, weekKey } from './season';
+import { entrantsFor, newSeason, playWeek, weekKey, weekOf } from './season';
 import { currentAbility } from './generator';
 import { isDoubles, type Discipline } from './types';
 
@@ -111,4 +111,34 @@ describe('spesialis ganda', () => {
     const all = [...rec.entry.main, ...rec.entry.qualifying, ...rec.entry.reserves];
     expect(all.find((c) => c.id === weakest.id)!.rank).toBeGreaterThan(1);
   }, 60000);
+});
+
+describe('entry yang sudah di-submit', () => {
+  it('atlet sendiri yang tidak dicentang tidak diisi AI ke turnamen itu; tanpa submit tetap diisi asisten AI', async () => {
+    const state = newSeason(WORLD, rs, 11, undefined, 'INA');
+    const rng = makeRng(11);
+    while (state.date.week < 20) await playWeek(state, rs, WORLD, rng);
+    // Minggu dengan turnamen yang (tanpa submit) diikuti atlet INA dari pilihan AI.
+    for (let tries = 0; tries < 30; tries++) {
+      const { year, week } = state.date;
+      const free = structuredClone(state);
+      await playWeek(free, rs, WORLD, makeRng(99));
+      const ina = new Set(free.players.filter((p) => p.countryId === 'INA').map((p) => p.id));
+      const pairIds = new Map(free.pairs.map((p) => [p.id, p.playerIds]));
+      const mine = (r: { entry: { main: { id: string }[]; qualifying: { id: string }[] } }) => [...r.entry.main, ...r.entry.qualifying]
+        .filter((c) => (pairIds.get(c.id) ?? [c.id]).some((id) => ina.has(id)) && !state.commitments[c.id]?.length).map((c) => c.id);
+      const hit = free.eventRecords.filter((r) => r.year === year && rs.calendar.some((e) => e.id === r.tournamentId && weekOf(e, year) === week) && mine(r).length);
+      if (hit.length) {
+        const ids = [...new Set(hit.map((r) => r.tournamentId))];
+        const done = structuredClone(state);
+        for (const id of ids) (done.entriesSubmitted ??= {})[`${year}:${id}`] = true;
+        await playWeek(done, rs, WORLD, makeRng(99));
+        const after = done.eventRecords.filter((r) => r.year === year && ids.includes(r.tournamentId));
+        expect(after.flatMap(mine)).toEqual([]);
+        return;
+      }
+      await playWeek(state, rs, WORLD, rng);
+    }
+    throw new Error('tidak ada minggu dengan entry AI atlet INA');
+  }, 120000);
 });

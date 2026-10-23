@@ -67,8 +67,13 @@ export interface SeasonState {
   tierPrefs?: Record<string, TierId[]>;
   /** Pencarian bakat junior negara manajer yang belum diputuskan (kandidat akhir musim). */
   scouting?: Scouting;
-  /** Turnamen yang entry-nya sudah di-submit manajer: "tahun:eventId" (hanya status di Kalender). */
-  entriesSubmitted?: Record<string, true>;
+  /**
+   * Turnamen yang entry-nya sudah di-submit manajer: "tahun:eventId". `true` = pilihan manajer (atlet sendiri yang tidak
+   * dicentang tidak diisi AI ke turnamen itu); 'ai' = diserahkan ke asisten AI lewat tombol Otomatis.
+   */
+  entriesSubmitted?: Record<string, true | 'ai'>;
+  /** Submit lama (sebelum 'ai') sudah dipilah sekali saat save dimuat. */
+  entriesSubmittedKinds?: true;
   /** Snapshot ranking tiap 4 minggu (top 300 per nomor) untuk grafik riwayat peringkat. */
   rankSnapshots: { absWeek: number; discipline: Discipline; ids: string[] }[];
   /**
@@ -233,7 +238,7 @@ export function newSeason(
   const state: SeasonState = {
     date, players: [...structuredClone(roster?.players ?? []), ...w.players], pairs: [...structuredClone(roster?.pairs ?? []), ...w.pairs],
     results: [], juniorResults: [], matches: [], champions: [], commitments: {}, violations: [],
-    juniorPromotion: true, juniorCalibrated: true, experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
+    juniorPromotion: true, juniorCalibrated: true, entriesSubmittedKinds: true, experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
     career: { countryId, goals: [], reports: [], reputation: 50 },
   };
   if (roster?.players.length) {
@@ -332,6 +337,7 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
   const fatigue = new Map(state.players.map((p) => [p.id, p.fatigue]));
   const injured = new Set(state.players.filter((p) => p.injury).map((p) => p.id));
   const manual = state.manualEntries[weekKey(state.date)] ?? {};
+  const submitted = (ev: TournamentDef) => state.entriesSubmitted?.[`${state.date.year}:${ev.id}`] === true;
   // Junior pratama negara manajer: tidak didaftarkan otomatis (manual tetap bisa).
   const pratama = new Set(state.players.filter((p) => p.countryId === state.managedCountryId && p.released === undefined && isPratama(p, state.date)).map((p) => p.id));
   const released = releasedIds(state);
@@ -379,7 +385,9 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
     const fixed = e.playerIds.map((id) => playerEvent.get(id)).find(Boolean);
     const options = events.filter((ev) => ev.tierId !== 'WTF' && ev.tierId !== 'OG' && tierOf(rs, ev).drawSize[d] > 0 && (!fixed || ev.id === fixed)
       && (!ev.countries || ev.countries.includes(e.countryId)) && (!ev.confederation || confOf(e.countryId) === ev.confederation)
-      && inContingent(state, ev.id, e.countryId, e.playerIds));
+      && inContingent(state, ev.id, e.countryId, e.playerIds)
+      // Turnamen yang entry-nya sudah di-submit manajer: atlet sendiri yang tidak dicentang tidak diisi AI ke sana (wajib tetap).
+      && (!mine(e) || manual[e.id] === ev.id || !submitted(ev) || !!state.commitments[e.id]?.includes(ev.id)));
     const decision = mine(e) ? manual[e.id] : undefined;
     if (!decision && e.playerIds.some((id) => pratama.has(id) || busy.has(id))) continue;
     let choice = decision ? options.find((ev) => ev.id === decision) : options.find((ev) => state.commitments[e.id]?.includes(ev.id));

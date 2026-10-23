@@ -15,6 +15,7 @@ interface JuniorState {
   pairs: Pair[];
   date: { year: number; week: number };
   managedCountryId?: string | null;
+  entriesSubmitted?: Record<string, true | 'ai'>;
 }
 
 /**
@@ -32,11 +33,15 @@ export function juniorEntries(
   const abil = new Map(state.players.map((p) => [p.id, currentAbility(p.attrs)]));
   const ca = (id: string) => abil.get(id)!;
 
+  const countryOf = new Map(state.players.map((p) => [p.id, p.countryId]));
+  const ownCountry = (id: string) => countryOf.get(state.pairs.find((x) => x.id === id)?.playerIds[0] ?? id) === state.managedCountryId;
   const hostConf = (ev: TournamentDef) => conf.get(world.cities.find((c) => c.id === ev.cityId)?.countryId ?? '');
   for (const ev of events) {
     const tier = rs.tiers.find((x) => x.id === ev.tierId)!;
     const { quota, play = 1, local } = tier.junior!;
-    const free = (id: string) => manual[id] === undefined || manual[id] === ev.id;
+    // Entry sudah di-submit manajer: atlet/pasangan negaranya yang tidak dicentang tidak diisi otomatis.
+    const shut = state.entriesSubmitted?.[`${state.date.year}:${ev.id}`] === true;
+    const free = (id: string) => manual[id] === ev.id || (manual[id] === undefined && !(shut && ownCountry(id)));
     // Atlet yang sudah terdaftar di turnamen junior lain minggu ini tidak ikut lagi.
     const elsewhere = new Set(busy);
     // Pilihan manajer (atlet tunggal / pasangan) untuk turnamen ini: selalu ikut & didahulukan dalam kuota negara.

@@ -88,7 +88,8 @@ export function EntryPanel({ id }: { id: string }) {
   const { state, ruleset } = game;
   const { year } = state.date;
   const done = state.entriesSubmitted?.[`${year}:${id}`];
-  const submit = () => { (state.entriesSubmitted ??= {})[`${year}:${id}`] = true; changed(); void saveGame(game); };
+  // `ai`: diserahkan ke asisten AI (atlet yang belum diputuskan tetap boleh diisi AI ke turnamen ini).
+  const submit = (ai?: boolean) => { (state.entriesSubmitted ??= {})[`${year}:${id}`] = ai ? 'ai' : true; changed(); void saveGame(game); };
   const status = done ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>;
   const teamEv = ruleset.team.events.find((e) => e.id === id);
   const ev = ruleset.calendar.find((e) => e.id === id);
@@ -267,7 +268,7 @@ function EntryRow({ e, checked, disabled, other, required, onToggle }: {
  * junior otomatis dari turnamen sebelumnya). Main = pasti ikut & didahulukan dalam kuota; Otomatis = dipilih AI
  * (ranking junior lalu kemampuan); sisa kuota ganda diisi pasangan otomatis.
  */
-export function JuniorEntryTable({ ev, onSubmit }: { ev: TournamentDef; onSubmit: () => void }) {
+export function JuniorEntryTable({ ev, onSubmit }: { ev: TournamentDef; onSubmit: (ai?: boolean) => void }) {
   const { game, version, changed } = useGame();
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
@@ -351,14 +352,14 @@ export function JuniorEntryTable({ ev, onSubmit }: { ev: TournamentDef; onSubmit
         </div>
       )}
       <p className="controls">
-        <button className="primary" onClick={onSubmit}>{t('submitEntries')}</button>
+        <button className="primary" onClick={() => onSubmit()}>{t('submitEntries')}</button>
         {/* Serahkan ke asisten AI: hapus keputusan untuk turnamen ini (pilihan ke turnamen lain tetap), lalu submit. */}
         <button title={t('autoSubmitHint')} onClick={() => {
           const next = { ...decisions };
           for (const e of rows) if (next[e.id] === ev.id || next[e.id] === 'rest') delete next[e.id];
           state.manualEntries[key] = next;
           changed();
-          onSubmit();
+          onSubmit(true);
         }}>{t('auto')}</button>
       </p>
     </>
@@ -370,7 +371,7 @@ export function JuniorEntryTable({ ev, onSubmit }: { ev: TournamentDef; onSubmit
  * Belum diputuskan = asisten AI yang memilih (label "AI"). Atlet yang sudah didaftarkan ke turnamen lain minggu yang sama
  * (langsung, atau lewat nomor lain yang dimainkannya) tidak bisa dicentang: satu atlet satu turnamen per minggu.
  */
-export function EntryTable({ week: w, eventId, onSubmit }: { week: number; eventId: string; onSubmit: () => void }) {
+export function EntryTable({ week: w, eventId, onSubmit }: { week: number; eventId: string; onSubmit: (ai?: boolean) => void }) {
   const { game, version, changed } = useGame();
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
@@ -458,9 +459,9 @@ export function EntryTable({ week: w, eventId, onSubmit }: { week: number; event
         </table>
       </div>
       <p className="controls">
-        <button className="primary" onClick={onSubmit}>{t('submitEntries')}</button>
+        <button className="primary" onClick={() => onSubmit()}>{t('submitEntries')}</button>
         {/* Serahkan ke asisten AI: hapus keputusan untuk turnamen ini (pilihan ke turnamen lain tetap), lalu submit. */}
-        <button title={t('autoSubmitHint')} onClick={() => { setAll((e) => (decisions[e.id] === eventId || decisions[e.id] === 'rest' ? 'auto' : decisions[e.id])); onSubmit(); }}>{t('auto')}</button>
+        <button title={t('autoSubmitHint')} onClick={() => { setAll((e) => (decisions[e.id] === eventId || decisions[e.id] === 'rest' ? 'auto' : decisions[e.id])); onSubmit(true); }}>{t('auto')}</button>
       </p>
     </>
   );

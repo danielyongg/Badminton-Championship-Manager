@@ -7,7 +7,7 @@ import { PRESETS, syncOfficialCalendar, withDefaults } from '../engine/pack';
 import { BWF_2026 } from '../engine/presets/bwf2026';
 import { dataName, t } from '../i18n';
 import { makeRng, type Rng } from '../engine/rng';
-import { ensureRankWeeks, playWeek, teamFormatsIn, weekOf, type SeasonState, type WeekHooks } from '../engine/season';
+import { ensureRankWeeks, playWeek, teamFormatsIn, weekKey, weekOf, type SeasonState, type WeekHooks } from '../engine/season';
 import { ATTRS, isJuniorFormat, type Ruleset, type Tier, type SaveMeta, type World } from '../engine/types';
 
 // Satu permainan aktif (save yang sedang dimainkan). Engine mengubah `state` di tempat; `version` memicu render ulang.
@@ -141,6 +141,18 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
       capToPa(p);
     }
     blob.state.juniorCalibrated = true;
+  }
+  if (!blob.state.entriesSubmittedKinds) {
+    // Save sebelum submit manual dibedakan dari tombol Otomatis (AI): turnamen yang belum dimainkan & ter-submit tanpa satu
+    // pun centang dianggap diserahkan ke AI (tombol Otomatis menghapus semua centang turnamen itu).
+    const { year, week } = blob.state.date;
+    for (const e of blob.ruleset.calendar) {
+      const key = `${year}:${e.id}`, w = weekOf(e, year);
+      if (blob.state.entriesSubmitted?.[key] !== true || w < week) continue;
+      const picks = blob.state.manualEntries[weekKey({ year, week: w })] ?? {};
+      if (!Object.values(picks).includes(e.id)) blob.state.entriesSubmitted[key] = 'ai';
+    }
+    blob.state.entriesSubmittedKinds = true;
   }
   const ruleset = withDefaults(blob.ruleset, preset);
   // Save sebelum minggu di peringkat: isi dari snapshot + minggu berjalan, agar langsung tampil tanpa menunggu minggu berikutnya.
