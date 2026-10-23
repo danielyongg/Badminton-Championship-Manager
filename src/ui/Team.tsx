@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { hostCityId, isHeld, weekOf, lineupStrength, teamFormatsIn, teamStrengths, type TeamResult, type TeamStrength, type TeamTie } from '../engine/season';
-import { ageAt, currentAbility } from '../engine/generator';
+import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { AD_HOC, adHocEntrants, adHocId, autoLineup, autoSquad, lineupError, rankOrder, squadError, squadPool, type Lineup, type TeamEntrant } from '../engine/team';
 import { isDoubles, isJuniorFormat, type Discipline, type TeamFormat } from '../engine/types';
 import { mainRoundName } from '../engine/knockout';
@@ -75,12 +75,7 @@ export function SquadPicker({ pool, value, onChange, size, suggestion }: {
   /** Saran skuad AI untuk tombol Saran (tanpa = tombol tidak tampil). */
   suggestion?: string[];
 }) {
-  const { game } = useGame();
-  const { players } = lookup(game.state);
-  const plays = (id: string) => SECTOR_ORDER.filter((d) => pool[d]?.some((e) => e.playerIds.includes(id)));
-  // Pasangan terdaftar atlet di satu nomor ganda (ganda dadakan tidak ditampilkan).
-  const partners = (id: string, d: string) => (pool[d] ?? []).filter((e) => !e.id.startsWith(AD_HOC) && e.playerIds.includes(id))
-    .map((e) => players.get(e.playerIds.find((x) => x !== id)!)?.name).filter(Boolean).join(' / ');
+  const plays = (id: string) => playsIn(pool, id);
   // Dua kelompok: Single (atlet yang bisa main tunggal) & Pairs (sisanya); urutan tetap selama daftar terbuka,
   // yang sudah terpilih (saran) di atas tiap kelompok agar langsung terlihat.
   const groups = useMemo(() => {
@@ -104,25 +99,8 @@ export function SquadPicker({ pool, value, onChange, size, suggestion }: {
           <div key={label}>
             <h5 className="pick-sector">{label} <span className="muted-text">{t('pickedOf', { a: ids.filter((id) => value.includes(id)).length, b: ids.length })}</span></h5>
             {ids.map((id) => {
-              const p = players.get(id)!;
               const on = value.includes(id);
-              const mates = (d: string) => isDoubles(d as Discipline) && partners(id, d);
-              return (
-                <label key={id} className={`pickrow${on ? ' sel' : ''}`}>
-                  <input type="checkbox" checked={on} onChange={() => onChange(on ? value.filter((x) => x !== id) : [...value, id])} />
-                  <span className="grow">
-                    <b>{p.name}</b>
-                    {/* Baris 2: data atlet + nomor tanpa pasangan terdaftar; tiap nomor ganda berpasangan di baris sendiri. */}
-                    <small className="pick-plays"><span className="muted-text">{p.gender} · {ageAt(p.birth, game.state.date)} {t('yearsShort')}</span>
-                      <FitStatus ps={[p]} /><MoraleTag short value={p.form} />
-                      {plays(id).filter((d) => !mates(d)).map((d) => <span key={d} className="chip">{d}</span>)}</small>
-                    {plays(id).filter(mates).map((d) => (
-                      <small key={d} className="pick-mate"><span className="chip">{d}</span><span className="muted-text">{mates(d)}</span></small>
-                    ))}
-                  </span>
-                  <span className="val" title={t('ability')}>{currentAbility(p.attrs)}</span>
-                </label>
-              );
+              return <PickRow key={id} id={id} pool={pool} on={on} onToggle={() => onChange(on ? value.filter((x) => x !== id) : [...value, id])} />;
             })}
           </div>
         ))}
@@ -132,6 +110,39 @@ export function SquadPicker({ pool, value, onChange, size, suggestion }: {
 }
 
 const SECTOR_ORDER = ['MS', 'WS', 'MD', 'WD', 'XD'];
+const playsIn = (pool: Record<string, TeamEntrant[]>, id: string) => SECTOR_ORDER.filter((d) => pool[d]?.some((e) => e.playerIds.includes(id)));
+
+/**
+ * Satu baris pilih atlet (skuad beregu & kontingen multi-event): nama; data atlet, kondisi, morale, status Development
+ * & nomor tanpa pasangan terdaftar; tiap nomor ganda berpasangan di baris sendiri. `rank` = peringkat terbaik (opsional).
+ */
+export function PickRow({ id, pool, on, onToggle, rank, disabled }: {
+  id: string; pool: Record<string, TeamEntrant[]>; on: boolean; onToggle: () => void; rank?: number; disabled?: boolean;
+}) {
+  const { game } = useGame();
+  const { players } = lookup(game.state);
+  const p = players.get(id)!;
+  // Pasangan terdaftar atlet di satu nomor ganda (ganda dadakan tidak ditampilkan).
+  const mates = (d: string) => isDoubles(d as Discipline) && (pool[d] ?? []).filter((e) => !e.id.startsWith(AD_HOC) && e.playerIds.includes(id))
+    .map((e) => players.get(e.playerIds.find((x) => x !== id)!)?.name).filter(Boolean).join(' / ');
+  const plays = playsIn(pool, id);
+  return (
+    <label className={`pickrow${on ? ' sel' : ''}`}>
+      {!disabled && <input type="checkbox" checked={on} onChange={onToggle} />}
+      <span className="grow">
+        <b>{p.name}</b>
+        <small className="pick-plays"><span className="muted-text">{p.gender} · {ageAt(p.birth, game.state.date)} {t('yearsShort')}{rank !== undefined && ` · #${rank}`}</span>
+          <FitStatus ps={[p]} /><MoraleTag short value={p.form} />
+          {isPratama(p, game.state.date) && <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>}
+          {plays.filter((d) => !mates(d)).map((d) => <span key={d} className="chip">{d}</span>)}</small>
+        {plays.filter(mates).map((d) => (
+          <small key={d} className="pick-mate"><span className="chip">{d}</span><span className="muted-text">{mates(d)}</span></small>
+        ))}
+      </span>
+      <span className="val" title={t('ability')}>{currentAbility(p.attrs)}</span>
+    </label>
+  );
+}
 
 /** Validasi line-up di UI (sama seperti engine): pasangan terdaftar di skuad + ganda dadakan dari atlet skuad. */
 function lineupProblem(l: Lineup, order: Discipline[], pool: Record<string, TeamEntrant[]>, squad: string[], max: number, gender: (id: string) => string | undefined) {
@@ -246,6 +257,22 @@ function DefaultTeamEditor({ format, strengths, country }: { format: TeamFormat;
   );
 }
 
+/** Pop-up yang menunggu keputusan manajer: ✕ menyembunyikannya ke bilah bawah (turnamen menunggu) agar tab lain bisa dibuka. */
+function WaitingModal({ label, title, children }: { label: string; title: string; children: ReactNode }) {
+  const [hidden, setHidden] = useState(false);
+  if (hidden) return (
+    <div className="livebar card">🏸 <b>{title}</b><button className="primary" onClick={() => setHidden(false)}>{t('reopen')}</button></div>
+  );
+  return (
+    <div className="modal" role="dialog" aria-label={label}>
+      <div className="live card">
+        <button className="close" aria-label={t('close')} title={t('hideWaiting')} onClick={() => setHidden(true)}>✕</button>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 /** Pop-up sebelum turnamen beregu: daftarkan skuad. */
 export function SquadModal({ title, eventId, format, pool, suggested, onDone }: {
   eventId?: string;
@@ -256,8 +283,7 @@ export function SquadModal({ title, eventId, format, pool, suggested, onDone }: 
   const [squad, setSquad] = useState<string[]>([]);
   const err = squadError(squad, rs.team.order[format], pool, rs.team.maxMatchesPerPlayer, rs.team.squadSize[format]);
   return (
-    <div className="modal" role="dialog" aria-label={t('registerSquad')}>
-      <div className="live card">
+    <WaitingModal label={t('registerSquad')} title={`${title} · ${formatName(format, eventId)}: ${t('registerSquad')}`}>
         <h3>{title} · {formatName(format, eventId)}: {t('registerSquad')}</h3>
         <p className="hint">{t('squadHint')}</p>
         <SquadPicker pool={pool} value={squad} onChange={setSquad} size={rs.team.squadSize[format]} suggestion={suggested} />
@@ -265,8 +291,7 @@ export function SquadModal({ title, eventId, format, pool, suggested, onDone }: 
           <button className="primary" disabled={!!err} onClick={() => onDone(squad)}>{t('registerSquad')}</button>
         </div>
         {err && <p className="form-err">{err}</p>}
-      </div>
-    </div>
+    </WaitingModal>
   );
 }
 
@@ -281,10 +306,10 @@ export function TieLineupModal({ title, eventId, format, round, opponent, pool, 
   const [lineup, setLineup] = useState(suggested);
   const err = lineupProblem(lineup, order, pool, squad, rs.team.maxMatchesPerPlayer, (id) => lookup(game.state).players.get(id)?.gender);
   const name = dataName(game.world.countries.find((c) => c.id === opponent)?.name) ?? opponent;
+  const heading = `${title} · ${formatName(format, eventId)} ${round === 'G' ? t('group') : round} — vs ${name}`;
   return (
-    <div className="modal" role="dialog" aria-label={t('lineup')}>
-      <div className="live card">
-        <h3>{title} · {formatName(format, eventId)} {round === 'G' ? t('group') : round} — vs {name}</h3>
+    <WaitingModal label={t('lineup')} title={heading}>
+        <h3>{heading}</h3>
         <p className="hint">{t('tieLineupHint')}</p>
         <LineupPicker format={format} order={order} pool={pool} squad={squad} value={lineup} onChange={setLineup} />
         <div className="controls roundbar">
@@ -293,8 +318,7 @@ export function TieLineupModal({ title, eventId, format, round, opponent, pool, 
           <button onClick={() => { onAuto(); onDone(suggested); }}>{t('autoRestOfWeek', { format: formatName(format, eventId) })}</button>
           <small className="down">{err}</small>
         </div>
-      </div>
-    </div>
+    </WaitingModal>
   );
 }
 

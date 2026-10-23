@@ -4,7 +4,7 @@ import { matchConfigFor, simulateMatch, type MatchResult } from '../engine/match
 import type { DrawHook, DrawShow, EntriesHook, EntriesShow, LiveHook, LiveRequest } from '../engine/tournament';
 import { CHALLENGE_DEADLINE_WEEK, CHALLENGE_PENALTY, CHALLENGE_REWARD, challengeProgress, goalProgress, goalWeight } from '../engine/career';
 import { ageAt } from '../engine/generator';
-import { forgetPlayer, hasHistory, hostCityId, isHeld, openTo, teamFormatsIn, weekOf, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
+import { entrantsFor, forgetPlayer, hasHistory, hostCityId, isHeld, openTo, teamFormatsIn, weekOf, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
 import type { RoundHook, RoundShow } from '../engine/gate';
 import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
@@ -26,7 +26,7 @@ import { injuryText, isBadInjury, Profile, Squad, usd } from './Squad';
 import { autoPick, recruit, SCOUTING_DEADLINE_WEEK } from '../engine/scouting';
 import { autoContingents, gamesThisYear, lockWeek, playerBestRanks, setContingent } from '../engine/contingent';
 import { currentAbility } from '../engine/generator';
-import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
+import { formatName, levelName, PickRow, SquadModal, Team, TieLineupModal } from './Team';
 import { TournamentView } from './TournamentView';
 import { MatchLink } from './MatchDetail';
 import { EntriesScreen, RoundScreen, rowKey, WeekScreen, type WeekAsk } from './WeekFlow';
@@ -377,6 +377,8 @@ function ContingentCard({ ev }: { ev: TournamentDef }) {
     if (picked.includes(id)) save(picked.filter((x) => x !== id));
     else if (count(g) < cap[g]) save([...picked, id]);
   };
+  // Nomor & pasangan tiap atlet negara ini (badge nomor + nama pasangan di baris pilih).
+  const pool = useMemo(() => Object.fromEntries(DISCIPLINES.map((d) => [d, entrantsFor(state, d).filter((e) => e.countryId === country && !e.trial)])), [version]);
   const players = state.players.filter((p) => p.countryId === country && p.retired === undefined && p.released === undefined && (!locked || picked.includes(p.id)))
     .sort((a, b) => (best.get(a.id) ?? Infinity) - (best.get(b.id) ?? Infinity) || currentAbility(b.attrs) - currentAbility(a.attrs));
   return (
@@ -387,18 +389,11 @@ function ContingentCard({ ev }: { ev: TournamentDef }) {
       {!open ? <button className={locked ? undefined : 'primary'} onClick={() => setOpen(true)}>{locked ? t('contingent') : t('contingentOpen')}</button> : (
         <>
           {(['M', 'F'] as const).map((g) => (
-            <div key={g} className="scroll">
+            <div key={g} className="squadlist">
               <h4>{t(g === 'M' ? 'men' : 'women')} · {count(g)}/{cap[g]}</h4>
-              <table>
-                <thead><tr><th>{t('name')}</th><th className="num">{t('rank')}</th><th className="num">{t('ability')}</th></tr></thead>
-                <tbody>{players.filter((p) => p.gender === g).map((p) => (
-                  <tr key={p.id} className={picked.includes(p.id) ? 'sel' : undefined} onClick={() => toggle(p.id, g)} style={locked ? undefined : { cursor: 'pointer' }}>
-                    <td>{!locked && <input type="checkbox" checked={picked.includes(p.id)} readOnly />} {p.name}{p.injury && ' 🩹'}</td>
-                    <td className="num">{best.get(p.id) ?? '—'}</td>
-                    <td className="num">{currentAbility(p.attrs)}</td>
-                  </tr>
-                ))}</tbody>
-              </table>
+              {players.filter((p) => p.gender === g).map((p) => (
+                <PickRow key={p.id} id={p.id} pool={pool} on={picked.includes(p.id)} onToggle={() => toggle(p.id, g)} rank={best.get(p.id)} disabled={locked} />
+              ))}
             </div>
           ))}
           <p className="controls">
