@@ -9,6 +9,7 @@ import { entrantLabel, eventName, lookup, saveGame, useGame } from './game';
 import { LiveDraw } from './LiveDraw';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
+import { FitStatus, MoraleTag } from './Squad';
 
 // Beregu: jadwal, line-up negara sendiri, dan hasil Thomas/Uber/Sudirman Cup + kejuaraan kontinental.
 
@@ -110,9 +111,10 @@ export function SquadPicker({ pool, value, onChange, size, suggestion }: {
                   <input type="checkbox" checked={on} onChange={() => onChange(on ? value.filter((x) => x !== id) : [...value, id])} />
                   <span className="grow">
                     <b>{p.name}</b>
-                    <small className="pick-plays"><span className="muted-text">{p.gender} · {ageAt(p.birth, game.state.date)} {t('yearsShort')}</span>{plays(id).map((d) => {
+                    <small className="pick-plays"><span className="muted-text">{p.gender} · {ageAt(p.birth, game.state.date)} {t('yearsShort')}</span>
+                      <FitStatus ps={[p]} /><MoraleTag short value={p.form} />{plays(id).map((d) => {
                       const mate = isDoubles(d as Discipline) && partners(id, d);
-                      return <span key={d}><span className="chip">{d}</span>{mate && <span className="muted-text">{mate}</span>}</span>;
+                      return <span key={d} className="pick-sec"><span className="chip">{d}</span>{mate && <span className="muted-text">{mate}</span>}</span>;
                     })}</small>
                   </span>
                   <span className="val" title={t('ability')}>{currentAbility(p.attrs)}</span>
