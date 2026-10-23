@@ -154,13 +154,13 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
     }
     blob.state.entriesSubmittedKinds = true;
   }
-  if (!blob.state.hostsSpread) {
-    // Save sebelum turnamen senegara disebar: sisa musim berjalan (turnamen yang belum di-submit & bukan jadwal resmi preset).
+  if (blob.state.hostsSpread !== 2) {
+    // Save sebelum turnamen senegara & setier disebar: sisa musim berjalan (turnamen yang belum di-submit & bukan jadwal resmi preset).
     const { year, week } = blob.state.date;
     if (year > blob.ruleset.startYear) spreadHosts(blob.ruleset, year, makeRng(year), blob.world, (e) =>
       weekOf(e, year) > week && !blob.state.entriesSubmitted?.[`${year}:${e.id}`]
       && preset.calendar.find((x) => x.id === e.id)?.weeks?.[year] === undefined, week + 1);
-    blob.state.hostsSpread = true;
+    blob.state.hostsSpread = 2;
   }
   const ruleset = withDefaults(blob.ruleset, preset);
   // Save sebelum minggu di peringkat: isi dari snapshot + minggu berjalan, agar langsung tampil tanpa menunggu minggu berikutnya.

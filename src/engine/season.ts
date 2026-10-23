@@ -53,7 +53,7 @@ export interface SeasonState {
   /** Koreksi tradisi atlet junior asli sudah diterapkan (save lama disesuaikan sekali saat dimuat). */
   juniorCalibrated?: true;
   /** Turnamen kecil di negara yang sama sudah disebar (`spreadHosts`). Save lama: tidak ada. */
-  hostsSpread?: true;
+  hostsSpread?: true | 2; // 2 = juga tier yang sama tidak sepekan
   /** Top Committed Players musim ini: entrantId → id turnamen wajib. */
   commitments: Record<EntrantId, string[]>;
   commitmentsYear?: number;
@@ -169,8 +169,8 @@ export const HOST_GAP = 4;
 
 /**
  * Sebar turnamen kecil (Super 300 ke bawah, grade 3, junior internasional) yang `movable` agar turnamen di negara yang
- * sama berjarak ≥ HOST_GAP minggu; minggu terdekat dari jadwalnya yang tidak bentrok (bila mustahil: bentrok paling
- * sedikit). Turnamen junior internasional tetap satu per minggu & tidak sepekan dengan event junior lain.
+ * sama berjarak ≥ HOST_GAP minggu dan sebisa mungkin tidak sepekan dengan turnamen tier yang sama; minggu terdekat dari
+ * jadwalnya yang tidak bentrok (bila mustahil: bentrok paling sedikit, jarak senegara lebih diutamakan). Turnamen junior internasional tetap satu per minggu & tidak sepekan dengan event junior lain.
  */
 export function spreadHosts(rs: Ruleset, year: number, rng: Rng, world: World, movable: (e: TournamentDef) => boolean, fromWeek = 1) {
   const cityCountry = new Map(world.cities.map((c) => [c.id, c.countryId]));
@@ -178,22 +178,29 @@ export function spreadHosts(rs: Ruleset, year: number, rng: Rng, world: World, m
   const smallTier = (e: TournamentDef) => !ANCHOR_TIERS.has(e.tierId) && !BIG_TIERS.has(e.tierId) && e.tierId !== 'WJC';
   const held = rs.calendar.filter((e) => isHeld(e, year));
   const moving = shuffle(rng, held.filter((e) => movable(e) && smallTier(e) && !e.countries && !e.confederation));
-  const placed: { country?: string; week: number; junior: boolean }[] = [
-    ...held.filter((e) => !moving.includes(e)).map((e) => ({ country: cityCountry.get(hostCityId(e, year)), week: weekOf(e, year), junior: juniorTier.has(e.tierId) })),
+  const placed: { country?: string; week: number; junior: boolean; tier?: string }[] = [
+    ...held.filter((e) => !moving.includes(e)).map((e) => ({ country: cityCountry.get(hostCityId(e, year)), week: weekOf(e, year), junior: juniorTier.has(e.tierId), tier: e.tierId })),
     ...rs.team.events.filter((e) => isHeld(e, year)).map((e) => ({ country: cityCountry.get(hostCityId(e, year)), week: weekOf(e, year), junior: !!e.formats?.some(isJuniorFormat) })),
   ];
   const wtf = Math.min(...held.filter((e) => e.tierId === 'WTF').map((e) => weekOf(e, year)), 53);
-  for (const e of moving) {
-    const country = cityCountry.get(hostCityId(e, year)), w0 = weekOf(e, year), junior = juniorTier.has(e.tierId);
+  // Dua putaran: putaran kedua menempatkan ulang tiap turnamen dengan semua yang lain sudah terpasang (greedy satu putaran
+  // bisa terjebak urutan acak).
+  const mine = new Map<TournamentDef, (typeof placed)[number]>();
+  for (let pass = 0; pass < 2; pass++) for (const e of moving) {
+    const country = cityCountry.get(hostCityId(e, year)), w0 = e.weeks?.[year] ?? e.week, junior = juniorTier.has(e.tierId);
+    const others = placed.filter((p) => p !== mine.get(e));
     let best = w0, bestScore = Infinity;
     for (let w = fromWeek; w <= Math.max(wtf - 1, w0); w++) {
-      if (junior && placed.some((p) => p.junior && p.week === w)) continue;
-      const clash = placed.reduce((s, p) => s + (p.country === country ? Math.max(0, HOST_GAP - Math.abs(p.week - w)) : 0), 0);
-      const score = clash * 100 + Math.abs(w - w0);
+      if (junior && others.some((p) => p.junior && p.week === w)) continue;
+      const clash = others.reduce((s, p) => s + (p.country === country ? Math.max(0, HOST_GAP - Math.abs(p.week - w)) : 0), 0);
+      const sameTier = others.filter((p) => p.tier === e.tierId && p.week === w).length;
+      const score = clash * 1000 + sameTier * 30 + Math.abs(w - w0);
       if (score < bestScore) [best, bestScore] = [w, score];
     }
     (e.weeks ??= {})[year] = best;
-    placed.push({ country, week: best, junior });
+    const entry = mine.get(e);
+    if (entry) entry.week = best;
+    else { const p = { country, week: best, junior, tier: e.tierId }; mine.set(e, p); placed.push(p); }
   }
 }
 
@@ -279,7 +286,7 @@ export function newSeason(
   const state: SeasonState = {
     date, players: [...structuredClone(roster?.players ?? []), ...w.players], pairs: [...structuredClone(roster?.pairs ?? []), ...w.pairs],
     results: [], juniorResults: [], matches: [], champions: [], commitments: {}, violations: [],
-    juniorPromotion: true, juniorCalibrated: true, hostsSpread: true, entriesSubmittedKinds: true, experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
+    juniorPromotion: true, juniorCalibrated: true, hostsSpread: 2, entriesSubmittedKinds: true, experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
     career: { countryId, goals: [], reports: [], reputation: 50 },
   };
   if (roster?.players.length) {

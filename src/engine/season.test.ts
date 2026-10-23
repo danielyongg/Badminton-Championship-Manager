@@ -270,7 +270,7 @@ it('kalender musim baru: tahun resmi tetap, tahun berikutnya bergeser ±1 minggu
   expect(state.date.year).toBe(2027);
 });
 
-it('kalender musim baru: turnamen di negara yang sama berjarak (Malaysia & Indonesia 2029)', () => {
+it('kalender musim baru: turnamen senegara berjarak & tier yang sama tidak sepekan (2029)', () => {
   const rs = structuredClone(BWF_2027);
   scheduleYear(rs, 2029, makeRng(5), WORLD);
   const country = new Map(WORLD.cities.map((c) => [c.id, c.countryId]));
@@ -279,6 +279,9 @@ it('kalender musim baru: turnamen di negara yang sama berjarak (Malaysia & Indon
       .map((e) => weekOf(e, 2029)).sort((a, b) => a - b);
     for (let i = 1; i < weeks.length; i++) expect(weeks[i] - weeks[i - 1]).toBeGreaterThanOrEqual(HOST_GAP);
   }
+  // Tier kecil yang sama hampir tidak pernah sepekan (sisa bentrok hanya bila jarak senegara tidak memungkinkan).
+  const small = rs.calendar.filter((e) => isHeld(e, 2029) && ['S300', 'S100', 'IC', 'IS', 'FS'].includes(e.tierId)).map((e) => `${e.tierId}@${weekOf(e, 2029)}`);
+  expect(small.length - new Set(small).size).toBeLessThanOrEqual(1);
 });
 
 it('negara manajer hanya bisa memilih event yang terbuka untuknya (kontinental benua lain & multi-event non-anggota disimulasikan)', async () => {
