@@ -319,7 +319,16 @@ export function JuniorEntryTable({ ev, onSubmit }: { ev: TournamentDef; onSubmit
   return (
     <>
       <p className="hint">{t('juniorEntryHelp', { s: quota.singles, d: quota.doubles })}</p>
-      <p className="controls"><button title={t('suggestionHint')} onClick={suggest}>💡 {t('suggestion')}</button></p>
+      <p className="controls">
+        <button onClick={() => {
+          const next = { ...decisions };
+          for (const e of rows) if (!e.playerIds.some((id) => bound.get(id))) next[e.id] = 'rest';
+          state.manualEntries[key] = next;
+          changed();
+          void saveGame(game);
+        }}>{t('restAll')}</button>
+        <button title={t('suggestionHint')} onClick={suggest}>💡 {t('suggestion')}</button>
+      </p>
       <nav className="controls subnav">
         {sectors.map((d) => (
           <button key={d} aria-pressed={d === sector} onClick={() => setSector(d)}>
@@ -507,8 +516,10 @@ function TeamSquads({ eventId, formats, onSubmit }: { eventId: string; formats: 
     const pool = all[rank]?.pool;
     return { f, rank, total: all.length, pool: pool && contingent ? squadPool(pool, contingent) : pool };
   });
-  const [squads, setSquads] = useState(() => Object.fromEntries(pools.map(({ f, pool }) =>
-    [f, state.teamSquads[f] ?? (pool ? autoSquad(ruleset.team.order[f], pool, max, ruleset.team.squadSize[f].max) : [])])) as Record<TeamFormat, string[]>);
+  // Mulai kosong; skuad yang sudah di-submit untuk turnamen ini ditampilkan lagi. Saran AI lewat tombol Saran.
+  const submitted = state.entriesSubmitted?.[`${state.date.year}:${eventId}`];
+  const [squads, setSquads] = useState(() => Object.fromEntries(pools.map(({ f }) =>
+    [f, (submitted && state.teamSquads[f]) || []])) as Record<TeamFormat, string[]>);
   const errs = pools.map(({ f, pool }) => pool && squadError(squads[f], ruleset.team.order[f], pool, max, ruleset.team.squadSize[f]));
   return (
     <>
@@ -520,7 +531,8 @@ function TeamSquads({ eventId, formats, onSubmit }: { eventId: string; formats: 
           {!pool ? <p>{t('teamNotEligible')}</p> : <>
             <p>{t('teamStrengthRank')}: <b>#{rank + 1}</b> / {total}</p>
             <TeamRules format={f} />
-            <SquadPicker pool={pool} value={squads[f]} size={ruleset.team.squadSize[f]} onChange={(v) => setSquads({ ...squads, [f]: v })} />
+            <SquadPicker pool={pool} value={squads[f]} size={ruleset.team.squadSize[f]} onChange={(v) => setSquads({ ...squads, [f]: v })}
+              suggestion={autoSquad(ruleset.team.order[f], pool, max, ruleset.team.squadSize[f].max)} />
             {errs[i] && <small className="down">{errs[i]}</small>}
           </>}
         </section>

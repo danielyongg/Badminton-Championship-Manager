@@ -69,8 +69,10 @@ function poolPlayers(pool: Record<string, TeamEntrant[]>) {
 }
 
 /** Pilih atlet skuad (kotak centang). Menampilkan nomor yang bisa dimainkan tiap atlet. */
-export function SquadPicker({ pool, value, onChange, size }: {
+export function SquadPicker({ pool, value, onChange, size, suggestion }: {
   pool: Record<string, TeamEntrant[]>; value: string[]; onChange: (v: string[]) => void; size: { min: number; max: number };
+  /** Saran skuad AI untuk tombol Saran (tanpa = tombol tidak tampil). */
+  suggestion?: string[];
 }) {
   const { game } = useGame();
   const { players } = lookup(game.state);
@@ -92,6 +94,10 @@ export function SquadPicker({ pool, value, onChange, size }: {
   return (
     <div>
       <p className="squad-count">{t('squadCount')}: <b className={value.length < size.min || value.length > size.max ? 'down' : undefined}>{value.length}</b> <span className="muted-text">({size.min}–{size.max})</span></p>
+      <p className="controls">
+        {suggestion && <button onClick={() => onChange(suggestion)}>💡 {t('suggestion')}</button>}
+        <button disabled={!value.length} onClick={() => onChange([])}>{t('clearAll')}</button>
+      </p>
       <div className="squadlist">
         {groups.map(({ label, ids }) => (
           <div key={label}>
@@ -242,17 +248,16 @@ export function SquadModal({ title, eventId, format, pool, suggested, onDone }: 
 }) {
   const { game } = useGame();
   const rs = game.ruleset;
-  const [squad, setSquad] = useState(suggested);
+  const [squad, setSquad] = useState<string[]>([]);
   const err = squadError(squad, rs.team.order[format], pool, rs.team.maxMatchesPerPlayer, rs.team.squadSize[format]);
   return (
     <div className="modal" role="dialog" aria-label={t('registerSquad')}>
       <div className="live card">
         <h3>{title} · {formatName(format, eventId)}: {t('registerSquad')}</h3>
         <p className="hint">{t('squadHint')}</p>
-        <SquadPicker pool={pool} value={squad} onChange={setSquad} size={rs.team.squadSize[format]} />
+        <SquadPicker pool={pool} value={squad} onChange={setSquad} size={rs.team.squadSize[format]} suggestion={suggested} />
         <div className="controls roundbar">
           <button className="primary" disabled={!!err} onClick={() => onDone(squad)}>{t('registerSquad')}</button>
-          <button onClick={() => setSquad(suggested)}>{t('resetSuggestion')}</button>
         </div>
         {err && <p className="form-err">{err}</p>}
       </div>
