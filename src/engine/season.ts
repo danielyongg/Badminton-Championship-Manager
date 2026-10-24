@@ -53,7 +53,7 @@ export interface SeasonState {
   /** Koreksi tradisi atlet junior asli sudah diterapkan (save lama disesuaikan sekali saat dimuat). */
   juniorCalibrated?: true;
   /** Turnamen kecil di negara yang sama sudah disebar (`spreadHosts`). Save lama: tidak ada. */
-  hostsSpread?: true | 2; // 2 = juga tier yang sama tidak sepekan
+  hostsSpread?: true | 2 | 3; // 2 = juga tier yang sama tidak sepekan, 3 = World Tour sebelum Finals
   /** Top Committed Players musim ini: entrantId → id turnamen wajib. */
   commitments: Record<EntrantId, string[]>;
   commitmentsYear?: number;
@@ -161,8 +161,16 @@ const BIG_TIERS = new Set(['S1000', 'S750', 'S500']);
 export function scheduleYear(rs: Ruleset, year: number, rng: Rng, world?: World) {
   const auto = new Set(rs.calendar.filter((e) => isHeld(e, year) && e.weeks?.[year] === undefined).map((e) => e.id));
   scheduleShift(rs, year, rng);
-  if (world) spreadHosts(rs, year, rng, world, (e) => auto.has(e.id));
+  if (world) spreadHosts(rs, year, rng, world, (e) => auto.has(e.id) || afterFinals(rs, e, year));
 }
+
+/** Minggu World Tour Finals tahun itu (53 bila tidak ada). */
+const finalsWeek = (rs: Ruleset, year: number) =>
+  Math.min(...rs.calendar.filter((e) => e.tierId === 'WTF' && isHeld(e, year)).map((e) => weekOf(e, year)), 53);
+
+/** Turnamen World Tour (tier Race) yang jadwalnya sepekan/sesudah World Tour Finals: harus dipindah ke sebelumnya. */
+export const afterFinals = (rs: Ruleset, e: TournamentDef, year: number) =>
+  rs.race.tiers.includes(e.tierId) && weekOf(e, year) >= finalsWeek(rs, year);
 
 /** Jarak minimal (minggu) antar turnamen di negara yang sama. ASUMSI: kalibrasi, docs/ASUMSI.md. */
 export const HOST_GAP = 4;
@@ -182,7 +190,7 @@ export function spreadHosts(rs: Ruleset, year: number, rng: Rng, world: World, m
     ...held.filter((e) => !moving.includes(e)).map((e) => ({ country: cityCountry.get(hostCityId(e, year)), week: weekOf(e, year), junior: juniorTier.has(e.tierId), tier: e.tierId })),
     ...rs.team.events.filter((e) => isHeld(e, year)).map((e) => ({ country: cityCountry.get(hostCityId(e, year)), week: weekOf(e, year), junior: !!e.formats?.some(isJuniorFormat) })),
   ];
-  const wtf = Math.min(...held.filter((e) => e.tierId === 'WTF').map((e) => weekOf(e, year)), 53);
+  const wtf = finalsWeek(rs, year);
   // Dua putaran: putaran kedua menempatkan ulang tiap turnamen dengan semua yang lain sudah terpasang (greedy satu putaran
   // bisa terjebak urutan acak).
   const mine = new Map<TournamentDef, (typeof placed)[number]>();
@@ -190,7 +198,8 @@ export function spreadHosts(rs: Ruleset, year: number, rng: Rng, world: World, m
     const country = cityCountry.get(hostCityId(e, year)), w0 = e.weeks?.[year] ?? e.week, junior = juniorTier.has(e.tierId);
     const others = placed.filter((p) => p !== mine.get(e));
     let best = w0, bestScore = Infinity;
-    for (let w = fromWeek; w <= Math.max(wtf - 1, w0); w++) {
+    // World Tour selalu sebelum Finals; selain itu boleh tetap di minggunya bila sesudah Finals (grade 3 Desember).
+    for (let w = fromWeek; w <= (rs.race.tiers.includes(e.tierId) ? wtf - 1 : Math.max(wtf - 1, w0)); w++) {
       if (junior && others.some((p) => p.junior && p.week === w)) continue;
       const clash = others.reduce((s, p) => s + (p.country === country ? Math.max(0, HOST_GAP - Math.abs(p.week - w)) : 0), 0);
       const sameTier = others.filter((p) => p.tier === e.tierId && p.week === w).length;
@@ -286,7 +295,7 @@ export function newSeason(
   const state: SeasonState = {
     date, players: [...structuredClone(roster?.players ?? []), ...w.players], pairs: [...structuredClone(roster?.pairs ?? []), ...w.pairs],
     results: [], juniorResults: [], matches: [], champions: [], commitments: {}, violations: [],
-    juniorPromotion: true, juniorCalibrated: true, hostsSpread: 2, entriesSubmittedKinds: true, experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
+    juniorPromotion: true, juniorCalibrated: true, hostsSpread: 3, entriesSubmittedKinds: true, experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
     career: { countryId, goals: [], reports: [], reputation: 50 },
   };
   if (roster?.players.length) {

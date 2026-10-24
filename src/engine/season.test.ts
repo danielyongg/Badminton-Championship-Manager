@@ -282,6 +282,11 @@ it('kalender musim baru: turnamen senegara berjarak & tier yang sama tidak sepek
   // Tier kecil yang sama hampir tidak pernah sepekan (sisa bentrok hanya bila jarak senegara tidak memungkinkan).
   const small = rs.calendar.filter((e) => isHeld(e, 2029) && ['S300', 'S100', 'IC', 'IS', 'FS'].includes(e.tierId)).map((e) => `${e.tierId}@${weekOf(e, 2029)}`);
   expect(small.length - new Set(small).size).toBeLessThanOrEqual(1);
+  // Jadwal resmi 2028: Indonesia Super 100 sepekan & sesudah Finals (minggu 48/49) → pindah ke sebelum Finals.
+  const rs28 = structuredClone(BWF_2027);
+  scheduleYear(rs28, 2028, makeRng(5), WORLD);
+  const finals = weekOf(rs28.calendar.find((e) => e.tierId === 'WTF')!, 2028);
+  for (const e of rs28.calendar.filter((x) => isHeld(x, 2028) && rs28.race.tiers.includes(x.tierId))) expect(weekOf(e, 2028)).toBeLessThan(finals);
 });
 
 it('negara manajer hanya bisa memilih event yang terbuka untuknya (kontinental benua lain & multi-event non-anggota disimulasikan)', async () => {

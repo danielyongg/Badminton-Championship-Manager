@@ -7,7 +7,7 @@ import { PRESETS, syncOfficialCalendar, withDefaults } from '../engine/pack';
 import { BWF_2026 } from '../engine/presets/bwf2026';
 import { dataName, t } from '../i18n';
 import { makeRng, type Rng } from '../engine/rng';
-import { ensureRankWeeks, playWeek, spreadHosts,teamFormatsIn, weekKey, weekOf, type SeasonState, type WeekHooks } from '../engine/season';
+import { afterFinals, ensureRankWeeks, playWeek, spreadHosts, teamFormatsIn, weekKey, weekOf, type SeasonState, type WeekHooks } from '../engine/season';
 import { ATTRS, isJuniorFormat, type Ruleset, type Tier, type SaveMeta, type World } from '../engine/types';
 
 // Satu permainan aktif (save yang sedang dimainkan). Engine mengubah `state` di tempat; `version` memicu render ulang.
@@ -154,13 +154,13 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
     }
     blob.state.entriesSubmittedKinds = true;
   }
-  if (blob.state.hostsSpread !== 2) {
-    // Save sebelum turnamen senegara & setier disebar: sisa musim berjalan (turnamen yang belum di-submit & bukan jadwal resmi preset).
+  if (blob.state.hostsSpread !== 3) {
+    // Save sebelum turnamen senegara & setier disebar (dan World Tour sebelum Finals): sisa musim berjalan (turnamen yang belum di-submit & bukan jadwal resmi preset).
     const { year, week } = blob.state.date;
     if (year > blob.ruleset.startYear) spreadHosts(blob.ruleset, year, makeRng(year), blob.world, (e) =>
       weekOf(e, year) > week && !blob.state.entriesSubmitted?.[`${year}:${e.id}`]
-      && preset.calendar.find((x) => x.id === e.id)?.weeks?.[year] === undefined, week + 1);
-    blob.state.hostsSpread = 2;
+      && (preset.calendar.find((x) => x.id === e.id)?.weeks?.[year] === undefined || afterFinals(blob.ruleset, e, year)), week + 1);
+    blob.state.hostsSpread = 3;
   }
   const ruleset = withDefaults(blob.ruleset, preset);
   // Save sebelum minggu di peringkat: isi dari snapshot + minggu berjalan, agar langsung tampil tanpa menunggu minggu berikutnya.
