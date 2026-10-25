@@ -207,6 +207,7 @@ export const en: Record<TextKey, string> = {
   resume: 'Resume',
   oneRally: '1 rally',
   autoFinish: 'Simulate this match',
+  simMatchShort: 'Sim match', simRoundShort: 'Sim round',
   strategyHint: 'Match paused (interval / end of game): change strategy if needed, then Resume.',
   interval: 'interval',
   gameOver: 'game over',

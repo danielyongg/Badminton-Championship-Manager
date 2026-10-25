@@ -207,6 +207,7 @@ const id = {
   resume: 'Lanjutkan',
   oneRally: '1 rally',
   autoFinish: 'Simulasikan laga ini',
+  simMatchShort: 'Sim laga', simRoundShort: 'Sim babak',
   strategyHint: 'Laga dijeda (interval / akhir game): ganti strategi bila perlu, lalu Lanjutkan.',
   interval: 'interval',
   gameOver: 'game selesai',
