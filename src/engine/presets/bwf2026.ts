@@ -481,7 +481,7 @@ export const BWF_2026: Ruleset = {
     rankRange: {
       OG: [1, 9999], WC: [1, 9999], WTF: [1, 9999], MSG: [1, 9999],
       CCA: [1, 9999], CCE: [1, 9999], CCP: [1, 9999], CCI: [1, 9999], // kejuaraan kontinental: tiap negara mengirim atlet terbaiknya
-      S1000: [1, 64], S750: [1, 64], S500: [1, 100], S300: [1, 160], S100: [10, 260],
+      S1000: [1, 64], S750: [1, 64], S500: [1, 100], S300: [11, 160], S100: [21, 260], // ASUMSI: top 10 tidak turun di S300, top 20 tidak di S100
       // Grade 3 diisi pemain di luar papan atas (pemain peringkat 40-an tidak turun di Future Series). ASUMSI: kalibrasi
       IC: [50, 9999], IS: [100, 9999], FS: [150, 9999],
     },

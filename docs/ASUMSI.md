@@ -47,7 +47,7 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Juara dunia di WTF** menggantikan peringkat Race terbawah, meski kuota negaranya jadi 3. Di tahun Olimpiade (tanpa Kejuaraan Dunia) tidak ada juara dunia otomatis.
 - **Kuota negara**: Kejuaraan Dunia maks 2 per negara, s/d 4 bila semuanya top 8; Olimpiade maks 1, s/d 2 bila semuanya top 16.
 - **Top Committed**: snapshot ranking di awal musim (minggu 1). 2 Super 500 wajib dipilih acak per atlet/pasangan di awal musim.
-- **AI entry**: tiap minggu tiap peserta memilih turnamen ber-tier tertinggi yang sesuai rentang peringkatnya (Ruleset `ai.rankRange`), dengan peluang ikut per tier dikurangi kelelahan; istirahat bila kelelahan > 45. Turnamen wajib selalu dipilih. Nomor tunggal diproses dulu; turnamen pertama yang dipilih seorang atlet mengikat nomor gandanya (satu turnamen per minggu).
+- **AI entry**: tiap minggu tiap peserta memilih turnamen ber-tier tertinggi yang sesuai rentang peringkatnya (Ruleset `ai.rankRange`; mis. S1000/S750 1–64, S500 1–100, S300 11–160, S100 21–260: pemain top 10 tidak turun di S300 & top 20 tidak di S100 — perilaku, bukan aturan BWF; manajer tetap boleh mendaftarkan siapa pun; tombol Saran memakai rentang yang sama), dengan peluang ikut per tier dikurangi kelelahan; istirahat bila kelelahan > 45. Turnamen wajib selalu dipilih. Nomor tunggal diproses dulu; turnamen pertama yang dipilih seorang atlet mengikat nomor gandanya (satu turnamen per minggu).
 - **Kelelahan**: +5 per laga, +0,6 per 1.000 km perjalanan, −12 per minggu. Hasil kalibrasi: atlet top 30 main ±16–19 turnamen per tahun.
 
 ## Fase 6 — Perkembangan, penuaan, pensiun, regenerasi

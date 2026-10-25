@@ -106,10 +106,11 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
     for (const p of blob.state.players) if (played.has(p.id)) p.promoted = true;
     blob.state.juniorPromotion = true;
   }
-  // Save sebelum rentang entry AI grade 3 yang realistis: rentang bawaan lama IC/IS/FS diganti preset (ubahan Editor dibiarkan).
+  // Save sebelum rentang entry AI yang realistis (grade 3; top 10 tidak di S300, top 20 tidak di S100): rentang bawaan lama
+  // diganti preset (ubahan Editor dibiarkan).
   const range = blob.ruleset.ai?.rankRange;
-  const OLD = { IC: [25, 400], IS: [40, 9999], FS: [60, 9999] } as const;
-  if (range) for (const k of ['IC', 'IS', 'FS'] as const)
+  const OLD = { IC: [25, 400], IS: [40, 9999], FS: [60, 9999], S300: [1, 160], S100: [10, 260] } as const;
+  if (range) for (const k of ['IC', 'IS', 'FS', 'S300', 'S100'] as const)
     if (range[k]?.[0] === OLD[k][0] && range[k]?.[1] === OLD[k][1] && preset.ai.rankRange[k]) range[k] = [...preset.ai.rankRange[k]];
   // Save sebelum ganda junior negara manajer hanya dari pasangan bentukan manajer: pasangan junior dadakan diakhiri
   // (riwayat laganya tetap).
