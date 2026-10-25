@@ -97,15 +97,15 @@ export function GroupView({ rec, matches, ...who }: ViewProps) {
         return (
           <section key={i} className="card group">
             <table>
-              <thead><tr><th>{t('group')} {String.fromCharCode(65 + i)}</th><th>{t('wins')}</th><th>±{t('games')}</th><th>±{t('points')}</th></tr></thead>
-              <tbody>{rows.map((r) => (
-                <tr key={r.id} className={who.mine?.(r.id) ? 'sel' : undefined}><td><Who id={r.id} {...who} /></td><td className="num">{r.wins}</td><td className="num">{r.gameDiff}</td><td className="num">{r.pointDiff}</td></tr>
+              <thead><tr><th>{t('group')} {String.fromCharCode(65 + i)}</th><th className="num" title={t('wins')}>W</th><th className="num" title={'±' + t('games')}>±G</th><th className="num" title={'±' + t('points')}>±P</th></tr></thead>
+              <tbody>{rows.map((r, k) => (
+                <tr key={r.id} className={who.mine?.(r.id) ? 'sel' : undefined}><td><span className="muted-text">{k + 1}.</span> <Who id={r.id} {...who} /></td><td className="num">{r.wins}</td><td className="num">{r.gameDiff}</td><td className="num">{r.pointDiff}</td></tr>
               ))}</tbody>
             </table>
             {games.length > 0 && (
               <ul className="groupgames">{games.map((m) => {
                 const [w, l] = m.winner === 0 ? m.sides : [m.sides[1], m.sides[0]];
-                return <li key={m.id}><Who id={w} {...who} /> <span className="muted">{t('beat')}</span> <Who id={l} {...who} /> · <MatchLink m={m} name={who.name} title={who.eventTitle}>{scoreText(m, w)}</MatchLink></li>;
+                return <li key={m.id}><span className="win"><Who id={w} {...who} /></span><span><Who id={l} {...who} /></span><span className="score"><MatchLink m={m} name={who.name} title={who.eventTitle}>{scoreText(m, w).replace(/, /g, '\n')}</MatchLink></span></li>;
               })}</ul>
             )}
           </section>
