@@ -61,6 +61,19 @@ Prinsip tetap: ringan — menambah kenyamanan/informasi, tanpa sistem manajemen 
   - [x] Web app (Add to Home Screen): `public/manifest.webmanifest`, ikon PNG 180/192/512, meta iOS. Mode offline (service worker) & cek versi otomatis menyusul 2026-10-21.
 - Catatan urutan: tampilan responsif dari Fase 11 sebaiknya dikerjakan bersama tahap ini; deploy GitHub Pages sudah otomatis.
 
+## Fitur berikutnya (disetujui 2026-10-25): morale, perkembangan, sifat, pencarian bakat
+Prinsip: tetap tanpa fitur latihan, anggaran, atau pelatih; morale & kemampuan naik lewat keputusan yang sudah ada. Tiga rencana implementasi:
+- M = `docs/superpowers/plans/2026-10-25-morale-perkembangan.md` (11 task)
+- S = `docs/superpowers/plans/2026-10-25-sifat-atlet.md` (10 task; S7 butuh M1, M3, M4)
+- P = `docs/superpowers/plans/2026-10-25-scouting-development.md` (8 task; P3 & P6 digantikan S9 & S2)
+
+Urutan kerja (tiap fase bisa dirilis sendiri; tes & build hijau di akhir fase):
+- [ ] **Fase 1 — fondasi & yang langsung terasa:** M1 (boosts.ts), M2 (istirahat), M3 (kandang), M7 (target perorangan), P5 (faktor pengalaman terlihat).
+- [ ] **Fase 2 — sifat atlet inti:** S1 (data & migrasi), S2 (terungkap & badge), S3 (fisik), S4 (awet muda), S5 (mental juara/demam panggung).
+- [ ] **Fase 3 — morale lanjutan & sifat sisanya:** M4 (skuad), M5 (pasangan), M6 (rekor pribadi), S6 (starter lambat, momentum, konsisten), S7 (sifat morale), S8 (sifat ganda), M11 + S10 (kalibrasi bersama satu musim).
+- [ ] **Fase 4 — perkembangan:** M8 (kalah tipis), M9 (morale/elite/mentor), M10 (comeback cedera), P7 (laporan kuartal).
+- [ ] **Fase 5 — pencarian bakat:** P1 (gaya & asal), P2 (fokus), S9 (catatan pemandu), P4 (rentang menyempit & rekrut bertahap), P8 (dokumen & uji manual).
+
 ## Koreksi aturan beregu (temuan saat mencari nama resmi)
 - [x] Kuota kontinental: Asia & Eropa 4 tim (semifinalis), Pan Am/Afrika/Oseania 1 tim; kursi tim yang sudah lolos (tuan rumah/juara bertahan) jatuh ke tim berikutnya dari benua itu.
 - [x] Tuan rumah kontinental 2026: Qingdao, Istanbul, Guatemala City, Gaborone, Auckland.
