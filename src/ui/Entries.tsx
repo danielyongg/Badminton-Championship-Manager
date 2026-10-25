@@ -194,8 +194,12 @@ function SeasonPlan() {
 function LastChampions() {
   const { game } = useGame();
   const { state, ruleset } = game;
-  const { year, week } = state.date;
-  const last = state.champions.filter((c) => c.year === year && ruleset.calendar.find((e) => e.id === c.tournamentId)?.week === week - 1);
+  // Minggu sebelumnya menurut jadwal tahun itu (kalender bisa digeser per tahun); minggu 1 → minggu 52 tahun lalu.
+  const { year, week } = state.date.week > 1 ? { ...state.date, week: state.date.week - 1 } : { year: state.date.year - 1, week: 52 };
+  const last = state.champions.filter((c) => {
+    const e = c.year === year && ruleset.calendar.find((x) => x.id === c.tournamentId);
+    return !!e && weekOf(e, year) === week;
+  });
   if (!last.length) return <p className="hint">—</p>;
   return (
     <section className="champs">
