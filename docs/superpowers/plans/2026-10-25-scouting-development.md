@@ -203,6 +203,8 @@ i18n (id / en): `scoutFocusNext: 'Fokus pencarian akhir musim' / 'Scouting focus
 
 ### Task 3: Catatan pemandu bakat (petunjuk sifat, kadang meleset)
 
+> **Digantikan** oleh `2026-10-25-sifat-atlet.md` Task 9 — lewati task ini bila rencana sifat atlet dijalankan.
+
 **Files:** Modify `src/engine/scouting.ts` (`Scouting.notes?`, `makeScouting`); UI `ScoutingCard`; i18n; Test `scouting.test.ts`.
 
 **Interfaces:**
@@ -417,6 +419,8 @@ i18n: `expFactor: 'Pengalaman kuartal ini' / 'Experience this quarter'`, `expMat
 ---
 
 ### Task 6: Sifat tersembunyi terungkap
+
+> **Digantikan** oleh `2026-10-25-sifat-atlet.md` Task 2 — lewati task ini bila rencana sifat atlet dijalankan; Task 7 memakai `revealedTraits` dari sana.
 
 **Files:** Modify `src/engine/development.ts`; UI `src/ui/Squad.tsx` (profil + tabel skuad); i18n; Test `development.test.ts`.
 
