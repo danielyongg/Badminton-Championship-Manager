@@ -106,6 +106,14 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .sectors label { display: inline-flex; align-items: center; gap: 3px; font-size: .8rem; cursor: pointer; }
 .sectors select { font-size: .8rem; padding: 2px 28px 2px 6px; margin-left: 4px; }
 .controls.subnav { margin-top: -6px; }
+/* Live Match: strategi & kecepatan sebaris, tombol utama selebar kartu, tombol simulasi sama lebar di bawahnya. */
+.livecontrols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-bottom: 12px; }
+.livecontrols label { display: flex; flex-direction: column; gap: 2px; font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.livecontrols select { width: 100%; text-transform: none; letter-spacing: normal; font-size: .9rem; }
+.livecontrols .main { grid-column: 1 / -1; }
+.livecontrols button.main { width: 100%; }
+.livecontrols .secondary { grid-column: 1 / -1; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; }
+.livecontrols .secondary button { width: 100%; padding-left: 4px; padding-right: 4px; line-height: 1.2; }
 .controls.subnav.pager-bottom { margin: 16px 0 8px; } /* pemilih halaman di bawah tabel: beri jarak dari baris terakhir */
 /* Dua pilihan berdampingan (ranking: jenis & per minggu), juga di HP. */
 .controls.pair { display: grid; grid-template-columns: 1fr 1fr; }

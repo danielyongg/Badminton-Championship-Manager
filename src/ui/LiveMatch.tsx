@@ -113,7 +113,7 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
           </div>
         )}
         {!done && (
-          <div className="controls">
+          <div className="livecontrols">
             <label>{t('strategy')}
               <select value={strategy} disabled={running} onChange={(e) => setStrategy(e.target.value as Strategy)}>
                 {STRATEGIES.map((s) => <option key={s} value={s}>{t(`strat_${s}` as TextKey)}</option>)}
@@ -125,11 +125,13 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
               </select>
             </label>
             {running
-              ? <button className="primary" onClick={() => setRunning(false)}>{t('pause')}</button>
-              : <button className="primary" onClick={() => setRunning(true)}>{m.rallies === 0 ? t('startMatch') : t('resume')}</button>}
-            <button disabled={running} onClick={() => step()}>{t('oneRally')}</button>
-            <button onClick={finish}>{t('autoFinish')}</button>
-            {onSkipRound && <button onClick={() => { finish(); onDone(matchResult(m)); onSkipRound(); }}>{t('simRound')}</button>}
+              ? <button className="primary main" onClick={() => setRunning(false)}>{t('pause')}</button>
+              : <button className="primary main" onClick={() => setRunning(true)}>{m.rallies === 0 ? t('startMatch') : t('resume')}</button>}
+            <div className="secondary">
+              <button disabled={running} onClick={() => step()}>{t('oneRally')}</button>
+              <button onClick={finish}>{t('autoFinish')}</button>
+              {onSkipRound && <button onClick={() => { finish(); onDone(matchResult(m)); onSkipRound(); }}>{t('simRound')}</button>}
+            </div>
           </div>
         )}
         {/* Pengaruh strategi yang dipilih ke pola permainan & energi atlet (nilai di ruleset.match.strategies). */}
@@ -137,10 +139,10 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
         {!running && !done && m.rallies > 0 && <p className="hint">{t('strategyHint')}</p>}
         {/* Hasil & Lanjut tepat di bawah papan skor: langsung terjangkau di HP tanpa menggulir. */}
         {done && (
-          <div className="controls">
-            <b>{names[m.winner!]} {t('wins')}!</b>
-            <button className="primary" onClick={() => onDone(matchResult(m))}>{t('continue')}</button>
-            {onSkipRound && <button onClick={() => { onDone(matchResult(m)); onSkipRound(); }}>{t('simRound')}</button>}
+          <div className="livecontrols">
+            <b className="main">{names[m.winner!]} {t('wins')}!</b>
+            <button className="primary main" onClick={() => onDone(matchResult(m))}>{t('continue')}</button>
+            {onSkipRound && <div className="secondary"><button onClick={() => { onDone(matchResult(m)); onSkipRound(); }}>{t('simRound')}</button></div>}
           </div>
         )}
 
