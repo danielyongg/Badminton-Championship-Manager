@@ -113,7 +113,7 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .livecontrols .main { grid-column: 1 / -1; }
 .livecontrols button.main { width: 100%; }
 .livecontrols .secondary { grid-column: 1 / -1; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; }
-.livecontrols .secondary button { width: 100%; padding-left: 4px; padding-right: 4px; line-height: 1.2; }
+.livecontrols .secondary button { width: 100%; padding: 6px 4px; font-size: .8rem; line-height: 1.2; }
 .controls.subnav.pager-bottom { margin: 16px 0 8px; } /* pemilih halaman di bawah tabel: beri jarak dari baris terakhir */
 /* Dua pilihan berdampingan (ranking: jenis & per minggu), juga di HP. */
 .controls.pair { display: grid; grid-template-columns: 1fr 1fr; }
