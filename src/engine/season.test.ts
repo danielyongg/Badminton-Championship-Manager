@@ -233,7 +233,8 @@ describe('prioritas tier entry otomatis', () => {
   it('atlet dengan prioritas S1000/S750/S500 tidak pernah ke S300/S100 dan selalu ikut bila tier itu ada', async () => {
     const rs = { ...BWF_2026, ai: { ...BWF_2026.ai, restAbove: 999 } }; // tanpa istirahat karena lelah
     const state = newSeason(WORLD, rs, 5, undefined, 'INA');
-    const ms = state.players.filter((p) => p.countryId === 'INA' && p.gender === 'M' && p.focus !== 'D')[0];
+    const ms = state.players.filter((p) => p.countryId === 'INA' && p.gender === 'M' && p.focus !== 'D')
+      .sort((a, b) => ATTRS.reduce((s, k) => s + b.attrs[k] - a.attrs[k], 0))[0]; // terkuat: pasti lolos cut-off S1000
     const prefs = ['S1000', 'S750', 'S500'];
     state.tierPrefs = { [ms.id]: prefs };
     const tierOf = new Map(rs.calendar.map((e) => [e.id, e.tierId]));

@@ -20,7 +20,7 @@ export const MIN_CANDIDATES = 5;
 export const SCOUTING_DEADLINE_WEEK = 4;
 
 /** Kandidat untuk kursi yang biasanya diisi `newJuniors` (`base` = hasil `newJuniors` negara ini musim ini). */
-export function makeScouting(base: Player[], country: Country, gen: GeneratorConfig, date: GameDate, rng: Rng): Scouting {
+export function makeScouting(base: Player[], country: Country, gen: GeneratorConfig, date: GameDate, rng: Rng, usedNames?: Set<string>): Scouting {
   const slots = { M: base.filter((p) => p.gender === 'M').length, F: base.filter((p) => p.gender === 'F').length };
   const candidates: Player[] = [];
   const starRange: Scouting['starRange'] = {};
@@ -28,7 +28,7 @@ export function makeScouting(base: Player[], country: Country, gen: GeneratorCon
     const n = Math.max(MIN_CANDIDATES, slots[g] * 2);
     for (let i = 0; i < n; i++) {
       const age = gen.juniorAge.min + Math.floor(rng() * (gen.juniorAge.max - gen.juniorAge.min + 1));
-      const p = generatePlayer(rng, gen, country, g, age, date, `${country.id}-${g}${date.year}-s${i + 1}`);
+      const p = generatePlayer(rng, gen, country, g, age, date, `${country.id}-${g}${date.year}-s${i + 1}`, usedNames);
       const s = potentialStars(p, date, 0);
       let lo = s - Math.floor(rng() * 5) * 0.5; // posisi perkiraan di dalam rentang diacak
       lo = Math.min(Math.max(lo, 0.5), 3);

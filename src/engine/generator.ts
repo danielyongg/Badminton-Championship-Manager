@@ -27,11 +27,11 @@ function maturity(age: number, trait: Player['trait']) {
   return clamp(m, 0.4, 1);
 }
 
-/** Nama acak; `used` mencegah nama kembar dalam satu negara (menyerah setelah 20 percobaan). */
+/** Nama acak; `used` mencegah nama kembar dalam satu negara (menyerah setelah 50 percobaan). */
 function makeName(rng: Rng, country: Country, gender: 'M' | 'F', used = new Set<string>()) {
   const pool = NAME_POOLS[country.namePool];
   let name = '';
-  for (let i = 0; i < 20 && (!name || used.has(name)); i++) {
+  for (let i = 0; i < 50 && (!name || used.has(name)); i++) {
     const first = pick(rng, gender === 'M' ? pool.male : pool.female);
     const last = pick(rng, pool.last);
     name = pool.familyFirst ? `${last} ${first}` : `${first} ${last}`;

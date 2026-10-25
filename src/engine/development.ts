@@ -83,14 +83,14 @@ export function retirementChance(p: Player, cfg: DevelopmentConfig, date: GameDa
 }
 
 /** Junior baru (15–17 th) untuk satu negara di awal musim; jumlah & potensi mengikuti kekuatan tradisi. */
-export function newJuniors(country: Country, cfg: DevelopmentConfig, gen: GeneratorConfig, date: GameDate, rng: Rng): Player[] {
+export function newJuniors(country: Country, cfg: DevelopmentConfig, gen: GeneratorConfig, date: GameDate, rng: Rng, usedNames?: Set<string>): Player[] {
   const out: Player[] = [];
   for (const gender of ['M', 'F'] as const) {
     const expected = cfg.juniorsPerSeason.min + (country.traditionStrength / 100) * (cfg.juniorsPerSeason.max - cfg.juniorsPerSeason.min);
     const n = Math.floor(expected) + (rng() < expected % 1 ? 1 : 0); // pembulatan acak
     for (let i = 0; i < n; i++) {
       const age = gen.juniorAge.min + Math.floor(rng() * (gen.juniorAge.max - gen.juniorAge.min + 1));
-      out.push(generatePlayer(rng, gen, country, gender, age, date, `${country.id}-${gender}${date.year}-${i + 1}`));
+      out.push(generatePlayer(rng, gen, country, gender, age, date, `${country.id}-${gender}${date.year}-${i + 1}`, usedNames));
     }
   }
   return out;

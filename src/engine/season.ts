@@ -1102,10 +1102,11 @@ function endYear(state: SeasonState, rs: Ruleset, world: World, rng: Rng) {
     if (!pair.dissolved && pair.playerIds.some((id) => retired.has(id))) pair.dissolved = { ...state.date };
   const next = { year: year + 1, week: 1 };
   if (state.scouting) recruit(state, []); // pencarian musim lalu belum diputuskan: isi otomatis
+  const usedNames = new Set(state.players.map((p) => p.name)); // nama junior baru tidak kembar dengan atlet yang ada
   for (const c of world.countries) {
-    const juniors = newJuniors(c, rs.development, rs.generator, next, rng);
+    const juniors = newJuniors(c, rs.development, rs.generator, next, rng, usedNames);
     // Negara manajer: junior baru dipilih dari kandidat (pencarian bakat), bukan langsung masuk.
-    if (c.id === state.managedCountryId) state.scouting = makeScouting(juniors, c, rs.generator, next, rng);
+    if (c.id === state.managedCountryId) state.scouting = makeScouting(juniors, c, rs.generator, next, rng, usedNames);
     else state.players.push(...juniors);
   }
   formPairs(state, rs, world, rng);

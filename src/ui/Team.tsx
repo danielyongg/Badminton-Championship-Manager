@@ -389,18 +389,27 @@ export function FinalsResult({ r, stage }: { r: TeamResult; stage?: 'groups' | '
       )}
       {r.groups && stage !== 'knockout' && (
         <div className="groups">{standingsOf(r).map((s, gi) => (
-          <div key={gi}>
+          <section key={gi} className="card group">
           <table>
-            <thead><tr><th>{t('group')} {String.fromCharCode(65 + gi)}</th><th>{t('tiesWon')}</th><th>{t('matchDiff')}</th><th>{t('gameDiff')}</th></tr></thead>
+            <thead><tr><th>{t('group')} {String.fromCharCode(65 + gi)}</th><th className="num" title={t('tiesWon')}>W</th><th className="num" title={t('matchDiff')}>±M</th><th className="num" title={t('gameDiff')}>±G</th></tr></thead>
             <tbody>{s.map((row, place) => (
               <tr key={row.id} className={row.id === managed ? 'sel' : ''}>
-                <td>{place + 1}. <Flag id={row.id} />{name(row.id)}</td><td className="num">{row.wins}</td>
+                <td><span className="muted-text">{place + 1}.</span> <Flag id={row.id} />{name(row.id)}</td><td className="num">{row.wins}</td>
                 <td className="num">{row.gameDiff > 0 ? '+' : ''}{row.gameDiff}</td><td className="num">{!r.standings ? '—' : `${row.pointDiff > 0 ? '+' : ''}${row.pointDiff}`}</td>
               </tr>
             ))}</tbody>
           </table>
-          <div className="tiegrid">{r.ties.filter((x) => x.round === 'G' && r.groups![gi].includes(x.sides[0])).map(tieBox)}</div>
-          </div>
+          <ul className="groupgames">{r.ties.filter((x) => x.round === 'G' && r.groups![gi].includes(x.sides[0])).map((x, i) => {
+            const w = x.score[0] >= x.score[1] ? 0 : 1;
+            return (
+              <li key={i} role="button" tabIndex={0} title={t('matchDetail')} className={`clickable${managed && x.sides.includes(managed) ? ' mine' : ''}`}
+                onClick={() => setOpen(x)} onKeyDown={(e) => e.key === 'Enter' && setOpen(x)}>
+                <span className="win"><Flag id={x.sides[w]} />{name(x.sides[w])}</span><span><Flag id={x.sides[1 - w]} />{name(x.sides[1 - w])}</span>
+                <span className="score"><a>{x.score[w]}-{x.score[1 - w]}</a></span>
+              </li>
+            );
+          })}</ul>
+          </section>
         ))}</div>
       )}
       {stage !== 'groups' && <>
