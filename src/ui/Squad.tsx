@@ -27,7 +27,7 @@ export function injuryText(inj: NonNullable<Player['injury']>, date: { year: num
 export const isBadInjury = (inj?: Player['injury']) => inj?.level === 'severe' || inj?.level === 'critical';
 
 export const starText = (n: number) => '★'.repeat(Math.floor(n)) + (n % 1 ? '½' : '');
-const arrow = (d?: number) => (!d ? '' : d > 0 ? ` ▲${d}` : ` ▼${-d}`);
+export const arrow = (d?: number) => (!d ? '' : d > 0 ? ` ▲${d}` : ` ▼${-d}`);
 
 /** Jumlah laga tiap atlet (tunggal + ganda), untuk akurasi perkiraan potensi. */
 function useMatchCounts() {

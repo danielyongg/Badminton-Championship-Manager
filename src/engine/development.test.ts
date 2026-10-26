@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { developQuarter, INJURY_TYPES, newJuniors, retirementChance, rollInjury } from './development';
+import { developQuarter, INJURY_TYPES, newJuniors, quarterReport, retirementChance, rollInjury } from './development';
 import { ageAt, currentAbility, generatePlayer } from './generator';
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
@@ -143,5 +143,33 @@ describe('cedera 4 tingkat', () => {
     }
     for (const l of cfg.levels) expect(Math.abs(count[l.id] / n - l.chance)).toBeLessThan(0.01);
     expect(Math.abs(retired / count.critical - 0.3)).toBeLessThan(0.06);
+  });
+});
+
+describe('morale, lingkungan elite, mentor & laporan kuartal', () => {
+  const d = { year: 2026, week: 1 };
+  const mkYoung = () => { const p = generatePlayer(makeRng(21), rs.generator, country, 'M', 17, d, 'young'); p.pa = Math.min(100, currentAbility(p.attrs) + 30); return p; };
+  const ctx = { date: d, experience: new Map<string, number>(), doublesPlayers: new Set<string>() };
+  it('morale tinggi → tumbuh lebih banyak dari morale rendah (rng sama)', () => {
+    const hi = { ...mkYoung(), form: 10 }, lo = { ...mkYoung(), form: -10 };
+    developQuarter(hi, cfg, ctx, makeRng(1));
+    developQuarter(lo, cfg, ctx, makeRng(1));
+    expect(mean(hi)).toBeGreaterThan(mean(lo));
+  });
+  it('lingkungan elite & mentor menambah pertumbuhan dan mental', () => {
+    const a = mkYoung(), b = mkYoung();
+    developQuarter(a, cfg, ctx, makeRng(2));
+    developQuarter(b, cfg, { ...ctx, elite: new Map([[b.countryId, 5]]), mentored: new Set([b.id]) }, makeRng(2));
+    expect(b.attrs.mental).toBeGreaterThan(a.attrs.mental);
+    expect(mean(b)).toBeGreaterThanOrEqual(mean(a));
+  });
+  it('laporan kuartal: naik, mandek (muda), menurun (senior)', () => {
+    const date = { year: 2027, week: 14 };
+    const mk = (id: string, age: number, caDelta: number) => ({ id, countryId: 'INA', birth: { year: 2027 - age, week: 1 }, caDelta, attrHistory: [] }) as unknown as Player;
+    const ps = [mk('a', 18, 3), mk('b', 19, 0), mk('c', 29, -2), mk('d', 24, 1), { ...mk('x', 20, 5), countryId: 'MAS' } as Player];
+    const r = quarterReport(ps, 'INA', date);
+    expect(r.risers.map((p) => p.id)).toEqual(['a', 'd']);
+    expect(r.stalled.map((p) => p.id)).toEqual(['b']);
+    expect(r.declining.map((p) => p.id)).toEqual(['c']);
   });
 });

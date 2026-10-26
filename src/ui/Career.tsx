@@ -22,7 +22,8 @@ import { LiveDraw } from './LiveDraw';
 import { LiveMatch, PreMatch } from './LiveMatch';
 import { advance, entrantLabel, eventName, teamLabel, lookup, saveGame, useGame, TierBadge } from './game';
 import { SeasonViews } from './Ranking';
-import { injuryText, isBadInjury, Profile, Squad, usd } from './Squad';
+import { arrow, injuryText, isBadInjury, Profile, Squad, usd } from './Squad';
+import { quarterReport } from '../engine/development';
 import { autoPick, recruit, SCOUTING_DEADLINE_WEEK } from '../engine/scouting';
 import { autoContingents, gamesThisYear, lockWeek, playerBestRanks, setContingent } from '../engine/contingent';
 import { currentAbility } from '../engine/generator';
@@ -454,6 +455,22 @@ function ScoutingCard() {
   );
 }
 
+/** Laporan perkembangan kuartal (4 minggu setelah akhir kuartal). */
+function QuarterReportCard({ country, onOpen }: { country: string; onOpen: (id: string) => void }) {
+  const { game } = useGame();
+  const r = quarterReport(game.state.players, country, game.state.date);
+  const rows = ([['qrRisers', r.risers], ['qrStalled', r.stalled], ['qrDeclining', r.declining], ['qrRevealed', r.revealed]] as const).filter(([, ps]) => ps.length);
+  if (!rows.length) return null;
+  return (
+    <section className="card">
+      <h3>{t('quarterReport')}</h3>
+      {rows.map(([k, ps]) => (
+        <p key={k}><b>{t(k)}:</b> {ps.map((p, i) => <span key={p.id}>{i ? ', ' : ''}<a href="#" onClick={(e) => { e.preventDefault(); onOpen(p.id); }}>{p.name}</a>{k !== 'qrRevealed' && arrow(p.caDelta)}</span>)}</p>
+      ))}
+    </section>
+  );
+}
+
 function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string) => void; onOpenEvent: (id: string, year: number) => void; onFullRanking: (d: Discipline) => void }) {
   const { game } = useGame();
   const { state, ruleset, world } = game;
@@ -549,6 +566,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
           <GoalTable goals={lastReport.goals} year={lastReport.year} />
         </section>
       )}
+      {managed && (week - 1) % 13 < 4 && <QuarterReportCard country={managed} onOpen={onOpen} />}
       <NewsCard onOpen={onOpen} />
       <section className="card upcoming">
         <h3>{t('upcoming')}</h3>

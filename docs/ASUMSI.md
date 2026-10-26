@@ -222,3 +222,11 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Mudah goyah**: penurunan morale ×1,5. **Jagoan kandang**: tambahan +1,5 morale di turnamen kandang. **Pemimpin**: pasangannya +0,3 tiap menang; rekan skuad beregu +0,5.
 - **Pasangan ideal / sulit cocok**: laju kenaikan chemistry ×2 / ×0,5 per atlet (dikalikan, maks 5 %/laga).
 - **Kalibrasi satu musim** (seed 11): > 55 % atlet aktif tetap Normal, < 2 % di ≥ 9,5.
+
+## Perkembangan (Fase 4)
+- **Kalah tipis = pengalaman**: kalah rubber game, atau setiap game selisih ≤ 3, dari lawan dengan CA ≥ 5 lebih tinggi → laga bernilai 1,4 (menang 1,5; kalah biasa 1; ×1,3 di turnamen besar).
+- **Morale**: laju pertumbuhan kuartal ×(1 + 0,1 × morale/10), yaitu ±10 % pada morale ±10.
+- **Lingkungan pelatnas**: atlet ≤ 23 th mendapat +2 % pertumbuhan per atlet top 20 (nomor mana pun) dari negaranya, maks +10 %.
+- **Mentor**: atlet ≤ 21 th yang berpasangan (aktif, bukan dadakan) dengan atlet ≥ 25 th ber-CA ≥ +10: mental +1/tahun dan pertumbuhan +5 %.
+- **Kembali lebih kuat**: sembuh dari cedera berat → 30 % peluang mental +2 (CA tetap ≤ PA).
+- **Laporan kuartal** (Dashboard, 4 minggu setelah akhir kuartal): 3 atlet paling berkembang, junior ≤ 21 th yang mandek, senior ≥ 27 th yang menurun, dan sifat fisik/perkembangan yang baru terbaca musim ini.

@@ -1,9 +1,9 @@
-import { bumpForm, CAREER_HIGH_BONUS, FIRST_TITLE_BONUS, FIRST_TOP10_WIN_BONUS, HOME_BONUS, hitTarget, PAIR_STREAK_BONUS, PAIR_STREAK_FROM, REST_RECOVERY, SELECT_BONUS, SNUB_PENALTY, snubbed, TARGET_HIT, TARGET_MISS } from './boosts';
+import { bumpForm, CAREER_HIGH_BONUS, CLOSE_LOSS_EXP, CLOSE_LOSS_GAP, COMEBACK_CHANCE, COMEBACK_MENTAL, eliteCounts, isCloseLoss, mentorsOf, FIRST_TITLE_BONUS, FIRST_TOP10_WIN_BONUS, HOME_BONUS, hitTarget, PAIR_STREAK_BONUS, PAIR_STREAK_FROM, REST_RECOVERY, SELECT_BONUS, SNUB_PENALTY, snubbed, TARGET_HIT, TARGET_MISS } from './boosts';
 import { chemistryMult, ensureTraits, FRAGILE_DOWN, hasTrait, HOME_HERO_BONUS, injuryMult, LEADER_PARTNER, LEADER_SQUAD, QUICK_RECOVERY, TRAVELER_FATIGUE } from './traits';
 import { makeChallenges, seasonGoals, seasonReport } from './career';
 import { contingentOf, inContingent, lockContingents } from './contingent';
 import { olympicField } from './olympics';
-import { applySevereInjury, developQuarter, newJuniors, retirementChance, rollInjury } from './development';
+import { applySevereInjury, capToPa, developQuarter, newJuniors, retirementChance, rollInjury } from './development';
 import { applyCountryQuota, type Candidate, type EntryList } from './entry';
 import { ageAt, currentAbility, generateWorld, isJuniorAge, isPratama } from './generator';
 import { archiveStats, type StatAcc } from './careerStats';
@@ -562,7 +562,11 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
 
   for (const p of state.players) {
     p.fatigue = Math.max(0, p.fatigue - rs.fatigue.recoveryPerWeek * (hasTrait(p, 'quickRecovery') ? QUICK_RECOVERY : 1));
-    if (p.injury && --p.injury.weeksLeft <= 0) p.injury = undefined;
+    if (p.injury && --p.injury.weeksLeft <= 0) {
+      // Kembali lebih kuat: sembuh dari cedera berat kadang menaikkan mental.
+      if (p.injury.level === 'severe' && rng() < COMEBACK_CHANCE) { p.attrs.mental += COMEBACK_MENTAL; capToPa(p); }
+      p.injury = undefined;
+    }
     p.form *= rs.match.morale.weeklyDecay; // morale perlahan kembali ke Normal
   }
   const weekMatches = state.matches.length, weekChampions = state.champions.length;
@@ -720,9 +724,12 @@ function applyEventLoad(state: SeasonState, rs: Ruleset, rng: Rng, firstMatch: n
       const pair = pairs.get(side);
       // ASUMSI: naik makin lambat mendekati 100; sifat ganda mengubah lajunya (maks 5 %/laga).
       if (pair) { pair.matchesTogether++; pair.chemistry += (100 - pair.chemistry) * Math.min(0.05, 0.01 * chemistryMult(pair.playerIds.map((x) => players.get(x)!))); }
+      // Kalah tipis dari lawan yang jauh lebih kuat: pengalaman lebih besar dari kalah biasa.
+      const ab = (s: string) => { const ids = pairs.get(s)?.playerIds ?? [s]; return ids.reduce((t, x) => t + currentAbility(players.get(x)!.attrs), 0) / ids.length; };
+      const close = m.winner !== i && !m.walkover && ab(m.sides[1 - i]) - ab(side) >= CLOSE_LOSS_GAP && isCloseLoss(m.scores, i as 0 | 1);
       for (const id of pair?.playerIds ?? [side]) {
         players.get(id)!.fatigue += rs.fatigue.perMatch;
-        state.experience[id] = (state.experience[id] ?? 0) + (m.winner === i ? 1.5 : 1) * (big ? 1.3 : 1);
+        state.experience[id] = (state.experience[id] ?? 0) + (m.winner === i ? 1.5 : close ? CLOSE_LOSS_EXP : 1) * (big ? 1.3 : 1);
         played.add(id);
       }
     });
@@ -1121,7 +1128,8 @@ function doublesPlayers(state: SeasonState, rs: Ruleset) {
 
 /** Tiap 13 minggu: perkembangan & penuaan semua atlet aktif. */
 function endQuarter(state: SeasonState, rs: Ruleset, rng: Rng) {
-  const ctx = { date: state.date, experience: new Map(Object.entries(state.experience)), doublesPlayers: doublesPlayers(state, rs) };
+  const ctx = { date: state.date, experience: new Map(Object.entries(state.experience)), doublesPlayers: doublesPlayers(state, rs),
+    elite: eliteCounts(state, rs), mentored: mentorsOf(state, state.date) };
   for (const p of state.players) if (p.retired === undefined) developQuarter(p, rs.development, ctx, rng);
   state.experience = {};
 }

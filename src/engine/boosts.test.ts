@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bumpForm, DISSOLVE_PENALTY, hitTarget, REST_RECOVERY, snubbed } from './boosts';
+import { bumpForm, DISSOLVE_PENALTY, hitTarget, isCloseLoss, REST_RECOVERY, snubbed } from './boosts';
 import { dissolvePair } from './career';
 import { moraleTier } from './match';
 import { experienceFactor } from './development';
@@ -82,4 +82,28 @@ describe('kalibrasi morale', () => {
     expect(state.players.some((p) => p.beatTop10)).toBe(true);
     expect(state.pairs.some((p) => (p.winStreak ?? 0) >= 3)).toBe(true);
   }, 600000);
+});
+
+describe('isCloseLoss', () => {
+  it('rubber game atau setiap game selisih ≤ 3', () => {
+    expect(isCloseLoss([[21, 19], [19, 21], [21, 15]], 1)).toBe(true);
+    expect(isCloseLoss([[21, 19], [22, 20]], 1)).toBe(true);
+    expect(isCloseLoss([[21, 12], [21, 19]], 1)).toBe(false);
+  });
+});
+
+describe('comeback', () => {
+  it('sebagian atlet yang sembuh dari cedera berat naik mental', async () => {
+    let up = 0;
+    for (let seed = 1; seed <= 20; seed++) {
+      const state = newSeason(WORLD, rs, seed, undefined, 'INA');
+      const p = state.players.find((x) => x.retired === undefined && x.pa - x.attrs.mental > 5)!;
+      p.injury = { weeksLeft: 1, level: 'severe', type: 'knee' };
+      const before = p.attrs.mental;
+      await playWeek(state, rs, WORLD, makeRng(seed));
+      if (p.attrs.mental > before + 1) up++;
+    }
+    expect(up).toBeGreaterThan(1);
+    expect(up).toBeLessThan(15);
+  }, 300000);
 });

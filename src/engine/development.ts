@@ -1,6 +1,7 @@
 import { ageAt, currentAbility, generatePlayer } from './generator';
 import { normal, type Rng } from './rng';
-import { AGELESS_YEARS, hasTrait } from './traits';
+import { AGELESS_YEARS, hasTrait, REVEAL_SEASONS, visibleTraits } from './traits';
+import { ELITE_AGE, ELITE_MAX, ELITE_PER, MENTOR_GROWTH, MENTOR_MENTAL, MORALE_GROWTH } from './boosts';
 import { ATTRS, type AgeBand, type Country, type DevelopmentConfig, type GameDate, type GeneratorConfig, type Player, type InjuryConfig, type InjuryLevel } from './types';
 
 // Perkembangan (menuju PA), penuaan (penurunan per atribut), pensiun & regenerasi junior.
@@ -17,6 +18,10 @@ export interface QuarterContext {
   experience: Map<string, number>;
   /** Atlet yang terutama bermain ganda: puncaknya lebih lambat. */
   doublesPlayers: Set<string>;
+  /** Atlet top 20 per negara (lingkungan pelatnas). */
+  elite?: Map<string, number>;
+  /** Atlet muda yang punya mentor (pasangan senior jauh lebih kuat). */
+  mentored?: Set<string>;
 }
 
 /** Atribut dijepit 1–100 dan rata-ratanya (CA) tidak melampaui PA. Atribut yang sudah di batas bawah tidak bisa turun lagi, maka diulang. */
@@ -46,6 +51,10 @@ export function developQuarter(p: Player, cfg: DevelopmentConfig, ctx: QuarterCo
   if (p.trait === 'late' && realAge < 22) rate *= cfg.lateBloomer.youngFactor;
   if (p.trait === 'stagnant') rate *= cfg.stagnantFactor;
   if (realAge <= cfg.experience.untilAge) rate *= experienceFactor(cfg, ctx.experience.get(p.id) ?? 0);
+  rate *= 1 + MORALE_GROWTH * (p.form / 10); // morale ±10 → ±10 %
+  if (realAge <= ELITE_AGE) rate *= 1 + Math.min(ELITE_MAX, ELITE_PER * (ctx.elite?.get(p.countryId) ?? 0));
+  const mentored = ctx.mentored?.has(p.id);
+  if (mentored) rate *= 1 + MENTOR_GROWTH;
   const growth = Math.max(0, p.pa - before) * (rate / 4);
   // Dibagi ke atribut dengan bobot acak (gaya bermain ikut terbentuk).
   const weights = ATTRS.map(() => 0.5 + rng());
@@ -54,6 +63,7 @@ export function developQuarter(p: Player, cfg: DevelopmentConfig, ctx: QuarterCo
 
   // 2) Mental/pengalaman masih bisa naik sampai ±31 tahun.
   if (realAge <= cfg.mentalGrowth.untilAge && realAge >= 20) p.attrs.mental += cfg.mentalGrowth.perYear / 4;
+  if (mentored) p.attrs.mental += MENTOR_MENTAL / 4;
 
   // 3) Penuaan: tiap atribut mulai turun pada usia (awal penurunan + offset), dengan bobotnya sendiri.
   const declineAge = age - (hasTrait(p, 'ageless') ? AGELESS_YEARS : 0); // awet muda
@@ -122,3 +132,16 @@ export const INJURY_TYPES: Record<InjuryLevel, string[]> = {
   severe: ['calf', 'shoulder', 'stress', 'meniscus'],
   critical: ['acl', 'achilles', 'spine', 'knee'],
 };
+
+/** Ringkasan perkembangan kuartal terakhir untuk Dashboard (dari `caDelta`, tanpa data baru di save). */
+export function quarterReport(players: Player[], countryId: string, date: GameDate) {
+  const own = players.filter((p) => p.countryId === countryId && p.retired === undefined && p.released === undefined && p.caDelta !== undefined);
+  const age = (p: Player) => ageAt(p.birth, date);
+  return {
+    risers: own.filter((p) => p.caDelta! > 0).sort((a, b) => b.caDelta! - a.caDelta!).slice(0, 3),
+    stalled: own.filter((p) => age(p) <= 21 && p.caDelta! <= 0).slice(0, 3),
+    declining: own.filter((p) => age(p) >= 27 && p.caDelta! < 0).sort((a, b) => a.caDelta! - b.caDelta!).slice(0, 3),
+    // Sifat fisik/perkembangan baru terbaca musim ini (sifat lain terungkap bertahap lewat jumlah laga).
+    revealed: own.filter((p) => p.attrHistory.length === REVEAL_SEASONS && visibleTraits(p, 0).length).slice(0, 3),
+  };
+}
