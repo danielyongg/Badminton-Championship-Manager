@@ -14,7 +14,7 @@ import { weeklyNews, type NewsItem } from '../engine/news';
 import type { Challenge, FederationGoal, Ruleset, SeasonReport, TournamentDef } from '../engine/types';
 import { dataName, numLocale, t, type TextKey } from '../i18n';
 import { downloadPack, Editor, useDebounced } from './Editor';
-import { Entries } from './Entries';
+import { Entries, EntryBadge } from './Entries';
 import { LangSelect } from './LangSelect';
 import { ThemeSelect } from './ThemeSelect';
 import { Flag } from './Flag';
@@ -593,6 +593,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
               <div key={e.id} className="drow">
                 <TierBadge tierId={e.tierId} team={'team' in e ? e.team : undefined} />
                 <span className="grow"><b>{eventName(ruleset, e.id, year)}</b><small className="muted-text">{city(hostCityId(e, year))}</small></span>
+                {managed && <EntryBadge id={e.id} onOpen={() => onOpenEvent(e.id, year)} />}
               </div>
             ))}
           </div>

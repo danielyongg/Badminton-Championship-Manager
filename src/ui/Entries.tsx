@@ -26,7 +26,6 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
   const [view, setView] = useState<'calendar' | 'plan' | 'champions'>('calendar');
   const [scope, setScope] = useState<'all' | 'senior' | 'junior'>('all'); // kalender: semua / senior / junior (U19)
   const city = (id: string) => dataName(game.world.cities.find((c) => c.id === id)?.name);
-  const submitted = (id: string) => state.entriesSubmitted?.[`${year}:${id}`];
   const teamIds = new Set(ruleset.team.events.map((e) => e.id));
   const all = [...ruleset.calendar, ...ruleset.team.events].filter((e) => isHeld(e, year) && (!state.managedCountryId || openTo(e, state.managedCountryId, game.world))) // hanya event yang terbuka untuk negara manajer
    .filter((e) => {
@@ -59,18 +58,13 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
         <tbody>{list.map((e) => {
           const past = weekOf(e, year) < week;
           const team = teamIds.has(e.id);
-          const tier = 'tierId' in e ? e.tierId : '';
-          const auto = !team && (tier === 'WTF' || tier === 'OG'); // Finals & Olimpiade: otomatis
           return (
             <tr key={e.id} className={past ? 'muted-text' : undefined}>
               <td className="num">{weekOf(e, year)}</td>
               <td><a href="#" onClick={(x) => { x.preventDefault(); onOpenEvent?.(e.id, year); }}>{team ? eventName(ruleset, e.id, year) : dataName(e.name)}</a></td>
-              <td><TierBadge tierId={tier} team={team ? e : undefined} /></td>
+              <td><TierBadge tierId={'tierId' in e ? e.tierId : ''} team={team ? e : undefined} /></td>
               <td className="hide-sm">{city(hostCityId(e, year))}</td>
-              <td>{past ? t('finished') : auto ? t('auto')
-                // Batas entry lewat = daftar terbit (dikirim manajer atau diisi AI): status sama, 🔒.
-                : entryClosed(state, ruleset, e.id) ? <span className="badge">🔒 {t('entryClosed')}</span>
-                : submitted(e.id) ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>}</td>
+              <td>{past ? t('finished') : <EntryBadge id={e.id} onOpen={() => onOpenEvent?.(e.id, year)} />}</td>
             </tr>
           );
         })}</tbody>
@@ -78,6 +72,19 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
     </div>
     </>
   );
+}
+
+/**
+ * Status entry turnamen musim ini (Kalender & Dashboard): Belum diisi (kuning, perlu tindakan) · ✓ Dikirim · 🔒 Ditutup
+ * (batas lewat, daftar terbit — dikirim manajer atau diisi AI). `onOpen`: badge bisa diketuk → halaman turnamen (form entry).
+ */
+export function EntryBadge({ id, onOpen }: { id: string; onOpen?: () => void }) {
+  const { state, ruleset, world } = useGame().game;
+  if (!canEnter(state, ruleset, world, id, state.date.year)) return <span className="muted-text">{t('auto')}</span>; // Finals & Olimpiade
+  const badge = entryClosed(state, ruleset, id) ? <span className="badge">🔒 {t('entryClosed')}</span>
+    : state.entriesSubmitted?.[`${state.date.year}:${id}`] ? <span className="badge good">✓ {t('entrySubmitted')}</span>
+    : <span className="badge gold">{t('entryIncomplete')}</span>;
+  return onOpen ? <button className="badge-btn" title={t('fillEntry')} onClick={onOpen}>{badge}</button> : badge;
 }
 
 /** Turnamen musim ini yang entry-nya diisi manajer: belum lewat, terbuka untuk negaranya, bukan WTF/Olimpiade (otomatis). */
