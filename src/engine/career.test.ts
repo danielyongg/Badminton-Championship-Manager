@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { dissolvePair, formPair, potentialStars, promoteJunior, promoteTrial, setTarget, suggestTargets, targetReport } from './career';
-import { currentAbility } from './generator';
+import { dissolvePair, formPair, potentialStars, promoteJunior, promoteTrial, setTarget, suggestJuniorTargets, suggestTargets, targetReport } from './career';
+import { currentAbility, isJuniorAge as isJunior } from './generator';
 import { ROUNDS } from './types';
 import { isJuniorAge, isPratama } from './generator';
 import { validatePack } from './pack';
@@ -270,4 +270,17 @@ describe('rapor target', () => {
     expect(rep.reduce((s, r) => s + r.n, 0)).toBe(log.length);
     expect(rep.every((r) => r.hit + r.miss <= r.n)).toBe(true);
   }, 300000);
+});
+
+describe('saran target junior', () => {
+  it('junior terkuat negara mendapat target; yang terlemah di luar 32 besar perkiraan peserta tanpa target', () => {
+    const state = newSeason(WORLD, BWF_2026, 3, undefined, 'INA');
+    const ev = BWF_2026.calendar.find((e) => BWF_2026.tiers.find((x) => x.id === e.tierId)?.junior && !BWF_2026.tiers.find((x) => x.id === e.tierId)!.junior!.local && !e.confederation)!;
+    const js = state.players.filter((p) => p.countryId === 'INA' && p.gender === 'M' && p.retired === undefined && p.focus !== 'D' && isJunior(p, state.date))
+      .sort((a, b) => currentAbility(b.attrs) - currentAbility(a.attrs));
+    const best = js[0], weak = js.at(-1)!;
+    const s = suggestJuniorTargets(state, BWF_2026, WORLD, ev.id, [best, weak].map((p) => ({ id: p.id, d: 'MS' as const, playerIds: [p.id] })));
+    expect(s.get(best.id)).toBeDefined();
+    expect(s.get(weak.id)).toBeUndefined();
+  });
 });

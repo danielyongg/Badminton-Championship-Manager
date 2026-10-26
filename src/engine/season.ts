@@ -1,6 +1,6 @@
 import { bumpForm, CAREER_HIGH_BONUS, CLOSE_LOSS_EXP, CLOSE_LOSS_GAP, COMEBACK_CHANCE, COMEBACK_MENTAL, eliteCounts, isCloseLoss, mentorsOf, FIRST_TITLE_BONUS, FIRST_TOP10_WIN_BONUS, HOME_BONUS, hitTarget, PAIR_STREAK_BONUS, PAIR_STREAK_FROM, REST_RECOVERY, SELECT_BONUS, SNUB_PENALTY, snubbed, TARGET_HIT, TARGET_MISS } from './boosts';
 import { chemistryMult, ensureTraits, FRAGILE_DOWN, hasTrait, HOME_HERO_BONUS, injuryMult, LEADER_PARTNER, LEADER_SQUAD, QUICK_RECOVERY, TRAVELER_FATIGUE } from './traits';
-import { makeChallenges, seasonGoals, seasonReport, suggestTargets } from './career';
+import { makeChallenges, seasonGoals, seasonReport, suggestJuniorTargets, suggestTargets } from './career';
 import { contingentOf, inContingent, lockContingents } from './contingent';
 import { olympicField } from './olympics';
 import { applySevereInjury, capToPa, developQuarter, newJuniors, retirementChance, rollInjury } from './development';
@@ -644,12 +644,13 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
       };
       return runEvent({ tournament: event, discipline: d, year, hostCountryId: city.countryId, candidates, ruleset: rs, rng, play, onDraw: draw, onEntries: onEntries(d), parallel: gated, onRecord });
     });
-    // Target babak atlet negara manajer: manual bila diatur, selain itu otomatis (saran realistis; turnamen junior: manual saja).
+    // Target babak atlet negara manajer: manual bila diatur, selain itu otomatis (saran realistis menurut perkiraan peserta).
     const manual = state.targets?.[`${year}:${event.id}`] ?? {};
     const released = releasedIds(state);
     const mineIn = (d: Discipline) => entries.get(event.id)!.get(d)!
       .filter((c) => isManaged(state, released, { countryId: c.countryId, playerIds: pairs.get(c.id)?.playerIds ?? [c.id] }));
-    const auto = tier.junior ? new Map<string, Round | undefined>() : suggestTargets(state, rs, world, event.id, ds.flatMap((d) => mineIn(d).map((c) => ({ id: c.id, d }))));
+    const mine = ds.flatMap((d) => mineIn(d).map((c) => ({ id: c.id, d, playerIds: pairs.get(c.id)?.playerIds ?? [c.id] })));
+    const auto = tier.junior ? suggestJuniorTargets(state, rs, world, event.id, mine) : suggestTargets(state, rs, world, event.id, mine);
     ds.forEach((d, i) => {
       const run = runs[i];
       (tier.junior ? state.juniorResults : state.results).push(...knockoutResults(run.main, run.slots, event, tier, d, state.date, rs));

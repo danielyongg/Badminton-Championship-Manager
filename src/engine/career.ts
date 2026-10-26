@@ -1,5 +1,5 @@
 import { bumpForm, DISSOLVE_PENALTY } from './boosts';
-import { ageAt, currentAbility } from './generator';
+import { ageAt, currentAbility, isJuniorAge } from './generator';
 import { pairAbility } from './match';
 import { nextOlympics, olympicField } from './olympics';
 import { absWeek, computeRanking, rankMap } from './ranking';
@@ -355,11 +355,50 @@ export function suggestTargets(state: SeasonState, rs: Ruleset, world: World, ev
       && aiEventChoice(week.filter((x) => openTo(x, e.countryId, world)), rs, ranks.get(e.id))?.id === eventId))
       .map((e) => ({ id: e.id, s: strength(e) }))
       .sort((a, b) => b.s - a.s);
-    field.forEach((e, i) => {
-      if (!ids.has(e.id)) return;
-      const round = TARGET_BY_POSITION.find(([n]) => i < n)?.[1];
-      out.set(e.id, i === 0 && e.s - (field[1]?.s ?? 0) >= TARGET_FAVORITE_GAP ? 'W' : round);
-    });
+    assignTargets(field, ids, out);
+  }
+  return out;
+}
+
+/** Target menurut posisi kekuatan di `field` (urut kuat → lemah) untuk entrant `ids`. */
+function assignTargets(field: { id: string; s: number }[], ids: Set<string>, out: Map<string, Round | undefined>) {
+  field.forEach((e, i) => {
+    if (!ids.has(e.id)) return;
+    const round = TARGET_BY_POSITION.find(([n]) => i < n)?.[1];
+    out.set(e.id, i === 0 && e.s - (field[1]?.s ?? 0) >= TARGET_FAVORITE_GAP ? 'W' : round);
+  });
+}
+
+/**
+ * Target realistis di turnamen junior. Perkiraan peserta negara lain mengikuti aturan entry junior: atlet U19 sehat
+ * (konfederasi turnamen; turnamen lokal: benua tuan rumah), tiap negara maks kuota tunggal/ganda — atlet terkuat, ganda
+ * dipasangkan berurutan menurut kemampuan (campuran: putra ke-i + putri ke-i). Kekuatan = rata-rata kemampuan.
+ */
+export function suggestJuniorTargets(state: SeasonState, rs: Ruleset, world: World, eventId: string, mine: { id: string; d: Discipline; playerIds: string[] }[]) {
+  const out = new Map<string, Round | undefined>();
+  const ev = rs.calendar.find((e) => e.id === eventId);
+  const tier = ev && rs.tiers.find((x) => x.id === ev.tierId);
+  if (!ev || !tier?.junior) return out;
+  const conf = new Map(world.countries.map((c) => [c.id, c.confederation]));
+  const hostConf = conf.get(world.cities.find((c) => c.id === hostCityId(ev, state.date.year))?.countryId ?? '');
+  const ca = new Map(state.players.map((p) => [p.id, currentAbility(p.attrs)]));
+  const avg = (ids: string[]) => ids.reduce((s, id) => s + (ca.get(id) ?? 0), 0) / ids.length;
+  const juniors = state.players.filter((p) => p.retired === undefined && !p.injury && p.countryId !== state.managedCountryId && isJuniorAge(p, state.date)
+    && (!ev.confederation || conf.get(p.countryId) === ev.confederation) && (!tier.junior!.local || conf.get(p.countryId) === hostConf));
+  const byCountry = new Map<string, Player[]>();
+  for (const p of juniors) byCountry.set(p.countryId, [...(byCountry.get(p.countryId) ?? []), p]);
+  for (const d of new Set(mine.map((m) => m.d))) {
+    const cap = d === 'MS' || d === 'WS' ? tier.junior.quota.singles : tier.junior.quota.doubles;
+    const field: { id: string; s: number }[] = mine.filter((m) => m.d === d).map((m) => ({ id: m.id, s: avg(m.playerIds) }));
+    for (const [c, ps] of byCountry) {
+      const sorted = (g: 'M' | 'F', single: boolean) => ps.filter((p) => p.gender === g && (!single || p.focus !== 'D')).sort((a, b) => ca.get(b.id)! - ca.get(a.id)!);
+      const sides: string[][] = d === 'MS' || d === 'WS' ? sorted(d === 'MS' ? 'M' : 'F', true).map((p) => [p.id])
+        : d === 'XD' ? sorted('M', false).map((m, i) => [m.id, sorted('F', false)[i]?.id]).filter((x): x is string[] => !!x[1])
+        : (() => { const g = sorted(d === 'MD' ? 'M' : 'F', false); return g.slice(0, g.length - (g.length % 2)).flatMap((p, i) => (i % 2 ? [] : [[p.id, g[i + 1].id]])); })();
+      sides.slice(0, cap).forEach((ids, i) => field.push({ id: `${c}:${d}:${i}`, s: avg(ids) }));
+    }
+    field.sort((a, b) => b.s - a.s);
+    assignTargets(field, new Set(mine.filter((m) => m.d === d).map((m) => m.id)), out);
   }
   return out;
 }

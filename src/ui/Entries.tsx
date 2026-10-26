@@ -7,7 +7,7 @@ import { DISCIPLINES, isDoubles, isJuniorFormat, type Discipline, type Round, ty
 import { dataName, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, tierLabel, useGame, TierBadge } from './game';
 import { FitStatus, MoraleTag } from './Squad';
-import { setTarget, suggestTargets } from '../engine/career';
+import { setTarget, suggestJuniorTargets, suggestTargets } from '../engine/career';
 import { moraleTier, pairAbility } from '../engine/match';
 import { currentAbility, isJuniorAge, isPratama } from '../engine/generator';
 import { formatName, SquadPicker } from './Team';
@@ -321,6 +321,10 @@ export function JuniorEntryTable({ ev, onSubmit }: { ev: TournamentDef; onSubmit
   const [picked, setSector] = useState<Discipline>();
   const sector = picked && sectors.includes(picked) ? picked : sectors[0];
   const quota = tier.junior!.quota;
+  // Target otomatis (chip 🎯) untuk atlet yang dicentang, dari perkiraan peserta turnamen junior ini.
+  const playing = rows.filter((e) => decisions[e.id] === ev.id);
+  const playingKey = playing.map((e) => e.id).join();
+  const autoTargets = useMemo(() => suggestJuniorTargets(state, ruleset, game.world, ev.id, playing), [version, ev.id, playingKey]);
   const chosen = (d: Discipline) => rows.filter((e) => e.d === d && decisions[e.id] === ev.id).length;
   const bound = boundElsewhere(state, decisions, ev.id);
   // Saran (tanpa unsur acak, seperti AI turnamen junior): per nomor, atlet/pasangan yang bisa main & tidak lelah diurutkan
@@ -368,7 +372,9 @@ export function JuniorEntryTable({ ev, onSubmit }: { ev: TournamentDef; onSubmit
               const injured = e.playerIds.some((id) => players.get(id)?.injury);
               const other = e.playerIds.map((id) => bound.get(id)).find(Boolean);
               return <EntryRow key={e.id} e={e} checked={decisions[e.id] === ev.id} disabled={injured || !!other} other={other}
-                onToggle={(on) => set(e.id, on ? ev.id : 'rest')} />;
+                onToggle={(on) => set(e.id, on ? ev.id : 'rest')}
+                target={state.targets?.[`${year}:${ev.id}`]?.[e.id]} autoTarget={autoTargets.get(e.id)}
+                onTarget={(r) => { setTarget(state, year, ev.id, e.id, r); changed(); void saveGame(game); }} />;
             })}</tbody>
           </table>
         </div>
