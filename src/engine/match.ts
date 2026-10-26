@@ -1,5 +1,5 @@
 import { makeRng, normal, type Rng } from './rng';
-import { CHOKER_BIG, CHOKER_MENTAL, CLUTCH_BIG, CLUTCH_MENTAL, traitShare } from './traits';
+import { CHOKER_BIG, CHOKER_MENTAL, CLUTCH_BIG, CLUTCH_MENTAL, CONSISTENT_DAY, MOMENTUM_RIDER, SLOW_RUBBER, SLOW_WARMUP, traitShare } from './traits';
 import { ATTRS, type Attr, type Attrs, type EntrantId, type Match, type MatchConfig, type MatchStats, type PatternKind, type Player, type PointType, type Strategy, type WinnerShot } from './types';
 
 // Mesin pertandingan berbasis rally. Dibuat sebagai "mesin langkah" (playRally) agar
@@ -19,6 +19,8 @@ interface SideState {
   strategy: Strategy;
   male: boolean; // kecepatan smash (tunggal/ganda putra & campuran lebih cepat)
   clutch?: number; // tambahan mental di poin kritis (mental juara − demam panggung)
+  slow?: number; // bagian sisi yang starter lambat (0–1)
+  rider?: number; // bagian sisi yang pemburu momentum (0–1)
 }
 
 export interface MatchState {
@@ -68,7 +70,8 @@ function sideAttrs(side: SideInput, cfg: MatchConfig, day = 0): Attrs {
   const ps = side.players;
   const bonus = ps.length > 1 ? chemistryBonus(side.chemistry ?? 50, cfg) : 0;
   const stage = side.big ? CLUTCH_BIG * traitShare(ps, 'clutch') - CHOKER_BIG * traitShare(ps, 'choker') : 0;
-  const form = ps.reduce((s, p) => s + moraleEffect(p.form, cfg), 0) / ps.length + day + stage;
+  const dayScale = 1 - (1 - CONSISTENT_DAY) * traitShare(ps, 'consistent'); // konsisten: kondisi harian lebih stabil
+  const form = ps.reduce((s, p) => s + moraleEffect(p.form, cfg), 0) / ps.length + day * dayScale + stage;
   return Object.fromEntries(
     ATTRS.map((a) => [a, ps.reduce((s, p) => s + p.attrs[a], 0) / ps.length + form + bonus]),
   ) as Attrs;
@@ -102,8 +105,8 @@ export function createMatch(sides: [SideInput, SideInput], cfg: MatchConfig, rng
   const start = (s: SideInput) => clamp(100 - Math.max(...s.players.map((p) => p.fatigue)) * cfg.energy.fatigueToStart, 0, 100);
   return {
     sides: [
-      { attrs: sideAttrs(sides[0], cfg, sides[0].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[0]), strategy: 'balanced', male: sides[0].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[0]) },
-      { attrs: sideAttrs(sides[1], cfg, sides[1].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[1]), strategy: 'balanced', male: sides[1].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[1]) },
+      { attrs: sideAttrs(sides[0], cfg, sides[0].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[0]), strategy: 'balanced', male: sides[0].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[0]), slow: traitShare(sides[0].players, 'slowStarter'), rider: traitShare(sides[0].players, 'momentumRider') },
+      { attrs: sideAttrs(sides[1], cfg, sides[1].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[1]), strategy: 'balanced', male: sides[1].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[1]), slow: traitShare(sides[1].players, 'slowStarter'), rider: traitShare(sides[1].players, 'momentumRider') },
     ],
     games: [],
     score: [0, 0],
@@ -123,7 +126,9 @@ function eff(st: MatchState, side: 0 | 1, a: Attr, cfg: MatchConfig) {
   let v = s.attrs[a];
   if (PHYSICAL.includes(a)) v *= 1 - cfg.energy.effect * (1 - s.energy / 100);
   const pointsPlayed = st.score[0] + st.score[1];
-  if (st.games.length === 0 && pointsPlayed < cfg.warmup.points) v -= cfg.warmup.maxPenalty * (1 - s.attrs.warmup / 100);
+  const slow = s.slow ?? 0;
+  if (st.games.length === 0 && pointsPlayed < cfg.warmup.points) v -= cfg.warmup.maxPenalty * (1 - s.attrs.warmup / 100) * (1 + (SLOW_WARMUP - 1) * slow);
+  if (st.games.length === 2) v += SLOW_RUBBER * slow; // starter lambat: kuat di rubber game
   return v;
 }
 
@@ -214,7 +219,8 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
       diff += cfg.pressure.weight * ((st.sides[x].attrs.mental + (st.sides[x].clutch ?? 0)) - (st.sides[y].attrs.mental + (st.sides[y].clutch ?? 0)));
     const sx = cfg.strategies[st.sides[x].strategy], sy = cfg.strategies[st.sides[y].strategy];
     diff += (sx.attack[p.kind] ?? 0) - sy.defend;
-    diff += cfg.momentum.weight * (x === 0 ? st.momentum : -st.momentum);
+    const mom = x === 0 ? st.momentum : -st.momentum; // >0: momentum memihak x
+    diff += cfg.momentum.weight * mom * (1 + (MOMENTUM_RIDER - 1) * ((mom > 0 ? st.sides[x] : st.sides[y]).rider ?? 0));
     winner = rng() < logistic(diff / cfg.duelScale) ? x : y;
     type = winner === x ? p.winType : p.loseType;
     // Label statistik: sebagian poin duel tercatat sebagai kesalahan lawan; makin rendah Consistency, makin sering.

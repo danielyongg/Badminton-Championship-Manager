@@ -1,3 +1,4 @@
+import { bumpForm, DISSOLVE_PENALTY } from './boosts';
 import { ageAt } from './generator';
 import { nextOlympics, olympicField } from './olympics';
 import { absWeek, computeRanking } from './ranking';
@@ -304,9 +305,12 @@ export function recallPlayer(state: SeasonState, playerId: string) {
   for (const pair of state.pairs) if (!pair.dissolved && pair.playerIds.includes(playerId)) dissolvePair(state, pair.id);
 }
 
-export function dissolvePair(state: SeasonState, pairId: string) {
+/** `byManager`: keputusan manajer (bukan pensiun/cedera/pembersihan otomatis) — kedua atlet kecewa. */
+export function dissolvePair(state: SeasonState, pairId: string, byManager = false) {
   const pair = state.pairs.find((p) => p.id === pairId);
-  if (pair && !pair.dissolved) pair.dissolved = { ...state.date };
+  if (!pair || pair.dissolved) return;
+  pair.dissolved = { ...state.date };
+  if (byManager) for (const id of pair.playerIds) { const p = state.players.find((x) => x.id === id); if (p) bumpForm(p, -DISSOLVE_PENALTY); }
 }
 
 /** Target babak manajer untuk satu entrant di satu turnamen; `round` kosong = hapus. */

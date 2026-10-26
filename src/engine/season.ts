@@ -1,5 +1,5 @@
-import { bumpForm, HOME_BONUS, hitTarget, REST_RECOVERY, TARGET_HIT, TARGET_MISS } from './boosts';
-import { ensureTraits, hasTrait, injuryMult, QUICK_RECOVERY, TRAVELER_FATIGUE } from './traits';
+import { bumpForm, CAREER_HIGH_BONUS, FIRST_TITLE_BONUS, FIRST_TOP10_WIN_BONUS, HOME_BONUS, hitTarget, PAIR_STREAK_BONUS, PAIR_STREAK_FROM, REST_RECOVERY, SELECT_BONUS, SNUB_PENALTY, snubbed, TARGET_HIT, TARGET_MISS } from './boosts';
+import { chemistryMult, ensureTraits, FRAGILE_DOWN, hasTrait, HOME_HERO_BONUS, injuryMult, LEADER_PARTNER, LEADER_SQUAD, QUICK_RECOVERY, TRAVELER_FATIGUE } from './traits';
 import { makeChallenges, seasonGoals, seasonReport } from './career';
 import { contingentOf, inContingent, lockContingents } from './contingent';
 import { olympicField } from './olympics';
@@ -510,13 +510,13 @@ export function hotFormOf(state: SeasonState): HotForm {
   return state.hotForm.by;
 }
 
-function updateMorale(state: SeasonState, rs: Ruleset, fromMatch: number, fromChampion: number) {
+function updateMorale(state: SeasonState, rs: Ruleset, fromMatch: number, fromChampion: number, ranks: Map<Discipline, Map<string, number>>) {
   const cfg = rs.match.morale;
   const players = new Map(state.players.map((p) => [p.id, p]));
   const pairs = new Map(state.pairs.map((p) => [p.id, p]));
   const members = (id: string) => (pairs.get(id)?.playerIds ?? [id]).map((x) => players.get(x)).filter((p): p is Player => !!p);
   const ability = (ps: Player[]) => ps.reduce((s, p) => s + currentAbility(p.attrs), 0) / Math.max(1, ps.length);
-  const add = (ps: Player[], d: number) => { for (const p of ps) bumpForm(p, d); };
+  const add = (ps: Player[], d: number) => { for (const p of ps) bumpForm(p, d < 0 && hasTrait(p, 'fragileMorale') ? d * FRAGILE_DOWN : d); };
   for (const m of state.matches.slice(fromMatch)) {
     if (m.walkover) continue;
     const sides = m.sides.map(members);
@@ -526,8 +526,22 @@ function updateMorale(state: SeasonState, rs: Ruleset, fromMatch: number, fromCh
     add(sides[0], d);
     add(sides[1], -d);
     if (m.round === 'F') add(sides[1 - m.winner], cfg.finalBonus);
+    const ws = sides[m.winner];
+    // Pemimpin: pasangannya ikut terangkat saat menang.
+    if (ws.length > 1) for (const p of ws) if (ws.some((o) => o !== p && hasTrait(o, 'leader'))) bumpForm(p, LEADER_PARTNER);
+    // Pasangan kompak: menang beruntun bersama menambah morale keduanya.
+    const wp = pairs.get(m.sides[m.winner]), lp = pairs.get(m.sides[1 - m.winner]);
+    if (wp) { wp.winStreak = (wp.winStreak ?? 0) + 1; if (wp.winStreak >= PAIR_STREAK_FROM) add(ws, PAIR_STREAK_BONUS); }
+    if (lp) lp.winStreak = 0;
+    // Menang pertama atas top 10 (ranking sebelum minggu ini).
+    if ((ranks.get(m.discipline)?.get(m.sides[1 - m.winner]) ?? 9999) <= 10)
+      for (const p of ws) if (!p.beatTop10) { p.beatTop10 = true; bumpForm(p, FIRST_TOP10_WIN_BONUS); }
   }
-  for (const c of state.champions.slice(fromChampion)) add(members(c.winner), cfg.titleBonus);
+  const earlier = new Set(state.champions.slice(0, fromChampion).map((c) => c.winner));
+  for (const c of state.champions.slice(fromChampion)) {
+    add(members(c.winner), cfg.titleBonus);
+    if (!earlier.has(c.winner)) { add(members(c.winner), FIRST_TITLE_BONUS); earlier.add(c.winner); } // gelar pertama
+  }
 }
 
 export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rng: Rng, hooks: WeekHooks = {}) {
@@ -608,7 +622,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     } : undefined;
     // Main di kandang: atlet tuan rumah yang ikut turnamen ini mendapat dorongan morale.
     const home = new Set(ds.flatMap((d) => entries.get(event.id)!.get(d)!).flatMap((c) => pairs.get(c.id)?.playerIds ?? [c.id]));
-    for (const id of home) { const p = players.get(id); if (p?.countryId === city.countryId) bumpForm(p, HOME_BONUS); }
+    for (const id of home) { const p = players.get(id); if (p?.countryId === city.countryId) bumpForm(p, HOME_BONUS + (hasTrait(p, 'homeHero') ? HOME_HERO_BONUS : 0)); }
     const runs = await each(gated, ds, (d) => {
       let candidates = entries.get(event.id)!.get(d)!;
       if (tier.countryQuota) candidates = applyCountryQuota(candidates, tier.countryQuota);
@@ -650,7 +664,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   }
   for (const e of all) if (!played.includes(e.id)) await playAny(e.id, hooks.chooseEvent ? {} : hooks, false);
   lockFinalsQualifiers(state, rs, world, true); // kejuaraan kontinental minggu ini selesai → peserta final langsung ditetapkan
-  updateMorale(state, rs, weekMatches, weekChampions);
+  updateMorale(state, rs, weekMatches, weekChampions, ranks);
   // Istirahat: atlet yang tidak bertanding minggu ini memulihkan morale negatif lebih cepat.
   const busy = new Set(state.matches.slice(weekMatches).flatMap((m) => m.sides.flatMap((s) => pairs.get(s)?.playerIds ?? [s])));
   for (const p of state.players) if (p.form < 0 && !busy.has(p.id)) p.form *= REST_RECOVERY;
@@ -704,7 +718,8 @@ function applyEventLoad(state: SeasonState, rs: Ruleset, rng: Rng, firstMatch: n
   for (const m of state.matches.slice(firstMatch))
     m.sides.forEach((side, i) => {
       const pair = pairs.get(side);
-      if (pair) { pair.matchesTogether++; pair.chemistry += (100 - pair.chemistry) * 0.01; } // ASUMSI: naik makin lambat mendekati 100
+      // ASUMSI: naik makin lambat mendekati 100; sifat ganda mengubah lajunya (maks 5 %/laga).
+      if (pair) { pair.matchesTogether++; pair.chemistry += (100 - pair.chemistry) * Math.min(0.05, 0.01 * chemistryMult(pair.playerIds.map((x) => players.get(x)!))); }
       for (const id of pair?.playerIds ?? [side]) {
         players.get(id)!.fatigue += rs.fatigue.perMatch;
         state.experience[id] = (state.experience[id] ?? 0) + (m.winner === i ? 1.5 : 1) * (big ? 1.3 : 1);
@@ -935,6 +950,15 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
       }
       squads[c] = squad;
       pools.set(c, squadPool(pool, squad));
+      // Dipanggil ke skuad: morale naik (pemimpin di skuad mengangkat rekannya); negara manajer: atlet layak yang dicoret sedikit turun.
+      const chosen = squad.map((id) => players.get(id)!);
+      const leader = chosen.some((p) => hasTrait(p, 'leader'));
+      for (const p of chosen) bumpForm(p, SELECT_BONUS + (leader && !hasTrait(p, 'leader') ? LEADER_SQUAD : 0));
+      if (c === state.managedCountryId) {
+        const pos = new Map<string, number>(); // posisi terbaik di daftar pool (sudah urut ranking per nomor)
+        for (const list of Object.values(pool)) list.forEach((e, i) => { for (const id of e.playerIds) pos.set(id, Math.min(pos.get(id) ?? 9999, i)); });
+        for (const p of snubbed(chosen, [...pos.keys()].map((id) => players.get(id)!), (x) => pos.get(x.id) ?? 9999)) bumpForm(p, -SNUB_PENALTY);
+      }
     }
     // Posisi ranking per nomor. Atlet di ganda = posisi pasangan terbaiknya; ganda dadakan = rata-rata posisi kedua atlet.
     const strength = lineupStrength(state, rs, format);
@@ -1036,7 +1060,13 @@ function updateRankWeeks(state: SeasonState, rs: Ruleset) {
     const byId = (state.rankWeeks[d] ??= {});
     const ranked = computeRanking(state.results, d, now, rs).slice(0, 300);
     const seen = new Set<string>();
-    for (const r of ranked) { addRankWeeks(byId, r.entrantId, r.rank, 1); seen.add(r.entrantId); }
+    for (const r of ranked) {
+      // Ranking terbaik karier (≤ 100): bonus kecil bila lebih baik dari semua peringkat yang pernah tercatat (entrant baru tidak).
+      const prev = byId[r.entrantId];
+      if (prev && r.rank <= RANK_WEEKS_TOP && r.rank < Math.min(9999, ...Object.keys(prev.at).map(Number)))
+        for (const id of state.pairs.find((x) => x.id === r.entrantId)?.playerIds ?? [r.entrantId]) { const p = state.players.find((x) => x.id === id); if (p) bumpForm(p, CAREER_HIGH_BONUS); }
+      addRankWeeks(byId, r.entrantId, r.rank, 1); seen.add(r.entrantId);
+    }
     for (const [id, e] of Object.entries(byId)) {
       if (seen.has(id)) continue;
       e.r = 0; e.run = 0;

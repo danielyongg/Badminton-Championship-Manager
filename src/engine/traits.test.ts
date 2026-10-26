@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { developQuarter } from './development';
 import { currentAbility, generatePlayer } from './generator';
-import { matchConfigFor, simulateMatch } from './match';
+import { createMatch, matchConfigFor, simulateMatch } from './match';
 import { BWF_2026 as rs } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
 import { newSeason, playWeek } from './season';
-import { ensureTraits, hasTrait, injuryMult, QUICK_RECOVERY, rollTraits, traitShare, TRAITS, visibleTraits } from './traits';
+import { chemistryMult, ensureTraits, hasTrait, injuryMult, QUICK_RECOVERY, rollTraits, traitShare, TRAITS, visibleTraits } from './traits';
 import { ATTRS, type Player } from './types';
 
 const withTraits = (traits: string[], extra: object = {}) => ({ traits, ...extra }) as unknown as Player;
@@ -74,8 +74,39 @@ describe('sifat fisik', () => {
   });
 });
 
+const pl = (v: number, traits: string[] = []) => ({ id: Math.random().toString(), gender: 'M', attrs: Object.fromEntries(ATTRS.map((a) => [a, v])), form: 0, fatigue: 0, traits }) as unknown as Player;
+
+describe('sifat pertandingan', () => {
+  it('konsisten: sebaran kondisi hari itu lebih kecil', () => {
+    const cfg = matchConfigFor(rs.match, 2026), rng = makeRng(8);
+    const sd = (traits: string[]) => {
+      const xs = Array.from({ length: 500 }, () => createMatch([{ players: [pl(80, traits)] }, { players: [pl(80)] }], cfg, rng).sides[0].attrs.speed);
+      const m = xs.reduce((s, x) => s + x, 0) / xs.length;
+      return Math.sqrt(xs.reduce((s, x) => s + (x - m) ** 2, 0) / xs.length);
+    };
+    expect(sd(['consistent'])).toBeLessThan(sd([]) * 0.6);
+  });
+  it('starter lambat: lebih sering kalah game 1, lebih sering menang rubber game', () => {
+    const cfg = matchConfigFor(rs.match, 2026), rng = makeRng(9);
+    let g1 = 0, rubbers = 0, rubberWins = 0;
+    const n = 6000;
+    for (let i = 0; i < n; i++) {
+      const r = simulateMatch([{ players: [pl(80, ['slowStarter'])] }, { players: [pl(80)] }], cfg, rng);
+      if (r.scores[0][0] > r.scores[0][1]) g1++;
+      if (r.scores.length === 3) { rubbers++; if (r.winner === 0) rubberWins++; }
+    }
+    expect(g1 / n).toBeLessThan(0.49); // pemanasan berat hanya di awal game 1: efek kecil
+    expect(rubberWins / rubbers).toBeGreaterThan(0.52);
+  }, 120000);
+  it('pengali chemistry', () => {
+    expect(chemistryMult([withTraits(['idealPartner']), withTraits([])])).toBe(2);
+    expect(chemistryMult([withTraits(['idealPartner']), withTraits(['idealPartner'])])).toBe(4);
+    expect(chemistryMult([withTraits(['awkwardPartner']), withTraits(['idealPartner'])])).toBe(1);
+    expect(chemistryMult([withTraits([]), withTraits([])])).toBe(1);
+  });
+});
+
 describe('mental juara & demam panggung', () => {
-  const pl = (v: number, traits: string[] = []) => ({ id: Math.random().toString(), gender: 'M', attrs: Object.fromEntries(ATTRS.map((a) => [a, v])), form: 0, fatigue: 0, traits }) as unknown as Player;
   const winRate = (a: Player, b: Player, big: boolean, n = 1500) => {
     const cfg = matchConfigFor(rs.match, 2026), rng = makeRng(3);
     let w = 0;

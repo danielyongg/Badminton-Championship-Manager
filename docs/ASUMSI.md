@@ -213,4 +213,12 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Tubuh baja / rawan cedera**: peluang cedera ×0,5 / ×1,8; rawan cedera: tingkat cedera = yang terburuk dari dua undian.
 - **Cepat pulih**: pemulihan kelelahan mingguan ×1,5. **Musafir**: kelelahan perjalanan ×0,5. **Awet muda**: penurunan usia dihitung 2 tahun lebih muda.
 - **Mental juara / demam panggung**: ±8 mental di poin kritis; di laga besar (SF/F, atau semua laga turnamen grade 1 / poin juara ≥ 9000) semua atribut +1 / −1,5. Efek di atlet setara: menang ±52 % (laga biasa).
-- Sifat lain (starter lambat, pemburu momentum, konsisten, mudah goyah, jagoan kandang, pemimpin, pasangan ideal/sulit cocok) sudah diacak & bisa terungkap, efeknya menyusul di Fase 3.
+
+## Morale lanjutan & sisa sifat (Fase 3)
+- **Dipanggil ke skuad beregu**: semua anggota skuad +1 morale. Negara manajer: atlet sehat di pool yang posisinya lebih baik dari anggota terpilih terburuk segender tetapi tidak dipanggil −0,5. Kontingen multi-event individu tidak diberi bonus terpisah (skuad beregunya sudah).
+- **Pasangan kompak**: mulai kemenangan beruntun ke-3, tiap kemenangan +0,3 untuk keduanya; kalah = rentetan direset. **Dibubarkan manajer** (bukan pasangan percobaan): kedua atlet −1,5.
+- **Rekor pribadi** (sekali): gelar pertama +2 (di samping bonus juara biasa), menang pertama atas top 10 (ranking sebelum minggu itu) +1,5, ranking terbaik karier dalam 100 besar +0,5 tiap kali membaik.
+- **Starter lambat**: penalti pemanasan awal game 1 ×3, +2 semua atribut di rubber game (setara: game 1 menang ±48 %, rubber ±58 %). **Pemburu momentum**: bobot momentum ×1,5 saat momentum memihaknya. **Konsisten**: kondisi hari itu ×0,5.
+- **Mudah goyah**: penurunan morale ×1,5. **Jagoan kandang**: tambahan +1,5 morale di turnamen kandang. **Pemimpin**: pasangannya +0,3 tiap menang; rekan skuad beregu +0,5.
+- **Pasangan ideal / sulit cocok**: laju kenaikan chemistry ×2 / ×0,5 per atlet (dikalikan, maks 5 %/laga).
+- **Kalibrasi satu musim** (seed 11): > 55 % atlet aktif tetap Normal, < 2 % di ≥ 9,5.

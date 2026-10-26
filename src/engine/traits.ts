@@ -26,6 +26,12 @@ export const IRON_INJURY = 0.5, PRONE_INJURY = 1.8, QUICK_RECOVERY = 1.5, TRAVEL
 export const AGELESS_YEARS = 2;
 /** Mental di poin kritis (±) dan semua atribut di laga besar (SF/F atau turnamen besar). */
 export const CLUTCH_MENTAL = 8, CLUTCH_BIG = 1, CHOKER_MENTAL = 8, CHOKER_BIG = 1.5;
+/** Starter lambat (pemanasan ×, bonus rubber game), pemburu momentum (bobot momentum saat memihaknya), konsisten (kondisi harian ×). */
+export const SLOW_WARMUP = 3, SLOW_RUBBER = 2, MOMENTUM_RIDER = 1.5, CONSISTENT_DAY = 0.5;
+/** Mudah goyah (penurunan morale ×), jagoan kandang (tambahan morale kandang), pemimpin (pasangan tiap menang / skuad beregu). */
+export const FRAGILE_DOWN = 1.5, HOME_HERO_BONUS = 1.5, LEADER_PARTNER = 0.3, LEADER_SQUAD = 0.5;
+/** Pengali kenaikan chemistry per atlet: pasangan ideal / sulit cocok. */
+export const IDEAL_CHEM = 2, AWKWARD_CHEM = 0.5;
 /** Sifat fisik/perkembangan terbaca setelah 2 akhir musim tercatat; lainnya setelah 30 laga. */
 export const REVEAL_SEASONS = 2, REVEAL_MATCHES = 30;
 
@@ -62,3 +68,4 @@ export function revealedTraits(p: Player, matchesPlayed: number, prevMatches: nu
   const before = new Set(visibleTraits(p, prevMatches, p.attrHistory.length - 1));
   return visibleTraits(p, matchesPlayed).filter((t) => !before.has(t));
 }
+export const chemistryMult = (ps: Player[]) => ps.reduce((m, p) => m * (hasTrait(p, 'idealPartner') ? IDEAL_CHEM : hasTrait(p, 'awkwardPartner') ? AWKWARD_CHEM : 1), 1);

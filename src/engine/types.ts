@@ -307,6 +307,8 @@ export interface Player {
   trait?: 'late' | 'stagnant';
   /** Sifat atlet (lihat traits.ts); undefined = belum diacak (save lama), diisi `ensureTraits`. */
   traits?: TraitId[];
+  /** Pernah mengalahkan atlet/pasangan top 10 (bonus morale sekali). */
+  beatTop10?: true;
   /** Spesialis ganda: tidak diberi ranking tunggal awal & tidak didaftarkan AI di nomor tunggal (manajer tetap boleh). */
   focus?: 'D' | 'S'; // 'S' = hanya tunggal: tidak muncul di form bentuk pasangan
   /** Junior (U19) yang sudah dipromosikan ke pelatnas utama: ikut didaftarkan otomatis ke turnamen senior. */
@@ -320,6 +322,8 @@ export interface Player {
 }
 
 export interface Pair {
+  /** Kemenangan beruntun bersama (morale pasangan kompak). Save lama: tidak ada = 0. */
+  winStreak?: number;
   id: string;
   discipline: 'MD' | 'WD' | 'XD';
   playerIds: [string, string];
