@@ -52,27 +52,15 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
     </section>
   );
   const deadlines = ask.played.length ? [] : ask.deadlines ?? [];
+  const skip = (
+    <div className="controls">
+      <button onClick={() => onPick(null)}>{!ask.events.length ? t('continue') : ask.played.length ? t('skipRest') : t('skipAll')}</button>
+    </div>
+  );
+  // Dua kotak terpisah: turnamen yang dimainkan minggu ini di atas, batas entry (submit) di bawah.
   return (
-    <section className="card hub">
-      {deadlines.length > 0 && <>
-        <h3>⏰ {t('deadlineThisWeek')} · {t('week')} {ask.week}</h3>
-        <p className="hint">{t('deadlineThisWeekHint')}</p>
-        <ul className="weeklist">{deadlines.map((id) => {
-          const team = ruleset.team.events.find((e) => e.id === id);
-          const ev = team ?? ruleset.calendar.find((e) => e.id === id)!;
-          const submitted = state.entriesSubmitted?.[`${year}:${id}`];
-          return (
-            <li key={id}>
-              <TierBadge tierId={'tierId' in ev ? ev.tierId : undefined} team={team} />
-              <span className="grow"><b>{eventName(ruleset, id, year)}</b> <small className="muted-text">{t('week')} {weekOf(ev, year)} · {city(hostCityId(ev, year))}</small><br />
-                <small>{submitted ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('needEntry')}</span>}</small>
-              </span>
-              <button className="primary" onClick={() => setEditing(id)}>{t('submitEntries')}</button>
-            </li>
-          );
-        })}</ul>
-      </>}
-      {ask.events.length > 0 && <>
+    <>
+      {ask.events.length > 0 && <section className="card hub">
         <h3>{t('weekEvents')} · {t('week')} {ask.week}</h3>
         <ul className="weeklist">{ask.events.map(({ id, kind }) => {
           const ev = kind === 'team' ? ruleset.team.events.find((e) => e.id === id)! : ruleset.calendar.find((e) => e.id === id)!;
@@ -95,11 +83,29 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
             </li>
           );
         })}</ul>
-      </>}
-        <div className="controls">
-          <button onClick={() => onPick(null)}>{!ask.events.length ? t('continue') : ask.played.length ? t('skipRest') : t('skipAll')}</button>
-        </div>
-    </section>
+        {skip}
+      </section>}
+      {deadlines.length > 0 && <section className="card hub">
+        <h3>⏰ {t('deadlineThisWeek')} · {t('week')} {ask.week}</h3>
+        <p className="hint">{t('deadlineThisWeekHint')}</p>
+        <ul className="weeklist">{deadlines.map((id) => {
+          const team = ruleset.team.events.find((e) => e.id === id);
+          const ev = team ?? ruleset.calendar.find((e) => e.id === id)!;
+          const submitted = state.entriesSubmitted?.[`${year}:${id}`];
+          return (
+            <li key={id}>
+              <TierBadge tierId={'tierId' in ev ? ev.tierId : undefined} team={team} />
+              <span className="grow"><b>{eventName(ruleset, id, year)}</b> <small className="muted-text">{t('week')} {weekOf(ev, year)} · {city(hostCityId(ev, year))}</small><br />
+                <small>{submitted ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('needEntry')}</span>}</small>
+              </span>
+              <button className="primary" onClick={() => setEditing(id)}>{t('submitEntries')}</button>
+            </li>
+          );
+        })}</ul>
+        {!ask.events.length && skip}
+      </section>}
+      {!ask.events.length && !deadlines.length && <section className="card hub">{skip}</section>}
+    </>
   );
 }
 

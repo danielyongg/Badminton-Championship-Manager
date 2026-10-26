@@ -1,4 +1,5 @@
 import { ensureTraits } from '../engine/traits';
+import { AD_HOC } from '../engine/team';
 import { WORLD } from '../engine/presets/world';
 import { createContext, useContext } from 'react';
 import { capToPa, INJURY_TYPES } from '../engine/development';
@@ -254,7 +255,7 @@ export function eventName(ruleset: Ruleset, id: string, year?: number) {
 /** Nama tampilan peserta (atlet atau pasangan) + negaranya. */
 export function entrantLabel(state: SeasonState, id: string) {
   const { players, pairs } = lookup(state);
-  const ps = (pairs.get(id)?.playerIds ?? [id]).map((x) => players.get(x));
+  const ps = (pairs.get(id)?.playerIds ?? (id.startsWith(AD_HOC) ? id.slice(AD_HOC.length).split('+') : [id])).map((x) => players.get(x)); // ganda dadakan: adhoc:a+b
   if (!ps[0]) return { name: id, country: '' };
   return { name: ps.map((p) => p?.name).join(' / '), country: ps[0].countryId };
 }

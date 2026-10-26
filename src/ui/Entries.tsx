@@ -68,7 +68,8 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
               <td><TierBadge tierId={tier} team={team ? e : undefined} /></td>
               <td className="hide-sm">{city(hostCityId(e, year))}</td>
               <td>{past ? t('finished') : auto ? t('auto')
-                : submitted(e.id) ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>}</td>
+                : submitted(e.id) ? <span className="badge good">✓ {t('entrySubmitted')}</span>
+                : entryClosed(state, ruleset, e.id) ? <span className="badge">🔒 {t('entryClosed')}</span> : <span className="badge">{t('entryIncomplete')}</span>}</td>
             </tr>
           );
         })}</tbody>
@@ -354,7 +355,7 @@ function boundElsewhere(state: SeasonState, decisions: Record<string, string>, e
 /**
  * Satu baris entry (senior & junior): nama + status/morale (+ wajib / turnamen lain) · ability · ranking · centang.
  */
-function EntryRow({ e, checked, disabled, other, required, onToggle, target, autoTarget, onTarget }: {
+export function EntryRow({ e, checked, disabled, other, required, onToggle, target, autoTarget, onTarget }: {
   e: EntryEntrant; checked: boolean; disabled: boolean; other?: string; required?: boolean; onToggle: (on: boolean) => void;
   /** Target manual (kosong = otomatis); `autoTarget` = saran otomatis yang berlaku bila tidak diatur. */
   target?: Round | 'none'; autoTarget?: Round; onTarget?: (r?: Round | 'none') => void;
@@ -395,7 +396,7 @@ function EntryRow({ e, checked, disabled, other, required, onToggle, target, aut
           ))}
         </div>
       </td>
-      <td className="num">{Math.round(pair ? pairAbility(ab, pair.chemistry, ruleset.match) : ab[0])}</td>
+      <td className="num">{Math.round(pair ? pairAbility(ab, pair.chemistry, ruleset.match) : ab.reduce((a, b) => a + b, 0) / ab.length)}</td>
       <td className="num">{e.rank ?? '—'}</td>
       <td className="num">
         <label className="entry-check">
@@ -660,7 +661,7 @@ function EntryRules({ ev }: { ev: TournamentDef }) {
 }
 
 /** Skuad beregu per format turnamen (line-up dipilih di pop-up sebelum tiap pertandingan). */
-function TeamSquads({ eventId, formats, onSubmit }: { eventId: string; formats: TeamFormat[]; onSubmit: () => void }) {
+function TeamSquads({ eventId, formats, onSubmit }: { eventId: string; formats: TeamFormat[]; onSubmit: (ai?: boolean) => void }) {
   const { game } = useGame();
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
@@ -688,16 +689,20 @@ function TeamSquads({ eventId, formats, onSubmit }: { eventId: string; formats: 
           {!pool ? <p>{t('teamNotEligible')}</p> : <>
             <p>{t('teamStrengthRank')}: <b>#{rank + 1}</b> / {total}</p>
             <TeamRules format={f} />
-            <SquadPicker pool={pool} value={squads[f]} size={ruleset.team.squadSize[f]} onChange={(v) => setSquads({ ...squads, [f]: v })}
+            <SquadPicker pool={pool} value={squads[f]} size={ruleset.team.squadSize[f]} junior={isJuniorFormat(f)} onChange={(v) => setSquads({ ...squads, [f]: v })}
               suggestion={autoSquad(ruleset.team.order[f], pool, max, ruleset.team.squadSize[f].max)} />
             {errs[i] && <small className="down">{errs[i]}</small>}
           </>}
         </section>
       ))}
-      <p><button className="primary" disabled={errs.some(Boolean)} onClick={() => {
-        for (const { f, pool } of pools) if (pool) state.teamSquads[f] = squads[f];
-        onSubmit();
-      }}>{t('submitEntries')}</button></p>
+      <p className="controls">
+        <button className="primary" disabled={errs.some(Boolean)} onClick={() => {
+          for (const { f, pool } of pools) if (pool) state.teamSquads[f] = squads[f];
+          onSubmit();
+        }}>{t('submitEntries')}</button>
+        {/* Serahkan ke asisten AI: skuad otomatis (saran AI) dipakai saat turnamen. */}
+        <button title={t('autoSubmitHint')} onClick={() => onSubmit(true)}>{t('auto')}</button>
+      </p>
     </>
   );
 }

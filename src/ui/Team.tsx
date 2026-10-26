@@ -10,6 +10,8 @@ import { LiveDraw } from './LiveDraw';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
 import { FitStatus, MoraleTag } from './Squad';
+import { EntryRow } from './Entries';
+import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 
 // Beregu: jadwal, line-up negara sendiri, dan hasil Thomas/Uber/Sudirman Cup + kejuaraan kontinental.
 
@@ -64,47 +66,47 @@ export function Team() {
   );
 }
 
-/** Daftar atlet unik dalam pool, urut seperti pool (terbaik menurut ranking dulu). */
-function poolPlayers(pool: Record<string, TeamEntrant[]>) {
-  return [...new Set(Object.values(pool).flat().flatMap((e) => e.playerIds))];
-}
-
-/** Pilih atlet skuad (kotak centang). Menampilkan nomor yang bisa dimainkan tiap atlet. */
-export function SquadPicker({ pool, value, onChange, size, suggestion }: {
+/**
+ * Pilih skuad beregu, sama seperti form entry individu: tab per nomor, baris atlet/pasangan (kondisi, morale, kemampuan,
+ * ranking) dengan centang. Centang pasangan = kedua atletnya masuk skuad; hapus centang = keduanya keluar.
+ */
+export function SquadPicker({ pool, value, onChange, size, suggestion, junior }: {
   pool: Record<string, TeamEntrant[]>; value: string[]; onChange: (v: string[]) => void; size: { min: number; max: number };
   /** Saran skuad AI untuk tombol Saran (tanpa = tombol tidak tampil). */
   suggestion?: string[];
+  /** Format junior: ranking junior. */
+  junior?: boolean;
 }) {
-  const plays = (id: string) => playsIn(pool, id);
-  // Dua kelompok: Single (atlet yang bisa main tunggal) & Pairs (sisanya); urutan tetap selama daftar terbuka,
-  // yang sudah terpilih (saran) di atas tiap kelompok agar langsung terlihat.
-  const groups = useMemo(() => {
-    const all = poolPlayers(pool);
-    const sorted = [...all.filter((id) => value.includes(id)), ...all.filter((id) => !value.includes(id))];
-    const single = (id: string) => plays(id).some((d) => !isDoubles(d as Discipline));
-    return [
-      { label: t('sector_singles'), ids: sorted.filter(single) },
-      { label: t('sector_pairs'), ids: sorted.filter((id) => !single(id)) },
-    ].filter((g) => g.ids.length);
-  }, [pool]);
+  const { game, version } = useGame();
+  const { state, ruleset } = game;
+  const sectors = (SECTOR_ORDER as Discipline[]).filter((d) => pool[d]?.length);
+  const [picked, setSector] = useState<Discipline>();
+  const sector = picked && sectors.includes(picked) ? picked : sectors[0];
+  const ranks = useMemo(() => new Map(sectors.map((d) => [d, rankMap(computeRanking(junior ? state.juniorResults ?? [] : state.results, d, absWeek(state.date), ruleset))])), [version, junior]);
+  const { pairs } = lookup(state);
+  const rows = (d: Discipline) => pool[d].map((e) => ({ ...e, d, rank: ranks.get(d)?.get(e.id), trial: pairs.get(e.id)?.trial }));
+  const on = (e: TeamEntrant) => e.playerIds.every((id) => value.includes(id));
+  const toggle = (e: TeamEntrant, yes: boolean) => onChange(yes ? [...new Set([...value, ...e.playerIds])] : value.filter((id) => !e.playerIds.includes(id)));
   return (
     <div>
       <p className="squad-count">{t('squadCount')}: <b className={value.length < size.min || value.length > size.max ? 'down' : undefined}>{value.length}</b> <span className="muted-text">({size.min}–{size.max})</span></p>
-      <p className="controls">
-        {suggestion && <button onClick={() => onChange(suggestion)}>💡 {t('suggestion')}</button>}
+      <p className="controls entry-actions">
+        {suggestion && <button title={t('suggestionHint')} onClick={() => onChange(suggestion)}>💡 {t('suggestion')}</button>}
         <button disabled={!value.length} onClick={() => onChange([])}>{t('clearAll')}</button>
       </p>
-      <div className="squadlist">
-        {groups.map(({ label, ids }) => (
-          <div key={label}>
-            <h5 className="pick-sector">{label} <span className="muted-text">{t('pickedOf', { a: ids.filter((id) => value.includes(id)).length, b: ids.length })}</span></h5>
-            {ids.map((id) => {
-              const on = value.includes(id);
-              return <PickRow key={id} id={id} pool={pool} on={on} onToggle={() => onChange(on ? value.filter((x) => x !== id) : [...value, id])} />;
-            })}
-          </div>
+      <nav className="controls subnav">
+        {sectors.map((d) => (
+          <button key={d} aria-pressed={d === sector} onClick={() => setSector(d)}>
+            {d} <span className="muted-text">{pool[d].filter(on).length}/{pool[d].length}</span>
+          </button>
         ))}
-      </div>
+      </nav>
+      {sector && <div className="scroll">
+        <table className="entrytable fit">
+          <thead><tr><th>{t('name')}</th><th className="num">{t('ability')}</th><th className="num">{t('rank')}</th><th className="num">{t('enterCol')}</th></tr></thead>
+          <tbody>{rows(sector).map((e) => <EntryRow key={e.id} e={e} checked={on(e)} disabled={false} onToggle={(yes) => toggle(e, yes)} />)}</tbody>
+        </table>
+      </div>}
     </div>
   );
 }
@@ -247,7 +249,7 @@ function DefaultTeamEditor({ format, strengths, country }: { format: TeamFormat;
       <p>{t('teamStrengthRank')}: <b>#{rank + 1}</b> / {strengths.length}
         {goal && <> · {t('target')}: <b>{levelName(goal.target)}</b></>}</p>
       <div className="split">
-        <SquadPicker pool={mine.pool} value={squad} size={size} onChange={(v) => { setSquad(v); setMsg(''); }} />
+        <SquadPicker pool={mine.pool} value={squad} size={size} junior={isJuniorFormat(format)} onChange={(v) => { setSquad(v); setMsg(''); }} />
         <div>
           <h4>{t('defaultLineup')}</h4>
           <LineupPicker format={format} order={order} pool={sp} squad={squad} value={lineup} onChange={(v) => { setLineup(v); setMsg(''); }} />
@@ -291,7 +293,7 @@ export function SquadModal({ title, eventId, format, pool, suggested, onDone }: 
     <WaitingModal label={t('registerSquad')} title={`${title} · ${formatName(format, eventId)}: ${t('registerSquad')}`}>
         <h3>{title} · {formatName(format, eventId)}: {t('registerSquad')}</h3>
         <p className="hint">{t('squadHint')}</p>
-        <SquadPicker pool={pool} value={squad} onChange={setSquad} size={rs.team.squadSize[format]} suggestion={suggested} />
+        <SquadPicker pool={pool} value={squad} onChange={setSquad} size={rs.team.squadSize[format]} junior={isJuniorFormat(format)} suggestion={suggested} />
         <div className="controls roundbar">
           <button className="primary" disabled={!!err} onClick={() => onDone(squad)}>{t('registerSquad')}</button>
         </div>
