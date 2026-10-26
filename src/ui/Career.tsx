@@ -163,6 +163,17 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   const open = (id: string) => { setProfileId(id); window.scrollTo(0, 0); };
   const [eventView, setEventView] = useState<{ id: string; year: number }>();
   const openEvent = (id: string, year: number) => { setProfileId(undefined); setEventView({ id, year }); window.scrollTo(0, 0); };
+  // Kembali dari halaman turnamen (tombol Kembali / setelah Submit entry): gulir ke baris turnamen itu (Kalender/Dashboard) & sorot sebentar.
+  const backFromEvent = (id: string) => {
+    setEventView(undefined);
+    requestAnimationFrame(() => {
+      const row = document.querySelector<HTMLElement>(`[data-ev="${id}"]`);
+      if (!row) return;
+      row.scrollIntoView({ block: 'center' });
+      row.classList.add('flash');
+      setTimeout(() => row.classList.remove('flash'), 1500);
+    });
+  };
 
   const hubOn = !!managed && (!!weekAsk || !!playing);
   const hubTitle = playing ? eventName(game.ruleset, playing, state.date.year) : `${t('weekEvents')} · ${t('week')} ${state.date.week}`;
@@ -251,7 +262,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
       )}
       {showHub ? hub
         : profileId ? <Profile id={profileId} onBack={() => setProfileId(undefined)} onOpen={open} onOpenEvent={openEvent} />
-        : eventView ? <TournamentView key={`${eventView.id}-${eventView.year}`} id={eventView.id} year={eventView.year} onOpenPlayer={open} onBack={() => setEventView(undefined)} />
+        : eventView ? <TournamentView key={`${eventView.id}-${eventView.year}`} id={eventView.id} year={eventView.year} onOpenPlayer={open} onBack={() => backFromEvent(eventView.id)} />
         : tab === 'settings' ? (
           <section className="card">
             <h3>{t('settings')}</h3>
@@ -590,7 +601,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
           <div key={w} className="dlist">
             <h4>{t('week')} {w}</h4>
             {list.map((e) => (
-              <div key={e.id} className="drow">
+              <div key={e.id} className="drow" data-ev={e.id}>
                 <TierBadge tierId={e.tierId} team={'team' in e ? e.team : undefined} />
                 <span className="grow"><b>{eventName(ruleset, e.id, year)}</b><small className="muted-text">{city(hostCityId(e, year))}</small></span>
                 {managed && <EntryBadge id={e.id} onOpen={() => onOpenEvent(e.id, year)} />}

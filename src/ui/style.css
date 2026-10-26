@@ -879,3 +879,7 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 .form-err { margin: 0; color: var(--danger); font-size: .85rem; }
 .pick-sector { margin: 10px 0 0; padding: 4px 8px; font-size: .78rem; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 6px; }
 .squadlist > div:first-child .pick-sector { margin-top: 0; }
+
+/* Baris turnamen yang baru dibuka/di-submit: sorot sebentar saat kembali ke Kalender/Dashboard. */
+.flash { animation: flash 1.5s ease-out; }
+@keyframes flash { from { background: var(--accent-soft); } to { background: transparent; } }

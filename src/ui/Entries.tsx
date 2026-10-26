@@ -59,7 +59,7 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
           const past = weekOf(e, year) < week;
           const team = teamIds.has(e.id);
           return (
-            <tr key={e.id} className={past ? 'muted-text' : undefined}>
+            <tr key={e.id} data-ev={e.id} className={past ? 'muted-text' : undefined}>
               <td className="num">{weekOf(e, year)}</td>
               <td><a href="#" onClick={(x) => { x.preventDefault(); onOpenEvent?.(e.id, year); }}>{team ? eventName(ruleset, e.id, year) : dataName(e.name)}</a></td>
               <td><TierBadge tierId={'tierId' in e ? e.tierId : ''} team={team ? e : undefined} /></td>

@@ -74,7 +74,7 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
       {page === 'winners' ? <Winners id={id} year={year} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
       : page === 'history' ? <WinnersHistory id={id} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
       : page === 'participants' ? <Participants id={id} year={year} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
-      : team.length > 0 ? <TeamResults results={team} /> : played.length === 0 ? (canEnter(state, ruleset, world, id, year) && !locked ? <EntryPanel id={id} /> : <p>{t(locked ? 'inProgressNoResults' : 'notPlayedYet')}</p>) : (
+      : team.length > 0 ? <TeamResults results={team} /> : played.length === 0 ? (canEnter(state, ruleset, world, id, year) && !locked ? <EntryPanel id={id} onSubmitted={onBack} /> : <p>{t(locked ? 'inProgressNoResults' : 'notPlayedYet')}</p>) : (
         <>
           {/* Bagian (entry, kualifikasi, undian, bagan) dulu, lalu nomor sebagai sub-tab. */}
           {records.length > 0 && (
