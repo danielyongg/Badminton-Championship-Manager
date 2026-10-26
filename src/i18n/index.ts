@@ -347,7 +347,7 @@ const id = {
   topEarners: 'Pendapatan terbesar',
   attrChart: 'Grafik atribut per usia',
   attrChartWait: 'Grafik atribut per usia muncul setelah atlet melewati akhir musim (riwayat dicatat tiap akhir musim).',
-  suggestion: 'Saran', suggestionHint: 'Isi semua pilihan dengan saran asisten: wajib → main, lelah → istirahat, selain itu turnamen yang cocok dengan ranking (atau istirahat). Tiap pilihan tetap bisa diubah.',
+  suggestTarget: 'Saran target', suggestTargetHint: 'Isi target babak yang realistis untuk semua atlet yang dicentang (semua nomor), menurut urutan kekuatan di antara perkiraan peserta turnamen ini. Target tetap bisa diubah.', suggestion: 'Saran', suggestionHint: 'Isi semua pilihan dengan saran asisten: wajib → main, lelah → istirahat, selain itu turnamen yang cocok dengan ranking (atau istirahat). Tiap pilihan tetap bisa diubah.',
   enterCol: 'Ikut', autoSubmitHint: 'Serahkan pilihan turnamen ini ke asisten AI (pilihan ke turnamen lain tetap) lalu submit.',
   condition: 'Kondisi',
   newVersion: 'Versi baru tersedia. Muat ulang setelah minggu ini selesai (progres minggu ini belum tersimpan).', reload: 'Muat ulang',

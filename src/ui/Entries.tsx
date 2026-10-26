@@ -7,7 +7,7 @@ import { DISCIPLINES, isDoubles, isJuniorFormat, type Discipline, type Round, ty
 import { dataName, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, tierLabel, useGame, TierBadge } from './game';
 import { FitStatus, MoraleTag } from './Squad';
-import { setTarget } from '../engine/career';
+import { setTarget, suggestTargets } from '../engine/career';
 import { moraleTier, pairAbility } from '../engine/match';
 import { currentAbility, isJuniorAge, isPratama } from '../engine/generator';
 import { formatName, SquadPicker } from './Team';
@@ -446,13 +446,23 @@ export function EntryTable({ week: w, eventId, onSubmit }: { week: number; event
     return pick?.id === eventId && eligible(e) ? eventId : 'rest';
   });
 
+  // Saran target: babak realistis untuk semua atlet yang dicentang (semua nomor), dari perkiraan peserta turnamen ini.
+  const playing = rows.filter(checked);
+  const suggestTarget = () => {
+    const s = suggestTargets(state, ruleset, game.world, eventId, playing);
+    for (const e of playing) setTarget(state, year, eventId, e.id, s.get(e.id));
+    changed();
+    void saveGame(game);
+  };
+
   return (
     <>
       <p>{t('entryHelp')}</p>
-      <p className="controls">
+      <p className="controls entry-actions">
         <button onClick={() => setAll((e) => (e.trial || !eligible(e) ? decisions[e.id] : eventId))}>{t('playAll')}</button>
         <button onClick={() => setAll(() => 'rest')}>{t('restAll')}</button>
         <button title={t('suggestionHint')} onClick={suggest}>💡 {t('suggestion')}</button>
+        <button title={t('suggestTargetHint')} disabled={!playing.length} onClick={suggestTarget}>🎯 {t('suggestTarget')}</button>
       </p>
       <nav className="controls subnav">
         {sectors.map((d) => (

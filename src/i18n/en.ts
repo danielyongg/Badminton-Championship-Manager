@@ -347,7 +347,7 @@ export const en: Record<TextKey, string> = {
   topEarners: 'Top earners',
   attrChart: 'Attributes by age',
   attrChartWait: 'The attributes-by-age chart appears once the player has passed a season end (history is recorded at each season end).',
-  suggestion: 'Suggestion', suggestionHint: 'Fill every choice with the assistant\'s suggestion: mandatory → play, tired → rest, otherwise the tournament that fits the ranking (or rest). You can still change each one.',
+  suggestTarget: 'Suggest targets', suggestTargetHint: 'Fill in a realistic round target for every ticked player (all events), based on their strength ranking among the expected field of this tournament. Targets can still be changed.', suggestion: 'Suggestion', suggestionHint: 'Fill every choice with the assistant\'s suggestion: mandatory → play, tired → rest, otherwise the tournament that fits the ranking (or rest). You can still change each one.',
   enterCol: 'Enter', autoSubmitHint: 'Let the AI assistant choose for this tournament (choices for other tournaments stay) and submit.',
   condition: 'Condition',
   newVersion: 'A new version is available. Reload when the week is done (progress this week is not saved yet).', reload: 'Reload',

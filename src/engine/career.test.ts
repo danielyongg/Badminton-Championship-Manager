@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { dissolvePair, formPair, potentialStars, promoteJunior, promoteTrial } from './career';
+import { dissolvePair, formPair, potentialStars, promoteJunior, promoteTrial, suggestTargets } from './career';
+import { currentAbility } from './generator';
+import { ROUNDS } from './types';
 import { isJuniorAge, isPratama } from './generator';
 import { validatePack } from './pack';
 import { BWF_2026 } from './presets/bwf2026';
@@ -234,5 +236,19 @@ describe('lepas dari pelatnas', () => {
     expect(state.players.find((x) => x.id === a)!.released).toBeUndefined();
     expect(state.pairs.some((p) => !p.dissolved && p.playerIds.includes(a))).toBe(false);
     expect(planWeek(state, rs, week).has(a) || state.players.find((x) => x.id === a)!.focus === 'D').toBe(true);
+  });
+});
+
+describe('saran target', () => {
+  it('atlet terkuat negara mendapat target lebih tinggi; yang jauh di luar 32 besar perkiraan peserta tanpa target', () => {
+    const state = newSeason(WORLD, BWF_2026, 3, undefined, 'INA');
+    const ev = BWF_2026.calendar.find((e) => e.tierId === 'S1000')!;
+    const ms = state.players.filter((p) => p.countryId === 'INA' && p.gender === 'M' && p.retired === undefined && p.focus !== 'D')
+      .sort((a, b) => currentAbility(b.attrs) - currentAbility(a.attrs));
+    const best = ms[0], weak = ms.at(-1)!;
+    const s = suggestTargets(state, BWF_2026, WORLD, ev.id, [{ id: best.id, d: 'MS' }, { id: weak.id, d: 'MS' }]);
+    expect(s.get(best.id)).toBeDefined();
+    expect(s.get(weak.id)).toBeUndefined();
+    expect(ROUNDS.indexOf(s.get(best.id)!)).toBeLessThanOrEqual(ROUNDS.indexOf('R16'));
   });
 });

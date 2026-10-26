@@ -1,11 +1,12 @@
 import { bumpForm, DISSOLVE_PENALTY } from './boosts';
-import { ageAt } from './generator';
+import { ageAt, currentAbility } from './generator';
+import { pairAbility } from './match';
 import { nextOlympics, olympicField } from './olympics';
-import { absWeek, computeRanking } from './ranking';
+import { absWeek, computeRanking, rankMap } from './ranking';
 import { shuffle, type Rng } from './rng';
-import { hostCityId, isHeld, teamFormatsIn, teamStrengths, type SeasonState } from './season';
+import { aiEventChoice, entrantsFor, hostCityId, isHeld, openTo, teamFormatsIn, teamStrengths, weekOf, type SeasonState } from './season';
 import { levelOf } from './team';
-import { DISCIPLINES, type Challenge, type FederationGoal, type Pair, type Player, type Round, type Ruleset, type SeasonReport, type TeamFormat, type World } from './types';
+import { DISCIPLINES, type Challenge, type Discipline, type FederationGoal, type Pair, type Player, type Round, type Ruleset, type SeasonReport, type TeamFormat, type World } from './types';
 import { t } from '../i18n';
 
 // Mode karier: target federasi, rapor akhir musim, perkiraan potensi, kelola pasangan.
@@ -317,4 +318,48 @@ export function dissolvePair(state: SeasonState, pairId: string, byManager = fal
 export function setTarget(state: SeasonState, year: number, eventId: string, entrantId: string, round?: Round) {
   const map = ((state.targets ??= {})[`${year}:${eventId}`] ??= {});
   if (round) map[entrantId] = round; else delete map[entrantId];
+}
+
+/** Saran target: posisi 1–2 → final (juara bila unggul ≥ TARGET_FAVORITE_GAP atas posisi 2), 3–4 → SF, 5–8 → QF, 9–16 → R16, 17–32 → R32. ASUMSI. */
+export const TARGET_FAVORITE_GAP = 5;
+const TARGET_BY_POSITION: [number, Round][] = [[2, 'F'], [4, 'SF'], [8, 'QF'], [16, 'R16'], [32, 'R32']];
+
+/**
+ * Target babak realistis untuk entrant manajer di satu turnamen: urutan kekuatan (kemampuan; ganda termasuk chemistry)
+ * di antara perkiraan peserta — entrant negara lain yang menurut aturan pilihan AI (rentang ranking per tier) ke
+ * turnamen ini, ditambah `mine` (entry manajer). Lebih dari 32 besar = tanpa target.
+ */
+export function suggestTargets(state: SeasonState, rs: Ruleset, world: World, eventId: string, mine: { id: string; d: Discipline }[]) {
+  const out = new Map<string, Round | undefined>();
+  const ev = rs.calendar.find((e) => e.id === eventId);
+  if (!ev) return out;
+  const { year } = state.date;
+  const country = state.managedCountryId;
+  const tier = (id: string) => rs.tiers.find((x) => x.id === id)!;
+  const players = new Map(state.players.map((p) => [p.id, p]));
+  const pairs = new Map(state.pairs.map((p) => [p.id, p]));
+  const cutoff = absWeek(state.date) - rs.ranking.entryCutoffWeeks;
+  const strength = (e: { id: string; playerIds: string[] }) => {
+    const ab = e.playerIds.map((id) => currentAbility(players.get(id)!.attrs));
+    const pair = pairs.get(e.id);
+    return pair ? pairAbility(ab, pair.chemistry, rs.match) : ab[0];
+  };
+  for (const d of new Set(mine.map((m) => m.d))) {
+    const ranks = rankMap(computeRanking(state.results, d, cutoff, rs));
+    // Turnamen minggu itu, urut seperti pilihan AI (tier tertinggi dulu).
+    const week = rs.calendar.filter((e) => weekOf(e, year) === weekOf(ev, year) && isHeld(e, year) && e.tierId !== 'WTF' && e.tierId !== 'OG' && tier(e.tierId).drawSize[d] > 0)
+      .sort((a, b) => tier(b.tierId).points[0] - tier(a.tierId).points[0]);
+    const ids = new Set(mine.filter((m) => m.d === d).map((m) => m.id));
+    const field = entrantsFor(state, d).filter((e) => ids.has(e.id) || (e.countryId !== country && !e.trial
+      && !e.playerIds.some((id) => players.get(id)!.injury)
+      && aiEventChoice(week.filter((x) => openTo(x, e.countryId, world)), rs, ranks.get(e.id))?.id === eventId))
+      .map((e) => ({ id: e.id, s: strength(e) }))
+      .sort((a, b) => b.s - a.s);
+    field.forEach((e, i) => {
+      if (!ids.has(e.id)) return;
+      const round = TARGET_BY_POSITION.find(([n]) => i < n)?.[1];
+      out.set(e.id, i === 0 && e.s - (field[1]?.s ?? 0) >= TARGET_FAVORITE_GAP ? 'W' : round);
+    });
+  }
+  return out;
 }
