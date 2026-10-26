@@ -68,8 +68,9 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
               <td><TierBadge tierId={tier} team={team ? e : undefined} /></td>
               <td className="hide-sm">{city(hostCityId(e, year))}</td>
               <td>{past ? t('finished') : auto ? t('auto')
-                : submitted(e.id) ? <span className="badge good">✓ {t('entrySubmitted')}</span>
-                : entryClosed(state, ruleset, e.id) ? <span className="badge">🔒 {t('entryClosed')}</span> : <span className="badge">{t('entryIncomplete')}</span>}</td>
+                // Batas entry lewat = daftar terbit (dikirim manajer atau diisi AI): status sama, 🔒.
+                : entryClosed(state, ruleset, e.id) ? <span className="badge">🔒 {t('entryClosed')}</span>
+                : submitted(e.id) ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>}</td>
             </tr>
           );
         })}</tbody>
