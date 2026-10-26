@@ -135,6 +135,7 @@ function ClosedEntries({ ev }: { ev: TournamentDef }) {
   const list = state.entryLists?.[key];
   const tier = ruleset.tiers.find((x) => x.id === ev.tierId)!;
   const [confirm, setConfirm] = useState<string>();
+  const [showAll, setShowAll] = useState(false);
   const sectors = DISCIPLINES.filter((d) => (list?.[d] ?? []).length > 0);
   const [picked, setSector] = useState<Discipline>();
   if (!list) return <p className="hint">{t('entryListPending')}</p>;
@@ -162,12 +163,16 @@ function ClosedEntries({ ev }: { ev: TournamentDef }) {
         </nav>
         {!mine.length ? <p className="hint">{t('entryNoneMine')}</p> : (
           <table className="entrytable fit">
-            <thead><tr><th>{t('name')}</th><th className="num">{t('rank')}</th><th>{t('status')}</th></tr></thead>
+            <thead><tr><th>{t('name')}</th><th className="num">{t('rank')}</th><th></th></tr></thead>
             <tbody>{mine.map((c) => {
               const st = statusOf(c.id);
               return (
                 <tr key={c.id} className={st === 'withdrawn' ? 'muted-text' : undefined}>
                   <td><span className="chip">{sector}</span> {entrantLabel(state, c.id).name}
+                    {/* Status di baris keterangan (bukan kolom sendiri) agar tidak bertabrakan dengan tombol Mundur di HP. */}
+                    <div className="entry-meta">
+                      <span className={`badge${st === 'main' ? ' good' : ''}`}>{t(st === 'main' ? 'statusDirect' : st === 'qual' ? 'qualifying' : st === 'reserve' ? 'reserves' : 'withdrawnTag')}</span>
+                    </div>
                     {confirm === c.id && (
                       <div className="entry-meta">
                         <span className={late ? 'down' : 'muted-text'}>{late ? t('withdrawLate', { n: 1 }) : t('withdrawFree')}</span>
@@ -177,22 +182,18 @@ function ClosedEntries({ ev }: { ev: TournamentDef }) {
                     )}
                   </td>
                   <td className="num">{c.rank ?? '—'}</td>
-                  <td>
-                    <span className={`badge${st === 'main' ? ' good' : ''}`}>{t(st === 'main' ? 'statusDirect' : st === 'qual' ? 'qualifying' : st === 'reserve' ? 'reserves' : 'withdrawnTag')}</span>
-                    {st !== 'withdrawn' && confirm !== c.id && <> <button className="mini" onClick={() => setConfirm(c.id)}>{t('withdraw')}</button></>}
-                  </td>
+                  <td className="num">{st !== 'withdrawn' && confirm !== c.id && <button className="mini nowrap" onClick={() => setConfirm(c.id)}>{t('withdraw')}</button>}</td>
                 </tr>
               );
             })}</tbody>
           </table>
         )}
-        {acc && (
-          <details className="entrylist-all">
-            <summary>{t('entryListFull')} · {sector}</summary>
-            <EntryLists entry={{ ...acc }} name={(id) => entrantLabel(state, id).name}
-              mine={(id) => isManaged(state, released, { countryId: entrantLabel(state, id).country ?? '', playerIds: ids(id) })} />
-          </details>
-        )}
+        {acc && <>
+          {/* Daftar entry lengkap: tombol buka/tutup biasa (bukan <details> bersarang di dalam <details>). */}
+          <p><button className="wide" aria-expanded={showAll} onClick={() => setShowAll(!showAll)}>{showAll ? '▲' : '▼'} {t('entryListFull')} · {sector}</button></p>
+          {showAll && <EntryLists entry={{ ...acc }} name={(id) => entrantLabel(state, id).name}
+            mine={(id) => isManaged(state, released, { countryId: entrantLabel(state, id).country ?? '', playerIds: ids(id) })} />}
+        </>}
       </>}
       <p className="hint">{t('withdrawHint', { w: W - WITHDRAW_FREE_WEEKS - 1 })}</p>
     </>

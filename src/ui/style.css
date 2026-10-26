@@ -177,6 +177,8 @@ tr.sel { background: var(--accent-soft); }
 .tag { font-size: .72rem; padding: 0 5px; border: 1px solid var(--accent-strong); border-radius: 3px; color: var(--accent-strong); display: inline-block; white-space: nowrap; }
 .tag.muted-tag { border-color: var(--muted); color: var(--muted); }
 button.mini { font-size: .72rem; padding: 0 8px; }
+button.nowrap { white-space: nowrap; }
+button.wide { width: 100%; text-align: left; }
 .flag { width: 14px; height: 10.5px; object-fit: cover; vertical-align: -1px; margin-right: 4px; border-radius: 1px; box-shadow: 0 0 0 1px var(--line); }
 
 /* Kartu & tata letak */
