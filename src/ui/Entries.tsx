@@ -233,11 +233,14 @@ function boundElsewhere(state: SeasonState, decisions: Record<string, string>, e
 /**
  * Satu baris entry (senior & junior): nama + status/morale (+ wajib / turnamen lain) · ability · ranking · centang.
  */
-function EntryRow({ e, checked, disabled, other, required, onToggle, target, onTarget }: {
+function EntryRow({ e, checked, disabled, other, required, onToggle, target, autoTarget, onTarget }: {
   e: EntryEntrant; checked: boolean; disabled: boolean; other?: string; required?: boolean; onToggle: (on: boolean) => void;
-  target?: Round; onTarget?: (r?: Round) => void;
+  /** Target manual (kosong = otomatis); `autoTarget` = saran otomatis yang berlaku bila tidak diatur. */
+  target?: Round | 'none'; autoTarget?: Round; onTarget?: (r?: Round | 'none') => void;
 }) {
   const { game } = useGame();
+  const [editing, setEditing] = useState(false);
+  const shown = target ?? autoTarget;
   const { state, ruleset } = game;
   const { players } = lookup(state);
   const ps = e.playerIds.map((id) => players.get(id)!);
@@ -256,12 +259,19 @@ function EntryRow({ e, checked, disabled, other, required, onToggle, target, onT
           {e.trial && <span className="tag">{t('trialPair')}</span>}
           {ps.some((x) => isPratama(x, state.date)) && <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>}
           {other && <span className="muted-text">→ {dataName(ruleset.calendar.find((x) => x.id === other)?.name)}</span>}
-          {onTarget && checked && (
-            <select className="target-select" value={target ?? ''} onChange={(x) => onTarget((x.target.value || undefined) as Round | undefined)} title={t('targetHint')}>
-              <option value="">{t('targetNone')}</option>
+          {/* Target babak: chip ringkas (otomatis); ketuk untuk mengubah, ✎ = diatur manual. */}
+          {onTarget && checked && (editing ? (
+            <select className="target-select" autoFocus value={target ?? ''} title={t('targetHint')} onBlur={() => setEditing(false)}
+              onChange={(x) => { onTarget((x.target.value || undefined) as Round | 'none' | undefined); setEditing(false); }}>
+              <option value="">{t('targetAuto', { r: autoTarget ? t(`target_${autoTarget}` as TextKey) : '—' })}</option>
+              <option value="none">{t('targetNoneOpt')}</option>
               {(['W', 'F', 'SF', 'QF', 'R16', 'R32'] as const).map((r) => <option key={r} value={r}>{t(`target_${r}` as TextKey)}</option>)}
             </select>
-          )}
+          ) : (
+            <button type="button" className={`target-chip${target !== undefined ? ' manual' : ''}`} title={t('targetChipHint')} onClick={() => setEditing(true)}>
+              🎯 {!shown || shown === 'none' ? '—' : shown === 'W' ? '🏆' : shown}{target !== undefined ? ' ✎' : ''}
+            </button>
+          ))}
         </div>
       </td>
       <td className="num">{Math.round(pair ? pairAbility(ab, pair.chemistry, ruleset.match) : ab[0])}</td>
@@ -446,14 +456,10 @@ export function EntryTable({ week: w, eventId, onSubmit }: { week: number; event
     return pick?.id === eventId && eligible(e) ? eventId : 'rest';
   });
 
-  // Saran target: babak realistis untuk semua atlet yang dicentang (semua nomor), dari perkiraan peserta turnamen ini.
+  // Target otomatis: babak realistis untuk atlet yang dicentang (semua nomor), dari perkiraan peserta turnamen ini.
   const playing = rows.filter(checked);
-  const suggestTarget = () => {
-    const s = suggestTargets(state, ruleset, game.world, eventId, playing);
-    for (const e of playing) setTarget(state, year, eventId, e.id, s.get(e.id));
-    changed();
-    void saveGame(game);
-  };
+  const playingKey = playing.map((e) => e.id).join();
+  const autoTargets = useMemo(() => suggestTargets(state, ruleset, game.world, eventId, playing), [version, eventId, playingKey]);
 
   return (
     <>
@@ -462,7 +468,6 @@ export function EntryTable({ week: w, eventId, onSubmit }: { week: number; event
         <button onClick={() => setAll((e) => (e.trial || !eligible(e) ? decisions[e.id] : eventId))}>{t('playAll')}</button>
         <button onClick={() => setAll(() => 'rest')}>{t('restAll')}</button>
         <button title={t('suggestionHint')} onClick={suggest}>💡 {t('suggestion')}</button>
-        <button title={t('suggestTargetHint')} disabled={!playing.length} onClick={suggestTarget}>🎯 {t('suggestTarget')}</button>
       </p>
       <nav className="controls subnav">
         {sectors.map((d) => (
@@ -477,7 +482,7 @@ export function EntryTable({ week: w, eventId, onSubmit }: { week: number; event
           <tbody>{rows.filter((e) => e.d === sector).map((e) => (
             <EntryRow key={e.id} e={e} checked={checked(e)} disabled={!eligible(e)} other={elsewhere(e)} required={required(e)}
               onToggle={(on) => set(e.id, on ? eventId : 'rest')}
-              target={state.targets?.[`${year}:${eventId}`]?.[e.id]}
+              target={state.targets?.[`${year}:${eventId}`]?.[e.id]} autoTarget={autoTargets.get(e.id)}
               onTarget={(r) => { setTarget(state, year, eventId, e.id, r); changed(); void saveGame(game); }} />
           ))}</tbody>
         </table>

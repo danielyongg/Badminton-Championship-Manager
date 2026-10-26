@@ -314,8 +314,8 @@ export function dissolvePair(state: SeasonState, pairId: string, byManager = fal
   if (byManager) for (const id of pair.playerIds) { const p = state.players.find((x) => x.id === id); if (p) bumpForm(p, -DISSOLVE_PENALTY); }
 }
 
-/** Target babak manajer untuk satu entrant di satu turnamen; `round` kosong = hapus. */
-export function setTarget(state: SeasonState, year: number, eventId: string, entrantId: string, round?: Round) {
+/** Target babak manual untuk satu entrant di satu turnamen; `round` kosong = kembali otomatis, 'none' = tanpa target. */
+export function setTarget(state: SeasonState, year: number, eventId: string, entrantId: string, round?: Round | 'none') {
   const map = ((state.targets ??= {})[`${year}:${eventId}`] ??= {});
   if (round) map[entrantId] = round; else delete map[entrantId];
 }

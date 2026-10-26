@@ -728,7 +728,9 @@ table.fit td.num { white-space: nowrap; }
 .entry-meta .required { margin: 0; }
 .entry-meta select.target-select { width: auto; min-width: 0; max-width: 100%; font-size: .8rem; padding: 2px 24px 2px 6px; background-position: right 8px center; } /* HP: tidak mendorong kolom centang keluar layar */
 .trait-tags { display: inline-flex; flex-wrap: wrap; gap: 3px; vertical-align: middle; }
-@media (max-width: 700px) { .entry-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .entry-actions button { margin: 0; } } /* HP: 4 tombol entry jadi 2×2 rapi */
+@media (max-width: 700px) { .entry-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .entry-actions button { margin: 0; } .entry-actions > :last-child:nth-child(odd) { grid-column: 1 / -1; } } /* HP: tombol entry 2 kolom rapi */
+.target-chip { font-size: .75rem; line-height: 1.4; padding: 0 7px; min-height: 0; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--fg); cursor: pointer; white-space: nowrap; }
+.target-chip.manual { border-color: var(--accent); color: var(--accent-strong); font-weight: 600; }
 .scout-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .scout-actions > :last-child { grid-column: 1 / -1; } /* Selesai selebar kartu di bawah dua tombol lain */
 .entry-check { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; cursor: pointer; }

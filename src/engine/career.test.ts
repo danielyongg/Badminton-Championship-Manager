@@ -261,8 +261,11 @@ describe('rapor target', () => {
     for (const ev of BWF_2026.calendar) for (const p of ms) setTarget(state, 2026, ev.id, p.id, 'QF');
     while (state.date.week <= 6) await playWeek(state, BWF_2026, WORLD, rng);
     const log = state.targetLog ?? [];
-    expect(log.length).toBeGreaterThan(0);
-    expect(log.every((x) => x.discipline === 'MS' && x.target === 'QF')).toBe(true);
+    const manual = log.filter((x) => !x.auto);
+    expect(manual.length).toBeGreaterThan(0);
+    expect(manual.every((x) => x.discipline === 'MS' && x.target === 'QF')).toBe(true);
+    // Tanpa target manual: target otomatis tetap dinilai (nomor lain).
+    expect(log.some((x) => x.auto && x.discipline !== 'MS')).toBe(true);
     const rep = targetReport(state, 2026);
     expect(rep.reduce((s, r) => s + r.n, 0)).toBe(log.length);
     expect(rep.every((r) => r.hit + r.miss <= r.n)).toBe(true);

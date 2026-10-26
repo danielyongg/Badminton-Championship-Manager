@@ -1,6 +1,6 @@
 import { bumpForm, CAREER_HIGH_BONUS, CLOSE_LOSS_EXP, CLOSE_LOSS_GAP, COMEBACK_CHANCE, COMEBACK_MENTAL, eliteCounts, isCloseLoss, mentorsOf, FIRST_TITLE_BONUS, FIRST_TOP10_WIN_BONUS, HOME_BONUS, hitTarget, PAIR_STREAK_BONUS, PAIR_STREAK_FROM, REST_RECOVERY, SELECT_BONUS, SNUB_PENALTY, snubbed, TARGET_HIT, TARGET_MISS } from './boosts';
 import { chemistryMult, ensureTraits, FRAGILE_DOWN, hasTrait, HOME_HERO_BONUS, injuryMult, LEADER_PARTNER, LEADER_SQUAD, QUICK_RECOVERY, TRAVELER_FATIGUE } from './traits';
-import { makeChallenges, seasonGoals, seasonReport } from './career';
+import { makeChallenges, seasonGoals, seasonReport, suggestTargets } from './career';
 import { contingentOf, inContingent, lockContingents } from './contingent';
 import { olympicField } from './olympics';
 import { applySevereInjury, capToPa, developQuarter, newJuniors, retirementChance, rollInjury } from './development';
@@ -64,10 +64,10 @@ export interface SeasonState {
   violations: Violation[];
   /** Laga berbobot per atlet di kuartal berjalan (untuk bonus perkembangan). */
   experience: Record<string, number>;
-  /** Target babak manajer per entrant: kunci "tahun:eventId". */
-  targets?: Record<string, Record<string, Round>>;
+  /** Target babak yang diatur manual per entrant (kunci "tahun:eventId"); 'none' = sengaja tanpa target. Tanpa isian = target otomatis. */
+  targets?: Record<string, Record<string, Round | 'none'>>;
   /** Hasil target babak manajer (rapor target musim). */
-  targetLog?: { year: number; eventId: string; discipline: Discipline; id: string; target: Round; reached?: Round; res: 'hit' | 'miss' | 'none' }[];
+  targetLog?: { year: number; eventId: string; discipline: Discipline; id: string; target: Round; reached?: Round; res: 'hit' | 'miss' | 'none'; auto?: true }[];
   /** Negara yang pasangannya diatur manajer (AI tidak membentuk pasangan baru di sana). */
   managedCountryId?: string | null;
   career?: Career;
@@ -644,6 +644,12 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
       };
       return runEvent({ tournament: event, discipline: d, year, hostCountryId: city.countryId, candidates, ruleset: rs, rng, play, onDraw: draw, onEntries: onEntries(d), parallel: gated, onRecord });
     });
+    // Target babak atlet negara manajer: manual bila diatur, selain itu otomatis (saran realistis; turnamen junior: manual saja).
+    const manual = state.targets?.[`${year}:${event.id}`] ?? {};
+    const released = releasedIds(state);
+    const mineIn = (d: Discipline) => entries.get(event.id)!.get(d)!
+      .filter((c) => isManaged(state, released, { countryId: c.countryId, playerIds: pairs.get(c.id)?.playerIds ?? [c.id] }));
+    const auto = tier.junior ? new Map<string, Round | undefined>() : suggestTargets(state, rs, world, event.id, ds.flatMap((d) => mineIn(d).map((c) => ({ id: c.id, d }))));
     ds.forEach((d, i) => {
       const run = runs[i];
       (tier.junior ? state.juniorResults : state.results).push(...knockoutResults(run.main, run.slots, event, tier, d, state.date, rs));
@@ -651,12 +657,13 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
       const live = state.eventRecords.find((r) => r.tournamentId === event.id && r.year === year && r.discipline === d);
       if (live) Object.assign(live, rec); else state.eventRecords.push(rec);
       awardPrizes(state, event, tier, d, run.main.reached, pairs);
-      // Target manajer: tercapai → morale naik, meleset ≥ 2 babak → turun.
-      for (const [id, target] of Object.entries(state.targets?.[`${year}:${event.id}`] ?? {})) {
-        if (!entries.get(event.id)!.get(d)!.some((c) => c.id === id)) continue; // bukan nomor ini / tidak masuk entry
+      // Target: tercapai → morale naik, meleset ≥ 2 babak → turun.
+      for (const { id } of mineIn(d)) {
+        const target = manual[id] ?? auto.get(id);
+        if (!target || target === 'none') continue;
         const reached = run.main.reached.get(id) as Round | undefined;
         const res = hitTarget(reached, target);
-        (state.targetLog ??= []).push({ year, eventId: event.id, discipline: d, id, target, reached, res });
+        (state.targetLog ??= []).push({ year, eventId: event.id, discipline: d, id, target, reached, res, ...(manual[id] === undefined && { auto: true as const }) });
         if (res !== 'none') for (const x of pairs.get(id)?.playerIds ?? [id]) { const p = players.get(x); if (p) bumpForm(p, res === 'hit' ? TARGET_HIT : -TARGET_MISS); }
       }
       state.champions.push({ tournamentId: event.id, year, discipline: d, winner: run.main.rounds.at(-1)![0]! });
