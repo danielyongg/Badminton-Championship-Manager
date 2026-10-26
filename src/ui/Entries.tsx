@@ -251,11 +251,11 @@ function EntryRow({ e, checked, disabled, other, required, onToggle, target, aut
       <td>
         <span className="chip">{e.d}</span> {entrantLabel(state, e.id).name}
         {/* Tag jenis (percobaan / Development) di baris keterangan bersama status & wajib, tidak menumpuk di nama. */}
-        <div className="entry-meta">
+        <div className={`entry-meta${onTarget && checked ? ' has-target' : ''}`}>
           <FitStatus ps={ps} />
           <MoraleTag short value={ps.reduce((sum, p) => sum + p.form, 0) / ps.length}
             detail={ps.length > 1 ? ps.map((p) => `${p.name}: ${t(`morale_${moraleTier(p.form)}` as TextKey)}`).join(' · ') : undefined} />
-          {required && <span className="required">⭐ {t('required')}</span>}
+          {required && <span className="required" title={t('required')}>⭐<span className="required-label"> {t('required')}</span></span>}
           {e.trial && <span className="tag">{t('trialPair')}</span>}
           {ps.some((x) => isPratama(x, state.date)) && <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>}
           {other && <span className="muted-text">→ {dataName(ruleset.calendar.find((x) => x.id === other)?.name)}</span>}
