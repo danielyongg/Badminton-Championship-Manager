@@ -126,8 +126,10 @@ function MainMenu({ onStart, onLab, onEditor, onLang }: { onStart: (g: Game) => 
         </label>
         {msg && <p>{msg}</p>}
       </section>
-      <p><button onClick={onEditor}>{t('openEditor')}</button></p>
-      <p><button onClick={onLab}>{t('openLab')}</button></p>
+      <p className="menu-tools">
+        <button onClick={onEditor}>{t('openEditor')}</button>
+        <button onClick={onLab}>{t('openLab')}</button>
+      </p>
     </main>
   );
 }

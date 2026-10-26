@@ -777,6 +777,11 @@ table.fit td.num { white-space: nowrap; }
 .prematch { border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; margin: 8px 0; font-size: .9em; }
 .prematch p { margin: 4px 0; }
 /* Input file sebagai tombol biasa (input bawaan peramban: teks bahasa Inggris & kotak kasar). */
+.pack-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.pack-row:last-child { border-bottom: 0; }
+.pack-actions { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(130px, 100%), 1fr)); gap: 6px; max-width: 640px; } /* HP: 2 per baris; laptop: sebaris */
+.pack-actions button { margin: 0; }
+.menu-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-width: 420px; } /* Data Editor & Test Lab sebaris */
 .filebtn { display: inline-block; cursor: pointer; border: 1px solid var(--line); border-radius: 4px; padding: 4px 10px; background: var(--surface); }
 .filebtn:hover { border-color: var(--accent); }
 .filebtn:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }

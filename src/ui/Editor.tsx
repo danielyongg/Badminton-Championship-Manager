@@ -318,30 +318,31 @@ export function PackManager({ onBack }: { onBack: () => void }) {
       </main>
     );
 
+  // Satu paket per baris: nama & isi di atas, tombol aksi di bawahnya (membungkus; tidak perlu digeser di HP).
   const row = (p: DataPack, own: boolean) => (
-    <tr key={p.id}>
-      <td><b>{p.name}</b></td>
-      <td>{p.ruleset.name}</td>
-      <td className="num">{p.players.length ? `${p.players.length} ${t('players')}` : t('fictionalPlayers')}</td>
-      <td>{own && <button onClick={() => setEditing(structuredClone(p))}>{t('edit')}</button>}</td>
-      <td><button onClick={() => copy(p)}>{t('copyToEdit')}</button></td>
-      <td><button onClick={() => downloadPack(p)}>{t('export')}</button></td>
-      <td>{own && <button onClick={() => confirm(t('confirmDelete')) && deletePack(p.id)}>{t('delete')}</button>}</td>
-    </tr>
+    <div key={p.id} className="pack-row">
+      <div><b>{p.name}</b> <small className="muted-text">{p.ruleset.name} · {p.players.length ? `${p.players.length} ${t('players')}` : t('fictionalPlayers')}</small></div>
+      <div className="pack-actions">
+        {own && <button className="primary" onClick={() => setEditing(structuredClone(p))}>{t('edit')}</button>}
+        <button onClick={() => copy(p)}>{t('copyToEdit')}</button>
+        <button onClick={() => downloadPack(p)}>{t('export')}</button>
+        {own && <button onClick={() => confirm(t('confirmDelete')) && deletePack(p.id)}>{t('delete')}</button>}
+      </div>
+    </div>
   );
   return (
     <main className="menu">
       <h1>{t('editor')}</h1>
       <p className="hint">{t('packHelp')}</p>
       <section className="card">
-        <table><tbody>
-          {PRESETS.map((rs) => row(presetPack(rs), false))}
-          {packs?.map((p) => row(p, true))}
-        </tbody></table>
+        {PRESETS.map((rs) => row(presetPack(rs), false))}
+        {packs?.map((p) => row(p, true))}
       </section>
       <section className="card">
         <h3>{t('import')}</h3>
-        <input type="file" accept=".json,application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importFile(f); e.target.value = ''; }} />
+        <label className="filebtn">{t('chooseJson')}
+          <input type="file" className="sr-only" accept=".json,application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importFile(f); e.target.value = ''; }} />
+        </label>
         {msg && <p>{msg}</p>}
       </section>
       <button onClick={onBack}>{t('back')}</button>
