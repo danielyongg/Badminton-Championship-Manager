@@ -591,7 +591,7 @@ export function EntryTable({ week: w, eventId, onSubmit }: { week: number; event
 
   return (
     <>
-      <p>{t('entryHelp')}</p>
+      <p className="hint">{t('entryHelp')}</p>
       <p className="controls entry-actions">
         <button onClick={() => setAll((e) => (e.trial || !eligible(e) ? decisions[e.id] : eventId))}>{t('playAll')}</button>
         <button onClick={() => setAll(() => 'rest')}>{t('restAll')}</button>
