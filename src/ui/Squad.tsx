@@ -161,7 +161,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
           ))}{released ? <th></th> : <th title={t('tierPrefsHint')}>{t(singlesView ? 'tierPrefs' : 'manageSectors')}</th>}</tr></thead>
           <tbody>{list.map((p) => (
             <tr key={p.id} onClick={() => onOpen(p.id)} style={{ cursor: 'pointer' }}>
-              <td>{p.name} <TraitTags p={p} matches={counts.get(p.id) ?? 0} /></td>{!singlesView && <td className="m-hide">{p.gender}</td>}
+              <td>{p.name}<TraitTags p={p} matches={counts.get(p.id) ?? 0} block /></td>{!singlesView && <td className="m-hide">{p.gender}</td>}
               {juniorCols && <td>{isPratama(p, state.date)
                 ? <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>
                 : <span className="tag">{t('utama')}</span>}</td>}
@@ -279,8 +279,14 @@ export function ScoutFocusSelect() {
 }
 
 /** Sifat atlet yang sudah terbaca (fisik setelah 2 musim, lainnya setelah 30 laga). */
-export function TraitTags({ p, matches }: { p: Player; matches: number }) {
-  return <>{visibleTraits(p, matches).map((x) => <span key={x} className="tag" title={t(`traitHint_${x}` as TextKey)}>{t(`trait_${x}` as TextKey)}</span>)}</>;
+export function TraitTags({ p, matches, block }: { p: Player; matches: number; block?: boolean }) {
+  const ts = visibleTraits(p, matches);
+  if (!ts.length) return null;
+  return (
+    <span className={block ? 'trait-tags block' : 'trait-tags'}>
+      {ts.map((x) => <span key={x} className="tag" title={t(`traitHint_${x}` as TextKey)}>{t(`trait_${x}` as TextKey)}</span>)}
+    </span>
+  );
 }
 
 export function MoraleTag({ value, short, detail }: { value: number; short?: boolean; detail?: string }) {
@@ -418,7 +424,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           {fact(t('fatigue'), <FatigueBar value={p.fatigue} />)}
           {fact(t('traits'), visibleTraits(p, counts.get(p.id) ?? 0).length ? <TraitTags p={p} matches={counts.get(p.id) ?? 0} /> : <span className="muted-text">{t('traitsUnknown')}</span>)}
           {p.retired === undefined && ageAt(p.birth, state.date) <= ruleset.development.experience.untilAge
-            && fact(t('expFactor'), <span title={t('expFactorHint')}>×{experienceFactor(ruleset.development, state.experience[p.id] ?? 0).toFixed(2)} · {t('expMatches', { n: Math.round(state.experience[p.id] ?? 0) })}</span>)}
+            && fact(t('expFactor'), <span title={t('expFactorHint')}>×{experienceFactor(ruleset.development, state.experience[p.id] ?? 0).toLocaleString(numLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · {t('expMatches', { n: Math.round(state.experience[p.id] ?? 0) })}</span>)}
           {fact(t('status'), p.retired !== undefined ? `${t('retired')} ${p.retired}`
             : p.released !== undefined ? <span className="tag muted-tag">{t('releasedTag', { year: p.released })}</span>
             : <FitStatus ps={[p]} />)}

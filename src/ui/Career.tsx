@@ -442,7 +442,7 @@ function ScoutingCard() {
                     <tr key={p.id} className={picked.includes(p.id) ? 'sel' : undefined} onClick={() => toggle(p.id)} style={{ cursor: 'pointer' }}>
                       <td><input type="checkbox" checked={picked.includes(p.id)} readOnly /> {p.name}
                         <div className="entry-meta muted-text">
-                          {styleOf(p).map((a) => t(a)).join(' · ')}{p.hometown && <> · {city(p.hometown)}</>}
+                          <span>{[...styleOf(p).map((a) => t(a)), p.hometown && city(p.hometown)].filter(Boolean).join(' · ')}</span>
                           {(s.notes?.[p.id] ?? []).map((n) => <span key={n} className="tag muted-tag" title={t(`traitHint_${n}` as TextKey)}>{t(`trait_${n}` as TextKey)}?</span>)}
                         </div>
                       </td>
@@ -455,7 +455,7 @@ function ScoutingCard() {
               </table>
             </div>
           ))}
-          <p className="controls">
+          <p className="controls scout-actions">
             <button onClick={() => setPicked(autoPick(s, picked))}>{t('autoPick')}</button>
             <button disabled={!picked.length} onClick={some}>{t('scoutRecruitSome')} ({picked.length})</button>
             <button className="primary" disabled={!picked.length && !s.recruited} onClick={done}>{t('scoutFinish')}{picked.length ? ` (${picked.length})` : ''}</button>
