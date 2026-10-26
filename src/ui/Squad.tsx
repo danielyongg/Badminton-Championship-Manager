@@ -161,7 +161,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
           ))}{released ? <th></th> : <th title={t('tierPrefsHint')}>{t(singlesView ? 'tierPrefs' : 'manageSectors')}</th>}</tr></thead>
           <tbody>{list.map((p) => (
             <tr key={p.id} onClick={() => onOpen(p.id)} style={{ cursor: 'pointer' }}>
-              <td>{p.name}<TraitTags p={p} matches={counts.get(p.id) ?? 0} block /></td>{!singlesView && <td className="m-hide">{p.gender}</td>}
+              <td>{p.name}</td>{!singlesView && <td className="m-hide">{p.gender}</td>}
               {juniorCols && <td>{isPratama(p, state.date)
                 ? <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>
                 : <span className="tag">{t('utama')}</span>}</td>}
@@ -279,11 +279,11 @@ export function ScoutFocusSelect() {
 }
 
 /** Sifat atlet yang sudah terbaca (fisik setelah 2 musim, lainnya setelah 30 laga). */
-export function TraitTags({ p, matches, block }: { p: Player; matches: number; block?: boolean }) {
+function TraitTags({ p, matches }: { p: Player; matches: number }) {
   const ts = visibleTraits(p, matches);
   if (!ts.length) return null;
   return (
-    <span className={block ? 'trait-tags block' : 'trait-tags'}>
+    <span className="trait-tags">
       {ts.map((x) => <span key={x} className="tag" title={t(`traitHint_${x}` as TextKey)}>{t(`trait_${x}` as TextKey)}</span>)}
     </span>
   );
