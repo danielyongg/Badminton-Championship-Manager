@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
-import { aiEventChoice, entrantsFor, hostCityId, openTo, type SeasonState, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
+import { aiEventChoice, entrantsFor, entryClosed, entryDeadline, hostCityId, openTo, type SeasonState, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey, withdrawEntry, WITHDRAW_FREE_WEEKS } from '../engine/season';
+import { acceptEntries, applyCountryQuota } from '../engine/entry';
+import { makeRng } from '../engine/rng';
+import { EntryLists } from './EventViews';
 import { autoSquad, squadError, squadPool } from '../engine/team';
 import { contingentOf, inContingent, lockWeek } from '../engine/contingent';
 import { DISCIPLINES, isDoubles, isJuniorFormat, type Discipline, type Round, type Ruleset, type TeamFormat, type TournamentDef, type World } from '../engine/types';
@@ -84,23 +87,136 @@ export function canEnter(state: SeasonState, rs: Ruleset, world: World, id: stri
 }
 
 /** Form entry satu turnamen (individu, junior, atau skuad beregu) + tombol submit; tampil di halaman turnamen. */
-export function EntryPanel({ id }: { id: string }) {
+export function EntryPanel({ id, onSubmitted }: { id: string; onSubmitted?: () => void }) {
   const { game, changed } = useGame();
   const { state, ruleset } = game;
-  const { year } = state.date;
+  const { year, week } = state.date;
   const done = state.entriesSubmitted?.[`${year}:${id}`];
   // `ai`: diserahkan ke asisten AI (atlet yang belum diputuskan tetap boleh diisi AI ke turnamen ini).
-  const submit = (ai?: boolean) => { (state.entriesSubmitted ??= {})[`${year}:${id}`] = ai ? 'ai' : true; changed(); void saveGame(game); };
-  const status = done ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>;
+  const submit = (ai?: boolean) => { (state.entriesSubmitted ??= {})[`${year}:${id}`] = ai ? 'ai' : true; changed(); void saveGame(game); onSubmitted?.(); };
+  const closed = entryClosed(state, ruleset, id);
+  const deadline = entryDeadline(ruleset, id, year);
+  const status = closed ? <span className="badge">🔒 {t('entryClosed')}</span>
+    : done ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('entryIncomplete')}</span>;
   const teamEv = ruleset.team.events.find((e) => e.id === id);
   const ev = ruleset.calendar.find((e) => e.id === id);
+  // Batas entry (aturan BWF): sampai minggu batas entry bisa diubah; sesudahnya daftar entry terbit & hanya bisa mundur.
+  const note = deadline !== undefined && (
+    <p className="hint">⏰ {closed ? t('entryClosedAt', { w: deadline })
+      : deadline <= week ? t('entryDeadlineNow') : t('entryDeadlineAt', { w: deadline, n: deadline - week })}</p>
+  );
+  if (closed) return (
+    <section className="card">
+      <h3>{t('entryStatus')} {status}</h3>
+      {note}
+      {teamEv ? <ClosedSquads eventId={id} formats={teamEv.formats ?? teamFormatsIn(ruleset, year)} /> : ev && <ClosedEntries ev={ev} />}
+    </section>
+  );
   return (
     <section className="card">
       <h3>{t('entryStatus')} {status}</h3>
+      {note}
       {teamEv ? <TeamSquads eventId={id} formats={teamEv.formats ?? teamFormatsIn(ruleset, year)} onSubmit={submit} />
       : ev && ruleset.tiers.find((x) => x.id === ev.tierId)?.junior ? <JuniorEntryTable ev={ev} onSubmit={submit} />
       : ev && <><EntryRules ev={ev} /><EntryTable week={weekOf(ev, year)} eventId={id} onSubmit={submit} /></>}
     </section>
+  );
+}
+
+/**
+ * Entry yang sudah ditutup: daftar entry terbit — status atlet sendiri (langsung / kualifikasi / cadangan / mundur) dengan
+ * tombol Mundur (terlambat → penalti reputasi), dan daftar entry lengkap per nomor.
+ */
+function ClosedEntries({ ev }: { ev: TournamentDef }) {
+  const { game, changed } = useGame();
+  const { state, ruleset } = game;
+  const { year, week } = state.date;
+  const key = `${year}:${ev.id}`;
+  const list = state.entryLists?.[key];
+  const tier = ruleset.tiers.find((x) => x.id === ev.tierId)!;
+  const [confirm, setConfirm] = useState<string>();
+  const sectors = DISCIPLINES.filter((d) => (list?.[d] ?? []).length > 0);
+  const [picked, setSector] = useState<Discipline>();
+  if (!list) return <p className="hint">{t('entryListPending')}</p>;
+  const sector = picked && sectors.includes(picked) ? picked : sectors[0];
+  const out = state.withdrawn?.[key] ?? [];
+  const released = releasedIds(state);
+  const ids = (id: string) => state.pairs.find((p) => p.id === id)?.playerIds ?? [id];
+  const W = weekOf(ev, year);
+  const late = week >= W - WITHDRAW_FREE_WEEKS;
+  const accepted = (d: Discipline) => {
+    const cands = (list[d] ?? []).filter((c) => !out.includes(c.id));
+    return acceptEntries(tier.countryQuota ? applyCountryQuota(cands, tier.countryQuota) : cands, [], tier, tier.drawSize[d], ruleset, makeRng(1), d);
+  };
+  const acc = sector && accepted(sector);
+  const statusOf = (id: string) => out.includes(id) ? 'withdrawn' : acc!.main.some((c) => c.id === id) ? 'main' : acc!.qualifying.some((c) => c.id === id) ? 'qual' : 'reserve';
+  const mine = sector ? (list[sector] ?? []).filter((c) => isManaged(state, released, { countryId: c.countryId, playerIds: ids(c.id) })) : [];
+  const withdraw = (id: string) => { withdrawEntry(state, ruleset, ev.id, id); setConfirm(undefined); changed(); void saveGame(game); };
+  return (
+    <>
+      {!sectors.length ? <p className="hint">{t('entryListEmpty')}</p> : <>
+        <nav className="controls subnav">
+          {sectors.map((d) => (
+            <button key={d} aria-pressed={d === sector} onClick={() => setSector(d)}>{d}</button>
+          ))}
+        </nav>
+        {!mine.length ? <p className="hint">{t('entryNoneMine')}</p> : (
+          <table className="entrytable fit">
+            <thead><tr><th>{t('name')}</th><th className="num">{t('rank')}</th><th>{t('status')}</th></tr></thead>
+            <tbody>{mine.map((c) => {
+              const st = statusOf(c.id);
+              return (
+                <tr key={c.id} className={st === 'withdrawn' ? 'muted-text' : undefined}>
+                  <td><span className="chip">{sector}</span> {entrantLabel(state, c.id).name}
+                    {confirm === c.id && (
+                      <div className="entry-meta">
+                        <span className={late ? 'down' : 'muted-text'}>{late ? t('withdrawLate', { n: 1 }) : t('withdrawFree')}</span>
+                        <button className="mini" onClick={() => withdraw(c.id)}>{t('withdrawYes')}</button>
+                        <button className="mini" onClick={() => setConfirm(undefined)}>{t('cancel')}</button>
+                      </div>
+                    )}
+                  </td>
+                  <td className="num">{c.rank ?? '—'}</td>
+                  <td>
+                    <span className={`badge${st === 'main' ? ' good' : ''}`}>{t(st === 'main' ? 'statusDirect' : st === 'qual' ? 'qualifying' : st === 'reserve' ? 'reserves' : 'withdrawnTag')}</span>
+                    {st !== 'withdrawn' && confirm !== c.id && <> <button className="mini" onClick={() => setConfirm(c.id)}>{t('withdraw')}</button></>}
+                  </td>
+                </tr>
+              );
+            })}</tbody>
+          </table>
+        )}
+        {acc && (
+          <details className="entrylist-all">
+            <summary>{t('entryListFull')} · {sector}</summary>
+            <EntryLists entry={{ ...acc }} name={(id) => entrantLabel(state, id).name}
+              mine={(id) => isManaged(state, released, { countryId: entrantLabel(state, id).country ?? '', playerIds: ids(id) })} />
+          </details>
+        )}
+      </>}
+      <p className="hint">{t('withdrawHint', { w: W - WITHDRAW_FREE_WEEKS - 1 })}</p>
+    </>
+  );
+}
+
+/** Skuad beregu setelah batas nominasi: skuad terdaftar (atau otomatis) tidak bisa diubah lagi. */
+function ClosedSquads({ eventId, formats }: { eventId: string; formats: TeamFormat[] }) {
+  const { game } = useGame();
+  const { state } = game;
+  const { players } = lookup(state);
+  const submitted = state.entriesSubmitted?.[`${state.date.year}:${eventId}`] === true;
+  return (
+    <>
+      {formats.map((f) => (
+        <div key={f}>
+          <h4>{formatName(f, eventId)}</h4>
+          {submitted && state.teamSquads[f]?.length
+            ? <p>{state.teamSquads[f]!.map((id) => players.get(id)?.name ?? id).join(', ')}</p>
+            : <p className="hint">{t('squadAuto')}</p>}
+        </div>
+      ))}
+      <p className="hint">{t('squadLockedHint')}</p>
+    </>
   );
 }
 
@@ -167,6 +283,11 @@ function SeasonPlan() {
                 const offered = [...plannableEvents(ruleset, year, w, state.managedCountryId, myConf),
                   ...(e.playerIds.every((id) => { const p = players.get(id); return !!p && isJuniorAge(p, { year, week: w }); }) ? juniorEvents(w) : [])]
                   .filter((ev) => ruleset.tiers.find((x) => x.id === ev.tierId)!.drawSize[e.d] > 0);
+                // Entry sudah ditutup (daftar terbit): sel terkunci — turnamen tempat ia terdaftar, atau istirahat.
+                const listedIn = offered.find((ev) => entryClosed(state, ruleset, ev.id) && !state.withdrawn?.[`${year}:${ev.id}`]?.includes(e.id)
+                  && Object.values(state.entryLists?.[`${year}:${ev.id}`] ?? {}).flat().some((x) => x?.id === e.id));
+                const open = offered.filter((ev) => !entryClosed(state, ruleset, ev.id));
+                if (listedIn || !open.length) return <td key={w} title={t('entryClosed')}><span className="plan-cell locked">🔒 {listedIn ? short(listedIn.id) : t('rest')}</span></td>;
                 const shown = c.kind === 'manual' ? label(c) : c.kind === 'required' ? `⭐ ${label(c)}` : t('tierPrefsFree');
                 // Sel menampilkan pilihan manual / turnamen wajib / "Otomatis"; select transparan di atasnya untuk mengubah.
                 return (
@@ -175,7 +296,7 @@ function SeasonPlan() {
                       {shown}
                       <select value={c.kind === 'manual' ? c.eventId! : 'auto'} onChange={(ev) => set(w, e.id, ev.target.value)}>
                         <option value="auto">{t('tierPrefsFree')}</option>
-                        {offered.map((ev) => <option key={ev.id} value={ev.id}>{short(ev.id)}</option>)}
+                        {open.map((ev) => <option key={ev.id} value={ev.id}>{short(ev.id)}</option>)}
                         <option value="rest">{t('rest')}</option>
                       </select>
                     </label>

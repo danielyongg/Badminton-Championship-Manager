@@ -4,7 +4,7 @@ import { BWF_2026 } from './presets/bwf2026';
 import { BWF_2027 } from './presets/bwf2027';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
-import { entrantsFor, finalsTeams, newSeason, playWeek, teamStrengths, type SeasonState, type TeamHook, type WeekHooks } from './season';
+import { entrantsFor, entryDeadline, finalsTeams, newSeason, playWeek, teamStrengths, type SeasonState, type TeamHook, type WeekHooks } from './season';
 import { isJuniorAge } from './generator';
 import { adHocId, autoLineup, rankOrder, autoSquad, lineupError, playTie, squadError, type Lineup, type TeamEntrant } from './team';
 import type { DrawShow } from './tournament';
@@ -297,20 +297,22 @@ describe('Thomas, Uber & Sudirman Cup', () => {
     expect(state.matches.some((m) => m.tournamentId === 'thomas-uber-cup' && m.discipline === 'WS' && m.sides.some((s) => s.startsWith('INA')))).toBe(true);
   });
 
-  it('manajer memilih skuad sebelum turnamen & line-up tiap pertandingan; pilihan tidak sah → otomatis', async () => {
+  it('manajer menominasikan skuad sebelum batas entry & line-up tiap pertandingan; pilihan tidak sah → otomatis', async () => {
     const state = newSeason(WORLD, BWF_2026, 8, undefined, 'INA');
-    const squadCalls: string[] = [];
     const lineupCalls: { eventId: string; round: string; opponent: string }[] = [];
-    let chosen: string[] = [];
+    // Nominasi skuad lewat form entry (sebelum batas entry): Thomas = skuad minimum (3 tunggal + 2 pasangan, ≤ 7 atlet);
+    // Uber = tidak sah → skuad otomatis.
+    const nominate = () => {
+      const pool = teamStrengths(state, BWF_2026, 'thomas').find((x) => x.countryId === 'INA')!.pool;
+      state.teamSquads.thomas = autoSquad(BWF_2026.team.order.thomas, pool, 2, 7);
+      state.teamSquads.uber = ['bukan-atlet'];
+      return state.teamSquads.thomas;
+    };
+    nominate();
+    for (const id of ['asia-team', 'thomas-uber-cup']) (state.entriesSubmitted ??= {})[`2026:${id}`] = true;
     let firstLineup: Lineup | undefined;
     const hook: TeamHook = {
-      squad: (req) => {
-        squadCalls.push(`${req.eventId}:${req.format}`);
-        if (req.format === 'uber') return Promise.resolve(['bukan-atlet']); // tidak sah → skuad otomatis
-        // Skuad minimum: 3 tunggal terbaik + 2 pasangan terbaik yang tidak bentrok (≤ 7 atlet).
-        chosen = autoSquad(BWF_2026.team.order.thomas, req.pool, 2, 7);
-        return Promise.resolve(chosen);
-      },
+      squad: () => { throw new Error('skuad tidak lagi ditanyakan saat turnamen (sudah dinominasikan)'); },
       lineup: (req) => {
         lineupCalls.push({ eventId: req.eventId, round: req.round, opponent: req.opponent });
         if (req.format !== 'thomas') return null;
@@ -321,8 +323,12 @@ describe('Thomas, Uber & Sudirman Cup', () => {
         return Promise.resolve(l);
       },
     };
-    await until(state, BWF_2026, 19, 8, { team: hook });
-    expect(squadCalls).toEqual(expect.arrayContaining(['asia-team:thomas', 'asia-team:uber', 'thomas-uber-cup:thomas', 'thomas-uber-cup:uber']));
+    // Nominasi final diperbarui di minggu batas entry (2 minggu sebelum Thomas & Uber Cup).
+    const rng = makeRng(8);
+    const deadline = entryDeadline(BWF_2026, 'thomas-uber-cup', 2026)!;
+    while (state.date.week < deadline) await playWeek(state, BWF_2026, WORLD, rng, { team: hook });
+    const chosen = nominate();
+    while (state.date.week < 19) await playWeek(state, BWF_2026, WORLD, rng, { team: hook });
     const finals = state.teamResults.find((r) => r.eventId === 'thomas-uber-cup' && r.format === 'thomas')!;
     expect(finals.squads.INA).toEqual(chosen);
     // Semua atlet INA yang bermain di final Thomas berasal dari skuad terdaftar.

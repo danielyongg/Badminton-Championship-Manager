@@ -25,11 +25,13 @@ interface JuniorState {
 export function juniorEntries(
   state: JuniorState, events: TournamentDef[], rs: Ruleset, world: World,
   ranks: Map<Discipline, Map<string, number>>, manual: Record<string, string>, rng: Rng,
+  /** Atlet yang sudah terdaftar di turnamen lain minggu itu (daftar entry yang lebih dulu terbit). */
+  taken: Set<string> = new Set(),
 ) {
   const conf = new Map(world.countries.map((c) => [c.id, c.confederation]));
   const entries = new Map<string, Map<Discipline, Candidate[]>>();
   const created: Pair[] = [];
-  const busy = new Set<string>();
+  const busy = new Set<string>(taken);
   const abil = new Map(state.players.map((p) => [p.id, currentAbility(p.attrs)]));
   const ca = (id: string) => abil.get(id)!;
 

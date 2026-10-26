@@ -77,6 +77,10 @@ export interface SeasonState {
   tierPrefs?: Record<string, TierId[]>;
   /** Pencarian bakat junior negara manajer yang belum diputuskan (kandidat akhir musim). */
   scouting?: Scouting;
+  /** Daftar entry yang sudah terbit (batas entry lewat), kunci "tahun:eventId": peserta per nomor, urut seperti saat diterbitkan. */
+  entryLists?: Record<string, Partial<Record<Discipline, Candidate[]>>>;
+  /** Entrant yang mundur setelah daftar entry terbit (kunci "tahun:eventId"). */
+  withdrawn?: Record<string, string[]>;
   /** Fokus pencarian bakat akhir musim berikutnya (kosong = seimbang). */
   scoutFocus?: ScoutFocus;
   /**
@@ -395,16 +399,97 @@ function distanceKm(a: City, b: City) {
 }
 
 /**
+ * Batas entry per tier (minggu sebelum minggu turnamen), mengikuti prospektus & regulasi BWF (ASUMSI, dibulatkan ke minggu):
+ * Super 1000/750 ±42 hari, Super 500/300 ±35 hari, Super 100 & grade 3 & kejuaraan kontinental 4 minggu, Kejuaraan Dunia
+ * ±2 minggu; junior: Kejuaraan Dunia Junior ±3 minggu, lainnya ±4 minggu. Tier lain (WTF, Olimpiade, multi-event) tanpa
+ * batas entry: peserta ditetapkan saat turnamen (kualifikasi / kontingen).
+ */
+export const ENTRY_LEAD: Record<string, number> = {
+  S1000: 6, S750: 6, S500: 5, S300: 5, S100: 4, IC: 4, IS: 4, FS: 4, CCA: 4, CCE: 4, CCP: 4, CCI: 4, WC: 2,
+  WJC: 3, JC: 4, JC2: 4, JGP: 4, JIC: 4, JIS: 4,
+};
+/** Nominasi skuad beregu: 14 hari sebelum turnamen (regulasi Thomas & Uber Cup 9.1). */
+export const TEAM_ENTRY_LEAD = 2;
+/** Mundur tanpa penalti sampai sebelum minggu W−1 (±seminggu sebelum undian); sesudahnya reputasi −1 (kecuali cedera). */
+export const WITHDRAW_FREE_WEEKS = 1, LATE_WITHDRAW_PENALTY = 1;
+
+/** Minggu batas entry (entry terakhir bisa diubah di minggu ini; awal Januari: minggu 1). Tanpa batas → undefined. */
+export function entryDeadline(rs: Ruleset, id: string, year: number): number | undefined {
+  const ev = rs.calendar.find((e) => e.id === id);
+  if (ev) { const lead = ENTRY_LEAD[ev.tierId]; return lead === undefined ? undefined : Math.max(1, weekOf(ev, year) - lead); }
+  const team = rs.team.events.find((e) => e.id === id);
+  return team && Math.max(1, weekOf(team, year) - TEAM_ENTRY_LEAD);
+}
+/**
+ * Entry turnamen sudah ditutup: minggu batas sudah dimainkan (individu: daftar entry sudah terbit — save lama yang
+ * batasnya terlewat tetap bisa diisi sampai daftar terbit di minggu berikutnya).
+ */
+export const entryClosed = (state: SeasonState, rs: Ruleset, id: string) => {
+  const d = entryDeadline(rs, id, state.date.year);
+  if (d === undefined || state.date.week <= d) return false;
+  return rs.calendar.some((e) => e.id === id) ? !!state.entryLists?.[`${state.date.year}:${id}`] : true;
+};
+
+/** Mundur dari daftar entry yang sudah terbit; mundur terlambat tanpa cedera (bukan atlet wajib) → reputasi −1. Hasil: kena penalti. */
+export function withdrawEntry(state: SeasonState, rs: Ruleset, eventId: string, entrantId: string) {
+  const { year, week } = state.date;
+  const key = `${year}:${eventId}`;
+  const list = (state.withdrawn ??= {})[key] ??= [];
+  if (list.includes(entrantId)) return false;
+  list.push(entrantId);
+  const ev = rs.calendar.find((e) => e.id === eventId)!;
+  const ids = state.pairs.find((p) => p.id === entrantId)?.playerIds ?? [entrantId];
+  const injured = ids.some((id) => state.players.find((p) => p.id === id)?.injury);
+  const late = week >= weekOf(ev, year) - WITHDRAW_FREE_WEEKS;
+  if (!late || injured || state.commitments[entrantId]?.includes(eventId) || !state.career) return false;
+  state.career.reputation = Math.max(0, state.career.reputation - LATE_WITHDRAW_PENALTY);
+  return true;
+}
+
+/**
+ * Terbitkan daftar entry turnamen yang batas entrinya sudah tiba (minggu ini atau terlewat, mis. save lama), per minggu
+ * turnamen: junior dulu, lalu senior; atlet yang sudah terdaftar di turnamen lain minggu itu tidak didaftarkan lagi.
+ */
+function publishEntries(state: SeasonState, rs: Ruleset, world: World, rng: Rng) {
+  const { year, week } = state.date;
+  const lists = (state.entryLists ??= {});
+  const due = rs.calendar.filter((e) => isHeld(e, year) && weekOf(e, year) >= week && !lists[`${year}:${e.id}`]
+    && (entryDeadline(rs, e.id, year) ?? Infinity) <= week);
+  if (!due.length) return;
+  const pairs = new Map(state.pairs.map((p) => [p.id, p]));
+  const ranks = new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.results, d, absWeek(state.date), rs))]));
+  const juniorRanks = new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.juniorResults, d, absWeek(state.date), rs))]));
+  const store = (entries: Map<string, Map<Discipline, Candidate[]>>) => {
+    for (const [id, byD] of entries) lists[`${year}:${id}`] = Object.fromEntries(byD) as Partial<Record<Discipline, Candidate[]>>;
+  };
+  for (const w of new Set(due.map((e) => weekOf(e, year)))) {
+    const evs = due.filter((e) => weekOf(e, year) === w).sort((a, b) => tierOf(rs, b).points[0] - tierOf(rs, a).points[0]);
+    const manual = state.manualEntries[weekKey({ year, week: w })] ?? {};
+    // Atlet di daftar entry lain minggu itu (sudah terbit) tidak didaftarkan lagi.
+    const busy = new Set(rs.calendar.filter((e) => weekOf(e, year) === w).flatMap((e) => Object.values(lists[`${year}:${e.id}`] ?? {}).flat()
+      .flatMap((c) => pairs.get(c!.id)?.playerIds ?? [c!.id])));
+    const junior = juniorEntries(state, evs.filter((e) => tierOf(rs, e).junior), rs, world, juniorRanks, manual, rng, busy);
+    state.pairs.push(...junior.created);
+    store(junior.entries);
+    junior.busy.forEach((id) => busy.add(id));
+    // Minggu beregu junior (Suhandinata Cup): junior disiapkan untuk timnya, tidak didaftarkan ke turnamen senior.
+    if (rs.team.events.some((e) => isHeld(e, year) && weekOf(e, year) === w && e.formats?.some(isJuniorFormat)))
+      for (const p of state.players) if (isJuniorAge(p, state.date)) busy.add(p.id);
+    store(chooseEntries(state, evs.filter((e) => !tierOf(rs, e).junior), rs, rng, ranks, busy, world, manual));
+  }
+}
+
+/**
  * Pilihan turnamen AI untuk semua peserta minggu ini.
  * Urutan nomor MS→XD: turnamen pertama yang dipilih seorang atlet mengikat nomor lainnya (satu turnamen per minggu).
  * Turnamen wajib (Top Committed) selalu dipilih; lainnya menurut rentang peringkat, peluang ikut & kelelahan.
  */
-function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset, rng: Rng, ranks: Map<Discipline, Map<string, number>>, busy = new Set<string>(), world?: World) {
+function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset, rng: Rng, ranks: Map<Discipline, Map<string, number>>, busy = new Set<string>(), world?: World,
+  manual: Record<string, string> = state.manualEntries[weekKey(state.date)] ?? {}) {
   const entries = new Map(events.map((e) => [e.id, new Map<Discipline, Candidate[]>(DISCIPLINES.map((d) => [d, []]))]));
   const playerEvent = new Map<string, string>();
   const fatigue = new Map(state.players.map((p) => [p.id, p.fatigue]));
   const injured = new Set(state.players.filter((p) => p.injury).map((p) => p.id));
-  const manual = state.manualEntries[weekKey(state.date)] ?? {};
   const submitted = (ev: TournamentDef) => state.entriesSubmitted?.[`${state.date.year}:${ev.id}`] === true;
   // Junior pratama negara manajer: tidak didaftarkan otomatis (manual tetap bisa).
   const pratama = new Set(state.players.filter((p) => p.countryId === state.managedCountryId && p.released === undefined && isPratama(p, state.date)).map((p) => p.id));
@@ -492,7 +577,7 @@ export function aiEventChoice<T extends { tierId: string }>(options: T[], rs: Ru
 }
 
 /** Pilihan turnamen minggu ini: id turnamen yang dimainkan manajer, atau null = simulasikan sisanya. */
-export type ChooseEvent = (req: { week: number; events: { id: string; kind: 'individual' | 'team' }[]; played: string[] }) => Promise<string | null>;
+export type ChooseEvent = (req: { week: number; events: { id: string; kind: 'individual' | 'team' }[]; played: string[]; deadlines?: string[] }) => Promise<string | null>;
 
 /**
  * Titik keputusan UI selama satu minggu (semua opsional). Dengan `chooseEvent`: turnamen yang dipilih dimainkan
@@ -582,18 +667,46 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   // Negara manajer hanya bisa memilih event yang terbuka untuknya; event lain disimulasikan otomatis.
   const managed = state.managedCountryId;
   const choosable = all.filter((x) => !managed || openTo([...events, ...teamEvents].find((e) => e.id === x.id)!, managed, world));
-  const ask = () => (hooks.chooseEvent && choosable.some((e) => !played.includes(e.id)) ? hooks.chooseEvent({ week, events: choosable, played }) : null);
+  // Turnamen (negara manajer) yang batas entrinya minggu ini: layar minggu tetap muncul agar entry bisa di-submit dulu.
+  const deadlines = managed ? [...rs.calendar, ...rs.team.events].filter((e) => isHeld(e, year) && weekOf(e, year) > week && openTo(e, managed, world)
+    && (entryDeadline(rs, e.id, year) === week || ((entryDeadline(rs, e.id, year) ?? Infinity) < week && 'tierId' in e && !entryClosed(state, rs, e.id))))
+    .map((e) => e.id) : [];
+  let deadlineAsked = false;
+  const ask = () => {
+    if (!hooks.chooseEvent || (!choosable.some((e) => !played.includes(e.id)) && (deadlineAsked || !deadlines.length))) return null;
+    deadlineAsked = true;
+    return hooks.chooseEvent({ week, events: choosable, played, deadlines });
+  };
   let pick = await ask();
-  // Turnamen junior lebih dulu: atlet yang ikut tidak didaftarkan ke turnamen senior minggu ini.
+  // Batas entry tiba: daftar entry terbit (termasuk turnamen minggu ini yang belum terbit, mis. save lama).
+  publishEntries(state, rs, world, rng);
+  for (const p of state.pairs) if (!pairs.has(p.id)) pairs.set(p.id, p);
+  // Daftar entry terbit: tanpa yang mundur, cedera/pensiun, dan atlet AI yang terlalu lelah (mundur tanpa penalti).
+  const released = releasedIds(state);
+  const fromList = new Map(events.filter((e) => state.entryLists?.[`${year}:${e.id}`]).map((e) => {
+    const out = state.withdrawn?.[`${year}:${e.id}`] ?? [];
+    const list = state.entryLists![`${year}:${e.id}`];
+    return [e.id, new Map(DISCIPLINES.map((d) => [d, (list[d] ?? []).filter((c) => {
+      const ids = pairs.get(c.id)?.playerIds ?? [c.id];
+      const ps = ids.map((id) => players.get(id));
+      if (out.includes(c.id) || ps.some((p) => !p || p.injury || p.retired !== undefined)) return false;
+      return isManaged(state, released, { countryId: c.countryId, playerIds: ids }) || !!state.commitments[c.id]?.includes(e.id) // wajib: tetap main
+        || Math.max(...ps.map((p) => p!.fatigue)) <= rs.ai.restAbove;
+    })]))] as const;
+  }));
+  const unlisted = events.filter((e) => !fromList.has(e.id));
+  // Turnamen tanpa batas entry (WTF, Olimpiade, multi-event): peserta ditetapkan sekarang. Junior lebih dulu.
   const juniorRanks = new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.juniorResults, d, cutoff, rs))]));
-  const junior = juniorEntries(state, events.filter(isJunior), rs, world, juniorRanks, state.manualEntries[weekKey(state.date)] ?? {}, rng);
+  const junior = juniorEntries(state, unlisted.filter(isJunior), rs, world, juniorRanks, state.manualEntries[weekKey(state.date)] ?? {}, rng);
   state.pairs.push(...junior.created);
   for (const p of junior.created) pairs.set(p.id, p);
+  for (const byD of fromList.values()) for (const list of byD.values()) for (const c of list) (pairs.get(c.id)?.playerIds ?? [c.id]).forEach((id) => junior.busy.add(id));
   // Minggu beregu junior (Suhandinata Cup): semua junior disiapkan untuk timnya, tidak didaftarkan otomatis ke turnamen senior.
   if (teamEvents.some((e) => e.formats?.some(isJuniorFormat)))
     for (const p of state.players) if (isJuniorAge(p, state.date)) junior.busy.add(p.id);
-  const entries = chooseEntries(state, events.filter((e) => !isJunior(e)), rs, rng, ranks, junior.busy, world);
+  const entries = chooseEntries(state, unlisted.filter((e) => !isJunior(e)), rs, rng, ranks, junior.busy, world);
   for (const [id, byD] of junior.entries) entries.set(id, byD);
+  for (const [id, byD] of fromList) entries.set(id, byD);
 
   /** Satu turnamen individu; `gated` = kelima nomor bersamaan lewat gerbang babak. */
   const playEvent = async (event: TournamentDef, h: WeekHooks, gated: boolean) => {
@@ -693,7 +806,11 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     for (const d of DISCIPLINES) {
       const inEvent = new Set(entries.get(event.id)!.get(d)!.map((c) => c.id));
       for (const e of entrantsFor(state, d))
-        if (state.commitments[e.id]?.includes(event.id) && !inEvent.has(e.id) && !e.playerIds.some((id) => players.get(id)!.injury)) {
+        if (state.commitments[e.id]?.includes(event.id) && !inEvent.has(e.id) && !e.playerIds.some((id) => players.get(id)!.injury)
+          // Daftar entry terbit: atlet wajib selalu didaftarkan kecuali cedera saat batas entry → hanya keputusan manajer
+          // (istirahat / turnamen lain di form entry, atau mundur) yang melanggar.
+          && (!fromList.has(event.id) || (isManaged(state, released, e) && (!!state.withdrawn?.[`${year}:${event.id}`]?.includes(e.id)
+            || ![undefined, event.id].includes(state.manualEntries[weekKey(state.date)]?.[e.id]))))) {
           state.violations.push({ entrantId: e.id, countryId: e.countryId, tournamentId: event.id, year });
           if (state.career && e.countryId === state.career.countryId && !e.playerIds.some((id) => players.get(id)!.released !== undefined))
             state.career.reputation = Math.max(0, state.career.reputation - rs.career.violationPenalty);
@@ -965,9 +1082,9 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
       const suggested = autoSquad(order, pool, max, size.max);
       let squad = suggested;
       if (c === state.managedCountryId) {
-        const ask = () => team?.squad({ eventId: ev.id, format, pool, suggested: valid(state.teamSquads[format], pool) ?? suggested });
-        const asked = await (gate ? gate.serial(ask) : ask()); // pop-up skuad satu per satu (Thomas & Uber bersamaan)
-        squad = valid(asked ?? state.teamSquads[format], pool) ?? suggested;
+        // Skuad dinominasikan sebelum batas entry (form entry); sesudahnya terkunci. Tanpa nominasi: saran otomatis.
+        // Atlet yang cedera sejak nominasi diganti saran otomatis (skuad tidak lagi valid).
+        squad = (state.entriesSubmitted?.[`${year}:${ev.id}`] === true ? valid(state.teamSquads[format], pool) : undefined) ?? suggested;
         state.teamSquads[format] = squad;
       }
       squads[c] = squad;

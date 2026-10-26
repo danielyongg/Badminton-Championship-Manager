@@ -5,7 +5,7 @@ import { BWF_2027 } from './presets/bwf2027';
 import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
 import { makeRng } from './rng';
-import { entrantsFor, newSeason, playWeek, weekKey, weekOf } from './season';
+import { entrantsFor, entryDeadline, newSeason, playWeek, weekKey, weekOf } from './season';
 import { currentAbility } from './generator';
 import { isDoubles, type Discipline } from './types';
 
@@ -95,14 +95,17 @@ describe('spesialis ganda', () => {
     const state = newSeason(WORLD, rs, 7, undefined, 'INA');
     const rng = makeRng(7);
     const ev = juniorEvents().find((e) => e.tierId === 'JGP')!;
-    while (state.date.week < ev.week) await playWeek(state, rs, WORLD, rng);
+    while (state.date.week < entryDeadline(rs, ev.id, 2026)!) await playWeek(state, rs, WORLD, rng); // entry diisi sebelum batas entry
     const date = { year: 2026, week: ev.week };
     const ina = state.players.filter((p) => p.countryId === 'INA' && p.gender === 'M' && !p.injury && p.retired === undefined && isJuniorAge(p, date))
       .sort((a, b) => currentAbility(b.attrs) - currentAbility(a.attrs));
     expect(ina.length).toBeGreaterThan(rs.tiers.find((t) => t.id === ev.tierId)!.junior!.quota.singles);
     const [best] = ina, weakest = ina.at(-1)!;
     state.manualEntries[weekKey(date)] = { [weakest.id]: ev.id, [best.id]: 'rest' };
-    await playWeek(state, rs, WORLD, rng);
+    while (state.date.week <= ev.week) {
+      for (const p of [best, weakest]) p.injury = undefined; // yang diuji entry, bukan cedera
+      await playWeek(state, rs, WORLD, rng);
+    }
     const rec = state.eventRecords.find((r) => r.tournamentId === ev.id && r.discipline === 'MS')!;
     const entered = [...rec.entry.main, ...rec.entry.qualifying, ...rec.entry.reserves].map((c) => c.id);
     expect(entered).toContain(weakest.id);
@@ -118,23 +121,22 @@ describe('entry yang sudah di-submit', () => {
     const state = newSeason(WORLD, rs, 11, undefined, 'INA');
     const rng = makeRng(11);
     while (state.date.week < 20) await playWeek(state, rs, WORLD, rng);
-    // Minggu dengan turnamen yang (tanpa submit) diikuti atlet INA dari pilihan AI.
+    // Minggu batas entry dengan turnamen yang (tanpa submit) diikuti atlet INA dari pilihan AI.
     for (let tries = 0; tries < 30; tries++) {
       const { year, week } = state.date;
+      const due = rs.calendar.filter((e) => entryDeadline(rs, e.id, year) === week && weekOf(e, year) > week).map((e) => e.id);
       const free = structuredClone(state);
       await playWeek(free, rs, WORLD, makeRng(99));
       const ina = new Set(free.players.filter((p) => p.countryId === 'INA').map((p) => p.id));
       const pairIds = new Map(free.pairs.map((p) => [p.id, p.playerIds]));
-      const mine = (r: { entry: { main: { id: string }[]; qualifying: { id: string }[] } }) => [...r.entry.main, ...r.entry.qualifying]
-        .filter((c) => (pairIds.get(c.id) ?? [c.id]).some((id) => ina.has(id)) && !state.commitments[c.id]?.length).map((c) => c.id);
-      const hit = free.eventRecords.filter((r) => r.year === year && rs.calendar.some((e) => e.id === r.tournamentId && weekOf(e, year) === week) && mine(r).length);
-      if (hit.length) {
-        const ids = [...new Set(hit.map((r) => r.tournamentId))];
+      const mine = (s: typeof state, id: string) => Object.values(s.entryLists?.[`${year}:${id}`] ?? {}).flat()
+        .filter((c) => (pairIds.get(c!.id) ?? [c!.id]).some((x) => ina.has(x)) && !state.commitments[c!.id]?.length).map((c) => c!.id);
+      const ids = due.filter((id) => mine(free, id).length);
+      if (ids.length) {
         const done = structuredClone(state);
         for (const id of ids) (done.entriesSubmitted ??= {})[`${year}:${id}`] = true;
         await playWeek(done, rs, WORLD, makeRng(99));
-        const after = done.eventRecords.filter((r) => r.year === year && ids.includes(r.tournamentId));
-        expect(after.flatMap(mine)).toEqual([]);
+        expect(ids.flatMap((id) => mine(done, id))).toEqual([]);
         return;
       }
       await playWeek(state, rs, WORLD, rng);

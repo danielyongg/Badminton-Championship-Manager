@@ -87,17 +87,21 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
     expect(a.champions).toEqual(b.champions);
   });
 
-  it('entry yang diubah dari layar minggu (sebelum turnamen pertama) dipakai minggu itu', async () => {
+  it('entry diubah sebelum batas entry dipakai; setelah daftar entry terbit, perubahan entry tidak berlaku (hanya mundur)', async () => {
     const auto = await weekOf(2);
     const ina = auto.matches.find((m) => m.tournamentId === 'malaysia-open' && m.discipline === 'MS' && m.sides.some((x) => x.startsWith('INA')))!;
     const id = ina.sides.find((x) => x.startsWith('INA'))!;
-    const state = await weekOf(2, (st) => ({
-      chooseEvent: async ({ played }) => {
-        if (!played.length) st.manualEntries[weekKey(st.date)] = { [id]: 'rest' }; // diatur saat layar minggu terbuka
-        return played.length ? null : 'malaysia-open';
-      },
-    }));
-    expect(state.matches.some((m) => m.tournamentId === 'malaysia-open' && m.sides.includes(id))).toBe(false);
+    const run = async (setAtWeek: number) => {
+      const state = newSeason(WORLD, rs, 3, undefined, 'INA');
+      const rng = makeRng(3);
+      while (state.date.week <= 2) {
+        if (state.date.week === setAtWeek) (state.manualEntries[weekKey({ year: 2026, week: 2 })] ??= {})[id] = 'rest';
+        await playWeek(state, rs, WORLD, rng);
+      }
+      return state.matches.some((m) => m.tournamentId === 'malaysia-open' && m.sides.includes(id));
+    };
+    expect(await run(1)).toBe(false); // batas entry Malaysia Open (Super 1000) = minggu 1
+    expect(await run(2)).toBe(true); // daftar sudah terbit: tetap ikut
   });
 
   it('live match hanya di turnamen yang dimainkan, di dalam babaknya; turnamen lain tanpa hook', async () => {

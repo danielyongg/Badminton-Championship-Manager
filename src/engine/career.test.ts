@@ -8,10 +8,25 @@ import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
 import { makeRng } from './rng';
-import { newSeason, playWeek, weekKey, type SeasonState } from './season';
+import { entryDeadline, newSeason, playWeek, weekKey, type SeasonState } from './season';
 import type { Pair } from './types';
 
 const rs = BWF_2026;
+
+/** Majukan sampai batas entry turnamen `tier` berikutnya (entry masih bisa diubah); `heal`: atlet ini dijaga tidak cedera. */
+async function toDeadline(state: SeasonState, rng: ReturnType<typeof makeRng>, tier: string) {
+  const { year } = state.date;
+  const ev = rs.calendar.filter((e) => e.tierId === tier && (entryDeadline(rs, e.id, year) ?? 0) >= state.date.week).sort((a, b) => a.week - b.week)[0];
+  while (state.date.week < entryDeadline(rs, ev.id, year)!) await playWeek(state, rs, WORLD, rng);
+  return { ev, week: { year, week: ev.week } };
+}
+/** Mainkan sampai turnamen minggu `w` selesai; atlet `heal` dijaga tidak cedera (yang diuji entry, bukan cedera). */
+async function playThrough(state: SeasonState, rng: ReturnType<typeof makeRng>, w: number, heal: string[] = []) {
+  while (state.date.week <= w) {
+    for (const id of heal) state.players.find((p) => p.id === id)!.injury = undefined;
+    await playWeek(state, rs, WORLD, rng);
+  }
+}
 
 describe('mode karier', () => {
   it('target musim & rapor akhir musim, reputasi berubah', async () => {
@@ -39,12 +54,12 @@ describe('mode karier', () => {
   it('istirahatkan atlet Top Committed di turnamen wajib → pelanggaran & reputasi turun; pilihan manual dihormati', async () => {
     const state = newSeason(WORLD, rs, 2, undefined, 'INA');
     const rng = makeRng(2);
-    await playWeek(state, rs, WORLD, rng); // minggu 1: komitmen & target dibuat
     const top = computeRanking(state.results, 'MS', absWeek(state.date), rs).find((r) => r.entrantId.startsWith('INA') && r.rank <= 15)!;
     expect(state.commitments[top.entrantId]).toContain('malaysia-open');
     const rival = computeRanking(state.results, 'MS', absWeek(state.date), rs).find((r) => r.entrantId.startsWith('INA') && r.rank > 40 && r.rank < 100)!;
-    // Minggu 2 (Malaysia Open): bintang diistirahatkan, atlet lain dimasukkan manual.
-    state.manualEntries[weekKey(state.date)] = { [top.entrantId]: 'rest', [rival.entrantId]: 'malaysia-open' };
+    // Malaysia Open (minggu 2, batas entry minggu 1): bintang diistirahatkan, atlet lain dimasukkan manual sebelum batas entry.
+    state.manualEntries[weekKey({ year: 2026, week: 2 })] = { [top.entrantId]: 'rest', [rival.entrantId]: 'malaysia-open' };
+    await playWeek(state, rs, WORLD, rng); // minggu 1: daftar entry Malaysia Open terbit
     const rep = state.career!.reputation;
     await playWeek(state, rs, WORLD, rng);
     const inMalaysia = (id: string) => state.matches.some((m) => m.tournamentId === 'malaysia-open' && m.sides.includes(id));
@@ -136,13 +151,11 @@ describe('pasangan percobaan', () => {
     for (let i = 0; i < 6; i++) await playWeek(state, rs, WORLD, rng);
     expect(state.matches.some((m) => m.sides.includes(trial.id))).toBe(false);
     // Minggu berikutnya dengan turnamen: daftarkan pasangan percobaan; pasangan utama juga didaftarkan ke turnamen yang sama.
-    while (!rs.calendar.some((e) => e.week === state.date.week && e.tierId === 'S300')) await playWeek(state, rs, WORLD, rng);
-    const ev = rs.calendar.find((e) => e.week === state.date.week && e.tierId === 'S300')!;
-    // Pasangan percobaan didaftarkan manual; pasangan utama "Otomatis" → keputusan manual menang atas pilihan AI.
-    const week = { ...state.date };
+    const { ev, week } = await toDeadline(state, rng, 'S300');
+    // Pasangan percobaan didaftarkan manual sebelum batas entry; pasangan utama "Otomatis" → keputusan manual menang atas pilihan AI.
     for (const id of trial.playerIds) state.players.find((p) => p.id === id)!.injury = undefined; // yang diuji entry, bukan cedera
     state.manualEntries[weekKey(week)] = { [trial.id]: ev.id };
-    await playWeek(state, rs, WORLD, rng);
+    await playThrough(state, rng, week.week, trial.playerIds);
     const rec = state.eventRecords.find((r) => r.tournamentId === ev.id && r.year === week.year && r.discipline === 'MD')!;
     const listed = [...rec.entry.main, ...rec.entry.wildcards, ...rec.entry.qualifying, ...rec.entry.reserves].map((c) => c.id);
     expect(listed).toContain(trial.id);
@@ -189,12 +202,11 @@ describe('promosi junior (pelatnas pratama → utama)', () => {
     const aiJuniors = new Set(state.players.filter((p) => p.countryId !== 'INA' && isJuniorAge(p, state.date)).map((p) => p.id));
     expect(state.matches.some((m) => sides(m).some((id) => aiJuniors.has(id)))).toBe(true);
     // Didaftarkan manual: ikut walau pratama.
-    while (!rs.calendar.some((e) => e.week === state.date.week && e.tierId === 'S300')) await playWeek(state, rs, WORLD, rng);
-    const ev = rs.calendar.find((e) => e.week === state.date.week && e.tierId === 'S300')!;
+    const { ev, week } = await toDeadline(state, rng, 'S300');
     const j = pratama().find((p) => p.gender === 'M' && p.focus !== 'D')!;
-    state.manualEntries[weekKey(state.date)] = { [j.id]: ev.id };
-    const year = state.date.year;
-    await playWeek(state, rs, WORLD, rng);
+    state.manualEntries[weekKey(week)] = { [j.id]: ev.id };
+    const { year } = week;
+    await playThrough(state, rng, week.week, [j.id]);
     const rec = state.eventRecords.find((r) => r.tournamentId === ev.id && r.year === year && r.discipline === 'MS')!;
     expect([...rec.entry.main, ...rec.entry.wildcards, ...rec.entry.qualifying, ...rec.entry.reserves].map((c) => c.id)).toContain(j.id);
     promoteJunior(state, j.id);

@@ -74,6 +74,7 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .chip.sector { margin-right: 3px; }
 .plan th { white-space: nowrap; }
 .plan-cell { position: relative; display: inline-block; font-size: .8rem; padding: 3px 6px; min-width: 7.5em; border: 1px solid transparent; border-radius: 4px; white-space: nowrap; cursor: pointer; }
+.plan-cell.locked { cursor: default; color: var(--muted); } /* entry sudah ditutup */
 .plan-cell:hover, .plan-cell:focus-within { border-color: var(--accent); }
 .plan-cell select { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0; opacity: 0; cursor: pointer; }
 .plan-cell.auto { color: var(--muted); }

@@ -1,10 +1,10 @@
-import { hostCityId } from '../engine/season';
+import { entryClosed, hostCityId, weekOf } from '../engine/season';
 import { useEffect, useRef, useState } from 'react';
 import type { RoundMatch, RoundShow } from '../engine/gate';
 import { DISCIPLINES, type Discipline, type TeamFormat } from '../engine/types';
 import { dataName, t } from '../i18n';
 import { Flag } from './Flag';
-import { EntryTable, JuniorEntryTable } from './Entries';
+import { EntryPanel, EntryTable, JuniorEntryTable } from './Entries';
 import { EntryLists } from './EventViews';
 import type { EntriesShow } from '../engine/tournament';
 import { entrantLabel, eventName, saveGame, useGame, TierBadge } from './game';
@@ -13,7 +13,7 @@ import { MatchLink } from './MatchDetail';
 
 // Alur minggu turnamen: pilih turnamen yang dimainkan → drawing → babak demi babak (laga negara sendiri live).
 
-export interface WeekAsk { week: number; events: { id: string; kind: 'individual' | 'team' }[]; played: string[] }
+export interface WeekAsk { week: number; events: { id: string; kind: 'individual' | 'team' }[]; played: string[]; deadlines?: string[] }
 
 /**
  * Daftar turnamen minggu ini: Mainkan satu per satu, atau lewati sisanya (disimulasikan otomatis).
@@ -25,6 +25,16 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
   const { year } = state.date;
   const [editing, setEditing] = useState<string>();
   const city = (id: string) => dataName(world.cities.find((c) => c.id === id)?.name);
+  // Turnamen yang batas entrinya minggu ini: form entry lengkap (individu / junior / skuad beregu), kembali setelah submit.
+  if (editing && ask.deadlines?.includes(editing)) return (
+    <section className="card hub">
+      <h3>{eventName(ruleset, editing, year)} · {t('week')} {weekOf([...ruleset.calendar, ...ruleset.team.events].find((e) => e.id === editing)!, year)}</h3>
+      <EntryPanel id={editing} onSubmitted={() => setEditing(undefined)} />
+      <div className="controls roundbar">
+        <button onClick={() => setEditing(undefined)}>← {t('back')}</button>
+      </div>
+    </section>
+  );
   if (editing) return (
     <section className="card hub">
       <h3>{eventName(ruleset, editing, year)} · {t('entryStatus')}</h3>
@@ -41,8 +51,28 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
       })()}
     </section>
   );
+  const deadlines = ask.played.length ? [] : ask.deadlines ?? [];
   return (
     <section className="card hub">
+      {deadlines.length > 0 && <>
+        <h3>⏰ {t('deadlineThisWeek')} · {t('week')} {ask.week}</h3>
+        <p className="hint">{t('deadlineThisWeekHint')}</p>
+        <ul className="weeklist">{deadlines.map((id) => {
+          const team = ruleset.team.events.find((e) => e.id === id);
+          const ev = team ?? ruleset.calendar.find((e) => e.id === id)!;
+          const submitted = state.entriesSubmitted?.[`${year}:${id}`];
+          return (
+            <li key={id}>
+              <TierBadge tierId={'tierId' in ev ? ev.tierId : undefined} team={team} />
+              <span className="grow"><b>{eventName(ruleset, id, year)}</b> <small className="muted-text">{t('week')} {weekOf(ev, year)} · {city(hostCityId(ev, year))}</small><br />
+                <small>{submitted ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('needEntry')}</span>}</small>
+              </span>
+              <button className="primary" onClick={() => setEditing(id)}>{t('submitEntries')}</button>
+            </li>
+          );
+        })}</ul>
+      </>}
+      {ask.events.length > 0 && <>
         <h3>{t('weekEvents')} · {t('week')} {ask.week}</h3>
         <ul className="weeklist">{ask.events.map(({ id, kind }) => {
           const ev = kind === 'team' ? ruleset.team.events.find((e) => e.id === id)! : ruleset.calendar.find((e) => e.id === id)!;
@@ -50,22 +80,24 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
           // Finals & Olimpiade: entry otomatis. Beregu: skuad dipilih di pop-up bila belum di-submit. Junior: diisi seperti senior.
           const auto = kind === 'team' || tier?.id === 'WTF' || tier?.id === 'OG';
           const submitted = state.entriesSubmitted?.[`${year}:${id}`];
+          const closed = kind === 'individual' && entryClosed(state, ruleset, id); // daftar entry sudah terbit
           const done = ask.played.includes(id);
           return (
             <li key={id}>
               <TierBadge tierId={tier?.id} team={kind === 'team' ? ev : undefined} />
               <span className="grow"><b>{eventName(ruleset, id, year)}</b> <small className="muted-text">{city(hostCityId(ev, year))}</small><br />
                 <small>{done ? <span className="badge good">✓ {t('played')}</span>
-                  : kind === 'team' ? null : auto ? t('auto') : submitted ? <span className="badge good">✓ {t('entrySubmitted')}</span>
+                  : kind === 'team' ? null : auto ? t('auto') : closed ? <span className="badge">🔒 {t('entryClosed')}</span> : submitted ? <span className="badge good">✓ {t('entrySubmitted')}</span>
                   : <span className="badge">{t('needEntry')}</span>}</small>
               </span>
-              {!auto && !ask.played.length && <button onClick={() => setEditing(id)}>{t('fillEntry')}</button>}
-              <button className="primary" disabled={done || !(auto || submitted)} onClick={() => onPick(id)}>{t('playEvent')}</button>
+              {!auto && !closed && !ask.played.length && <button onClick={() => setEditing(id)}>{t('fillEntry')}</button>}
+              <button className="primary" disabled={done || !(auto || submitted || closed)} onClick={() => onPick(id)}>{t('playEvent')}</button>
             </li>
           );
         })}</ul>
+      </>}
         <div className="controls">
-          <button onClick={() => onPick(null)}>{ask.played.length ? t('skipRest') : t('skipAll')}</button>
+          <button onClick={() => onPick(null)}>{!ask.events.length ? t('continue') : ask.played.length ? t('skipRest') : t('skipAll')}</button>
         </div>
     </section>
   );

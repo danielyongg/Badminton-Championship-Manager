@@ -5,7 +5,7 @@ import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
 import { presetPack, PRESETS } from './pack';
 import { makeRng } from './rng';
-import { aiEventChoice, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, weekOf, wtfQualifiers } from './season';
+import { aiEventChoice, entryDeadline, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, weekOf, withdrawEntry, wtfQualifiers } from './season';
 import { ATTRS, DISCIPLINES } from './types';
 
 describe('satu musim penuh (BWF 2026)', () => {
@@ -310,4 +310,40 @@ it('AI: dua turnamen grade 3 yang cocok di minggu yang sama (IC & FS) sama-sama 
   expect([...picks].sort()).toEqual(['fs', 'ic']);
   expect(aiEventChoice(options, BWF_2026, 300)!.id).toBe('ic');
   expect(aiEventChoice(options, BWF_2026, 80, undefined, rng)!.id).toBe('ic'); // peringkat 80: belum boleh FS
+});
+
+describe('batas entry (aturan BWF)', () => {
+  it('batas entry per tier; daftar terbit di minggu batas; mundur dini tanpa penalti, mundur terlambat −1 reputasi; yang mundur tidak bertanding', async () => {
+    const rs = BWF_2026;
+    const tier = (id: string) => rs.calendar.find((e) => e.id === id)!.tierId;
+    const ev = rs.calendar.find((e) => e.tierId === 'S1000' && weekOf(e, 2026) >= 10)!;
+    const W = weekOf(ev, 2026);
+    expect(entryDeadline(rs, ev.id, 2026)).toBe(W - 6);
+    const ic = rs.calendar.find((e) => e.tierId === 'IC' && weekOf(e, 2026) >= 10)!;
+    expect(entryDeadline(rs, ic.id, 2026)).toBe(weekOf(ic, 2026) - 4);
+    expect(entryDeadline(rs, 'thomas-uber-cup', 2026)).toBe(weekOf(rs.team.events.find((e) => e.id === 'thomas-uber-cup')!, 2026) - 2);
+    expect(entryDeadline(rs, rs.calendar.find((e) => e.tierId === 'WTF')!.id, 2026)).toBeUndefined();
+    expect(tier(ev.id)).toBe('S1000');
+
+    const state = newSeason(WORLD, rs, 5, undefined, 'INA');
+    const rng = makeRng(5);
+    const d = entryDeadline(rs, ev.id, 2026)!;
+    while (state.date.week <= d) {
+      expect(state.entryLists?.[`2026:${ev.id}`]).toBeUndefined(); // belum terbit sebelum minggu batas dimainkan
+      await playWeek(state, rs, WORLD, rng);
+    }
+    const list = state.entryLists![`2026:${ev.id}`];
+    const ina = (list.MS ?? []).filter((c) => c.countryId === 'INA' && !state.commitments[c.id]?.includes(ev.id));
+    expect(ina.length).toBeGreaterThanOrEqual(2);
+    const rep = state.career!.reputation;
+    for (const c of ina) for (const id of [c.id]) state.players.find((p) => p.id === id)!.injury = undefined;
+    expect(withdrawEntry(state, rs, ev.id, ina[0].id)).toBe(false); // ±5 minggu sebelum: tanpa penalti
+    expect(state.career!.reputation).toBe(rep);
+    while (state.date.week < W - 1) await playWeek(state, rs, WORLD, rng);
+    state.players.find((p) => p.id === ina[1].id)!.injury = undefined;
+    expect(withdrawEntry(state, rs, ev.id, ina[1].id)).toBe(true); // seminggu sebelum: terlambat
+    expect(state.career!.reputation).toBe(rep - 1);
+    while (state.date.week <= W) await playWeek(state, rs, WORLD, rng);
+    expect(state.matches.some((m) => m.tournamentId === ev.id && m.year === 2026 && (m.sides.includes(ina[0].id) || m.sides.includes(ina[1].id)))).toBe(false);
+  }, 300000);
 });
