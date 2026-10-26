@@ -17,6 +17,8 @@ export const TRAIT_GROUP: Record<TraitId, 'physical' | 'mental' | 'morale' | 'do
 };
 
 const CONFLICTS: [TraitId, TraitId][] = [['ironBody', 'injuryProne'], ['clutch', 'choker'], ['idealPartner', 'awkwardPartner']];
+/** Dua sifat yang tidak boleh dimiliki bersamaan. */
+export const conflicts = (a: TraitId, b: TraitId) => CONFLICTS.some(([x, y]) => (a === x && b === y) || (a === y && b === x));
 /** Peluang jumlah sifat: 0 / 1 / 2. */
 const COUNT_CHANCE = [0.6, 0.3, 0.1];
 

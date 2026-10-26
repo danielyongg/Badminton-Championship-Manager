@@ -6,7 +6,7 @@ import { BWF_2026 as rs } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
 import { newSeason, playWeek } from './season';
-import { chemistryMult, ensureTraits, hasTrait, injuryMult, QUICK_RECOVERY, rollTraits, traitShare, TRAITS, visibleTraits } from './traits';
+import { chemistryMult, conflicts, ensureTraits, hasTrait, injuryMult, QUICK_RECOVERY, rollTraits, traitShare, TRAITS, visibleTraits } from './traits';
 import { ATTRS, type Player } from './types';
 
 const withTraits = (traits: string[], extra: object = {}) => ({ traits, ...extra }) as unknown as Player;
@@ -122,4 +122,12 @@ describe('mental juara & demam panggung', () => {
   it('choker kalah lebih sering di laga besar', () => {
     expect(winRate(pl(80, ['choker']), pl(80), true)).toBeLessThan(0.45);
   }, 120000);
+});
+
+describe('conflicts', () => {
+  it('pasangan bertentangan dua arah, lainnya bebas', () => {
+    expect(conflicts('ironBody', 'injuryProne')).toBe(true);
+    expect(conflicts('choker', 'clutch')).toBe(true);
+    expect(conflicts('clutch', 'leader')).toBe(false);
+  });
 });

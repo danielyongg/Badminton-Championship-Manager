@@ -5,6 +5,7 @@ import { formPair } from '../engine/career';
 import { ageAt, currentAbility, generateWorld } from '../engine/generator';
 import { normalizePack, presetPack, PRESETS, validatePack, type DataPack } from '../engine/pack';
 import { makeRng } from '../engine/rng';
+import { conflicts, rollTraits, TRAITS, type TraitId } from '../engine/traits';
 import { ATTRS, type GameDate, type Pair, type Player, type Ruleset, type World } from '../engine/types';
 import { dataName, t, type TextKey } from '../i18n';
 import { Calendar, Countries, Cities, RulesetForm, Tiers } from './EditorData';
@@ -40,6 +41,24 @@ export function Sel({ o, k, ch, options, disabled }: Cell & { options: [string, 
     </select>
   );
 }
+/** Satu dari dua slot sifat atlet (traits.ts). Belum diatur = hasil acak bawaan ditampilkan apa adanya; pasangan bertentangan tidak bisa dipilih. */
+function TraitSel({ p, i, ch }: { p: Player; i: number; ch: () => void }) {
+  const cur = p.traits ?? rollTraits(p.id);
+  const other = cur[1 - i];
+  const set = (v: string) => {
+    const next = [...cur];
+    if (v) next[i] = v as TraitId; else next.splice(i, 1);
+    p.traits = next.filter(Boolean);
+    ch();
+  };
+  return (
+    <select value={cur[i] ?? ''} onChange={(e) => set(e.target.value)}>
+      <option value="">—</option>
+      {TRAITS.filter((x) => x !== other && !(other && conflicts(x, other))).map((x) => <option key={x} value={x}>{t(`trait_${x}` as TextKey)}</option>)}
+    </select>
+  );
+}
+
 /** Tambah baris dengan id baru (id tidak bisa diubah setelah dibuat karena dirujuk data lain). */
 export function AddById({ taken, onAdd }: { taken: string[]; onAdd: (id: string) => void }) {
   const [id, setId] = useState('');
@@ -167,6 +186,7 @@ function Players({ data, mode, date, ch, country: initial, canDelete, onDelete }
             <label title={t('birthWeekHint')}>{t('birthWeek')}<Num o={p.birth} k="week" ch={ch} w={0} /></label>
             <label>{t('potential')} (PA)<Num o={p} k="pa" ch={ch} w={0} /></label>
             <label>{t('trait')}<Sel o={p} k="trait" ch={ch} options={[['', '—'], ['late', t('traitLate')], ['stagnant', t('traitStagnant')]]} /></label>
+            {[0, 1].map((i) => <label key={i} title={t('traitHint')}>{t('traits')} {i + 1}<TraitSel p={p} i={i} ch={ch} /></label>)}
           </div>
           <h4>{t('attributes')} · {t('ability')} <b className="ed-ab">{currentAbility(p.attrs)}</b></h4>
           <div className="ed-form attrs">
