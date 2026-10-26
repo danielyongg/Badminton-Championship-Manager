@@ -352,7 +352,7 @@ export function JuniorEntryTable({ ev, onSubmit }: { ev: TournamentDef; onSubmit
       {chosen(sector) > (isDoubles(sector) ? quota.doubles : quota.singles) && <p className="hint">⚠ {t('juniorOverQuota')}</p>}
       {rows.every((e) => e.d !== sector) ? <p className="hint">{t(isDoubles(sector) ? 'juniorNoPairs' : 'juniorNone')}</p> : (
         <div className="scroll">
-          <table className="entrytable">
+          <table className="entrytable fit">
             <thead><tr><th>{t('name')}</th><th className="num">{t('ability')}</th><th className="num">{t('rank')}</th><th className="num">{t('enterCol')}</th></tr></thead>
             <tbody>{rows.filter((e) => e.d === sector).map((e) => {
               const injured = e.playerIds.some((id) => players.get(id)?.injury);
@@ -472,7 +472,7 @@ export function EntryTable({ week: w, eventId, onSubmit }: { week: number; event
         ))}
       </nav>
       <div className="scroll">
-        <table className="entrytable">
+        <table className="entrytable fit">
           <thead><tr><th>{t('name')}</th><th className="num">{t('ability')}</th><th className="num">{t('rank')}</th><th className="num">{t('enterCol')}</th></tr></thead>
           <tbody>{rows.filter((e) => e.d === sector).map((e) => (
             <EntryRow key={e.id} e={e} checked={checked(e)} disabled={!eligible(e)} other={elsewhere(e)} required={required(e)}
