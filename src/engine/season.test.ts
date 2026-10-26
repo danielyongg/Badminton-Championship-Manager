@@ -187,7 +187,7 @@ describe('beberapa musim (perkembangan, pensiun, regenerasi)', () => {
   const rng = makeRng(8);
   beforeAll(async () => {
     while (state.date.year < 2031) await playWeek(state, rs, WORLD, rng);
-  }, 60000);
+  }, 180_000); // ponytail: 5 musim penuh; >60 dtk saat semua file tes jalan paralel di mesin lambat
 
   it('populasi atlet stabil (±30%) setelah 5 musim', async () => {
     for (const [c, n] of [[undefined, start.all], ['CHN', start.chn]] as const) {
