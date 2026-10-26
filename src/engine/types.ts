@@ -309,6 +309,8 @@ export interface Player {
   traits?: TraitId[];
   /** Pernah mengalahkan atlet/pasangan top 10 (bonus morale sekali). */
   beatTop10?: true;
+  /** Kota asal (cityId negaranya); hanya atlet yang dibuat sejak fitur ini. */
+  hometown?: string;
   /** Spesialis ganda: tidak diberi ranking tunggal awal & tidak didaftarkan AI di nomor tunggal (manajer tetap boleh). */
   focus?: 'D' | 'S'; // 'S' = hanya tunggal: tidak muncul di form bentuk pasangan
   /** Junior (U19) yang sudah dipromosikan ke pelatnas utama: ikut didaftarkan otomatis ke turnamen senior. */

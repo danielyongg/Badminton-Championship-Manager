@@ -3,12 +3,13 @@ import { dissolvePair, potentialStars, promoteJunior, recallPlayer, releasePlaye
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { experienceFactor } from '../engine/development';
 import { visibleTraits } from '../engine/traits';
+import { SCOUT_FOCI, styleOf, type ScoutFocus } from '../engine/scouting';
 import { emptyStats, moraleTier, pairAbility } from '../engine/match';
 import { addOriented, careerStats, statTotals, v2 } from '../engine/careerStats';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { rankFromSnapshots } from '../engine/season';
 import { ATTRS, DISCIPLINES, type Attr, type Discipline, type GameDate, type Pair, type Player } from '../engine/types';
-import { numLocale, t, type TextKey } from '../i18n';
+import { dataName, numLocale, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName as eventNameOf, lookup, saveGame, TIER_GROUPS, TierBadge, tierGroup, useGame } from './game';
 import { formatName } from './Team';
 import { ownPairs, Pairs } from './Pairs';
@@ -148,6 +149,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
           : `${list.length} ${t('players')}`}</span>
       </nav>
       {juniorCols && !pairsView && <p className="hint">{t('pratamaHint')}</p>}
+      {juniorCols && !pairsView && <ScoutFocusSelect />}
       {pairsView && !released ? <Pairs key={view} discipline={view} onOpen={onOpen} juniors={juniors} /> : (
       <div className="scroll">
         <table className="squadtable">
@@ -261,6 +263,21 @@ type ProfileTab = 'summary' | 'stats' | 'ranking' | 'events' | 'h2h' | 'matches'
  */
 const MORALE_ICON = { veryHigh: '▲▲', high: '▲', normal: '–', low: '▼', veryLow: '▼▼' } as const;
 /** Morale atlet (5 tingkat); `short` = ikon saja (tabel), nama tingkat sebagai keterangan. */
+/** Fokus pencarian bakat untuk akhir musim berikutnya (negara manajer). */
+export function ScoutFocusSelect() {
+  const { game, changed } = useGame();
+  const { state } = game;
+  return (
+    <p className="controls">
+      <label>{t('scoutFocusNext')}{' '}
+        <select value={state.scoutFocus ?? 'balanced'} onChange={(e) => { state.scoutFocus = e.target.value as ScoutFocus; changed(); void saveGame(game); }}>
+          {SCOUT_FOCI.map((f) => <option key={f} value={f}>{t(`scoutFocus_${f}` as TextKey)}</option>)}
+        </select>
+      </label>
+    </p>
+  );
+}
+
 /** Sifat atlet yang sudah terbaca (fisik setelah 2 musim, lainnya setelah 30 laga). */
 export function TraitTags({ p, matches }: { p: Player; matches: number }) {
   return <>{visibleTraits(p, matches).map((x) => <span key={x} className="tag" title={t(`traitHint_${x}` as TextKey)}>{t(`trait_${x}` as TextKey)}</span>)}</>;
@@ -393,6 +410,8 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         <dl className="facts">
           {fact(t('country'), <><Flag id={p.countryId} />{p.countryId} · {p.gender} · {p.hand}</>)}
           {fact(t('age'), ageAt(p.birth, state.date))}
+          {p.hometown && fact(t('hometown'), dataName(game.world.cities.find((c) => c.id === p.hometown)?.name))}
+          {fact(t('playStyle'), styleOf(p).map((a) => t(a)).join(' · '))}
           {fact(t('ability'), <>{currentAbility(p.attrs)}{arrow(p.caDelta)}</>)}
           {fact(t('morale'), <MoraleTag value={p.form} />)}
           {fact(t('potential'), <span className="stars">{starText(potentialStars(p, state.date, counts.get(p.id) ?? 0))}</span>)}

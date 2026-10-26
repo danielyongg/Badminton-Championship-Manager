@@ -1,6 +1,6 @@
 import { NAME_POOLS } from './presets/names';
 import { normal, pick, randInt, type Rng } from './rng';
-import { ATTRS, type Attrs, type Country, type GameDate, type GeneratorConfig, type Pair, type Player } from './types';
+import { ATTRS, type Attrs, type City, type Country, type GameDate, type GeneratorConfig, type Pair, type Player } from './types';
 
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
 const lerp = (range: { min: number; max: number }, tradition: number) =>
@@ -51,7 +51,7 @@ export const isPratama = (p: Pick<Player, 'birth' | 'promoted'>, date: GameDate)
 
 export function generatePlayer(
   rng: Rng, cfg: GeneratorConfig, country: Country, gender: 'M' | 'F', age: number, date: GameDate, id: string,
-  usedNames?: Set<string>, maxPa = 99,
+  usedNames?: Set<string>, maxPa = 99, cities?: City[],
 ): Player {
   const roll = rng();
   const trait: Player['trait'] =
@@ -80,6 +80,8 @@ export function generatePlayer(
     fatigue: 0,
     trait,
     attrHistory: [{ year: date.year - 1, attrs: { ...attrs } }], // kondisi awal = akhir musim sebelumnya
+    // Kota asal diacak paling akhir agar urutan acak nilai lain tidak bergeser.
+    ...(cities?.length ? { hometown: cities[Math.floor(rng() * cities.length)].id } : {}),
   };
 }
 

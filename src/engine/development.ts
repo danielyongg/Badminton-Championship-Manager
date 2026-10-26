@@ -2,7 +2,7 @@ import { ageAt, currentAbility, generatePlayer } from './generator';
 import { normal, type Rng } from './rng';
 import { AGELESS_YEARS, hasTrait, REVEAL_SEASONS, visibleTraits } from './traits';
 import { ELITE_AGE, ELITE_MAX, ELITE_PER, MENTOR_GROWTH, MENTOR_MENTAL, MORALE_GROWTH } from './boosts';
-import { ATTRS, type AgeBand, type Country, type DevelopmentConfig, type GameDate, type GeneratorConfig, type Player, type InjuryConfig, type InjuryLevel } from './types';
+import { ATTRS, type AgeBand, type City, type Country, type DevelopmentConfig, type GameDate, type GeneratorConfig, type Player, type InjuryConfig, type InjuryLevel } from './types';
 
 // Perkembangan (menuju PA), penuaan (penurunan per atribut), pensiun & regenerasi junior.
 // Atribut disimpan sebagai pecahan agar perubahan per kuartal yang kecil tetap terakumulasi; UI membulatkan.
@@ -96,14 +96,14 @@ export function retirementChance(p: Player, cfg: DevelopmentConfig, date: GameDa
 }
 
 /** Junior baru (15–17 th) untuk satu negara di awal musim; jumlah & potensi mengikuti kekuatan tradisi. */
-export function newJuniors(country: Country, cfg: DevelopmentConfig, gen: GeneratorConfig, date: GameDate, rng: Rng, usedNames?: Set<string>): Player[] {
+export function newJuniors(country: Country, cfg: DevelopmentConfig, gen: GeneratorConfig, date: GameDate, rng: Rng, usedNames?: Set<string>, cities?: City[]): Player[] {
   const out: Player[] = [];
   for (const gender of ['M', 'F'] as const) {
     const expected = cfg.juniorsPerSeason.min + (country.traditionStrength / 100) * (cfg.juniorsPerSeason.max - cfg.juniorsPerSeason.min);
     const n = Math.floor(expected) + (rng() < expected % 1 ? 1 : 0); // pembulatan acak
     for (let i = 0; i < n; i++) {
       const age = gen.juniorAge.min + Math.floor(rng() * (gen.juniorAge.max - gen.juniorAge.min + 1));
-      out.push(generatePlayer(rng, gen, country, gender, age, date, `${country.id}-${gender}${date.year}-${i + 1}`, usedNames));
+      out.push(generatePlayer(rng, gen, country, gender, age, date, `${country.id}-${gender}${date.year}-${i + 1}`, usedNames, 99, cities));
     }
   }
   return out;

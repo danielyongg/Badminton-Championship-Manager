@@ -15,7 +15,7 @@ import { juniorEntries, juniorTeamEntrants } from './junior';
 import { AD_HOC, adHocEntrants, autoLineup, rankOrder, autoSquad, lineupError, playTie, runTeamEvent, squadError, squadPool, type Lineup, type TeamEntrant } from './team';
 import { runEvent, simPlay, toRecord, type HotForm, type DrawHook, type DrawShow, type EntriesHook, type EntriesShow, type EventRecord, type LiveHook } from './tournament';
 import { roundGate, type RoundHook } from './gate';
-import { makeScouting, recruit, SCOUTING_DEADLINE_WEEK, type Scouting } from './scouting';
+import { makeScouting, recruit, SCOUTING_DEADLINE_WEEK, withdrawCandidates, type Scouting, type ScoutFocus } from './scouting';
 import {
   DISCIPLINES, isDoubles, isJuniorFormat, ROUNDS, type Career, type City, type Confederation, type Discipline, type DrawStep, type EntrantId, type GameDate, type Match, type Pair,
   type Player, type RankingEntry, type Round, type Ruleset, type Tier, type TeamEventDef, type TeamFormat, type TierId, type TournamentDef, type World,
@@ -75,6 +75,8 @@ export interface SeasonState {
   tierPrefs?: Record<string, TierId[]>;
   /** Pencarian bakat junior negara manajer yang belum diputuskan (kandidat akhir musim). */
   scouting?: Scouting;
+  /** Fokus pencarian bakat akhir musim berikutnya (kosong = seimbang). */
+  scoutFocus?: ScoutFocus;
   /**
    * Turnamen yang entry-nya sudah di-submit manajer: "tahun:eventId". `true` = pilihan manajer (atlet sendiri yang tidak
    * dicentang tidak diisi AI ke turnamen itu); 'ai' = diserahkan ke asisten AI lewat tombol Otomatis.
@@ -547,6 +549,7 @@ function updateMorale(state: SeasonState, rs: Ruleset, fromMatch: number, fromCh
 export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rng: Rng, hooks: WeekHooks = {}) {
   const { year, week } = state.date;
   if (state.commitmentsYear !== year) startYear(state, rs, rng, world);
+  if (state.scouting && week >= 2 && week <= SCOUTING_DEADLINE_WEEK) withdrawCandidates(state.scouting, rng);
   if (state.scouting && week > SCOUTING_DEADLINE_WEEK) recruit(state, []); // batas memilih lewat: isi otomatis
   lockContingents(state, rs);
   lockFinalsQualifiers(state, rs, world, false);
@@ -1165,9 +1168,10 @@ function endYear(state: SeasonState, rs: Ruleset, world: World, rng: Rng) {
   if (state.scouting) recruit(state, []); // pencarian musim lalu belum diputuskan: isi otomatis
   const usedNames = new Set(state.players.map((p) => p.name)); // nama junior baru tidak kembar dengan atlet yang ada
   for (const c of world.countries) {
-    const juniors = newJuniors(c, rs.development, rs.generator, next, rng, usedNames);
+    const cities = world.cities.filter((x) => x.countryId === c.id);
+    const juniors = newJuniors(c, rs.development, rs.generator, next, rng, usedNames, cities);
     // Negara manajer: junior baru dipilih dari kandidat (pencarian bakat), bukan langsung masuk.
-    if (c.id === state.managedCountryId) state.scouting = makeScouting(juniors, c, rs.generator, next, rng, usedNames);
+    if (c.id === state.managedCountryId) state.scouting = makeScouting(juniors, c, rs.generator, next, rng, usedNames, cities, state.scoutFocus ?? 'balanced');
     else state.players.push(...juniors);
   }
   ensureTraits(state.players);

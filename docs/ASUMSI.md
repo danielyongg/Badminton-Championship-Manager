@@ -230,3 +230,10 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Mentor**: atlet ≤ 21 th yang berpasangan (aktif, bukan dadakan) dengan atlet ≥ 25 th ber-CA ≥ +10: mental +1/tahun dan pertumbuhan +5 %.
 - **Kembali lebih kuat**: sembuh dari cedera berat → 30 % peluang mental +2 (CA tetap ≤ PA).
 - **Laporan kuartal** (Dashboard, 4 minggu setelah akhir kuartal): 3 atlet paling berkembang, junior ≤ 21 th yang mandek, senior ≥ 27 th yang menurun, dan sifat fisik/perkembangan yang baru terbaca musim ini.
+
+## Pencarian bakat (Fase 5, `src/engine/scouting.ts`)
+- **Profil kandidat**: kota asal diacak dari kota negaranya (atlet yang dibuat sejak fitur ini, termasuk junior AI); gaya bermain = dua atribut tertinggi.
+- **Fokus pencarian** (berlaku akhir musim berikutnya): kandidat dibuat 2× lalu disaring menurut skor + derau 0–10. Tunggal = speed + stamina; ganda = net + serve + smash; penyerang = smash + deception; bertahan = defense + consistency; mentah = PA − CA − usia; siap pakai = CA. Seimbang = perilaku lama (tanpa penyaringan).
+- **Catatan pemandu bakat**: tiap sifat asli (termasuk late bloomer/mandek) tercatat 60 %; 15 % ada satu petunjuk salah (sifat yang tidak dimiliki & tidak bertentangan); maks 3 catatan, bertanda "?".
+- **Rentang potensi menyempit**: lebar 2 bintang di minggu 1, −0,5 per minggu sampai 0,5 di minggu 4; tetap memuat perkiraan potensi.
+- **Rekrut bertahap & kandidat mundur**: "Rekrut terpilih" langsung memasukkan atlet dan mengurangi kursi; pencarian ditutup lewat "Selesai" atau batas minggu (tidak diisi otomatis lagi bila sudah pernah merekrut bertahap). Awal minggu 2–4, per gender 50 % satu kandidat acak mundur, tanpa membuat kandidat kurang dari sisa kursi.
