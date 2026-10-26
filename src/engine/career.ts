@@ -4,7 +4,7 @@ import { absWeek, computeRanking } from './ranking';
 import { shuffle, type Rng } from './rng';
 import { hostCityId, isHeld, teamFormatsIn, teamStrengths, type SeasonState } from './season';
 import { levelOf } from './team';
-import { DISCIPLINES, type Challenge, type FederationGoal, type Pair, type Player, type Ruleset, type SeasonReport, type TeamFormat, type World } from './types';
+import { DISCIPLINES, type Challenge, type FederationGoal, type Pair, type Player, type Round, type Ruleset, type SeasonReport, type TeamFormat, type World } from './types';
 import { t } from '../i18n';
 
 // Mode karier: target federasi, rapor akhir musim, perkiraan potensi, kelola pasangan.
@@ -307,4 +307,10 @@ export function recallPlayer(state: SeasonState, playerId: string) {
 export function dissolvePair(state: SeasonState, pairId: string) {
   const pair = state.pairs.find((p) => p.id === pairId);
   if (pair && !pair.dissolved) pair.dissolved = { ...state.date };
+}
+
+/** Target babak manajer untuk satu entrant di satu turnamen; `round` kosong = hapus. */
+export function setTarget(state: SeasonState, year: number, eventId: string, entrantId: string, round?: Round) {
+  const map = ((state.targets ??= {})[`${year}:${eventId}`] ??= {});
+  if (round) map[entrantId] = round; else delete map[entrantId];
 }

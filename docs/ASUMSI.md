@@ -200,3 +200,9 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Peserta**: hanya negara konfederasinya; tanpa kualifikasi & wildcard; diterima menurut ranking sampai bagan penuh; maks 4 per negara per nomor (ASUMSI). Bagan: Asia 32, Eropa 48 tunggal / 32 ganda, lainnya 32. AI mengirim atlet terbaiknya (peluang ikut 0,9, tanpa batas ranking).
 - **Hadiah**: hanya Asia (US$550.000, pembagian standar); lainnya tanpa hadiah.
 - **Save lama**: tier & turnamen ditambahkan saat dimuat — musim ini bila minggunya belum lewat, selain itu mulai musim depan.
+
+## Sumber morale & perkembangan (Fase 1, `src/engine/boosts.ts`)
+- **Istirahat**: atlet yang tidak bertanding seminggu → morale negatif dikali 0,6 (di samping peluruhan mingguan biasa). Morale positif tidak terpengaruh.
+- **Kandang**: atlet yang ikut turnamen di negaranya sendiri mendapat morale +1 di awal turnamen (berlaku juga untuk AI).
+- **Target perorangan**: manajer memilih target babak (juara … 32 besar) di form entry. Tercapai atau lebih → morale +1,5; meleset ≥ 2 babak (atau tidak masuk babak utama dengan target ≤ 32 besar) → −1; meleset 1 babak → tidak berubah.
+- **Faktor pengalaman**: rumus lama (base + perMatch × laga berbobot, maks `max`) kini tampil di profil atlet sampai usia `experience.untilAge`; perilakunya tidak berubah.

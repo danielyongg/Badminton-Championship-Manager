@@ -1,6 +1,7 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { dissolvePair, potentialStars, promoteJunior, recallPlayer, releasePlayer } from '../engine/career';
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
+import { experienceFactor } from '../engine/development';
 import { emptyStats, moraleTier, pairAbility } from '../engine/match';
 import { addOriented, careerStats, statTotals, v2 } from '../engine/careerStats';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
@@ -390,6 +391,8 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           {fact(t('morale'), <MoraleTag value={p.form} />)}
           {fact(t('potential'), <span className="stars">{starText(potentialStars(p, state.date, counts.get(p.id) ?? 0))}</span>)}
           {fact(t('fatigue'), <FatigueBar value={p.fatigue} />)}
+          {p.retired === undefined && ageAt(p.birth, state.date) <= ruleset.development.experience.untilAge
+            && fact(t('expFactor'), <span title={t('expFactorHint')}>×{experienceFactor(ruleset.development, state.experience[p.id] ?? 0).toFixed(2)} · {t('expMatches', { n: Math.round(state.experience[p.id] ?? 0) })}</span>)}
           {fact(t('status'), p.retired !== undefined ? `${t('retired')} ${p.retired}`
             : p.released !== undefined ? <span className="tag muted-tag">{t('releasedTag', { year: p.released })}</span>
             : <FitStatus ps={[p]} />)}

@@ -19,6 +19,10 @@ export interface QuarterContext {
 }
 
 /** Atribut dijepit 1–100 dan rata-ratanya (CA) tidak melampaui PA. Atribut yang sudah di batas bawah tidak bisa turun lagi, maka diulang. */
+/** Pengali pertumbuhan dari laga berbobot kuartal ini (berlaku s/d usia `experience.untilAge`). */
+export const experienceFactor = (cfg: DevelopmentConfig, weighted: number) =>
+  Math.min(cfg.experience.max, cfg.experience.base + cfg.experience.perMatch * weighted);
+
 export function capToPa(p: Player) {
   for (const a of ATTRS) p.attrs[a] = clamp(p.attrs[a], 1, 100);
   for (let i = 0; i < 20 && meanAttrs(p) > p.pa; i++) {
@@ -40,10 +44,7 @@ export function developQuarter(p: Player, cfg: DevelopmentConfig, ctx: QuarterCo
   let rate = between(rng, band(cfg.growthByAge, growthAge)) * between(rng, cfg.randomFactor);
   if (p.trait === 'late' && realAge < 22) rate *= cfg.lateBloomer.youngFactor;
   if (p.trait === 'stagnant') rate *= cfg.stagnantFactor;
-  if (realAge <= cfg.experience.untilAge) {
-    const e = cfg.experience;
-    rate *= Math.min(e.max, e.base + e.perMatch * (ctx.experience.get(p.id) ?? 0));
-  }
+  if (realAge <= cfg.experience.untilAge) rate *= experienceFactor(cfg, ctx.experience.get(p.id) ?? 0);
   const growth = Math.max(0, p.pa - before) * (rate / 4);
   // Dibagi ke atribut dengan bobot acak (gaya bermain ikut terbentuk).
   const weights = ATTRS.map(() => 0.5 + rng());

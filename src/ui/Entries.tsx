@@ -3,10 +3,11 @@ import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { aiEventChoice, entrantsFor, hostCityId, openTo, type SeasonState, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey } from '../engine/season';
 import { autoSquad, squadError, squadPool } from '../engine/team';
 import { contingentOf, inContingent, lockWeek } from '../engine/contingent';
-import { DISCIPLINES, isDoubles, isJuniorFormat, type Discipline, type Ruleset, type TeamFormat, type TournamentDef, type World } from '../engine/types';
+import { DISCIPLINES, isDoubles, isJuniorFormat, type Discipline, type Round, type Ruleset, type TeamFormat, type TournamentDef, type World } from '../engine/types';
 import { dataName, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, tierLabel, useGame, TierBadge } from './game';
 import { FitStatus, MoraleTag } from './Squad';
+import { setTarget } from '../engine/career';
 import { moraleTier, pairAbility } from '../engine/match';
 import { currentAbility, isJuniorAge, isPratama } from '../engine/generator';
 import { formatName, SquadPicker } from './Team';
@@ -232,8 +233,9 @@ function boundElsewhere(state: SeasonState, decisions: Record<string, string>, e
 /**
  * Satu baris entry (senior & junior): nama + status/morale (+ wajib / turnamen lain) · ability · ranking · centang.
  */
-function EntryRow({ e, checked, disabled, other, required, onToggle }: {
+function EntryRow({ e, checked, disabled, other, required, onToggle, target, onTarget }: {
   e: EntryEntrant; checked: boolean; disabled: boolean; other?: string; required?: boolean; onToggle: (on: boolean) => void;
+  target?: Round; onTarget?: (r?: Round) => void;
 }) {
   const { game } = useGame();
   const { state, ruleset } = game;
@@ -254,6 +256,12 @@ function EntryRow({ e, checked, disabled, other, required, onToggle }: {
           {e.trial && <span className="tag">{t('trialPair')}</span>}
           {ps.some((x) => isPratama(x, state.date)) && <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>}
           {other && <span className="muted-text">→ {dataName(ruleset.calendar.find((x) => x.id === other)?.name)}</span>}
+          {onTarget && checked && (
+            <select className="mini" value={target ?? ''} onChange={(x) => onTarget((x.target.value || undefined) as Round | undefined)} title={t('targetHint')}>
+              <option value="">{t('targetNone')}</option>
+              {(['W', 'F', 'SF', 'QF', 'R16', 'R32'] as const).map((r) => <option key={r} value={r}>{t(`target_${r}` as TextKey)}</option>)}
+            </select>
+          )}
         </div>
       </td>
       <td className="num">{Math.round(pair ? pairAbility(ab, pair.chemistry, ruleset.match) : ab[0])}</td>
@@ -458,7 +466,9 @@ export function EntryTable({ week: w, eventId, onSubmit }: { week: number; event
           <thead><tr><th>{t('name')}</th><th className="num">{t('ability')}</th><th className="num">{t('rank')}</th><th className="num">{t('enterCol')}</th></tr></thead>
           <tbody>{rows.filter((e) => e.d === sector).map((e) => (
             <EntryRow key={e.id} e={e} checked={checked(e)} disabled={!eligible(e)} other={elsewhere(e)} required={required(e)}
-              onToggle={(on) => set(e.id, on ? eventId : 'rest')} />
+              onToggle={(on) => set(e.id, on ? eventId : 'rest')}
+              target={state.targets?.[`${year}:${eventId}`]?.[e.id]}
+              onTarget={(r) => { setTarget(state, year, eventId, e.id, r); changed(); void saveGame(game); }} />
           ))}</tbody>
         </table>
       </div>
