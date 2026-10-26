@@ -29,10 +29,7 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
   if (editing && ask.deadlines?.includes(editing)) return (
     <section className="card hub">
       <h3>{eventName(ruleset, editing, year)} · {t('week')} {weekOf([...ruleset.calendar, ...ruleset.team.events].find((e) => e.id === editing)!, year)}</h3>
-      <EntryPanel id={editing} onSubmitted={() => setEditing(undefined)} />
-      <div className="controls roundbar">
-        <button onClick={() => setEditing(undefined)}>← {t('back')}</button>
-      </div>
+      <EntryPanel id={editing} onSubmitted={() => setEditing(undefined)} onBack={() => setEditing(undefined)} />
     </section>
   );
   if (editing) return (
@@ -40,14 +37,10 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
       <h3>{eventName(ruleset, editing, year)} · {t('entryStatus')}</h3>
       {(() => {
         const ev = ruleset.calendar.find((e) => e.id === editing);
-        const submit = (ai?: boolean) => { (state.entriesSubmitted ??= {})[`${year}:${editing}`] = ai ? 'ai' : true; changed(); void saveGame(game); setEditing(undefined); };
+        const submit = () => { (state.entriesSubmitted ??= {})[`${year}:${editing}`] = true; changed(); void saveGame(game); setEditing(undefined); };
         const junior = ev && ruleset.tiers.find((x) => x.id === ev.tierId)?.junior;
-        return <>
-          {junior ? <JuniorEntryTable ev={ev} onSubmit={submit} /> : <EntryTable week={ask.week} eventId={editing} onSubmit={submit} />}
-          <div className="controls roundbar">
-            <button onClick={() => setEditing(undefined)}>← {t('back')}</button>
-          </div>
-        </>;
+        const back = () => setEditing(undefined);
+        return junior ? <JuniorEntryTable ev={ev} onSubmit={submit} onBack={back} /> : <EntryTable week={ask.week} eventId={editing} onSubmit={submit} onBack={back} />;
       })()}
     </section>
   );
@@ -78,7 +71,7 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
                   : kind === 'team' ? null : auto ? t('auto') : closed ? <span className="badge">🔒 {t('entryClosed')}</span> : submitted ? <span className="badge good">✓ {t('entrySubmitted')}</span>
                   : <span className="badge">{t('needEntry')}</span>}</small>
               </span>
-              {!auto && !closed && !ask.played.length && <button onClick={() => setEditing(id)}>{t('fillEntry')}</button>}
+              {!auto && !closed && !ask.played.length && <button onClick={() => setEditing(id)}>{t(submitted ? 'modifyEntries' : 'fillEntry')}</button>}
               <button className="primary" disabled={done || !(auto || submitted || closed)} onClick={() => onPick(id)}>{t('playEvent')}</button>
             </li>
           );
@@ -98,7 +91,8 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
               <span className="grow"><b>{eventName(ruleset, id, year)}</b> <small className="muted-text">{t('week')} {weekOf(ev, year)} · {city(hostCityId(ev, year))}</small><br />
                 <small>{submitted ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('needEntry')}</span>}</small>
               </span>
-              <button className="primary" onClick={() => setEditing(id)}>{t('submitEntries')}</button>
+              {/* Sudah di-submit: masih bisa diubah sampai batas entry (tombol sekunder). */}
+              <button className={submitted ? undefined : 'primary'} onClick={() => setEditing(id)}>{t(submitted ? 'modifyEntries' : 'submitEntries')}</button>
             </li>
           );
         })}</ul>
