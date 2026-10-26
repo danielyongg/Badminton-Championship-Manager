@@ -1,3 +1,4 @@
+import type { TraitId } from './traits';
 // Semua tipe data game. Angka regulasi BWF TIDAK ditulis di kode — semuanya ada di Ruleset (JSON).
 import type { TextKey } from '../i18n';
 
@@ -304,6 +305,8 @@ export interface Player {
   /** Riwayat cedera (dicatat sejak fitur ini ada): minggu terjadi, tingkat, jenis, lama absen. */
   injuryHistory?: { year: number; week: number; level: InjuryLevel; type: string; weeks: number }[];
   trait?: 'late' | 'stagnant';
+  /** Sifat atlet (lihat traits.ts); undefined = belum diacak (save lama), diisi `ensureTraits`. */
+  traits?: TraitId[];
   /** Spesialis ganda: tidak diberi ranking tunggal awal & tidak didaftarkan AI di nomor tunggal (manajer tetap boleh). */
   focus?: 'D' | 'S'; // 'S' = hanya tunggal: tidak muncul di form bentuk pasangan
   /** Junior (U19) yang sudah dipromosikan ke pelatnas utama: ikut didaftarkan otomatis ke turnamen senior. */

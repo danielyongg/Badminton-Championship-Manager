@@ -1,3 +1,4 @@
+import { ensureTraits } from '../engine/traits';
 import { WORLD } from '../engine/presets/world';
 import { createContext, useContext } from 'react';
 import { capToPa, INJURY_TYPES } from '../engine/development';
@@ -154,6 +155,11 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
       if (!Object.values(picks).includes(e.id)) blob.state.entriesSubmitted[key] = 'ai';
     }
     blob.state.entriesSubmittedKinds = true;
+  }
+  if (!blob.state.traitsRolled) {
+    ensureTraits(blob.state.players);
+    if (blob.state.scouting) ensureTraits(blob.state.scouting.candidates);
+    blob.state.traitsRolled = true;
   }
   if (blob.state.hostsSpread !== 3) {
     // Save sebelum turnamen senegara & setier disebar (dan World Tour sebelum Finals): sisa musim berjalan (turnamen yang belum di-submit & bukan jadwal resmi preset).

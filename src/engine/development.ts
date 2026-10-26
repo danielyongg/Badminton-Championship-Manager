@@ -1,5 +1,6 @@
 import { ageAt, currentAbility, generatePlayer } from './generator';
 import { normal, type Rng } from './rng';
+import { AGELESS_YEARS, hasTrait } from './traits';
 import { ATTRS, type AgeBand, type Country, type DevelopmentConfig, type GameDate, type GeneratorConfig, type Player, type InjuryConfig, type InjuryLevel } from './types';
 
 // Perkembangan (menuju PA), penuaan (penurunan per atribut), pensiun & regenerasi junior.
@@ -55,9 +56,10 @@ export function developQuarter(p: Player, cfg: DevelopmentConfig, ctx: QuarterCo
   if (realAge <= cfg.mentalGrowth.untilAge && realAge >= 20) p.attrs.mental += cfg.mentalGrowth.perYear / 4;
 
   // 3) Penuaan: tiap atribut mulai turun pada usia (awal penurunan + offset), dengan bobotnya sendiri.
+  const declineAge = age - (hasTrait(p, 'ageless') ? AGELESS_YEARS : 0); // awet muda
   for (const a of ATTRS) {
     const { weight, startOffset } = cfg.attrDecline[a];
-    const d = between(rng, band(cfg.declineByAge, age - startOffset));
+    const d = between(rng, band(cfg.declineByAge, declineAge - startOffset));
     p.attrs[a] -= (d * weight) / 4;
   }
 

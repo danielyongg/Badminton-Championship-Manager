@@ -155,13 +155,15 @@ export function nextDayForm(hot: HotForm, id: EntrantId, cfg: MatchConfig, rng: 
 export function simPlay(opts: {
   players: Map<string, Player>; pairs: Map<string, Pair>; cfg: MatchConfig; rng: Rng;
   tournamentId: string; year: number; discipline: Discipline; matches: Match[]; live?: LiveHook; hot?: HotForm;
+  /** Turnamen besar: semua laganya "laga besar" (sifat mental); selain itu hanya SF/F. */
+  big?: boolean;
 }): PlayFn {
-  const side = (id: EntrantId): SideInput => {
+  const side = (id: EntrantId, big: boolean): SideInput => {
     const pair = opts.pairs.get(id);
     const day = opts.hot && nextDayForm(opts.hot, id, opts.cfg, opts.rng);
     return pair
-      ? { players: pair.playerIds.map((p) => opts.players.get(p)!), chemistry: pair.chemistry, day }
-      : { players: [opts.players.get(id)!], day };
+      ? { players: pair.playerIds.map((p) => opts.players.get(p)!), chemistry: pair.chemistry, day, big }
+      : { players: [opts.players.get(id)!], day, big };
   };
   const record = (a: EntrantId, b: EntrantId, round: MatchRound, r: MatchResult) => {
     const won = opts.hot?.[r.winner === 0 ? a : b];
@@ -173,7 +175,8 @@ export function simPlay(opts: {
     return r;
   };
   return (a, b, round) => {
-    const sides: [SideInput, SideInput] = [side(a), side(b)];
+    const big = !!opts.big || round === 'SF' || round === 'F';
+    const sides: [SideInput, SideInput] = [side(a, big), side(b, big)];
     const live = opts.live?.({ sides, entrants: [a, b], round, tournamentId: opts.tournamentId, discipline: opts.discipline });
     if (live) return live.then((r) => record(a, b, round, r));
     return record(a, b, round, simulateMatch(sides, matchConfigFor(opts.cfg, opts.year), opts.rng));

@@ -1,4 +1,5 @@
 import { makeRng, normal, type Rng } from './rng';
+import { CHOKER_BIG, CHOKER_MENTAL, CLUTCH_BIG, CLUTCH_MENTAL, traitShare } from './traits';
 import { ATTRS, type Attr, type Attrs, type EntrantId, type Match, type MatchConfig, type MatchStats, type PatternKind, type Player, type PointType, type Strategy, type WinnerShot } from './types';
 
 // Mesin pertandingan berbasis rally. Dibuat sebagai "mesin langkah" (playRally) agar
@@ -8,6 +9,8 @@ export interface SideInput {
   players: Player[]; // 1 (tunggal) atau 2 (ganda)
   chemistry?: number; // ganda saja
   day?: number; // kondisi hari itu (termasuk efek on fire); kosong = diacak baru
+  /** Laga besar (SF/F atau turnamen besar): sifat mental juara/demam panggung berlaku penuh. */
+  big?: boolean;
 }
 
 interface SideState {
@@ -15,6 +18,7 @@ interface SideState {
   energy: number; // 0–100
   strategy: Strategy;
   male: boolean; // kecepatan smash (tunggal/ganda putra & campuran lebih cepat)
+  clutch?: number; // tambahan mental di poin kritis (mental juara − demam panggung)
 }
 
 export interface MatchState {
@@ -63,7 +67,8 @@ export const pairAbility = (abilities: number[], chemistry: number, cfg: MatchCo
 function sideAttrs(side: SideInput, cfg: MatchConfig, day = 0): Attrs {
   const ps = side.players;
   const bonus = ps.length > 1 ? chemistryBonus(side.chemistry ?? 50, cfg) : 0;
-  const form = ps.reduce((s, p) => s + moraleEffect(p.form, cfg), 0) / ps.length + day;
+  const stage = side.big ? CLUTCH_BIG * traitShare(ps, 'clutch') - CHOKER_BIG * traitShare(ps, 'choker') : 0;
+  const form = ps.reduce((s, p) => s + moraleEffect(p.form, cfg), 0) / ps.length + day + stage;
   return Object.fromEntries(
     ATTRS.map((a) => [a, ps.reduce((s, p) => s + p.attrs[a], 0) / ps.length + form + bonus]),
   ) as Attrs;
@@ -91,12 +96,14 @@ function gamePointFor(st: MatchState, cfg: MatchConfig): 0 | 1 | undefined {
   return undefined;
 }
 
+const clutchOf = (s: SideInput) => CLUTCH_MENTAL * traitShare(s.players, 'clutch') - CHOKER_MENTAL * traitShare(s.players, 'choker');
+
 export function createMatch(sides: [SideInput, SideInput], cfg: MatchConfig, rng: Rng): MatchState {
   const start = (s: SideInput) => clamp(100 - Math.max(...s.players.map((p) => p.fatigue)) * cfg.energy.fatigueToStart, 0, 100);
   return {
     sides: [
-      { attrs: sideAttrs(sides[0], cfg, sides[0].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[0]), strategy: 'balanced', male: sides[0].players.some((p) => p.gender === 'M') },
-      { attrs: sideAttrs(sides[1], cfg, sides[1].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[1]), strategy: 'balanced', male: sides[1].players.some((p) => p.gender === 'M') },
+      { attrs: sideAttrs(sides[0], cfg, sides[0].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[0]), strategy: 'balanced', male: sides[0].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[0]) },
+      { attrs: sideAttrs(sides[1], cfg, sides[1].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[1]), strategy: 'balanced', male: sides[1].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[1]) },
     ],
     games: [],
     score: [0, 0],
@@ -204,7 +211,7 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
     let diff = (1 - cfg.overallWeight) * (eff(st, x, p.atk, cfg) - eff(st, y, p.def, cfg))
       + cfg.overallWeight * (overall(st, x, cfg) - overall(st, y, cfg));
     if (Math.max(...st.score) >= cfg.pressure.fromScore)
-      diff += cfg.pressure.weight * (st.sides[x].attrs.mental - st.sides[y].attrs.mental);
+      diff += cfg.pressure.weight * ((st.sides[x].attrs.mental + (st.sides[x].clutch ?? 0)) - (st.sides[y].attrs.mental + (st.sides[y].clutch ?? 0)));
     const sx = cfg.strategies[st.sides[x].strategy], sy = cfg.strategies[st.sides[y].strategy];
     diff += (sx.attack[p.kind] ?? 0) - sy.defend;
     diff += cfg.momentum.weight * (x === 0 ? st.momentum : -st.momentum);

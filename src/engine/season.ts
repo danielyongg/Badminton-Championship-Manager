@@ -1,4 +1,5 @@
 import { bumpForm, HOME_BONUS, hitTarget, REST_RECOVERY, TARGET_HIT, TARGET_MISS } from './boosts';
+import { ensureTraits, hasTrait, injuryMult, QUICK_RECOVERY, TRAVELER_FATIGUE } from './traits';
 import { makeChallenges, seasonGoals, seasonReport } from './career';
 import { contingentOf, inContingent, lockContingents } from './contingent';
 import { olympicField } from './olympics';
@@ -54,6 +55,8 @@ export interface SeasonState {
   /** Koreksi tradisi atlet junior asli sudah diterapkan (save lama disesuaikan sekali saat dimuat). */
   juniorCalibrated?: true;
   /** Turnamen kecil di negara yang sama sudah disebar (`spreadHosts`). Save lama: tidak ada. */
+  /** Sifat atlet sudah diacak untuk semua atlet (save lama: diisi saat dimuat). */
+  traitsRolled?: true;
   hostsSpread?: true | 2 | 3; // 2 = juga tier yang sama tidak sepekan, 3 = World Tour sebelum Finals
   /** Top Committed Players musim ini: entrantId → id turnamen wajib. */
   commitments: Record<EntrantId, string[]>;
@@ -298,7 +301,7 @@ export function newSeason(
   const state: SeasonState = {
     date, players: [...structuredClone(roster?.players ?? []), ...w.players], pairs: [...structuredClone(roster?.pairs ?? []), ...w.pairs],
     results: [], juniorResults: [], matches: [], champions: [], commitments: {}, violations: [],
-    juniorPromotion: true, juniorCalibrated: true, hostsSpread: 3, entriesSubmittedKinds: true, experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
+    juniorPromotion: true, juniorCalibrated: true, traitsRolled: true, hostsSpread: 3, entriesSubmittedKinds: true, experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
     career: { countryId, goals: [], reports: [], reputation: 50 },
   };
   if (roster?.players.length) {
@@ -306,6 +309,7 @@ export function newSeason(
     state.results = bootstrapResults(state, ruleset);
     formPairs(state, ruleset, world, makeRng(seed + 2));
   }
+  ensureTraits(state.players);
   state.managedCountryId = countryId;
   state.results = bootstrapResults(state, ruleset);
   startYear(state, ruleset, makeRng(seed + 1), world);
@@ -543,7 +547,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   const ranks = new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.results, d, cutoff, rs))]));
 
   for (const p of state.players) {
-    p.fatigue = Math.max(0, p.fatigue - rs.fatigue.recoveryPerWeek);
+    p.fatigue = Math.max(0, p.fatigue - rs.fatigue.recoveryPerWeek * (hasTrait(p, 'quickRecovery') ? QUICK_RECOVERY : 1));
     if (p.injury && --p.injury.weeksLeft <= 0) p.injury = undefined;
     p.form *= rs.match.morale.weeklyDecay; // morale perlahan kembali ke Normal
   }
@@ -608,7 +612,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     const runs = await each(gated, ds, (d) => {
       let candidates = entries.get(event.id)!.get(d)!;
       if (tier.countryQuota) candidates = applyCountryQuota(candidates, tier.countryQuota);
-      const sim = simPlay({ players, pairs, cfg: rs.match, rng, tournamentId: event.id, year, discipline: d, matches: state.matches, live: h.live, hot: hotFormOf(state) });
+      const sim = simPlay({ players, pairs, cfg: rs.match, rng, tournamentId: event.id, year, discipline: d, matches: state.matches, live: h.live, hot: hotFormOf(state), big: tier.grade === 1 || tier.points[0] >= 9000 });
       const play = gate ? gate.wrap(d, sim) : sim;
       // Catatan sementara sejak undian: halaman turnamen bisa dibuka selagi turnamen dimainkan.
       const onRecord = (rec: EventRecord) => {
@@ -713,8 +717,12 @@ function applyEventLoad(state: SeasonState, rs: Ruleset, rng: Rng, firstMatch: n
     for (const side of m.sides)
       for (const id of pairs.get(side)?.playerIds ?? [side]) {
         const p = players.get(id)!;
-        if (p.injury || rng() >= inj.base + inj.fatigueFactor * (p.fatigue / 100) ** 2) continue;
-        const r = rollInjury(inj, rng);
+        if (p.injury || rng() >= (inj.base + inj.fatigueFactor * (p.fatigue / 100) ** 2) * injuryMult(p)) continue;
+        let r = rollInjury(inj, rng);
+        if (hasTrait(p, 'injuryProne')) { // rawan cedera: tingkat = yang terburuk dari dua undian
+          const r2 = rollInjury(inj, rng), lvl = (x: typeof r) => inj.levels.findIndex((l) => l.id === x.injury.level);
+          if (lvl(r2) > lvl(r)) r = r2;
+        }
         p.injury = r.injury;
         (p.injuryHistory ??= []).push({ ...state.date, level: r.injury.level, type: r.injury.type, weeks: r.injury.weeksLeft });
         if (r.paLoss) applySevereInjury(p, rs.development, rng, r.paLoss);
@@ -726,7 +734,7 @@ function applyEventLoad(state: SeasonState, rs: Ruleset, rng: Rng, firstMatch: n
   for (const id of played) {
     const p = players.get(id)!;
     const from = p.location && cities.get(p.location);
-    if (from) p.fatigue += (distanceKm(from, city) / 1000) * rs.fatigue.per1000Km;
+    if (from) p.fatigue += (distanceKm(from, city) / 1000) * rs.fatigue.per1000Km * (hasTrait(p, 'traveler') ? TRAVELER_FATIGUE : 1);
     p.fatigue = Math.min(100, p.fatigue);
     p.location = city.id;
   }
@@ -1124,6 +1132,8 @@ function endYear(state: SeasonState, rs: Ruleset, world: World, rng: Rng) {
     if (c.id === state.managedCountryId) state.scouting = makeScouting(juniors, c, rs.generator, next, rng, usedNames);
     else state.players.push(...juniors);
   }
+  ensureTraits(state.players);
+  if (state.scouting) ensureTraits(state.scouting.candidates);
   formPairs(state, rs, world, rng);
 }
 

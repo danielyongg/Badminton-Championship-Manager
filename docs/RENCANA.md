@@ -69,7 +69,7 @@ Prinsip: tetap tanpa fitur latihan, anggaran, atau pelatih; morale & kemampuan n
 
 Urutan kerja (tiap fase bisa dirilis sendiri; tes & build hijau di akhir fase):
 - [x] **Fase 1 — fondasi & yang langsung terasa:** M1 (boosts.ts), M2 (istirahat), M3 (kandang), M7 (target perorangan), P5 (faktor pengalaman terlihat).
-- [ ] **Fase 2 — sifat atlet inti:** S1 (data & migrasi), S2 (terungkap & badge), S3 (fisik), S4 (awet muda), S5 (mental juara/demam panggung).
+- [x] **Fase 2 — sifat atlet inti:** S1 (data & migrasi), S2 (terungkap & badge), S3 (fisik), S4 (awet muda), S5 (mental juara/demam panggung).
 - [ ] **Fase 3 — morale lanjutan & sifat sisanya:** M4 (skuad), M5 (pasangan), M6 (rekor pribadi), S6 (starter lambat, momentum, konsisten), S7 (sifat morale), S8 (sifat ganda), M11 + S10 (kalibrasi bersama satu musim).
 - [ ] **Fase 4 — perkembangan:** M8 (kalah tipis), M9 (morale/elite/mentor), M10 (comeback cedera), P7 (laporan kuartal).
 - [ ] **Fase 5 — pencarian bakat:** P1 (gaya & asal), P2 (fokus), S9 (catatan pemandu), P4 (rentang menyempit & rekrut bertahap), P8 (dokumen & uji manual).

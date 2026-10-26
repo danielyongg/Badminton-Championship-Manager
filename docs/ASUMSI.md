@@ -206,3 +206,11 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Kandang**: atlet yang ikut turnamen di negaranya sendiri mendapat morale +1 di awal turnamen (berlaku juga untuk AI).
 - **Target perorangan**: manajer memilih target babak (juara … 32 besar) di form entry. Tercapai atau lebih → morale +1,5; meleset ≥ 2 babak (atau tidak masuk babak utama dengan target ≤ 32 besar) → −1; meleset 1 babak → tidak berubah.
 - **Faktor pengalaman**: rumus lama (base + perMatch × laga berbobot, maks `max`) kini tampil di profil atlet sampai usia `experience.untilAge`; perilakunya tidak berubah.
+
+## Sifat atlet (Fase 2, `src/engine/traits.ts`)
+- **Jumlah**: 0 sifat (60 %), 1 (30 %), 2 (10 %) per atlet, diacak dari id atlet (tidak menggeser urutan acak game). Tidak bersamaan: tubuh baja↔rawan cedera, mental juara↔demam panggung, pasangan ideal↔sulit cocok. Save lama: diacak sekali saat dimuat.
+- **Terungkap**: sifat fisik & sifat perkembangan lama (late bloomer/mandek) setelah 2 akhir musim tercatat; sifat mental/morale/ganda setelah 30 laga.
+- **Tubuh baja / rawan cedera**: peluang cedera ×0,5 / ×1,8; rawan cedera: tingkat cedera = yang terburuk dari dua undian.
+- **Cepat pulih**: pemulihan kelelahan mingguan ×1,5. **Musafir**: kelelahan perjalanan ×0,5. **Awet muda**: penurunan usia dihitung 2 tahun lebih muda.
+- **Mental juara / demam panggung**: ±8 mental di poin kritis; di laga besar (SF/F, atau semua laga turnamen grade 1 / poin juara ≥ 9000) semua atribut +1 / −1,5. Efek di atlet setara: menang ±52 % (laga biasa).
+- Sifat lain (starter lambat, pemburu momentum, konsisten, mudah goyah, jagoan kandang, pemimpin, pasangan ideal/sulit cocok) sudah diacak & bisa terungkap, efeknya menyusul di Fase 3.
