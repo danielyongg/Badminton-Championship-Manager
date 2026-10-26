@@ -254,6 +254,9 @@ export interface MatchConfig {
 
 export const STRATEGIES = ['balanced', 'attacking', 'defensive', 'fast', 'deceptive'] as const;
 export type Strategy = (typeof STRATEGIES)[number];
+/** Instruksi manajer di interval / antar game (Live Match); berlaku sampai jeda berikutnya. */
+export const INSTRUCTIONS = ['none', 'calm', 'pressServe', 'conserve', 'allOut'] as const;
+export type Instruction = (typeof INSTRUCTIONS)[number];
 export type PatternKind = 'smash' | 'net' | 'deception' | 'rally';
 
 export interface StrategyEffect {

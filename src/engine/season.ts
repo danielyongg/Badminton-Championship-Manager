@@ -66,6 +66,8 @@ export interface SeasonState {
   experience: Record<string, number>;
   /** Target babak manajer per entrant: kunci "tahun:eventId". */
   targets?: Record<string, Record<string, Round>>;
+  /** Hasil target babak manajer (rapor target musim). */
+  targetLog?: { year: number; eventId: string; discipline: Discipline; id: string; target: Round; reached?: Round; res: 'hit' | 'miss' | 'none' }[];
   /** Negara yang pasangannya diatur manajer (AI tidak membentuk pasangan baru di sana). */
   managedCountryId?: string | null;
   career?: Career;
@@ -652,7 +654,9 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
       // Target manajer: tercapai → morale naik, meleset ≥ 2 babak → turun.
       for (const [id, target] of Object.entries(state.targets?.[`${year}:${event.id}`] ?? {})) {
         if (!entries.get(event.id)!.get(d)!.some((c) => c.id === id)) continue; // bukan nomor ini / tidak masuk entry
-        const res = hitTarget(run.main.reached.get(id) as Round | undefined, target);
+        const reached = run.main.reached.get(id) as Round | undefined;
+        const res = hitTarget(reached, target);
+        (state.targetLog ??= []).push({ year, eventId: event.id, discipline: d, id, target, reached, res });
         if (res !== 'none') for (const x of pairs.get(id)?.playerIds ?? [id]) { const p = players.get(x); if (p) bumpForm(p, res === 'hit' ? TARGET_HIT : -TARGET_MISS); }
       }
       state.champions.push({ tournamentId: event.id, year, discipline: d, winner: run.main.rounds.at(-1)![0]! });

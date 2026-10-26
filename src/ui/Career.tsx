@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { weekRunning } from './UpdateBar';
 import { matchConfigFor, simulateMatch, type MatchResult } from '../engine/match';
 import type { DrawHook, DrawShow, EntriesHook, EntriesShow, LiveHook, LiveRequest } from '../engine/tournament';
-import { CHALLENGE_DEADLINE_WEEK, CHALLENGE_PENALTY, CHALLENGE_REWARD, challengeProgress, goalProgress, goalWeight } from '../engine/career';
+import { CHALLENGE_DEADLINE_WEEK, CHALLENGE_PENALTY, CHALLENGE_REWARD, challengeProgress, goalProgress, goalWeight, targetReport } from '../engine/career';
 import { ageAt, isJuniorAge } from '../engine/generator';
 import { entrantsFor, forgetPlayer, hasHistory, hostCityId, isHeld, openTo, teamFormatsIn, weekOf, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
 import type { RoundHook, RoundShow } from '../engine/gate';
@@ -558,6 +558,10 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
   const lastTeam = myTeams.filter((r) => r.year === selYear && weekIn(r.eventId, r.year) === selWeek);
   const injured = state.players.filter((p) => p.countryId === managed && p.injury && p.retired === undefined && p.released === undefined);
   const lastReport = state.career?.reports.at(-1);
+  // Ringkasan per turnamen: HP default ringkas (hanya perempat final ke atas), desktop default lengkap.
+  const [openEvents, setOpenEvents] = useState<Set<string>>(new Set());
+  const [compact] = useState(() => window.matchMedia?.('(max-width: 700px)').matches ?? false);
+  const toggleEvent = (id: string) => setOpenEvents((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   return (
     <div className="dash">
@@ -636,9 +640,20 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
             );
           })}
           {last.size === 0 && lastTeam.length === 0 ? <p>—</p> : (
-            [...byEvent].map(([event, list]) => (
+            [...byEvent].map(([event, list]) => {
+              const top = list.filter((r) => ['W', 'F', 'SF', 'QF'].includes(reachedOf(r)));
+              const full = compact === openEvents.has(event); // HP: dibuka manual; desktop: ditutup manual
+              const shown = full ? list : (top.length ? top : list).slice(0, top.length ? 6 : 3);
+              const count = (rd: string) => list.filter((r) => reachedOf(r) === rd).length;
+              const goals = (state.targetLog ?? []).filter((x) => x.eventId === event && x.year === selYear);
+              return (
               <div key={event} className="dlist">
                 <h4><EventLink id={event} year={selYear} onOpen={onOpenEvent} /></h4>
+                <p className="week-sum">
+                  {(['W', 'F', 'SF', 'QF'] as const).filter((rd) => count(rd)).map((rd) => <span key={rd} className={`badge${rd === 'W' ? ' gold' : rd === 'QF' ? '' : ' good'}`}>{rd === 'W' ? '🏆' : rd} ×{count(rd)}</span>)}
+                  <span className="muted-text">{t('weekSumEntrants', { n: list.length })}</span>
+                  {goals.length > 0 && <span className="muted-text">· 🎯 {t('weekSumTargets', { hit: goals.filter((x) => x.res === 'hit').length, n: goals.length })}</span>}
+                </p>
                 {(() => {
                   const b = best.get(event);
                   if (!b) return null;
@@ -653,7 +668,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
                     </div>
                   );
                 })()}
-                {list.map(({ id, m, i }) => {
+                {shown.map(({ id, m, i }) => {
                   const reached = reachedOf({ m, i });
                   const opp = m.sides[1 - i];
                   const sum = summaryOf(event, id, m.discipline);
@@ -676,8 +691,14 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
                     </div>
                   );
                 })}
+                {list.length > shown.length || full && list.length > top.length ? (
+                  <button className="mini" onClick={() => toggleEvent(event)}>
+                    {full ? t('showLess') : t('showAllResults', { n: list.length })}
+                  </button>
+                ) : null}
               </div>
-            ))
+              );
+            })
           )}
         </section>
       )}
@@ -909,6 +930,41 @@ function ReportCard({ r, onClick }: { r: SeasonReport; onClick?: () => void }) {
   );
 }
 
+/** Rapor target musim: per atlet/pasangan berapa target yang tercapai & meleset (dari target babak di form entry). */
+function TargetReportCard({ onOpen }: { onOpen: (id: string) => void }) {
+  const { game } = useGame();
+  const { state } = game;
+  const years = [...new Set((state.targetLog ?? []).map((x) => x.year))].sort((a, b) => b - a);
+  const [pick, setPick] = useState<number>();
+  const year = pick ?? years[0] ?? state.date.year;
+  const rows = targetReport(state, year);
+  const total = rows.reduce((s, r) => s + r.n, 0), hit = rows.reduce((s, r) => s + r.hit, 0);
+  const pct = (a: number, b: number) => `${Math.round((100 * a) / Math.max(1, b))}%`;
+  return (
+    <section className="card">
+      <h3>{t('targetReport')} {year}</h3>
+      {years.length > 1 && (
+        <p className="controls"><select value={year} onChange={(e) => setPick(Number(e.target.value))}>{years.map((y) => <option key={y} value={y}>{y}</option>)}</select></p>
+      )}
+      {!rows.length ? <p className="hint">{t('targetReportEmpty')}</p> : (
+        <>
+          <p>{t('targetReportSummary', { hit, n: total, pct: pct(hit, total) })}</p>
+          <table className="fit target-report">
+            <thead><tr><th>{t('name')}</th><th className="num" title={t('targetReportN')}>🎯</th><th className="num" title={t('targetHitCol')}>✓</th><th className="num" title={t('targetMissCol')}>✗</th><th className="num">%</th></tr></thead>
+            <tbody>{rows.map((r) => (
+              <tr key={r.id}>
+                <td><a href="#" onClick={(e) => { e.preventDefault(); onOpen(state.pairs.find((p) => p.id === r.id)?.playerIds[0] ?? r.id); }}>{entrantLabel(state, r.id).name}</a></td>
+                <td className="num">{r.n}</td><td className="num pos">{r.hit}</td><td className="num neg">{r.miss}</td><td className="num"><b>{pct(r.hit, r.n)}</b></td>
+              </tr>
+            ))}</tbody>
+          </table>
+          <p className="hint">{t('targetReportHint')}</p>
+        </>
+      )}
+    </section>
+  );
+}
+
 function Federation({ onChanged, onOpen, onOpenEvent }: { onChanged: () => void; onOpen: (id: string) => void; onOpenEvent: (id: string, year: number) => void }) {
   const { game } = useGame();
   const { state, ruleset, world } = game;
@@ -951,6 +1007,7 @@ function Federation({ onChanged, onOpen, onOpenEvent }: { onChanged: () => void;
         </section>
       )}
       {country && <Titles country={country} year={year} onOpen={onOpen} onOpenEvent={onOpenEvent} />}
+      {country && <TargetReportCard onOpen={onOpen} />}
       {country && years.length > 0 && (
         <section className="card">
           <h3>{t('prizeMoney')}</h3>

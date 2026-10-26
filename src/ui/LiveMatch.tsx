@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { createMatch, headToHead, matchResult, playRally, suggestStrategy, type MatchResult, type MatchState, type RallyEvent, type SideInput } from '../engine/match';
+import { createMatch, headToHead, matchResult, playRally, suggestInstruction, suggestStrategy, type MatchResult, type MatchState, type RallyEvent, type SideInput } from '../engine/match';
 import type { Rng } from '../engine/rng';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import type { SeasonState } from '../engine/season';
 import type { LiveRequest } from '../engine/tournament';
-import { STRATEGIES, type MatchConfig, type Ruleset, type Strategy } from '../engine/types';
+import { INSTRUCTIONS, STRATEGIES, type Instruction, type MatchConfig, type Ruleset, type Strategy } from '../engine/types';
 import { t, type TextKey } from '../i18n';
 import { Flag } from './Flag';
 import { entrantLabel, eventName } from './game';
 import { MatchLink } from './MatchDetail';
 import { MatchStatsView } from './MatchStats';
+import { MoraleTag } from './Squad';
 
 const SPEEDS = { slow: 600, normal: 250, fast: 60 } as const;
 
@@ -31,6 +32,7 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
   const [speed, setSpeed] = useState<keyof typeof SPEEDS>('normal');
   const [log, setLog] = useState<{ ev: RallyEvent; score: string }[]>([]);
   const [strategy, setStrategy] = useState<Strategy>('balanced');
+  const [instruction, setInstruction] = useState<Instruction>('none');
   const [tip] = useState(() => suggestStrategy(sides[mySide].players, sides[1 - mySide].players));
   const [hidden, setHidden] = useState(false);
   const [view, setView] = useState<'log' | 'stats'>('log');
@@ -45,7 +47,9 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
   const step = () => {
     if (m.winner !== undefined) return false;
     m.sides[mySide].strategy = strategy;
+    m.sides[mySide].instruction = instruction === 'none' ? undefined : instruction;
     const ev = playRally(m, cfg, rng);
+    if (ev.interval || ev.gameOver) setInstruction('none'); // instruksi berlaku sampai jeda berikutnya
     const score = ev.gameOver ? m.games.at(-1)!.join('-') : m.score.join('-');
     setLog((l) => [{ ev, score }, ...l].slice(0, 12));
     render((x) => x + 1);
@@ -60,8 +64,10 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
 
   const finish = () => {
     m.sides[mySide].strategy = strategy;
-    while (m.winner === undefined) playRally(m, cfg, rng);
+    m.sides[mySide].instruction = instruction === 'none' ? undefined : instruction;
+    while (m.winner === undefined) playRally(m, cfg, rng); // instruksi hilang sendiri di jeda berikutnya
     setRunning(false);
+    setInstruction('none');
     render((x) => x + 1);
   };
 
@@ -69,6 +75,8 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
   const done = m.winner !== undefined;
   // Momentum dari sudut pandang atlet sendiri: positif = kita di atas angin.
   const momentum = mySide === 0 ? m.momentum : -m.momentum;
+  const insTip = suggestInstruction(m, mySide);
+  const order = [mySide, 1 - mySide] as const; // panel kondisi: sisi sendiri dulu
 
   if (hidden)
     return (
@@ -83,7 +91,7 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
       <div className="live card">
         <button className="close" title={t('hideLive')} aria-label={t('hideLive')} onClick={hide}>✕</button>
         <h3>{title}</h3>
-        <table className="board">
+        <table className="board live-board">
           <tbody>
             {([0, 1] as const).map((s) => (
               <tr key={s} className={s === mySide ? 'mine' : ''}>
@@ -92,7 +100,6 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
                 {m.games.map((g, i) => <td key={i} className="num muted">{g[s]}</td>)}
                 {!done && <td className="pt">{m.score[s]}</td>}
                 <td className="num"><b>{gamesWon(s)}</b></td>
-                <td><span className="bar" title={`${t('energy')} ${Math.round(m.sides[s].energy)}`}><span style={{ width: `${m.sides[s].energy}%`, background: 'var(--accent)' }} /></span></td>
               </tr>
             ))}
           </tbody>
@@ -103,13 +110,45 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
           <span className="track"><span className="marker" style={{ left: `${50 + momentum * 50}%` }} /></span>
         </div>
 
-        {m.rallies === 0 && (
-          <div className="prematch">
-            {preview}
-            <p>💡 {t('stratTip')}: <b>{t(`strat_${tip.strategy}` as TextKey)}</b>
-              {tip.edge && <small className="muted-text"> · {t(tip.edge.mine as TextKey)} {tip.edge.a} vs {t(tip.edge.theirs as TextKey)} {tip.edge.b}</small>}
-              {tip.strategy !== strategy && <> <button onClick={() => setStrategy(tip.strategy)}>{t('useTip')}</button></>}
-            </p>
+        {/* Kondisi tiap sisi: energi laga ini, kelelahan sebelum laga & morale tiap atlet — dasar memilih strategi & instruksi. */}
+        <div className="live-cond">
+          {order.map((s) => {
+            const e = Math.round(m.sides[s].energy);
+            return (
+              <div key={s} className={s === mySide ? 'mine' : undefined}>
+                <div className="cond-energy" title={t('energy')}>
+                  <span className="bar"><span style={{ width: `${e}%`, background: e >= 70 ? 'var(--accent)' : e >= 40 ? 'var(--gold)' : 'var(--danger)' }} /></span>
+                  <b>{e}</b> <small>{t(e >= 70 ? 'energyFresh' : e >= 40 ? 'energyTired' : 'energyLow')}</small>
+                </div>
+                {sides[s].players.map((p) => (
+                  <div key={p.id} className="cond-player">
+                    <span className="cond-name">{p.name}</span>
+                    <MoraleTag value={p.form} />
+                    <small className="muted-text" title={t('fatiguePreHint')}>{t('fatigue')} {Math.round(p.fatigue)}%</small>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+
+        {m.rallies === 0 && preview && <div className="prematch">{preview}</div>}
+        {!done && (m.rallies === 0 || !running) && (
+          <div className="live-tips">
+            {m.rallies === 0 && (
+              <p>
+                <span>💡 <span className="muted-text">{t('stratTip')}:</span> <b>{t(`strat_${tip.strategy}` as TextKey)}</b>
+                  {tip.edge && <small className="muted-text"> · {t(tip.edge.mine as TextKey)} {tip.edge.a} vs {t(tip.edge.theirs as TextKey)} {tip.edge.b}</small>}</span>
+                {tip.strategy !== strategy && <button className="mini" onClick={() => setStrategy(tip.strategy)}>{t('useTip')}</button>}
+              </p>
+            )}
+            {insTip.instruction !== 'none' && (
+              <p>
+                <span>🗣 <span className="muted-text">{t('instrTip')}:</span> <b>{t(`instr_${insTip.instruction}` as TextKey)}</b>
+                  {insTip.reason && <small className="muted-text"> · {t(`instrReason_${insTip.reason}` as TextKey, { n: Math.round(m.sides[mySide].energy) })}</small>}</span>
+                {insTip.instruction !== instruction && <button className="mini" onClick={() => setInstruction(insTip.instruction)}>{t('useTip')}</button>}
+              </p>
+            )}
           </div>
         )}
         {!done && (
@@ -117,6 +156,11 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
             <label>{t('strategy')}
               <select value={strategy} disabled={running} onChange={(e) => setStrategy(e.target.value as Strategy)}>
                 {STRATEGIES.map((s) => <option key={s} value={s}>{t(`strat_${s}` as TextKey)}</option>)}
+              </select>
+            </label>
+            <label title={t('instrUntil')}>{t('instruction')}
+              <select value={instruction} disabled={running} onChange={(e) => setInstruction(e.target.value as Instruction)}>
+                {INSTRUCTIONS.map((s) => <option key={s} value={s}>{t(`instr_${s}` as TextKey)}</option>)}
               </select>
             </label>
             <label>{t('gameSpeed')}
@@ -135,7 +179,7 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
           </div>
         )}
         {/* Pengaruh strategi yang dipilih ke pola permainan & energi atlet (nilai di ruleset.match.strategies). */}
-        {!done && <p className="hint">{t(`stratInfo_${strategy}` as TextKey)}</p>}
+        {!done && <p className="hint">{t(`stratInfo_${strategy}` as TextKey)}{instruction !== 'none' && <><br />🗣 {t(`instrInfo_${instruction}` as TextKey)}</>}</p>}
         {!running && !done && m.rallies > 0 && <p className="hint">{t('strategyHint')}</p>}
         {/* Hasil & Lanjut tepat di bawah papan skor: langsung terjangkau di HP tanpa menggulir. */}
         {done && (
@@ -176,14 +220,19 @@ export function PreMatch({ state, ruleset, req, mySide }: { state: SeasonState; 
   const lastMeet = state.matches.filter((m) => m.sides.includes(me) && m.sides.includes(opp) && !m.walkover).at(-1);
   const name = (id: string) => entrantLabel(state, id).name;
   const i = lastMeet?.sides.indexOf(me) ?? 0;
+  // Ranking & H2H dari sudut pandang sendiri (kiri = kita), seperti panel kondisi.
+  const mine = req.entrants.indexOf(me) === 0;
   return (
-    <>
-      <p>{t('rank')}: <b>{ranks.get(a) ?? '–'}</b> vs <b>{ranks.get(b) ?? '–'}</b> · {t('h2h')}: {w + l ? <b>{w}–{l}</b> : t('neverMet')}</p>
+    <dl className="pre-grid">
+      <div><dt>{t('rank')}</dt><dd><b>{ranks.get(me) ?? '–'}</b> <span className="muted-text">vs</span> {ranks.get(opp) ?? '–'}</dd></div>
+      <div><dt>{t('h2h')}</dt><dd>{w + l ? <b>{mine ? `${w}–${l}` : `${l}–${w}`}</b> : <span className="muted-text">{t('neverMet')}</span>}</dd></div>
       {lastMeet && (
-        <p>{t('lastMeeting')}: {eventName(ruleset, lastMeet.tournamentId, lastMeet.year)} {lastMeet.year} {lastMeet.round} · {lastMeet.winner === i ? t('wins') : t('lost')}{' '}
-          <MatchLink m={lastMeet} name={name} title={eventName(ruleset, lastMeet.tournamentId, lastMeet.year)}>{lastMeet.scores.map((g) => `${g[i]}-${g[1 - i]}`).join(', ')}</MatchLink>
-        </p>
+        <div className="wide"><dt>{t('lastMeeting')}</dt>
+          <dd>{eventName(ruleset, lastMeet.tournamentId, lastMeet.year)} {lastMeet.year} {lastMeet.round} · <b className={lastMeet.winner === i ? 'pos' : 'neg'}>{lastMeet.winner === i ? t('wins') : t('lost')}</b>{' '}
+            <MatchLink m={lastMeet} name={name} title={eventName(ruleset, lastMeet.tournamentId, lastMeet.year)}>{lastMeet.scores.map((g) => `${g[i]}-${g[1 - i]}`).join(', ')}</MatchLink>
+          </dd>
+        </div>
       )}
-    </>
+    </dl>
   );
 }

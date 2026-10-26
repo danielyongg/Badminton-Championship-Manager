@@ -1,6 +1,6 @@
 import { makeRng, normal, type Rng } from './rng';
 import { CHOKER_BIG, CHOKER_MENTAL, CLUTCH_BIG, CLUTCH_MENTAL, CONSISTENT_DAY, MOMENTUM_RIDER, SLOW_RUBBER, SLOW_WARMUP, traitShare } from './traits';
-import { ATTRS, type Attr, type Attrs, type EntrantId, type Match, type MatchConfig, type MatchStats, type PatternKind, type Player, type PointType, type Strategy, type WinnerShot } from './types';
+import { ATTRS, type Attr, type Attrs, type EntrantId, type Instruction, type Match, type MatchConfig, type MatchStats, type PatternKind, type Player, type PointType, type Strategy, type WinnerShot } from './types';
 
 // Mesin pertandingan berbasis rally. Dibuat sebagai "mesin langkah" (playRally) agar
 // Live Match (Fase 8) bisa memainkan rally satu per satu dan mengubah strategi di interval.
@@ -21,6 +21,8 @@ interface SideState {
   clutch?: number; // tambahan mental di poin kritis (mental juara − demam panggung)
   slow?: number; // bagian sisi yang starter lambat (0–1)
   rider?: number; // bagian sisi yang pemburu momentum (0–1)
+  /** Instruksi manajer sampai jeda berikutnya (interval / akhir game); kosong = tanpa instruksi. */
+  instruction?: Instruction;
 }
 
 export interface MatchState {
@@ -50,6 +52,20 @@ export interface RallyEvent {
 export type MatchResult = Pick<Match, 'scores' | 'winner'> & { stats: MatchStats };
 
 const PHYSICAL: Attr[] = ['speed', 'stamina', 'smash', 'defense'];
+
+/**
+ * Efek instruksi interval (ASUMSI, skala duel = selisih atribut; strategi memberi ±5–7):
+ * duel = bonus tiap duel; recv = bonus duel saat menerima servis; energy = pengali biaya energi;
+ * against = pengali efek momentum lawan terhadap sisi ini; error = tambahan peluang salah sendiri per reli.
+ */
+export const INSTRUCTION_EFFECT: Record<Instruction, { duel: number; recv: number; energy: number; against: number; error: number }> = {
+  none: { duel: 0, recv: 0, energy: 1, against: 1, error: 0 },
+  calm: { duel: 0, recv: 0, energy: 1, against: 0.4, error: -0.004 },
+  pressServe: { duel: 0, recv: 3, energy: 1.05, against: 1, error: 0.003 },
+  conserve: { duel: -2, recv: 0, energy: 0.65, against: 1, error: 0 },
+  allOut: { duel: 5, recv: 0, energy: 1.6, against: 1, error: 0.004 },
+};
+const ins = (s: SideState) => INSTRUCTION_EFFECT[s.instruction ?? 'none'];
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
 const logistic = (x: number) => 1 / (1 + Math.exp(-x));
 
@@ -167,14 +183,14 @@ function pickPattern(list: Pattern[], rng: Rng) {
 
 function spendEnergy(st: MatchState, mult: number, cfg: MatchConfig) {
   for (const s of st.sides) {
-    const cost = cfg.energy.costPerRally * (1 - (cfg.energy.staminaRelief * (s.attrs.stamina - 50)) / 100) * mult * cfg.strategies[s.strategy].energy;
+    const cost = cfg.energy.costPerRally * (1 - (cfg.energy.staminaRelief * (s.attrs.stamina - 50)) / 100) * mult * cfg.strategies[s.strategy].energy * ins(s).energy;
     s.energy = clamp(s.energy - cost, 0, 100);
   }
 }
 
 /** Sisi yang salah sendiri di reli ini (atau tidak ada): risiko strategi, diperbesar bila Consistency rendah. */
 function ownError(st: MatchState, cfg: MatchConfig, rng: Rng): 0 | 1 | undefined {
-  const p = ([0, 1] as const).map((x) => Math.max(0, cfg.ownError.base + cfg.strategies[st.sides[x].strategy].error)
+  const p = ([0, 1] as const).map((x) => Math.max(0, cfg.ownError.base + cfg.strategies[st.sides[x].strategy].error + ins(st.sides[x]).error)
     * (150 - eff(st, x, 'consistency', cfg)) / 100);
   const r = rng();
   return r < p[0] ? 0 : r < p[0] + p[1] ? 1 : undefined;
@@ -220,7 +236,10 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
     const sx = cfg.strategies[st.sides[x].strategy], sy = cfg.strategies[st.sides[y].strategy];
     diff += (sx.attack[p.kind] ?? 0) - sy.defend;
     const mom = x === 0 ? st.momentum : -st.momentum; // >0: momentum memihak x
-    diff += cfg.momentum.weight * mom * (1 + (MOMENTUM_RIDER - 1) * ((mom > 0 ? st.sides[x] : st.sides[y]).rider ?? 0));
+    const [up, down] = mom > 0 ? [st.sides[x], st.sides[y]] : [st.sides[y], st.sides[x]];
+    diff += cfg.momentum.weight * mom * (1 + (MOMENTUM_RIDER - 1) * (up.rider ?? 0)) * ins(down).against; // tenang: momentum lawan teredam
+    const ix = ins(st.sides[x]), iy = ins(st.sides[y]);
+    diff += ix.duel - iy.duel + (x === rcv ? ix.recv : -iy.recv);
     winner = rng() < logistic(diff / cfg.duelScale) ? x : y;
     type = winner === x ? p.winType : p.loseType;
     // Label statistik: sebagian poin duel tercatat sebagai kesalahan lawan; makin rendah Consistency, makin sering.
@@ -265,6 +284,7 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
     st.score = [0, 0];
     st.intervalDone = false;
     ev.gameOver = true;
+    for (const x of st.sides) x.instruction = undefined; // instruksi berlaku sampai jeda berikutnya
     s.sec += 120; // jeda antar game
     const won = st.games.filter((g) => g[winner] > g[1 - winner]).length;
     if (won === cfg.gamesToWin) {
@@ -274,6 +294,7 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
   } else if (!st.intervalDone && w === cfg.intervalAt) {
     st.intervalDone = true;
     ev.interval = true;
+    for (const x of st.sides) x.instruction = undefined;
     s.sec += 60;
     recover(st, cfg.energy.intervalRecovery);
   }
@@ -329,4 +350,17 @@ export function suggestStrategy(me: Player[], opp: Player[], min = 4): { strateg
     if (a - b > top) { top = a - b; best = { strategy, edge: { mine, theirs, a, b } }; }
   }
   return best;
+}
+
+/** Saran instruksi menurut kondisi laga (sisi `me`); urutan prioritas: energi, momentum, game penentu, servis lawan. ASUMSI. */
+export function suggestInstruction(st: MatchState, me: 0 | 1): { instruction: Instruction; reason?: 'energy' | 'momentum' | 'decider' | 'serve' } {
+  const op = (1 - me) as 0 | 1;
+  const mine = st.sides[me], theirs = st.sides[op];
+  const momentum = me === 0 ? st.momentum : -st.momentum;
+  const won = (x: 0 | 1) => st.games.filter((g) => g[x] > g[1 - x]).length;
+  if (mine.energy < 35 && mine.energy < theirs.energy - 5) return { instruction: 'conserve', reason: 'energy' };
+  if (momentum < -0.35) return { instruction: 'calm', reason: 'momentum' };
+  if (won(op) === won(me) && st.games.length > 0 && mine.energy >= 45) return { instruction: 'allOut', reason: 'decider' };
+  if (theirs.attrs.serve < mine.attrs.serve - 3) return { instruction: 'pressServe', reason: 'serve' };
+  return { instruction: 'none' };
 }

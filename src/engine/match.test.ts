@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createMatch, headToHead, matchConfigFor, playRally, simulateMatch, suggestStrategy, type SideInput } from './match';
+import { createMatch, headToHead, matchConfigFor, playRally, simulateMatch, suggestInstruction, suggestStrategy, type SideInput } from './match';
 import { BWF_2026 } from './presets/bwf2026';
 import { makeRng } from './rng';
-import { ATTRS, STRATEGIES, type Attrs, type Match, type Player, type Strategy } from './types';
+import { ATTRS, STRATEGIES, type Attrs, type Instruction, type Match, type Player, type Strategy } from './types';
 
 const cfg = BWF_2026.match;
 const flat = (v: number): Attrs => Object.fromEntries(ATTRS.map((a) => [a, v])) as Attrs;
@@ -183,5 +183,44 @@ describe('saran strategi pra-laga', () => {
     expect(suggestStrategy([player({ ...flat(70), smash: 85 })], [player({ ...flat(70), defense: 72 })]).strategy).toBe('attacking');
     const s = suggestStrategy([player({ ...flat(70), deception: 80, smash: 76 })], [player({ ...flat(70), speed: 60 })]);
     expect(s).toEqual({ strategy: 'deceptive', edge: { mine: 'deception', theirs: 'speed', a: 80, b: 60 } });
+  });
+});
+
+describe('instruksi interval', () => {
+  const pl = (v: number) => ({ id: Math.random().toString(), gender: 'M', attrs: Object.fromEntries(ATTRS.map((a) => [a, v])), form: 0, fatigue: 0 }) as unknown as Player;
+  // Instruksi dipasang ulang tiap reli (seperti manajer yang memilihnya lagi di tiap jeda).
+  const run = (ins: Instruction, n = 1500) => {
+    const cfg = matchConfigFor(BWF_2026.match, 2026), rng = makeRng(12);
+    let w = 0, energy = 0;
+    for (let i = 0; i < n; i++) {
+      const st = createMatch([{ players: [pl(80)] }, { players: [pl(80)] }], cfg, rng);
+      while (st.winner === undefined) { st.sides[0].instruction = ins; playRally(st, cfg, rng); }
+      if (st.winner === 0) w++;
+      energy += st.sides[0].energy;
+    }
+    return { win: w / n, energy: energy / n };
+  };
+  it('habis-habisan menang lebih sering tapi energi lebih boros; hemat tenaga sebaliknya', () => {
+    const none = run('none'), all = run('allOut'), save = run('conserve');
+    expect(all.win).toBeGreaterThan(none.win + 0.03);
+    expect(all.energy).toBeLessThan(none.energy);
+    expect(save.energy).toBeGreaterThan(none.energy);
+    expect(save.win).toBeLessThan(none.win);
+  }, 120000);
+  it('instruksi hilang di jeda berikutnya', () => {
+    const cfg = matchConfigFor(BWF_2026.match, 2026), rng = makeRng(3);
+    const st = createMatch([{ players: [pl(80)] }, { players: [pl(80)] }], cfg, rng);
+    st.sides[0].instruction = 'allOut';
+    let ev;
+    do ev = playRally(st, cfg, rng); while (!ev.interval && !ev.gameOver);
+    expect(st.sides[0].instruction).toBeUndefined();
+  });
+  it('saran instruksi: energi rendah → hemat tenaga; momentum lawan → tenang', () => {
+    const cfg = matchConfigFor(BWF_2026.match, 2026);
+    const st = createMatch([{ players: [pl(80)] }, { players: [pl(80)] }], cfg, makeRng(1));
+    st.sides[0].energy = 30; st.sides[1].energy = 60;
+    expect(suggestInstruction(st, 0).instruction).toBe('conserve');
+    st.sides[0].energy = 80; st.momentum = -0.6;
+    expect(suggestInstruction(st, 0).instruction).toBe('calm');
   });
 });

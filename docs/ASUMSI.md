@@ -238,3 +238,9 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Catatan pemandu bakat**: tiap sifat asli (termasuk late bloomer/mandek) tercatat 60 %; 15 % ada satu petunjuk salah (sifat yang tidak dimiliki & tidak bertentangan); maks 3 catatan, bertanda "?".
 - **Rentang potensi menyempit**: lebar 2 bintang di minggu 1, −0,5 per minggu sampai 0,5 di minggu 4; tetap memuat perkiraan potensi.
 - **Rekrut bertahap & kandidat mundur**: "Rekrut terpilih" langsung memasukkan atlet dan mengurangi kursi; pencarian ditutup lewat "Selesai" atau batas minggu (tidak diisi otomatis lagi bila sudah pernah merekrut bertahap). Awal minggu 2–4, per gender 50 % satu kandidat acak mundur, tanpa membuat kandidat kurang dari sisa kursi.
+
+## Instruksi interval (Live Match, `src/engine/match.ts`)
+- Dipilih manajer sebelum laga, di interval, dan antar game; berlaku sampai jeda berikutnya lalu kembali ke "Tanpa instruksi". Hanya untuk laga yang ditonton; laga simulasi & lawan AI tanpa instruksi.
+- Tenangkan diri: efek momentum lawan ×0,4, salah sendiri −0,4 %/reli. Tekan servis lawan: +3 duel saat menerima servis, energi ×1,05, salah sendiri +0,3 %. Hemat tenaga: −2 duel, energi ×0,65. Habis-habisan: +5 duel, energi ×1,6, salah sendiri +0,4 % (skala duel: strategi memberi ±5–7).
+- Kalibrasi (atlet setara, instruksi sepanjang laga): tanpa instruksi menang 49 % (sisa energi 49); habis-habisan 63 % (sisa 8); hemat tenaga 45 % (sisa 80).
+- Saran instruksi: energi < 35 dan lebih rendah dari lawan → hemat tenaga; momentum lawan > 0,35 → tenangkan diri; game penentu dengan energi ≥ 45 → habis-habisan; servis lawan ≥ 3 lebih rendah → tekan servis.

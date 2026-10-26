@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dissolvePair, formPair, potentialStars, promoteJunior, promoteTrial, suggestTargets } from './career';
+import { dissolvePair, formPair, potentialStars, promoteJunior, promoteTrial, setTarget, suggestTargets, targetReport } from './career';
 import { currentAbility } from './generator';
 import { ROUNDS } from './types';
 import { isJuniorAge, isPratama } from './generator';
@@ -251,4 +251,20 @@ describe('saran target', () => {
     expect(s.get(weak.id)).toBeUndefined();
     expect(ROUNDS.indexOf(s.get(best.id)!)).toBeLessThanOrEqual(ROUNDS.indexOf('R16'));
   });
+});
+
+describe('rapor target', () => {
+  it('target yang dipasang tercatat setelah turnamen & dirangkum per atlet', async () => {
+    const state = newSeason(WORLD, BWF_2026, 4, undefined, 'INA');
+    const rng = makeRng(4);
+    const ms = state.players.filter((p) => p.countryId === 'INA' && p.gender === 'M' && p.retired === undefined && p.focus !== 'D');
+    for (const ev of BWF_2026.calendar) for (const p of ms) setTarget(state, 2026, ev.id, p.id, 'QF');
+    while (state.date.week <= 6) await playWeek(state, BWF_2026, WORLD, rng);
+    const log = state.targetLog ?? [];
+    expect(log.length).toBeGreaterThan(0);
+    expect(log.every((x) => x.discipline === 'MS' && x.target === 'QF')).toBe(true);
+    const rep = targetReport(state, 2026);
+    expect(rep.reduce((s, r) => s + r.n, 0)).toBe(log.length);
+    expect(rep.every((r) => r.hit + r.miss <= r.n)).toBe(true);
+  }, 300000);
 });

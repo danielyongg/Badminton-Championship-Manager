@@ -114,6 +114,31 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .livecontrols button.main { width: 100%; }
 .livecontrols .secondary { grid-column: 1 / -1; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; }
 .livecontrols .secondary button { width: 100%; padding: 6px 4px; font-size: .8rem; line-height: 1.2; }
+@media (min-width: 600px) { .livecontrols { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 599px) { .livecontrols label:nth-of-type(3) { grid-column: 1 / -1; } } /* HP: strategi & instruksi sebaris, kecepatan di bawahnya */
+/* Live Match: papan skor selebar kartu, panel kondisi dua sisi, kartu pra-laga berupa petak, saran ringkas. */
+.live-board { width: 100%; margin-top: 20px; } /* tidak tertimpa tombol ✕ */
+.live-board td:nth-child(2) { width: 100%; min-width: 0; }
+.live-cond { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin: 8px 0; }
+.live-cond > div { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; display: grid; gap: 4px; min-width: 0; align-content: start; }
+.live-cond > div.mine { border-color: var(--accent); }
+.cond-energy { display: flex; align-items: center; gap: 6px; font-size: .85rem; }
+.cond-energy .bar { flex: 1; min-width: 40px; }
+.cond-energy small { color: var(--muted); white-space: nowrap; }
+.cond-player { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: .8rem; }
+.cond-name { flex-basis: 100%; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pre-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 12px; margin: 0; }
+.pre-grid dt { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.pre-grid dd { margin: 0; }
+.pre-grid .wide { grid-column: 1 / -1; }
+.week-sum { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 2px 0 6px; font-size: .8rem; }
+.dlist > button.mini { margin: 6px 0 2px; }
+.target-report .pos { color: var(--accent-strong); }
+.target-report .neg { color: var(--danger); }
+.pre-grid .pos { color: var(--accent-strong); }
+.pre-grid .neg { color: var(--danger); }
+.live-tips { display: grid; gap: 4px; margin-bottom: 8px; }
+.live-tips p { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
 .controls.subnav.pager-bottom { margin: 16px 0 8px; } /* pemilih halaman di bawah tabel: beri jarak dari baris terakhir */
 /* Dua pilihan berdampingan (ranking: jenis & per minggu), juga di HP. */
 .controls.pair { display: grid; grid-template-columns: 1fr 1fr; }

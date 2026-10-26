@@ -363,3 +363,16 @@ export function suggestTargets(state: SeasonState, rs: Ruleset, world: World, ev
   }
   return out;
 }
+
+/** Rapor target per entrant (atlet / pasangan) satu musim: jumlah target, tercapai, meleset (≥ 2 babak), urut terbanyak. */
+export function targetReport(state: SeasonState, year: number) {
+  const by = new Map<string, { id: string; n: number; hit: number; miss: number }>();
+  for (const x of state.targetLog ?? []) {
+    if (x.year !== year) continue;
+    const r = by.get(x.id) ?? { id: x.id, n: 0, hit: 0, miss: 0 };
+    r.n++;
+    if (x.res === 'hit') r.hit++; else if (x.res === 'miss') r.miss++;
+    by.set(x.id, r);
+  }
+  return [...by.values()].sort((a, b) => b.n - a.n || b.hit / b.n - a.hit / a.n);
+}
