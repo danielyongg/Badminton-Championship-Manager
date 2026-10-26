@@ -422,7 +422,7 @@ function ScoutingCard() {
   const week = state.date.year === s.year ? state.date.week : 1; // rentang potensi menyempit tiap minggu
   const city = (id: string) => dataName(game.world.cities.find((c) => c.id === id)?.name);
   const half = (n: number) => `${Math.floor(n) || ''}${n % 1 ? '½' : ''}`; // 2.5 → "2½"
-  const status = t('scoutingStatus', { m: count('M'), f: count('F'), sm: s.slots.M, sf: s.slots.F, week: SCOUTING_DEADLINE_WEEK });
+  const status = t(s.recruited ? 'scoutingStatusPartial' : 'scoutingStatus', { m: count('M'), f: count('F'), sm: s.slots.M, sf: s.slots.F, week: SCOUTING_DEADLINE_WEEK, n: s.recruited ?? 0 });
   return (
     <section className="card" style={open ? { gridColumn: '1 / -1' } : undefined}>
       <h3>{t('scouting')} {s.year}</h3>

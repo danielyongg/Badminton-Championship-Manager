@@ -257,7 +257,7 @@ function EntryRow({ e, checked, disabled, other, required, onToggle, target, onT
           {ps.some((x) => isPratama(x, state.date)) && <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>}
           {other && <span className="muted-text">→ {dataName(ruleset.calendar.find((x) => x.id === other)?.name)}</span>}
           {onTarget && checked && (
-            <select className="mini" value={target ?? ''} onChange={(x) => onTarget((x.target.value || undefined) as Round | undefined)} title={t('targetHint')}>
+            <select className="mini" style={{ width: 'auto' }} value={target ?? ''} onChange={(x) => onTarget((x.target.value || undefined) as Round | undefined)} title={t('targetHint')}>
               <option value="">{t('targetNone')}</option>
               {(['W', 'F', 'SF', 'QF', 'R16', 'R32'] as const).map((r) => <option key={r} value={r}>{t(`target_${r}` as TextKey)}</option>)}
             </select>
