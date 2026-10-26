@@ -438,13 +438,16 @@ function KnockoutBracket({ r, name, tieBox }: { r: TeamResult; name: (c: string)
   const slot = (c: string | null | undefined, r0: boolean) => c ? <div><Flag id={c} />{name(c)}</div> : <div className="muted">{r0 ? t('bye') : '—'}</div>;
   return (
     <div className="bracket">{cols.slice(0, -1).map((field, i) => (
-      <div key={i} className="round">
+      // Nama babak di atas kolom, di luar pembagian posisi laga: laga tiap babak tepat di tengah pasangan laga sebelumnya.
+      <div key={i} className="round-col">
         <small className="muted-text">{mainRoundName(field.length, i)}</small>
-        {Array.from({ length: Math.ceil(field.length / 2) }, (_, k) => {
-          const a = field[2 * k], b = field[2 * k + 1];
-          const tie = a && b && r.ties.find((x) => x.round !== 'G' && x.sides.includes(a) && x.sides.includes(b));
-          return tie ? tieBox(tie, k) : <div key={k} className="match">{slot(a, i === 0)}{slot(b, i === 0)}</div>;
-        })}
+        <div className="round">
+          {Array.from({ length: Math.ceil(field.length / 2) }, (_, k) => {
+            const a = field[2 * k], b = field[2 * k + 1];
+            const tie = a && b && r.ties.find((x) => x.round !== 'G' && x.sides.includes(a) && x.sides.includes(b));
+            return tie ? tieBox(tie, k) : <div key={k} className="match">{slot(a, i === 0)}{slot(b, i === 0)}</div>;
+          })}
+        </div>
       </div>
     ))}</div>
   );

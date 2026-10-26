@@ -324,6 +324,8 @@ nav.maintabs { gap: 2px; border-bottom: 1px solid var(--line); }
 /* Bagan */
 .bracket { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; }
 .round { display: flex; flex-direction: column; justify-content: space-around; gap: 6px; min-width: 210px; }
+.round-col { display: flex; flex-direction: column; gap: 4px; }
+.round-col > .round { flex: 1; }
 .match { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; font-size: .8rem; }
 .match.mine { box-shadow: inset 3px 0 var(--accent); color: inherit; font-weight: inherit; }
 .match > div { color: var(--muted); }

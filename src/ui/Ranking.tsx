@@ -304,15 +304,16 @@ export function RankChart({ history }: { history: { absWeek: number; rank?: numb
   const last = ranked[ranked.length - 1];
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ maxWidth: W }} role="img" aria-label={t('rankHistory')} className="rankchart" onMouseLeave={() => setHover(undefined)}>
-      {[1, best, worst].filter((v, i, a) => a.indexOf(v) === i).map((r) => (
+      {/* Label sumbu: lewati yang terlalu dekat dengan label sebelumnya (mis. 1 & 2) agar tidak bertumpuk. */}
+      {[1, best, worst].filter((v, i, a) => a.indexOf(v) === i && a.slice(0, i).every((u) => Math.abs(y(u) - y(v)) >= 10)).map((r) => (
         <g key={r}><line x1={L} x2={W - R} y1={y(r)} y2={y(r)} stroke="var(--line)" /><text x={L - 4} y={y(r) + 3} fontSize="9" textAnchor="end" fill="currentColor">{r}</text></g>
       ))}
       {years.map((yr) => { const a = Math.max(x0, yr * 52 + 1); return (
-        <g key={yr}><line x1={x(a)} x2={x(a)} y1={T} y2={H - B} stroke="var(--line)" strokeDasharray="2 3" /><text x={x(a) + 2} y={H - 8} fontSize="9" fill="currentColor">{yr}</text></g>
+        <g key={yr}><line x1={x(a)} x2={x(a)} y1={T} y2={H - B} stroke="var(--line)" strokeDasharray="2 3" /><text x={x(a) + 2} y={H - 8} fontSize="9" fill="currentColor" textAnchor={x(a) > W - R - 24 ? 'end' : undefined}>{yr}</text></g>
       ); })}
       {segs.filter((p) => p.length > 1).map((p, i) => <polyline key={i} points={p.join(' ')} fill="none" stroke="var(--accent)" strokeWidth="2" />)}
       {ranked.map((h, i) => <circle key={h.absWeek} cx={x(h.absWeek)} cy={y(h.rank!)} r={i === hover ? 4.5 : h === last ? 3.5 : 2} fill="var(--accent)" />)}
-      {hover === undefined && <text x={x(last.absWeek) - 4} y={y(last.rank!) - 6} fontSize="10" fontWeight="700" textAnchor="end" fill="var(--accent)">#{last.rank}</text>}
+      {hover === undefined && <text x={x(last.absWeek) - 4} y={y(last.rank!) < T + 12 ? y(last.rank!) + 14 : y(last.rank!) - 6} fontSize="10" fontWeight="700" textAnchor="end" fill="var(--accent)">#{last.rank}</text>}
       {hover !== undefined && (() => {
         // Label hover: peringkat + minggu/tahun, digeser agar tetap di dalam grafik.
         const h = ranked[hover], cx = x(h.absWeek), cy = y(h.rank!);
