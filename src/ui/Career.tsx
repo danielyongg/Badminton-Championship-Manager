@@ -742,7 +742,14 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
 function NewsCard({ onOpen }: { onOpen: (id: string) => void }) {
   const { game, version } = useGame();
   const { state, ruleset } = game;
-  const items = useMemo(() => weeklyNews(state, ruleset), [version]);
+  // Undian tuan rumah: hanya event yang bisa diikuti negara manajer (kontinental sendiri, multi-event anggotanya).
+  const items = useMemo(() => weeklyNews(state, ruleset).flatMap((n) => {
+    const mine = state.career?.countryId;
+    if (n.kind !== 'hosts' || !mine) return [n];
+    const def = (id: string) => [...ruleset.calendar, ...ruleset.team.events].find((e) => e.id === id);
+    const drawn = n.drawn.filter((x) => { const e = def(x.id); return e && openTo(e, mine, game.world); });
+    return drawn.length ? [{ ...n, drawn }] : [];
+  }), [version]);
   if (!items.length) return null;
   const who = (id: string) => <a href="#" onClick={(e) => { e.preventDefault(); onOpen(id); }}><Flag id={id} />{entrantLabel(state, id).name}</a>;
   const score = (m: Match) => (
@@ -767,7 +774,10 @@ function NewsCard({ onOpen }: { onOpen: (id: string) => void }) {
       case 'seedOut': return [t('newsSeedTag'), <>{t('newsSeedOut', { round: n.m.round })}: {who(n.id)} {t('lostTo')} {who(n.opp)}</>, where(n.m)];
       case 'comeback': return [t('newsComebackTag'), <>{who(n.id)} {t('newsComeback')}</>, where(n.m)];
       case 'hosts': return [t('newsHostsTag'), <>{t('newsHosts', { year: n.year })}</>,
-        <small className="muted-text">{n.drawn.map((x) => `${eventName(ruleset, x.id, n.year)} — ${dataName(game.world.cities.find((c) => c.id === x.cityId)?.name)}`).join(' · ')}</small>];
+        <span className="host-list">{n.drawn.map((x) => {
+          const c = game.world.cities.find((y) => y.id === x.cityId);
+          return <span key={x.id} className="drow"><span className="grow">{eventName(ruleset, x.id, n.year)}</span><b><Flag id={c?.countryId} />{dataName(c?.name)}</b></span>;
+        })}</span>];
       case 'careerHigh': return [t('newsHighTag'), <>{who(n.id)} {t('newsCareerHigh', { n: n.rank })}</>, <small className="muted-text">{n.discipline}</small>];
     }
   };
