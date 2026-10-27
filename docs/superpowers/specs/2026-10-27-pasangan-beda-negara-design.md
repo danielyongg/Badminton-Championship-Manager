@@ -16,15 +16,17 @@ Dicek di akhir musim, per negara AI, per gender. Atlet yang termasuk **10 besar 
 
 | Kandidat | Peluang dilepas per musim |
 |---|---|
-| Usia ≥ 24 | 25% |
-| Usia 19–23, PA < CA atlet ke-10 negaranya | 25% |
-| Usia 19–23, PA ≥ CA atlet ke-10 negaranya | 5% |
+| Usia ≥ 24 | 5% (kalibrasi; awalnya 25%) |
+| Usia 19–23, PA < CA atlet ke-10 negaranya | 5% |
+| Usia 19–23, PA ≥ CA atlet ke-10 negaranya | 1% |
+
+Tambahan hasil kalibrasi: pemain independen di luar 100 besar berhenti 35%/musim (tanpa ini jumlahnya terus naik).
 
 - Pelepasan diproses **sesudah** pensiun (termasuk aturan junior lemah < 55 berhenti 50%), jadi atlet yang sangat lemah sebagian besar pensiun, bukan menjadi independen.
 - Memakai kolom `released` yang sudah ada (diisi tahun pelepasan). Efeknya sama dengan atlet yang dilepas manajer: tidak ikut tim beregu, Olimpiade, kuota Kejuaraan Dunia (`contingent.ts`, `olympics.ts`), maupun target federasi.
 - Atlet independen negara AI tidak kembali ke pelatnas. Manajer tetap bisa memanggil kembali atlet negaranya sendiri (`recallPlayer`), seperti sekarang.
 - Pasangan federasi yang anggotanya dilepas dibubarkan (perilaku `releasePlayer` sekarang: pasangan tetap utuh hanya bila kedua atletnya independen). Fungsi pelepasan AI memakai `releasePlayer` yang sama.
-- Angka (10 besar, 25%/5%, usia 24) disimpan di ruleset agar bisa dikalibrasi.
+- Angka (10 besar, peluang, usia 24) berupa konstanta di `independents.ts` (bukan ruleset, agar save lama ikut).
 
 ### 1b. Pasangan beda negara dari data asli (opsi C)
 
@@ -87,3 +89,21 @@ Kalibrasi (file sementara `src/engine/_*.test.ts`, dihapus setelahnya): simulasi
 - Manajer membentuk pasangan beda negara secara langsung.
 - Atlet independen negara AI kembali ke pelatnas.
 - Pemasangan ulang di tengah musim selain saat manajer melepas atlet (mis. pasangan independen bubar karena cedera parah → dicoba lagi di akhir musim).
+
+---
+
+# Tambahan: pop-up line-up beregu yang lebih sederhana
+
+Dikerjakan bersama fitur di atas. Hanya `LineupPicker` / `TieLineupModal` (`src/ui/Team.tsx`); pop-up pendaftaran skuad tidak diubah.
+
+Masalah sekarang: petunjuk 4 baris; ganda = dua dropdown atlet terpisah; dropdown hanya nama; di desktop dropdown atlet kedua keluar dari kotak pop-up.
+
+Desain (opsi A):
+- **Satu dropdown per partai.** Tunggal: atlet. Ganda: pasangan terdaftar di skuad ("Nama A / Nama B"), plus opsi terakhir **"Ganda dadakan…"**; bila dipilih (atau line-up sudah memakai ganda dadakan) baru tampil dua dropdown atlet seperti sekarang.
+- **Teks opsi** memuat info ringkas: `Nama · #ranking · kemampuan`, ditambah ⚠ bila cedera atau kelelahan di atas ambang istirahat AI.
+- **Petunjuk** satu baris; aturan lengkap di `title` ikon ⓘ.
+- **Galat per baris:** atlet yang melebihi maksimal partai / dua kali di nomor yang sama ditandai di baris partainya; pesan umum tetap di bawah.
+- **Layout:** baris tidak melebar keluar pop-up (dropdown mengisi kolom, ganda dadakan bertumpuk di HP).
+- Dipakai juga di editor line-up default (komponen yang sama).
+
+Tes: tidak ada tes UI di repo; diverifikasi dengan screenshot desktop & HP (Playwright) dan `tsc`.

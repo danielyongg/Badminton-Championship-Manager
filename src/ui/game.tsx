@@ -273,5 +273,6 @@ export function entrantLabel(state: SeasonState, id: string) {
   const { players, pairs } = lookup(state);
   const ps = (pairs.get(id)?.playerIds ?? (id.startsWith(AD_HOC) ? id.slice(AD_HOC.length).split('+') : [id])).map((x) => players.get(x)); // ganda dadakan: adhoc:a+b
   if (!ps[0]) return { name: id, country: '' };
-  return { name: ps.map((p) => p?.name).join(' / '), country: ps[0].countryId };
+  // Pasangan beda negara: `country` = "DEN/ENG" (Flag menampilkan dua bendera).
+  return { name: ps.map((p) => p?.name).join(' / '), country: [...new Set(ps.map((p) => p?.countryId ?? ps[0]!.countryId))].join('/') };
 }

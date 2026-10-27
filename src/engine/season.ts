@@ -3,6 +3,7 @@ import { chemistryMult, ensureTraits, FRAGILE_DOWN, hasTrait, HOME_HERO_BONUS, i
 import { makeChallenges, seasonGoals, seasonReport, suggestJuniorTargets, suggestTargets } from './career';
 import { contingentOf, inContingent, lockContingents } from './contingent';
 import { olympicField } from './olympics';
+import { INDEPENDENT_QUIT, INDEPENDENT_TOP, isCrossNation, pairIndependents, releaseAthletes } from './independents';
 import { applySevereInjury, capToPa, developQuarter, newJuniors, retirementChance, rollInjury } from './development';
 import { applyCountryQuota, type Candidate, type EntryList } from './entry';
 import { ageAt, currentAbility, generateWorld, isJuniorAge, isPratama } from './generator';
@@ -572,6 +573,8 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
   const hostCity = new Map(world?.cities.map((c) => [c.id, c.countryId]));
   const hostCountryOf = (ev: TournamentDef) => hostCity.get(hostCityId(ev, state.date.year)) ?? '';
   const playerById = new Map(state.players.map((p) => [p.id, p]));
+  // Pasangan beda negara (pemain independen): hanya turnamen terbuka — World Tour, WTF & grade 3 (IC/IS/FS).
+  const openTier = (ev: TournamentDef) => rs.race.tiers.includes(ev.tierId) || ev.tierId === 'WTF' || tierOf(rs, ev).grade === 3;
   const strengthOf = (e: Entrant) => e.playerIds.reduce((sum, id) => sum + currentAbility(playerById.get(id)!.attrs), 0) / e.playerIds.length;
   // Protected ranking: peringkat poin yang dibekukan di ranking saat ini (lebih baik dari peringkat sebenarnya).
   const now = absWeek(state.date);
@@ -620,7 +623,9 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
     const rank = ranks.get(d)!.get(e.id);
     const prot = protectedOf(e, d, rank);
     const fixed = e.playerIds.map((id) => playerEvent.get(id)).find(Boolean);
+    const cross = isCrossNation(e.playerIds, (id) => playerById.get(id)?.countryId);
     const options = events.filter((ev) => ev.tierId !== 'WTF' && ev.tierId !== 'OG' && tierOf(rs, ev).drawSize[d] > 0 && (!fixed || ev.id === fixed)
+      && (!cross || openTier(ev))
       && (!ev.countries || ev.countries.includes(e.countryId)) && (!ev.confederation || confOf(e.countryId) === ev.confederation)
       && inContingent(state, ev.id, e.countryId, e.playerIds)
       // Turnamen yang entry-nya sudah di-submit manajer: atlet sendiri yang tidak dicentang tidak diisi AI ke sana (wajib tetap).
@@ -1391,10 +1396,12 @@ function endYear(state: SeasonState, rs: Ruleset, world: World, rng: Rng) {
     if (p.retired !== undefined) continue;
     p.attrHistory.push({ year, attrs: { ...p.attrs } });
     if (rng() < retirementChance(p, rs.development, state.date, rank.get(p.id))) p.retired = year;
+    else if (p.released !== undefined && (rank.get(p.id) ?? Infinity) > INDEPENDENT_TOP && rng() < INDEPENDENT_QUIT) p.retired = year;
   }
   const retired = new Set(state.players.filter((p) => p.retired !== undefined).map((p) => p.id));
   for (const pair of state.pairs)
     if (!pair.dissolved && pair.playerIds.some((id) => retired.has(id))) pair.dissolved = { ...state.date };
+  releaseAthletes(state, rng);
   const next = { year: year + 1, week: 1 };
   if (state.scouting) recruit(state, []); // pencarian musim lalu belum diputuskan: isi otomatis
   const usedNames = new Set(state.players.map((p) => p.name)); // nama junior baru tidak kembar dengan atlet yang ada
@@ -1408,6 +1415,7 @@ function endYear(state: SeasonState, rs: Ruleset, world: World, rng: Rng) {
   ensureTraits(state.players);
   if (state.scouting) ensureTraits(state.scouting.candidates);
   formPairs(state, rs, world, rng);
+  pairIndependents(state, rs, world, rng);
 }
 
 /**
@@ -1424,9 +1432,9 @@ export function formPairs(state: SeasonState, rs: Ruleset, world: World, rng: Rn
   // Dipanggil di awal karier & tiap akhir musim (tahun yang sama) → nomor urut dicari yang belum terpakai.
   const used = new Set(state.pairs.map((p) => p.id));
   for (const c of world.countries) {
-    // Negara manajer: pasangan pelatnas dibentuk manajer; AI hanya memasangkan sesama atlet yang keluar pelatnas.
-    const managed = c.id === state.managedCountryId;
-    const member = (p: Player) => p.countryId === c.id && (!managed || p.released !== undefined);
+    // Negara manajer: pasangan pelatnas dibentuk manajer. Atlet yang keluar pelatnas (semua negara): `pairIndependents`.
+    if (c.id === state.managedCountryId) continue;
+    const member = (p: Player) => p.countryId === c.id && p.released === undefined;
     const target = Math.round(g.min + (c.traditionStrength / 100) * (g.max - g.min));
     const all = state.players
       .filter((p) => member(p) && p.retired === undefined && ageAt(p.birth, state.date) >= 17)

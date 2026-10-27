@@ -93,6 +93,12 @@ export function realRoster(startYear: number): { players: Player[]; pairs: Pair[
       chemistry: 80, matchesTogether: 100, formed: { year: startYear - 2, week: 1 },
     };
   });
+  // Pasangan beda negara (pemain profesional): kedua atletnya independen (di luar pelatnas).
+  const byId = new Map(players.map((p) => [p.id, p]));
+  for (const x of pairs) {
+    const ps = x.playerIds.map((id) => byId.get(id)!);
+    if (ps[0].countryId !== ps[1].countryId) ps.forEach((p) => { p.released = startYear; });
+  }
   // Atlet tunggal tanpa pasangan asli: hanya sektor Single (tidak muncul di form bentuk pasangan).
   const paired = new Set(pairs.flatMap((x) => x.playerIds));
   ROWS.forEach((r, i) => { if (r[5] === 'S' && !paired.has(players[i].id)) players[i].focus = 'S'; });

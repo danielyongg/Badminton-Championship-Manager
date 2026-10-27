@@ -138,7 +138,8 @@ export function validatePack(p: Pick<DataPack, 'ruleset' | 'world' | 'players' |
   for (const x of p.pairs) {
     const [a, b] = x.playerIds.map((id) => players.get(id));
     if (!a || !b) { errs.push(`${t('pair')} ${x.id}: ${t('v_pairMissing')}`); continue; }
-    if (a.countryId !== b.countryId) errs.push(`${t('pair')} ${x.id}: ${t('v_pairCountry')}`);
+    // Beda negara hanya untuk pemain independen (keduanya dilepas federasi).
+    if (a.countryId !== b.countryId && (a.released === undefined || b.released === undefined)) errs.push(`${t('pair')} ${x.id}: ${t('v_pairCountry')}`);
     if ([a.gender, b.gender].sort().join('') !== PAIR_GENDERS[x.discipline]) errs.push(`${t('pair')} ${x.id}: ${t('v_pairGender', { d: x.discipline })}`);
     if (x.dissolved || x.trial || x.adHoc) continue; // pasangan percobaan boleh berbagi atlet dengan pasangan utama
     for (const id of x.playerIds) {

@@ -4,6 +4,7 @@ import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { AD_HOC, adHocEntrants, adHocId, autoLineup, autoSquad, lineupError, rankOrder, squadError, squadPool, type Lineup, type TeamEntrant } from '../engine/team';
 import { isDoubles, isJuniorFormat, type Discipline, type TeamFormat } from '../engine/types';
 import { mainRoundName } from '../engine/knockout';
+import { pairAbility } from '../engine/match';
 import { dataName, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, useGame } from './game';
 import { LiveDraw } from './LiveDraw';
@@ -160,52 +161,85 @@ function lineupProblem(l: Lineup, order: Discipline[], pool: Record<string, Team
 const SLOT_GENDERS: Record<string, ['M' | 'F', 'M' | 'F']> = { MD: ['M', 'M'], WD: ['F', 'F'], XD: ['M', 'F'] };
 
 /**
- * Pilih peserta tiap partai. Tunggal: atlet. Ganda: dua atlet skuad — pasangan terdaftar bila ada,
- * selain itu ganda dadakan (pasangan khusus beregu). Tiap perubahan langsung diurutkan menurut ranking (aturan BWF).
+ * Pilih peserta tiap partai: satu pilihan per partai. Tunggal: atlet; ganda: pasangan terdaftar di skuad, atau
+ * "Ganda dadakan…" (dua atlet skuad bebas, pasangan khusus beregu). Teks pilihan memuat ranking, kemampuan & ⚠
+ * (cedera/lelah). Partai yang melanggar aturan (atlet > maks partai / dua kali di nomor sama) ditandai merah.
+ * Tiap perubahan langsung diurutkan menurut ranking (aturan BWF).
  */
 export function LineupPicker({ format, order, pool, squad, value, onChange }: {
   format: TeamFormat; order: Discipline[]; pool: Record<string, TeamEntrant[]>; squad: string[]; value: Lineup; onChange: (v: Lineup) => void;
 }) {
   const { game, version } = useGame();
-  const { players } = lookup(game.state);
-  const strength = useMemo(() => lineupStrength(game.state, game.ruleset, format), [game, format, version]);
+  const { state, ruleset } = game;
+  const { players, pairs } = lookup(state);
+  const strength = useMemo(() => lineupStrength(state, ruleset, format), [game, format, version]);
+  const ranks = useMemo(() => new Map(order.map((d) => [d, rankMap(computeRanking(isJuniorFormat(format) ? state.juniorResults ?? [] : state.results, d, absWeek(state.date), ruleset))])), [version, format]);
+  const [adHocSlots, setAdHocSlots] = useState<Set<number>>(() => new Set(value.flatMap((id, i) => (id?.startsWith(AD_HOC) ? [i] : []))));
+  // Ganda dadakan yang baru terisi satu atlet (belum masuk line-up).
+  const [partial, setPartial] = useState<Record<number, string[]>>({});
   const set = (i: number, id: string | null) => { const next = [...value]; next[i] = id; onChange(rankOrder(next, order, strength)); };
   const membersOf = (d: Discipline, id: string | null): string[] =>
     !id ? [] : id.startsWith(AD_HOC) ? id.slice(AD_HOC.length).split('+') : (pool[d] ?? []).find((e) => e.id === id)?.playerIds ?? [];
+  // Partai bermasalah: atlet melebihi batas partai, atau dua kali di nomor yang sama.
+  const max = ruleset.team.maxMatchesPerPlayer;
+  const uses = new Map<string, number>();
+  order.forEach((d, i) => membersOf(d, value[i]).forEach((id) => uses.set(id, (uses.get(id) ?? 0) + 1)));
+  const bad = (i: number) => membersOf(order[i], value[i]).some((id) => uses.get(id)! > max
+    || order.some((d, j) => j !== i && d === order[i] && membersOf(d, value[j]).includes(id)));
+  const warn = (ids: string[]) => ids.some((id) => players.get(id)?.injury || players.get(id)!.fatigue > ruleset.ai.restAbove) ? ' ⚠' : '';
+  const label = (e: TeamEntrant, d: Discipline) => {
+    const cas = e.playerIds.map((id) => currentAbility(players.get(id)!.attrs));
+    const pair = pairs.get(e.id);
+    const ability = pair ? pairAbility(cas, pair.chemistry, ruleset.match) : cas[0];
+    const rank = ranks.get(d)?.get(e.id);
+    // Pasangan: nama belakang saja agar muat di HP ("Alfian / Fikri").
+    const name = pair ? e.playerIds.map((id) => players.get(id)!.name.split(' ').at(-1)).join(' / ') : entrantLabel(state, e.id).name;
+    return `${name}${rank ? ` · #${rank}` : ''} · ${Math.round(ability)}${warn(e.playerIds)}`;
+  };
+  // Ganda dadakan: dua atlet skuad; pasangan terdaftar dipakai bila kombinasinya ada.
   const pick = (d: Discipline, i: number, k: 0 | 1) => {
-    const cur = membersOf(d, value[i]);
+    const cur = value[i] ? membersOf(d, value[i]) : partial[i] ?? [];
     const choose = (pid: string) => {
       const ids = [...cur]; ids[k] = pid;
       const [a, b] = ids;
+      setPartial((x) => ({ ...x, [i]: ids }));
       if (!a || !b) return set(i, null);
       const registered = (pool[d] ?? []).find((e) => e.playerIds.includes(a) && e.playerIds.includes(b));
       set(i, registered ? registered.id : adHocId(a, b));
     };
-    const gender = SLOT_GENDERS[d][k];
     return (
       <select value={cur[k] ?? ''} onChange={(e) => choose(e.target.value)}>
         <option value="">—</option>
-        {squad.filter((id) => players.get(id)?.gender === gender).map((id) => <option key={id} value={id}>{players.get(id)!.name}</option>)}
+        {squad.filter((id) => players.get(id)?.gender === SLOT_GENDERS[d][k]).map((id) => (
+          <option key={id} value={id}>{players.get(id)!.name} · {currentAbility(players.get(id)!.attrs)}{warn([id])}</option>
+        ))}
       </select>
     );
   };
+  const ADHOC = '__adhoc';
+  const toggleAdHoc = (i: number, on: boolean) => setAdHocSlots((s) => { const n = new Set(s); if (on) n.add(i); else n.delete(i); return n; });
   return (
-    <table className="lineup" style={{ maxWidth: 680 }}>
-      <tbody>{order.map((d, i) => (
-        <tr key={i}>
-          <td>{t('matchNo')} {i + 1}</td><td>{d}</td>
-          <td>
-            {isDoubles(d) ? (
-              <>{pick(d, i, 0)}<span className="pair-sep"> / </span>{pick(d, i, 1)}{value[i]?.startsWith(AD_HOC) && <> <span className="tag">{t('adHocPair')}</span></>}</>
-            ) : (
-              <select value={value[i] ?? ''} onChange={(e) => set(i, e.target.value || null)}>
+    <table className="lineup">
+      <tbody>{order.map((d, i) => {
+        // Mode dadakan mengikuti nilai; slot kosong yang baru memilih "Ganda dadakan…" tetap menampilkan dua pilihan atlet.
+        const adHoc = isDoubles(d) && (!!value[i]?.startsWith(AD_HOC) || (adHocSlots.has(i) && !value[i]));
+        return (
+          <tr key={i} className={bad(i) ? 'bad' : undefined}>
+            <td>{t('matchNo')} {i + 1}</td><td><span className="chip">{d}</span></td>
+            <td>
+              <select value={adHoc ? ADHOC : value[i] ?? ''} onChange={(e) => {
+                const v = e.target.value;
+                if (v === ADHOC) { toggleAdHoc(i, true); setPartial((x) => ({ ...x, [i]: [] })); set(i, null); } else { toggleAdHoc(i, false); set(i, v || null); }
+              }}>
                 <option value="">—</option>
-                {(pool[d] ?? []).map((e) => <option key={e.id} value={e.id}>{entrantLabel(game.state, e.id).name}</option>)}
+                {(pool[d] ?? []).filter((e) => !e.id.startsWith(AD_HOC)).map((e) => <option key={e.id} value={e.id}>{label(e, d)}</option>)}
+                {isDoubles(d) && <option value={ADHOC}>{t('adHocOption')}</option>}
               </select>
-            )}
-          </td>
-        </tr>
-      ))}</tbody>
+              {adHoc && <div className="adhoc">{pick(d, i, 0)}{pick(d, i, 1)}</div>}
+            </td>
+          </tr>
+        );
+      })}</tbody>
     </table>
   );
 }
@@ -317,14 +351,14 @@ export function TieLineupModal({ title, eventId, format, round, opponent, pool, 
   return (
     <WaitingModal label={t('lineup')} title={heading}>
         <h3>{heading}</h3>
-        <p className="hint">{t('tieLineupHint')}</p>
+        <p className="hint">{t('tieLineupShort')} <span className="info" title={t('tieLineupHint')}>ⓘ</span></p>
         <LineupPicker format={format} order={order} pool={pool} squad={squad} value={lineup} onChange={setLineup} />
         <div className="controls roundbar">
           <button className="primary" disabled={!!err} onClick={() => onDone(lineup)}>{t('confirmLineup')}</button>
           <button onClick={() => setLineup(suggested)}>{t('resetSuggestion')}</button>
           <button onClick={() => { onAuto(); onDone(suggested); }}>{t('autoRestOfWeek', { format: formatName(format, eventId) })}</button>
-          <small className="down">{err}</small>
         </div>
+        {err && <p className="form-err">{err}</p>}
     </WaitingModal>
   );
 }

@@ -319,6 +319,8 @@ export const en: Record<TextKey, string> = {
   teams: 'teams',
   lineup: 'Line-up',
   matchNo: 'Match',
+  tieLineupShort: 'Pick a player for each match (max 2 matches per player).',
+  adHocOption: 'Ad-hoc pair…',
   teamStrengthRank: 'Team strength rank',
   teamNotEligible: 'Not enough players for a full team (singles players & doubles pairs).',
   saveLineup: 'Save line-up',
@@ -467,7 +469,7 @@ export const en: Record<TextKey, string> = {
   v_genderMF: 'gender must be M or F.',
   v_attrs: 'attributes & potential must be 1–100.',
   v_pairMissing: 'player does not exist.',
-  v_pairCountry: 'players from different countries.',
+  v_pairCountry: 'players from different countries (only allowed when both are independent).',
   v_pairGender: 'gender does not match {d}.',
   v_pairBusy: '{name} already has a {d} partner.',
 };

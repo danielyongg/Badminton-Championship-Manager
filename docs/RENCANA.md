@@ -88,7 +88,9 @@ Urutan kerja (tiap fase bisa dirilis sendiri; tes & build hijau di akhir fase):
 - [x] Protected ranking untuk atlet 32 besar yang cedera panjang (entry World Tour, bukan unggulan).
 - [x] Youth Olympic Games (Dakar 2026; tunggal U17, 8 grup → perempat final).
 - [x] Kalibrasi junior baru per musim: populasi U19/≤17 stabil setara data asli 2026 (sebelumnya merosot ±75% dalam 4 musim).
-- Belum (opsional): kejuaraan junior U17/U15 kontinental; pasangan ganda beda negara; urutan partai beregu yang bisa dipilih.
+- [x] **Pasangan ganda beda negara** (pemain independen): negara AI melepas atlet di luar 10 besar; AI memasangkan pemain independen lintas negara; hanya turnamen terbuka. Langsung dipasangkan saat manajer melepas atlet. Spesifikasi: `docs/superpowers/specs/2026-10-27-pasangan-beda-negara-design.md`.
+- [x] Pop-up line-up beregu lebih ringkas: satu pilihan per partai (pasangan terdaftar / ganda dadakan), info ranking & kemampuan, partai bermasalah ditandai.
+- Belum (opsional): kejuaraan junior U17/U15 kontinental; urutan partai beregu yang bisa dipilih; data asli pasangan beda negara (jalankan ulang `scripts/fetch-bwf.mjs`).
 
 ## Batasan yang bisa ditinjau ulang
 - Tier tidak bisa ditambah/dihapus di Editor.

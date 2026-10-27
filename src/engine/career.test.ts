@@ -215,12 +215,15 @@ describe('promosi junior (pelatnas pratama → utama)', () => {
 });
 
 describe('lepas dari pelatnas', () => {
-  it('tetap bertanding diatur AI, keluar dari tim manajer; AI hanya memasangkan sesama yang dilepas', async () => {
+  it('tetap bertanding diatur AI, keluar dari tim manajer; AI hanya memasangkan sesama yang dilepas (langsung saat dilepas)', async () => {
     const { releasePlayer } = await import('./career');
     const { planWeek } = await import('./plan');
     const { formPairs, teamStrengths } = await import('./season');
     const state = newSeason(WORLD, rs, 21, undefined, 'INA');
-    const md = state.pairs.find((p) => p.discipline === 'MD' && !p.dissolved && !p.trial && state.players.find((x) => x.id === p.playerIds[0])!.countryId === 'INA')!;
+    // Pemain ganda yang bukan spesialis tunggal top 64 (AI tidak memasangkan mereka).
+    const stars = new Set(computeRanking(state.results, 'MS', absWeek(state.date), rs).filter((r) => r.rank <= 64).map((r) => r.entrantId));
+    const inaMd = state.pairs.filter((p) => p.discipline === 'MD' && !p.dissolved && !p.trial && p.playerIds[0].startsWith('INA') && !p.playerIds.some((id) => stars.has(id)));
+    const [md, md2] = inaMd;
     const [a, partner] = md.playerIds;
     releasePlayer(state, a);
     expect(md.dissolved).toBeDefined(); // pasangan dengan anggota pelatnas bubar
@@ -230,10 +233,11 @@ describe('lepas dari pelatnas', () => {
     expect(planWeek(state, rs, week).has(a)).toBe(false);
     const ina = teamStrengths(state, rs, 'thomas').find((s) => s.countryId === 'INA')!;
     expect(Object.values(ina.pool).flat().some((e) => e.playerIds.includes(a))).toBe(false);
-    // AI memasangkan dua atlet putra yang dilepas, tidak dengan anggota pelatnas
-    const other = state.players.find((x) => x.countryId === 'INA' && x.gender === 'M' && x.id !== a && x.retired === undefined && x.focus !== 'S' && x.birth.year <= 2007)!;
-    releasePlayer(state, other.id);
-    formPairs(state, rs, WORLD, makeRng(1));
+    // AI memasangkan dua atlet putra yang dilepas (kemampuan mirip), tidak dengan anggota pelatnas
+    const other = state.players.find((x) => x.id === md2.playerIds[0])!;
+    other.attrs = { ...state.players.find((x) => x.id === a)!.attrs };
+    releasePlayer(state, other.id, { rs, world: WORLD, rng: makeRng(1) });
+    formPairs(state, rs, WORLD, makeRng(1)); // pasangan pelatnas tidak memakai atlet yang dilepas
     const fresh = state.pairs.filter((p) => !p.dissolved && p.playerIds.some((id) => id === a || id === other.id));
     expect(fresh.some((p) => p.discipline === 'MD' && p.playerIds.includes(a) && p.playerIds.includes(other.id))).toBe(true);
     expect(fresh.every((p) => p.playerIds.every((id) => state.players.find((x) => x.id === id)!.released !== undefined))).toBe(true);

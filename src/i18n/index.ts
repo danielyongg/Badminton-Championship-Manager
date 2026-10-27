@@ -319,6 +319,8 @@ const id = {
   teams: 'tim',
   lineup: 'Line-up',
   matchNo: 'Partai',
+  tieLineupShort: 'Pilih pemain tiap partai (maks. 2 partai per atlet).',
+  adHocOption: 'Ganda dadakan…',
   teamStrengthRank: 'Peringkat kekuatan tim',
   teamNotEligible: 'Skuad belum cukup untuk menurunkan tim lengkap (tunggal & pasangan ganda).',
   saveLineup: 'Simpan line-up',
@@ -467,7 +469,7 @@ const id = {
   v_genderMF: 'gender harus M atau F.',
   v_attrs: 'atribut & potensi harus 1–100.',
   v_pairMissing: 'atlet tidak ada.',
-  v_pairCountry: 'atlet beda negara.',
+  v_pairCountry: 'atlet beda negara (hanya boleh bila keduanya di luar pelatnas).',
   v_pairGender: 'gender tidak cocok untuk {d}.',
   v_pairBusy: '{name} sudah punya pasangan {d}.',
 };

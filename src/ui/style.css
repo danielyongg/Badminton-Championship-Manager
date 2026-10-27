@@ -52,7 +52,15 @@ h4 { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color:
 button, select, input { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 4px 10px; }
 /* Panah select sendiri (panah bawaan menempel di tepi kanan); warna per tema lewat --chevron. */
 select { appearance: none; padding-right: 32px; background-image: var(--chevron); background-position: right 12px center; background-size: 12px 8px; background-repeat: no-repeat; }
-td select { width: 100%; min-width: 7.5rem; } /* tabel sempit (HP): kotak pilihan mengikuti lebar kolom, tidak melewati layar */
+td select { width: 100%; min-width: 7.5rem; }
+/* Line-up beregu: satu pilihan per partai; ganda dadakan = dua pilihan atlet sebaris (HP: bertumpuk). Partai melanggar aturan: merah. */
+.lineup { width: 100%; }
+.lineup td:last-child { width: 100%; }
+.lineup .adhoc { display: flex; gap: 6px; margin-top: 4px; }
+.lineup .adhoc select { flex: 1; min-width: 0; }
+.lineup tr.bad td:first-child, .lineup tr.bad select { color: var(--danger); border-color: var(--danger); }
+.info { cursor: help; }
+@media (max-width: 700px) { .lineup .adhoc { flex-direction: column; gap: 0; } } /* tabel sempit (HP): kotak pilihan mengikuti lebar kolom, tidak melewati layar */
 button { cursor: pointer; transition: background-color 150ms, color 150ms, border-color 150ms; }
 button:hover:not(:disabled) { border-color: var(--accent); }
 button:disabled { opacity: .5; cursor: default; }
@@ -543,7 +551,6 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
   .lineup td:first-child, .lineup td:nth-child(2) { white-space: nowrap; }
   .board.scoreline td:first-child { min-width: 0; white-space: normal; }
   .lineup select { display: block; width: 100%; max-width: 100%; margin: 2px 0; }
-  .lineup .pair-sep { display: none; } /* HP: dua kotak ganda bertumpuk, tanpa garis miring */
   /* Dashboard: kartu hasil turnamen (panjang) di paling bawah agar ranking & cedera terlihat dulu. */
   .dash > .tall { order: 10; grid-row: auto; }
   table { display: block; overflow-x: auto; }

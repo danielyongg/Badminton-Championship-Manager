@@ -1,5 +1,6 @@
 import { bumpForm, DISSOLVE_PENALTY } from './boosts';
 import { ageAt, currentAbility, isJuniorAge } from './generator';
+import { markReleased, pairIndependents } from './independents';
 import { pairAbility } from './match';
 import { nextOlympics, olympicField } from './olympics';
 import { absWeek, computeRanking, rankMap } from './ranking';
@@ -286,16 +287,15 @@ export function promoteJunior(state: Pick<SeasonState, 'players'>, playerId: str
 /**
  * Lepas atlet dari pelatnas: tetap bertanding (diatur AI) tapi tidak lagi dikelola manajer.
  * Pasangan dengan anggota pelatnas dibubarkan; atlet dikeluarkan dari skuad beregu & prioritas tier.
+ * `ctx`: atlet langsung dicarikan pasangan independen (bisa beda negara), tanpa menunggu akhir musim.
  */
-export function releasePlayer(state: SeasonState, playerId: string) {
+export function releasePlayer(state: SeasonState, playerId: string, ctx?: { rs: Ruleset; world: World; rng: Rng }) {
   const p = state.players.find((x) => x.id === playerId);
   if (!p || p.released !== undefined) return;
-  p.released = state.date.year;
-  const released = new Set(state.players.filter((x) => x.released !== undefined).map((x) => x.id));
-  for (const pair of state.pairs)
-    if (!pair.dissolved && pair.playerIds.includes(playerId) && !pair.playerIds.every((id) => released.has(id))) dissolvePair(state, pair.id);
+  markReleased(state, p);
   for (const f of Object.keys(state.teamSquads) as TeamFormat[]) state.teamSquads[f] = state.teamSquads[f]!.filter((id) => id !== playerId);
   if (state.tierPrefs) delete state.tierPrefs[playerId];
+  if (ctx) pairIndependents(state, ctx.rs, ctx.world, ctx.rng, [playerId]);
 }
 
 /** Panggil kembali ke pelatnas: pasangan yang dibentuk AI selama di luar pelatnas dibubarkan (manajer memasangkan lagi). */

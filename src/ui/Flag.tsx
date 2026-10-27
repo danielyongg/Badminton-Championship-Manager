@@ -11,8 +11,9 @@ export function flagCode(id: string): string | undefined {
   return URL_OF.has(code) ? code : undefined;
 }
 
-/** Bendera kecil di depan nama; negara tanpa bendera (dibuat di Editor) → tidak tampil. */
+/** Bendera kecil di depan nama; negara tanpa bendera (dibuat di Editor) → tidak tampil. `DEN/ENG` (pasangan beda negara) → dua bendera. */
 export function Flag({ id }: { id?: string | null }) {
+  if (id?.includes('/')) return <>{id.split('/').map((c) => <Flag key={c} id={c} />)}</>;
   const code = id ? flagCode(id) : undefined;
   return code ? <img className="flag" src={URL_OF.get(code)} alt={code} title={code} /> : null;
 }

@@ -182,7 +182,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
                 : singlesView ? <TierPrefs id={p.id} /> : <>
                   <SectorPicker p={p} onChange={commit} />
                   {isPratama(p, state.date) && <>{' '}<button className="mini btn-go" onClick={() => { promoteJunior(state, p.id); commit(); }}>{t('promote')}</button></>}
-                  {' '}<button className="mini btn-danger" onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id); commit(); } }}>{t('releaseShort')}</button>
+                  {' '}<button className="mini btn-danger" onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id, { rs: game.ruleset, world: game.world, rng: game.rng }); commit(); } }}>{t('releaseShort')}</button>
                 </>}</td>
             </tr>
           ))}</tbody>
@@ -432,7 +432,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         {p.injury && <p className={`injury-now${isBadInjury(p.injury) ? ' strong' : ''}`}>✚ {injuryText(p.injury, state.date)}</p>}
         {p.countryId === state.career?.countryId && p.retired === undefined && (
           <p>{p.released === undefined
-            ? <button className="btn-danger" onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id); changed(); void saveGame(game); } }}>{t('release')}</button>
+            ? <button className="btn-danger" onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id, { rs: game.ruleset, world: game.world, rng: game.rng }); changed(); void saveGame(game); } }}>{t('release')}</button>
             : <button onClick={() => { recallPlayer(state, p.id); changed(); void saveGame(game); }}>{t('recall')}</button>}</p>
         )}
       </section>}

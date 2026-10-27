@@ -23,6 +23,14 @@ const player = (id: string, countryId: string, gender: 'M' | 'F', v = 80): Playe
 });
 
 describe('paket data (Editor, import/export)', () => {
+  it('pasangan beda negara hanya sah bila kedua atlet independen', () => {
+    const pack = { ...presetPack(PRESETS[1]), players: [player('A', 'DEN', 'M'), player('B', 'ENG', 'M')],
+      pairs: [{ id: 'X', discipline: 'MD' as const, playerIds: ['A', 'B'] as [string, string], chemistry: 50, matchesTogether: 0, formed: { year: 2026, week: 1 } }] };
+    expect(validatePack(pack).some((e) => e.includes('X'))).toBe(true);
+    pack.players.forEach((p) => { p.released = 2026; });
+    expect(validatePack(pack)).toEqual([]);
+  });
+
   it('preset bawaan sah', () => {
     for (const rs of PRESETS) expect(validatePack(presetPack(rs))).toEqual([]);
   });

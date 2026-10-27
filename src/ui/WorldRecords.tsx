@@ -27,7 +27,8 @@ export function NationsTable({ state, ruleset, world }: { state: SeasonState; ru
   const teamGroup = (id: string) => { const ev = ruleset.team.events.find((e) => e.id === id); return ev && tierGroup(undefined, ev); };
   const rows = useMemo(() => {
     const tally = new Map<string, [number, number, number]>();
-    const add = (c: string, i: 0 | 1 | 2) => { const v = tally.get(c) ?? [0, 0, 0]; v[i]++; tally.set(c, v); };
+    // Pasangan beda negara ("DEN/ENG"): medali dihitung untuk kedua negara.
+    const add = (cs: string, i: 0 | 1 | 2) => { for (const c of cs.split('/')) { const v = tally.get(c) ?? [0, 0, 0]; v[i]++; tally.set(c, v); } };
     for (const m of state.matches) {
         if (m.year !== year || (m.round !== 'F' && m.round !== 'SF')) continue;
         const g = individualGroup(m.tournamentId);

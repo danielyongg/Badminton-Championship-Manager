@@ -76,15 +76,16 @@ for (const [code, rows] of Object.entries(rankings)) {
     if (!cid || !r.player1_model) continue;
     const lvl = levelOf(r.rank, junior);
     const ids = [];
-    for (const [m, g] of [[r.player1_model, g1], [r.player2_model, g2]]) {
-      if (!m || !g) continue;
-      const p = people.get(m.id) ?? people.set(m.id, { id: m.id, name: nameOf(m), cid, g, lvl: 0, s: 0, d: 0 }).get(m.id);
+    // Negara tiap atlet dari modelnya sendiri: pasangan beda negara (pemain independen) disimpan.
+    for (const [m, g, c] of [[r.player1_model, g1, cid], [r.player2_model, g2, COUNTRY[r.p2_country_model?.name]]]) {
+      if (!m || !g || !c) continue;
+      const p = people.get(m.id) ?? people.set(m.id, { id: m.id, name: nameOf(m), cid: c, g, lvl: 0, s: 0, d: 0 }).get(m.id);
       p.lvl = Math.max(p.lvl, lvl);
       if (dbl) p.d = Math.max(p.d, lvl); else p.s = Math.max(p.s, lvl);
       if (junior) p.junior = true; else p.senior = true;
       ids.push(m.id);
     }
-    if (dbl && ids.length === 2 && COUNTRY[r.p2_country_model?.name] === cid) pairs.push([code, ids[0], ids[1]]);
+    if (dbl && ids.length === 2) pairs.push([code, ids[0], ids[1]]);
   }
 }
 const chosen = new Set();
@@ -112,7 +113,6 @@ const players = [...chosen].map((id) => people.get(id)).sort((a, b) => a.cid.loc
 const busy = new Set();
 const keptPairs = pairs.filter(([d, a, b]) => {
   if (!chosen.has(a) || !chosen.has(b) || busy.has(`${d}:${a}`) || busy.has(`${d}:${b}`)) return false;
-  if (people.get(a).cid !== people.get(b).cid) return false; // atlet yang tercatat di negara berbeda antar nomor
   busy.add(`${d}:${a}`).add(`${d}:${b}`);
   return true;
 }).map(([d, a, b]) => [d, +a, +b]);
