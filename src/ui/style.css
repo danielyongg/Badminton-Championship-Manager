@@ -852,6 +852,10 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 .news .badge.news-hosts { background: var(--fair-soft); color: var(--fair); }
 .news .badge.news-awards { background: var(--gold-soft); color: var(--gold); }
 .mine-award { font-weight: 700; }
+/* Penghargaan di berita: kategori (kecil) di atas nama, muat di kolom berita yang sempit. */
+.news .award-list { display: block; margin-top: 4px; font-size: .9em; }
+.news .award-list > span { display: block; padding: 3px 0; border-top: 1px solid var(--line); }
+.news .award-list small { display: block; }
 .news .badge.news-careerHigh { background: color-mix(in srgb, var(--series-1) 15%, transparent); color: var(--series-1); }
 /* HP: badge berita di atas kalimat (lebar seperlunya) agar kalimat memakai lebar penuh. */
 @media (max-width: 600px) {
