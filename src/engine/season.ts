@@ -259,7 +259,9 @@ export function spreadHosts(rs: Ruleset, year: number, rng: Rng, world: World, m
       const wtClash = wt(e.tierId) ? others.filter((p) => wt(p.tier) && p.week === w).length : 0;
       const sameTier = others.filter((p) => p.tier === e.tierId && p.week === w).length;
       const near = others.reduce((s, p) => s + (p.city === city ? Math.max(0, CITY_GAP - Math.abs(p.week - w)) : 0), 0);
-      const score = wtClash * 10000 + sameTier * 3000 + clash * 1000 + near * 10 + Math.abs(w - w0);
+      // Kota yang sama < HOST_GAP minggu: lebih berat dari bentrok tier (jarak minimal sekota wajib, docs/ASUMSI.md).
+      const cityClash = others.filter((p) => p.city === city && Math.abs(p.week - w) < HOST_GAP).length;
+      const score = wtClash * 10000 + cityClash * 5000 + sameTier * 3000 + clash * 1000 + near * 10 + Math.abs(w - w0);
       if (score < bestScore) [best, bestScore] = [w, score];
     }
     (e.weeks ??= {})[year] = best;
