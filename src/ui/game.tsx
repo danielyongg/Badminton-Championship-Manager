@@ -137,6 +137,11 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
       Object.assign(tier, { wildcards: p.wildcards, wildcardTop: p.wildcardTop, zeroPointsForR1WildcardLoss: p.zeroPointsForR1WildcardLoss });
     if (p?.noCountrySeparation && tier.noCountrySeparation === undefined) tier.noCountrySeparation = true;
   }
+  // Save sebelum kalibrasi populasi junior (U19 stabil, junior lemah berhenti setelah usia junior): nilai bawaan lama diganti preset.
+  const jps = blob.ruleset.development?.juniorsPerSeason;
+  if (jps?.min === 0.3 && jps.max === 2.2) blob.ruleset.development.juniorsPerSeason = { ...preset.development.juniorsPerSeason };
+  const low = blob.ruleset.development?.lowAbilityRetire;
+  if (low?.fromAge === 23 && low.belowCa === 35 && low.chance === 0.15) blob.ruleset.development.lowAbilityRetire = { ...preset.development.lowAbilityRetire };
   // Save sebelum skuad Sudirman & Suhandinata maks 20 (Major Events Regulations): ganti nilai bawaan lama 4–12.
   for (const f of ['sudirman', 'suhandinata'] as const) {
     const size = blob.ruleset.team?.squadSize?.[f];

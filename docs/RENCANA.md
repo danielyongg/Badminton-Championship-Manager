@@ -87,6 +87,7 @@ Urutan kerja (tiap fase bisa dirilis sendiri; tes & build hijau di akhir fase):
 - [x] Undian tuan rumah musim depan di awal musim (event dengan kota kandidat), diumumkan di berita.
 - [x] Protected ranking untuk atlet 32 besar yang cedera panjang (entry World Tour, bukan unggulan).
 - [x] Youth Olympic Games (Dakar 2026; tunggal U17, 8 grup → perempat final).
+- [x] Kalibrasi junior baru per musim: populasi U19/≤17 stabil setara data asli 2026 (sebelumnya merosot ±75% dalam 4 musim).
 - Belum (opsional): kejuaraan junior U17/U15 kontinental; pasangan ganda beda negara; urutan partai beregu yang bisa dipilih.
 
 ## Batasan yang bisa ditinjau ulang

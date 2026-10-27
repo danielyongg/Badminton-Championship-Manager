@@ -161,7 +161,8 @@ export const hostCityId = (e: Pick<TournamentDef, 'cityId' | 'hosts' | 'rotation
 
 /**
  * Undian tuan rumah: event yang punya kota kandidat (`rotation`) tapi belum punya tuan rumah tahun itu diundi di antara
- * kandidatnya — sebisa mungkin bukan negara (lalu bukan kota) tuan rumah edisi sebelumnya. Hasilnya dipatok ke `hosts`.
+ * kandidatnya — sebisa mungkin bukan negara yang sudah menggelar event lain dalam HOST_GAP minggu, dan bukan negara
+ * (lalu bukan kota) tuan rumah edisi sebelumnya. Hasilnya dipatok ke `hosts`.
  */
 export function drawHosts(rs: Ruleset, year: number, rng: Rng, world?: World): { id: string; cityId: string }[] {
   const country = new Map(world?.cities.map((c) => [c.id, c.countryId]) ?? []);
@@ -171,7 +172,13 @@ export function drawHosts(rs: Ruleset, year: number, rng: Rng, world?: World): {
     let prev: string | undefined;
     for (let y = year - 1; y >= year - 12 && !prev; y--) if (isHeld(e, y)) prev = hostCityId(e, y);
     const all = [...new Set(e.rotation)];
-    const pool = [all.filter((c) => c !== prev && (!country.has(c) || country.get(c) !== country.get(prev ?? ''))), all.filter((c) => c !== prev), all]
+    // Negara yang sudah menggelar event lain dalam HOST_GAP minggu dari event ini (tahun itu) dihindari bila bisa.
+    const w = weekOf(e, year);
+    const busy = new Set([...rs.calendar, ...rs.team.events].filter((x) => x !== e && isHeld(x, year) && Math.abs(weekOf(x, year) - w) < HOST_GAP)
+      .map((x) => country.get(hostCityId(x, year))));
+    const newCountry = (c: string) => c !== prev && (!country.has(c) || country.get(c) !== country.get(prev ?? ''));
+    const free = (c: string) => !country.has(c) || !busy.has(country.get(c));
+    const pool = [all.filter((c) => newCountry(c) && free(c)), all.filter((c) => c !== prev && free(c)), all.filter(newCountry), all.filter((c) => c !== prev), all]
       .find((l) => l.length)!;
     const cityId = pool[Math.floor(rng() * pool.length)];
     (e.hosts ??= {})[year] = cityId;

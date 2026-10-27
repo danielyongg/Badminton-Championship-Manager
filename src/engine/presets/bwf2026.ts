@@ -547,8 +547,9 @@ export const BWF_2026: Ruleset = {
       { maxAge: 99, min: 1, max: 1 },
     ],
     retireAlwaysAt: 38,
-    lowAbilityRetire: { fromAge: 23, belowCa: 35, chance: 0.15 },
-    juniorsPerSeason: { min: 0.3, max: 2.2 },
+    // ASUMSI (kalibrasi 2026–2034): sebagian besar junior lemah berhenti setelah usia junior → jumlah senior stabil ±3.000.
+    lowAbilityRetire: { fromAge: 19, belowCa: 55, chance: 0.5 },
+    juniorsPerSeason: { min: 1.5, max: 9.5 }, // ±218 junior baru per gender per musim → U19 stabil ±430, tunggal ≤ 17 ±210 dari 46–48 negara
     severeInjuryPaLoss: { min: 1, max: 4 },
   },
   // ASUMSI: kalibrasi cedera — atlet segar ±0,2%/laga, sangat lelah (90) ±2,6%/laga.

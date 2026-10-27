@@ -183,17 +183,21 @@ describe('beberapa musim (perkembangan, pensiun, regenerasi)', () => {
   const rs = BWF_2026;
   const state = newSeason(WORLD, rs, 7);
   const active = (c?: string) => state.players.filter((p) => p.retired === undefined && (!c || p.countryId === c)).length;
-  const start = { all: active(), chn: active('CHN'), nzl: active('NZL') };
+  const u19 = () => state.players.filter((p) => p.retired === undefined && state.date.year - p.birth.year <= 18).length;
+  const start = { all: active(), chn: active('CHN'), nzl: active('NZL'), u19: u19() };
   const rng = makeRng(8);
   beforeAll(async () => {
     while (state.date.year < 2031) await playWeek(state, rs, WORLD, rng);
   }, 180_000); // ponytail: 5 musim penuh; >60 dtk saat semua file tes jalan paralel di mesin lambat
 
-  it('populasi atlet stabil (±30%) setelah 5 musim', async () => {
-    for (const [c, n] of [[undefined, start.all], ['CHN', start.chn]] as const) {
-      expect(active(c)).toBeGreaterThan(n * 0.7);
-      expect(active(c)).toBeLessThan(n * 1.3);
-    }
+  it('populasi setelah 5 musim: junior U19 setara data asli 2026 (±890), total aktif tidak membengkak', async () => {
+    // Junior baru per musim dikalibrasi ke atlet asli 2026 (U19 ±890), lebih banyak dari dunia fiktif awal (±350):
+    // U19 naik ke tingkat itu lalu stabil; total aktif ikut tumbuh tapi terbatas (junior lemah berhenti setelah U19).
+    expect(u19()).toBeGreaterThan(650);
+    expect(u19()).toBeLessThan(1150);
+    expect(active()).toBeGreaterThan(start.all * 0.7);
+    expect(active()).toBeLessThan(start.all * 1.8);
+    expect(active('CHN')).toBeGreaterThan(start.chn * 0.7);
   });
 
   it('ada pensiunan, junior baru, dan riwayat atribut per musim', async () => {
