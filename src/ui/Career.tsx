@@ -23,7 +23,7 @@ import { LiveDraw } from './LiveDraw';
 import { LiveMatch, PreMatch } from './LiveMatch';
 import { advance, entrantLabel, eventName, teamLabel, lookup, saveGame, useGame, TierBadge } from './game';
 import { SeasonViews } from './Ranking';
-import { arrow, injuryText, isBadInjury, Profile, Squad, usd } from './Squad';
+import { arrow, injuryText, isBadInjury, Profile, Squad, TraitTags, usd } from './Squad';
 import { quarterReport } from '../engine/development';
 import { autoPick, recruit, recruitSome, SCOUTING_DEADLINE_WEEK, starRangeAt, styleOf } from '../engine/scouting';
 import { ScoutFocusSelect } from './Squad';
@@ -317,7 +317,7 @@ function teamStatus(game: ReturnType<typeof useGame>['game'], format: TeamFormat
   return cont ? t('teamWaiting', { event: eventName(rs, cont.id, year) ?? cont.id, w: weekOf(cont, year) }) : t('teamWaitingRank');
 }
 
-function GoalTable({ goals, current, year }: { goals: FederationGoal[]; current?: (g: FederationGoal) => number; year: number }) {
+function GoalTable({ goals, current, year, tagged, children }: { goals: FederationGoal[]; current?: (g: FederationGoal) => number; year: number; tagged?: boolean; children?: ReactNode }) {
   const { game } = useGame();
   // Daftar bertumpuk (bukan tabel) agar tidak terpotong di kartu dashboard yang sempit.
   return (
@@ -327,13 +327,13 @@ function GoalTable({ goals, current, year }: { goals: FederationGoal[]; current?
       const status = current && g.kind === 'team' ? teamStatus(game, g.format!, now) : show(now);
       return (
         <li key={goalKey(g)}>
-          <b>{goalLabel(game.ruleset, g, year)}
+          <b>{tagged && <span className="tag goal-kind">{t('goalTag')}</span>}{goalLabel(game.ruleset, g, year)}
             {goalWeight(g, year) > 1 && <small className="muted-text"> ({t('goalDouble')})</small>}
             {goalWeight(g, year) === 0 && <small className="muted-text"> ({t('goal_olympicLater', { y: g.year ?? year })})</small>}</b>
           <span>{t('target')}: {show(g.target)} · {t('progress')}: <span className={now >= g.target ? 'up' : ''}>{status}</span></span>
         </li>
       );
-    })}</ul>
+    })}{children}</ul>
   );
 }
 
@@ -342,31 +342,33 @@ function challengeText(game: ReturnType<typeof useGame>['game'], c: Challenge, y
   return t(`ch_${c.kind}` as TextKey, { event: (c.eventId && eventName(game.ruleset, c.eventId, year)) || '', rival: c.rival ? country(c.rival) : '', n: c.target ?? 1 });
 }
 
-/** Tantangan opsional musim: pilih satu dari tiga sebelum batas minggu; setelah dipilih tampil capaiannya. */
-function ChallengeCard() {
+/**
+ * Tantangan opsional musim (baris di kartu Target musim, bertanda "Tantangan"): pilih satu dari tiga sebelum batas
+ * minggu; setelah dipilih tampil capaiannya.
+ */
+function ChallengeItems() {
   const { game, changed } = useGame();
   const { state, ruleset } = game;
   const career = state.career!;
   const { year } = state.date;
   const pick = (c: Challenge) => { career.challenge = c; changed(); void saveGame(game); };
+  const tag = <span className="tag goal-kind challenge">{t('challengeTag')}</span>;
   if (career.challenge) {
     const [now, target] = challengeProgress(state, ruleset, career.countryId!, career.challenge);
     return (
-      <section className="card">
-        <h3>{t('challenge')} {year}</h3>
-        <p><b>{challengeText(game, career.challenge, year)}</b><br />
-          <small>{t('progress')}: <span className={now >= target ? 'up' : ''}>{now}</span> / {target} · +{CHALLENGE_REWARD} / −{CHALLENGE_PENALTY} {t('reputation')}</small></p>
-      </section>
+      <li>
+        <b>{tag}{challengeText(game, career.challenge, year)}</b>
+        <span>{t('progress')}: <span className={now >= target ? 'up' : ''}>{now}</span> / {target} · +{CHALLENGE_REWARD} / −{CHALLENGE_PENALTY} {t('reputation')}</span>
+      </li>
     );
   }
   return (
-    <section className="card">
-      <h3>{t('challenge')} {year}</h3>
-      <p className="hint">{t('challengeHint', { w: CHALLENGE_DEADLINE_WEEK + 1, win: CHALLENGE_REWARD, lose: CHALLENGE_PENALTY })}</p>
-      <ul className="goals">{career.challengeOptions!.map((c, i) => (
+    <>
+      <li><b>{tag}{t('challengePick')}</b><span>{t('challengeHint', { w: CHALLENGE_DEADLINE_WEEK + 1, win: CHALLENGE_REWARD, lose: CHALLENGE_PENALTY })}</span></li>
+      {career.challengeOptions!.map((c, i) => (
         <li key={i} className="choice"><span>{challengeText(game, c, year)}</span><button className="mini btn-go" onClick={() => pick(c)}>{t('challengeChoose')}</button></li>
-      ))}</ul>
-    </section>
+      ))}
+    </>
   );
 }
 
@@ -483,13 +485,25 @@ function ScoutingCard() {
 function QuarterReportCard({ country, onOpen }: { country: string; onOpen: (id: string) => void }) {
   const { game } = useGame();
   const r = quarterReport(game.state.players, country, game.state.date);
-  const rows = ([['qrRisers', r.risers], ['qrStalled', r.stalled], ['qrDeclining', r.declining], ['qrRevealed', r.revealed]] as const).filter(([, ps]) => ps.length);
+  const rows = ([['qrRisers', '📈', r.risers], ['qrStalled', '⏸', r.stalled], ['qrDeclining', '📉', r.declining], ['qrRevealed', '🔍', r.revealed]] as const).filter(([, , ps]) => ps.length);
   if (!rows.length) return null;
+  const { date } = game.state;
+  // Kelompok bertumpuk: judul kecil + satu baris per atlet (usia · kemampuan, perubahan sebagai badge; sifat baru sebagai tag).
   return (
-    <section className="card">
+    <section className="card qreport">
       <h3>{t('quarterReport')}</h3>
-      {rows.map(([k, ps]) => (
-        <p key={k}><b>{t(k)}:</b> {ps.map((p, i) => <span key={p.id}>{i ? ', ' : ''}<a href="#" onClick={(e) => { e.preventDefault(); onOpen(p.id); }}>{p.name}</a>{k !== 'qrRevealed' && arrow(p.caDelta)}</span>)}</p>
+      {rows.map(([k, icon, ps]) => (
+        <div key={k} className="qgroup">
+          <h4>{icon} {t(k)}</h4>
+          {ps.map((p) => (
+            <div key={p.id} className="drow">
+              <span className="grow"><a href="#" onClick={(e) => { e.preventDefault(); onOpen(p.id); }}>{p.name}</a>
+                <small className="muted-text"> {ageAt(p.birth, date)} {t('yearsShort')} · {currentAbility(p.attrs)}</small>
+                {k === 'qrRevealed' && <> <TraitTags p={p} matches={0} /></>}</span>
+              {k !== 'qrRevealed' && !!p.caDelta && <span className={`badge ${p.caDelta > 0 ? 'q-up' : 'q-down'}`}>{arrow(p.caDelta).trim()}</span>}
+            </div>
+          ))}
+        </div>
       ))}
     </section>
   );
@@ -581,13 +595,14 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
       {managed && state.scouting && <ScoutingCard />}
       {managed && (
         <section className="card">
-          <h3>{t('goals')} {year}</h3>
-          <GoalTable goals={state.career!.goals} current={(g) => goalProgress(state, ruleset, managed, g, world)} year={year} />
+          <h3>{t('goalsCard')} {year}</h3>
+          <GoalTable goals={state.career!.goals} current={(g) => goalProgress(state, ruleset, managed, g, world)} year={year} tagged>
+            {(state.career!.challenge || (state.career!.challengeOptions?.length && week <= CHALLENGE_DEADLINE_WEEK)) && <ChallengeItems />}
+          </GoalTable>
         </section>
       )}
       {managed && gamesThisYear(ruleset, year).filter((e) => openTo(e, managed, world) && week >= lockWeek(ruleset, e, year) - 12 && week <= weekOf(e, year))
         .map((e) => <ContingentCard key={e.id} ev={e} />)}
-      {managed && (state.career!.challenge || (state.career!.challengeOptions?.length && week <= CHALLENGE_DEADLINE_WEEK)) && <ChallengeCard />}
       {lastReport && week <= 4 && (
         <section className="card">
           <h3>{t('seasonEndReport')} {lastReport.year}: {t('grade')} {lastReport.grade} ({lastReport.reputationChange >= 0 ? '+' : ''}{lastReport.reputationChange} {t('reputation')})</h3>

@@ -280,7 +280,7 @@ export function ScoutFocusSelect() {
 }
 
 /** Sifat atlet yang sudah terbaca (fisik setelah 2 musim, lainnya setelah 30 laga). */
-function TraitTags({ p, matches }: { p: Player; matches: number }) {
+export function TraitTags({ p, matches }: { p: Player; matches: number }) {
   const ts = visibleTraits(p, matches);
   if (!ts.length) return null;
   return (

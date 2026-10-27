@@ -310,6 +310,16 @@ button.wide { width: 100%; text-align: left; }
 .goals li.choice > span { color: var(--fg); }
 .goals li.choice > button { flex: none; }
 .goals .up { font-size: inherit; font-weight: 700; }
+/* Target & tantangan dalam satu kartu: penanda jenis di depan judul. */
+.goal-kind { margin-right: 6px; vertical-align: 2px; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; background: var(--accent-soft); color: var(--accent-strong); }
+.goal-kind.challenge { background: var(--gold-soft); color: var(--gold); }
+/* Laporan kuartal: kelompok berjudul kecil, satu baris per atlet. */
+.qreport .qgroup + .qgroup { margin-top: 10px; }
+.qreport h4 { margin: 0 0 2px; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.qreport .drow { padding: 5px 0; border-bottom: 1px solid var(--line); align-items: center; }
+.qreport .drow:last-child { border-bottom: 0; }
+.badge.q-up { background: var(--accent-soft); color: var(--accent-strong); }
+.badge.q-down { background: var(--danger-soft); color: var(--danger); }
 .bar { display: inline-block; width: 60px; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; vertical-align: middle; }
 .bar span { display: block; height: 100%; }
 .squadlist { max-height: 420px; }
