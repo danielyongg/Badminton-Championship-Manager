@@ -7,7 +7,6 @@ import { mainRoundName } from '../engine/knockout';
 import { pairAbility } from '../engine/match';
 import { dataName, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, useGame } from './game';
-import { LiveDraw } from './LiveDraw';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
 import { FitStatus, MoraleTag } from './Squad';
@@ -405,7 +404,8 @@ export function FinalsResult({ r, stage }: { r: TeamResult; stage?: 'groups' | '
   const name = (c: string) => dataName(game.world.countries.find((x) => x.id === c)?.name) ?? c;
   const managed = game.state.career?.countryId;
   const ko = r.ties.filter((x) => x.round !== 'G');
-  const [replay, setReplay] = useState(false);
+  // Posisi yang lolos ke babak gugur (ditandai garis hijau di klasemen grup).
+  const advance = game.ruleset.team.events.find((e) => e.id === r.eventId)?.finals?.groups?.advance ?? 2;
   const [open, setOpen] = useState<TeamTie>();
   // Kotak pertandingan beregu: klik → detail tiap partai.
   const tieBox = (x: TeamTie, i: number) => (
@@ -417,25 +417,20 @@ export function FinalsResult({ r, stage }: { r: TeamResult; stage?: 'groups' | '
   return (
     <section className="card">
       {open && <TieDetail r={r} tie={open} name={name} onClose={() => setOpen(undefined)} />}
-      <h3>{formatName(r.format, r.eventId)} — {t('champion')}: {champion ? name(champion) : '—'}</h3>
-      {r.drawSteps && stage !== 'knockout' && <button onClick={() => setReplay(true)}>{t('draw_replay')}</button>}
-      {replay && r.drawSteps && (
-        <LiveDraw replay title={`${eventName(game.ruleset, r.eventId, r.year)} · ${formatName(r.format, r.eventId)}`} show={{ steps: r.drawSteps, groups: r.groups?.length }}
-          name={name} mine={(c) => c === managed} onClose={() => setReplay(false)} />
-      )}
+      <h3>{formatName(r.format, r.eventId)}{champion && <> — 🏆 <Flag id={champion} />{name(champion)}</>}</h3>
       {r.groups && stage !== 'knockout' && (
         <div className="groups">{standingsOf(r).map((s, gi) => (
           <section key={gi} className="card group">
           <table>
-            <thead><tr><th>{t('group')} {String.fromCharCode(65 + gi)}</th><th className="num" title={t('tiesWon')}>W</th><th className="num" title={t('matchDiff')}>±M</th><th className="num" title={t('gameDiff')}>±G</th></tr></thead>
+            <thead><tr><th>{t('group')} {String.fromCharCode(65 + gi)}</th><th className="num" title={t('tiesWon')}>W</th><th className="num" title={t('matchDiff')}>±M</th>{r.standings && <th className="num" title={t('gameDiff')}>±G</th>}</tr></thead>
             <tbody>{s.map((row, place) => (
-              <tr key={row.id} className={row.id === managed ? 'sel' : ''}>
+              <tr key={row.id} className={[row.id === managed && 'sel', place < advance && 'adv'].filter(Boolean).join(' ') || undefined}>
                 <td><span className="muted-text">{place + 1}.</span> <Flag id={row.id} />{name(row.id)}</td><td className="num">{row.wins}</td>
-                <td className="num">{row.gameDiff > 0 ? '+' : ''}{row.gameDiff}</td><td className="num">{!r.standings ? '—' : `${row.pointDiff > 0 ? '+' : ''}${row.pointDiff}`}</td>
+                <td className="num">{row.gameDiff > 0 ? '+' : ''}{row.gameDiff}</td>{r.standings && <td className="num">{`${row.pointDiff > 0 ? '+' : ''}${row.pointDiff}`}</td>}
               </tr>
             ))}</tbody>
           </table>
-          <ul className="groupgames">{r.ties.filter((x) => x.round === 'G' && r.groups![gi].includes(x.sides[0])).map((x, i) => {
+          {r.ties.some((x) => x.round === 'G' && r.groups![gi].includes(x.sides[0])) && <ul className="groupgames">{r.ties.filter((x) => x.round === 'G' && r.groups![gi].includes(x.sides[0])).map((x, i) => {
             const w = x.score[0] >= x.score[1] ? 0 : 1;
             return (
               <li key={i} role="button" tabIndex={0} title={t('matchDetail')} className={`clickable${managed && x.sides.includes(managed) ? ' mine' : ''}`}
@@ -444,7 +439,7 @@ export function FinalsResult({ r, stage }: { r: TeamResult; stage?: 'groups' | '
                 <span className="score"><a>{x.score[w]}-{x.score[1 - w]}</a></span>
               </li>
             );
-          })}</ul>
+          })}</ul>}
           </section>
         ))}</div>
       )}

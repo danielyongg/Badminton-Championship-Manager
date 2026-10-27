@@ -202,6 +202,7 @@ button.wide { width: 100%; text-align: left; }
 .groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 12px; }
 /* Kartu grup di halaman turnamen: klasemen + daftar laga ringkas (nama panjang turun baris). */
 .group table { width: 100%; }
+.group tr.adv td:first-child { box-shadow: inset 3px 0 var(--accent); padding-left: 8px; } /* lolos ke babak gugur */
 .group td:first-child { white-space: normal; } /* nama panjang turun baris, kolom angka tetap terlihat */
 .groupgames { list-style: none; padding: 0; margin: 8px 0 0; font-size: .85rem; border-top: 1px solid var(--line); }
 .group th.num, .group td.num { width: 3em; }
@@ -536,7 +537,7 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
   .pairtable th { white-space: nowrap; }
   .scroll table tr.sel td:first-child { background: color-mix(in srgb, var(--accent-soft) 100%, var(--surface)); }
   /* Line-up: dua pilihan atlet ganda boleh turun baris. */
-  .lineup { display: table; }
+  .lineup, .group table { display: table; } /* klasemen grup selebar kartu (bukan blok gulir) */
   .modal table:not(.board) { display: table; }
   /* Pop-up (Live Match, live drawing): kontrol ringkas. */
   .live { padding: 10px; }
