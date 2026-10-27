@@ -206,7 +206,7 @@ const BIG_TIERS = new Set(['S1000', 'S750', 'S500']);
  */
 export function scheduleYear(rs: Ruleset, year: number, rng: Rng, world?: World) {
   const auto = new Set(rs.calendar.filter((e) => isHeld(e, year) && e.weeks?.[year] === undefined).map((e) => e.id));
-  scheduleShift(rs, year, rng);
+  scheduleShift(rs, year, rng, world);
   if (world) spreadHosts(rs, year, rng, world, (e) => auto.has(e.id) || afterFinals(rs, e, year));
 }
 
@@ -220,6 +220,8 @@ export const afterFinals = (rs: Ruleset, e: TournamentDef, year: number) =>
 
 /** Jarak minimal (minggu) antar turnamen di negara yang sama. ASUMSI: kalibrasi, docs/ASUMSI.md. */
 export const HOST_GAP = 4;
+/** Jarak yang diupayakan (minggu) antar turnamen di kota yang sama. ASUMSI: kalibrasi, docs/ASUMSI.md. */
+export const CITY_GAP = 8;
 
 /**
  * Sebar turnamen kecil (Super 300 ke bawah, grade 3, junior internasional) yang `movable` agar turnamen di negara yang
@@ -232,34 +234,39 @@ export function spreadHosts(rs: Ruleset, year: number, rng: Rng, world: World, m
   const smallTier = (e: TournamentDef) => !ANCHOR_TIERS.has(e.tierId) && !BIG_TIERS.has(e.tierId) && e.tierId !== 'WJC' && e.tierId !== 'YOG';
   const held = rs.calendar.filter((e) => isHeld(e, year));
   const moving = shuffle(rng, held.filter((e) => movable(e) && smallTier(e) && !e.countries && !e.confederation));
-  const placed: { country?: string; week: number; junior: boolean; tier?: string }[] = [
-    ...held.filter((e) => !moving.includes(e)).map((e) => ({ country: cityCountry.get(hostCityId(e, year)), week: weekOf(e, year), junior: juniorTier.has(e.tierId), tier: e.tierId })),
-    ...rs.team.events.filter((e) => isHeld(e, year)).map((e) => ({ country: cityCountry.get(hostCityId(e, year)), week: weekOf(e, year), junior: !!e.formats?.some(isJuniorFormat) })),
+  const wt = (tier?: string) => !!tier && rs.race.tiers.includes(tier);
+  const placed: { city: string; country?: string; week: number; junior: boolean; tier?: string }[] = [
+    ...held.filter((e) => !moving.includes(e)).map((e) => ({ city: hostCityId(e, year), country: cityCountry.get(hostCityId(e, year)), week: weekOf(e, year), junior: juniorTier.has(e.tierId), tier: e.tierId })),
+    ...rs.team.events.filter((e) => isHeld(e, year)).map((e) => ({ city: hostCityId(e, year), country: cityCountry.get(hostCityId(e, year)), week: weekOf(e, year), junior: !!e.formats?.some(isJuniorFormat) })),
   ];
   const wtf = finalsWeek(rs, year);
   // Dua putaran: putaran kedua menempatkan ulang tiap turnamen dengan semua yang lain sudah terpasang (greedy satu putaran
   // bisa terjebak urutan acak).
   const mine = new Map<TournamentDef, (typeof placed)[number]>();
   for (let pass = 0; pass < 2; pass++) for (const e of moving) {
-    const country = cityCountry.get(hostCityId(e, year)), w0 = e.weeks?.[year] ?? e.week, junior = juniorTier.has(e.tierId);
+    const city = hostCityId(e, year), country = cityCountry.get(city), w0 = e.weeks?.[year] ?? e.week, junior = juniorTier.has(e.tierId);
     const others = placed.filter((p) => p !== mine.get(e));
     let best = w0, bestScore = Infinity;
     // World Tour selalu sebelum Finals; selain itu boleh tetap di minggunya bila sesudah Finals (grade 3 Desember).
     for (let w = fromWeek; w <= (rs.race.tiers.includes(e.tierId) ? wtf - 1 : Math.max(wtf - 1, w0)); w++) {
       if (junior && others.some((p) => p.junior && p.week === w)) continue;
       const clash = others.reduce((s, p) => s + (p.country === country ? Math.max(0, HOST_GAP - Math.abs(p.week - w)) : 0), 0);
+      // World Tour tidak sepekan dengan World Tour lain; kota yang sama sebisa mungkin berjarak ≥ CITY_GAP minggu.
+      const wtClash = wt(e.tierId) ? others.filter((p) => wt(p.tier) && p.week === w).length : 0;
       const sameTier = others.filter((p) => p.tier === e.tierId && p.week === w).length;
-      const score = clash * 1000 + sameTier * 30 + Math.abs(w - w0);
+      const near = others.reduce((s, p) => s + (p.city === city ? Math.max(0, CITY_GAP - Math.abs(p.week - w)) : 0), 0);
+      const score = wtClash * 10000 + sameTier * 3000 + clash * 1000 + near * 10 + Math.abs(w - w0);
       if (score < bestScore) [best, bestScore] = [w, score];
     }
     (e.weeks ??= {})[year] = best;
     const entry = mine.get(e);
     if (entry) entry.week = best;
-    else { const p = { country, week: best, junior, tier: e.tierId }; mine.set(e, p); placed.push(p); }
+    else { const p = { city, country, week: best, junior, tier: e.tierId }; mine.set(e, p); placed.push(p); }
   }
 }
 
-function scheduleShift(rs: Ruleset, year: number, rng: Rng) {
+function scheduleShift(rs: Ruleset, year: number, rng: Rng, world?: World) {
+  const cityCountry = new Map(world?.cities.map((c) => [c.id, c.countryId]) ?? []);
   const junior = new Set(rs.tiers.filter((x) => x.junior).map((x) => x.id));
   const held = rs.calendar.filter((e) => isHeld(e, year));
   const blocked = new Set([
@@ -270,8 +277,14 @@ function scheduleShift(rs: Ruleset, year: number, rng: Rng) {
   const big = new Set(held.filter((e) => BIG_TIERS.has(e.tierId) && e.weeks?.[year] !== undefined).map((e) => e.weeks![year]));
   for (const e of shuffle(rng, held.filter((x) => x.weeks?.[year] === undefined && !ANCHOR_TIERS.has(x.tierId) && !junior.has(x.tierId) && !x.countries && !x.confederation))) {
     const isBig = BIG_TIERS.has(e.tierId);
-    const options = shuffle(rng, [-1, 0, 0, 1]).map((d) => e.week + d)
+    // Super 500+: bila −1/0/+1 penuh, cari minggu bebas terdekat (±2, ±3, …).
+    const options = [...shuffle(rng, [-1, 0, 0, 1]), ...(isBig ? [-2, 2, -3, 3, -4, 4] : [])].map((d) => e.week + d)
       .filter((w) => w >= 1 && w < wtf && (!isBig || (!big.has(w) && !blocked.has(w))));
+    // Super 500+ sebisa mungkin tidak dalam HOST_GAP minggu dari event lain di negara yang sama (mis. tuan rumah beregu hasil undian).
+    const country = cityCountry.get(hostCityId(e, year));
+    const near = (w: number) => !world ? 0 : [...held, ...rs.team.events.filter((x) => isHeld(x, year))]
+      .filter((x) => x !== e && cityCountry.get(hostCityId(x, year)) === country && Math.abs(weekOf(x, year) - w) < HOST_GAP).length;
+    if (isBig) options.sort((a, b) => near(a) - near(b));
     const w = options[0] ?? e.week;
     (e.weeks ??= {})[year] = w;
     if (isBig) big.add(w);

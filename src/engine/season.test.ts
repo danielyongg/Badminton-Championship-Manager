@@ -317,10 +317,11 @@ it('kalender musim baru: turnamen senegara berjarak & tier yang sama tidak sepek
   const rs = structuredClone(BWF_2027);
   scheduleYear(rs, 2029, makeRng(5), WORLD);
   const country = new Map(WORLD.cities.map((c) => [c.id, c.countryId]));
+  // Jarak senegara mengalah pada "World Tour tidak sepekan": Indonesia (10 event) boleh sekali kurang dari HOST_GAP.
   for (const c of ['MAS', 'INA']) {
     const weeks = [...rs.calendar, ...rs.team.events].filter((e) => isHeld(e, 2029) && country.get(hostCityId(e, 2029)) === c)
       .map((e) => weekOf(e, 2029)).sort((a, b) => a - b);
-    for (let i = 1; i < weeks.length; i++) expect(weeks[i] - weeks[i - 1]).toBeGreaterThanOrEqual(HOST_GAP);
+    expect(weeks.slice(1).filter((w, i) => w - weeks[i] < HOST_GAP).length).toBeLessThanOrEqual(c === 'INA' ? 1 : 0);
   }
   // Tier kecil yang sama hampir tidak pernah sepekan (sisa bentrok hanya bila jarak senegara tidak memungkinkan).
   const small = rs.calendar.filter((e) => isHeld(e, 2029) && ['S300', 'S100', 'IC', 'IS', 'FS'].includes(e.tierId)).map((e) => `${e.tierId}@${weekOf(e, 2029)}`);
@@ -389,3 +390,23 @@ describe('batas entry (aturan BWF)', () => {
     expect(state.matches.some((m) => m.tournamentId === ev.id && m.year === 2026 && (m.sides.includes(ina[0].id) || m.sides.includes(ina[1].id)))).toBe(false);
   }, 300000);
 });
+
+it('kalender 2028–2036: World Tour tidak sepekan, tier yang sama tidak sepekan (selain kontinental), kota sama berjarak', () => {
+  const rs = structuredClone(BWF_2026);
+  const rng = makeRng(7);
+  for (let y = 2027; y <= 2036; y++) {
+    drawHosts(rs, y, rng, WORLD);
+    drawHosts(rs, y + 1, rng, WORLD);
+    scheduleYear(rs, y, rng, WORLD);
+    if (y < 2028) continue; // 2027: jadwal grade 3 resmi
+    const held = rs.calendar.filter((e) => isHeld(e, y));
+    const wt = held.filter((e) => rs.race.tiers.includes(e.tierId)).map((e) => weekOf(e, y));
+    expect(new Set(wt).size, `${y}`).toBe(wt.length);
+    const tier = held.filter((e) => !e.confederation).map((e) => `${e.tierId}@${weekOf(e, y)}`);
+    expect(new Set(tier).size, `${y}`).toBe(tier.length);
+    // Turnamen individu yang bisa digeser: tidak dalam HOST_GAP minggu dari event lain di kota yang sama.
+    for (const e of held.filter((x) => !['OG', 'WC', 'WTF', 'YOG', 'WJC'].includes(x.tierId) && !x.confederation && !x.countries))
+      for (const o of [...held, ...rs.team.events.filter((x) => isHeld(x, y))].filter((x) => x !== e && hostCityId(x, y) === hostCityId(e, y)))
+        expect(Math.abs(weekOf(o, y) - weekOf(e, y)), `${y} ${e.id}/${o.id}`).toBeGreaterThanOrEqual(HOST_GAP);
+  }
+}, 60000);
