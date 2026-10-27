@@ -40,7 +40,7 @@ export function juniorEntries(
   const hostConf = (ev: TournamentDef) => conf.get(world.cities.find((c) => c.id === ev.cityId)?.countryId ?? '');
   for (const ev of events) {
     const tier = rs.tiers.find((x) => x.id === ev.tierId)!;
-    const { quota, play = 1, local } = tier.junior!;
+    const { quota, play = 1, local, maxAge } = tier.junior!;
     // Entry sudah di-submit manajer: atlet/pasangan negaranya yang tidak dicentang tidak diisi otomatis.
     const shut = state.entriesSubmitted?.[`${state.date.year}:${ev.id}`] === true;
     const free = (id: string) => manual[id] === ev.id || (manual[id] === undefined && !(shut && ownCountry(id)));
@@ -57,6 +57,7 @@ export function juniorEntries(
     const joins = (p: Player) => !optional || forcedPlayers.has(p.id) || (wants.get(p.id) ?? wants.set(p.id, p.fatigue <= rs.ai.restAbove
       && rng() < play && (!local || conf.get(p.countryId) === hostConf(ev) || rng() < rs.ai.awayGrade3)).get(p.id)!);
     const eligible = (p: Player) => p.retired === undefined && !p.injury && isJuniorAge(p, state.date) && !elsewhere.has(p.id)
+      && (maxAge === undefined || state.date.year - p.birth.year <= maxAge)
       && (!ev.confederation || conf.get(p.countryId) === ev.confederation) && free(p.id) && joins(p);
     const byD = new Map<Discipline, Candidate[]>();
     for (const d of DISCIPLINES) {

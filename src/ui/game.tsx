@@ -79,6 +79,8 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
   for (const [id, r] of Object.entries(preset.ai.rankRange)) blob.ruleset.ai.rankRange[id] ??= r;
   for (const [id, p] of Object.entries(preset.ai.playProb)) blob.ruleset.ai.playProb[id] ??= p;
   // Save sebelum tuan rumah per tahun: tambah kota baru & salin `hosts`/`rotation` dari preset (kecuali kota event diubah di Editor).
+  // Negara tuan rumah baru (mis. Senegal, Youth Olympic Games): ikut ditambahkan agar kotanya merujuk negara yang ada.
+  for (const c of WORLD.countries) if (!blob.world.countries.some((x) => x.id === c.id) && WORLD.cities.some((x) => x.countryId === c.id && !blob.world.cities.some((y) => y.id === x.id))) blob.world.countries.push({ ...c });
   for (const c of WORLD.cities) if (!blob.world.cities.some((x) => x.id === c.id)) blob.world.cities.push({ ...c });
   for (const e of [...blob.ruleset.calendar, ...(blob.ruleset.team?.events ?? [])]) {
     const p = [...preset.calendar, ...preset.team.events].find((x) => x.id === e.id);
@@ -234,7 +236,7 @@ export const groupLabel = (g: string) => g === 'all' ? t('all') : g === 'g1' ? t
 type TeamLike = { countries?: string[]; games?: true; confederation?: string };
 /** Multi-sport Games: Olimpiade & multi-event (Asian Games, SEA Games, ...), individu maupun beregu. */
 export const tierGroup = (tier?: Tier, team?: TeamLike): (typeof TIER_GROUPS)[number] =>
-  tier?.id === 'OG' || tier?.id === 'MSG' || team?.countries || team?.games ? 'msg'
+  tier?.id === 'OG' || tier?.id === 'MSG' || tier?.id === 'YOG' || team?.countries || team?.games ? 'msg'
     : team?.confederation || CONTINENTAL_TIERS.has(tier?.id ?? '') ? 'cont' // kejuaraan kontinental (konfederasi, bukan BWF): bukan Major Events
     : team || tier?.id === 'WJC' || (tier?.grade === 1 && tier.id !== 'WTF') ? 'g1' : tier?.junior ? 'junior' : tier?.grade === 3 ? 'g3' : 'g2';
 /**

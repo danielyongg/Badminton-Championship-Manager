@@ -7,6 +7,8 @@ export interface Candidate {
   id: EntrantId;
   countryId: string;
   rank?: number; // undefined = belum punya ranking
+  /** Protected ranking (World Tour): peringkat untuk penerimaan entry saja, bukan untuk unggulan. */
+  entryRank?: number;
   /** Pemain tanpa ranking: urutan prioritas dari federasinya (kemampuan); undefined = tidak diketahui. */
   strength?: number;
 }
@@ -32,13 +34,14 @@ export function qualifierSlots(tier: Tier, drawSize: number, ruleset: Ruleset, d
 export function sortByRank(cands: Candidate[], rng: Rng): Candidate[] {
   const lot = new Map(cands.map((c) => [c.id, rng()]));
   const byLot = (a: Candidate, b: Candidate) => lot.get(a.id)! - lot.get(b.id)!;
-  const ranked = cands.filter((c) => c.rank !== undefined).sort((a, b) => a.rank! - b.rank! || byLot(a, b));
+  const r = (c: Candidate) => c.entryRank ?? c.rank;
+  const ranked = cands.filter((c) => r(c) !== undefined).sort((a, b) => r(a)! - r(b)! || byLot(a, b));
   const national = new Map<string, Candidate[]>();
-  for (const c of cands) if (c.rank === undefined) national.set(c.countryId, [...(national.get(c.countryId) ?? []), c]);
+  for (const c of cands) if (r(c) === undefined) national.set(c.countryId, [...(national.get(c.countryId) ?? []), c]);
   const level = new Map<EntrantId, number>();
   for (const list of national.values())
     list.sort((a, b) => (b.strength ?? 0) - (a.strength ?? 0) || byLot(a, b)).forEach((c, i) => level.set(c.id, i));
-  const unranked = cands.filter((c) => c.rank === undefined).sort((a, b) => level.get(a.id)! - level.get(b.id)! || byLot(a, b));
+  const unranked = cands.filter((c) => r(c) === undefined).sort((a, b) => level.get(a.id)! - level.get(b.id)! || byLot(a, b));
   return [...ranked, ...unranked];
 }
 

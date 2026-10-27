@@ -193,6 +193,18 @@ export const TIERS_2026: Tier[] = [
     qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
     junior: { quota: { singles: 2, doubles: 1 }, play: 0.5, local: true },
   },
+  {
+    // Youth Olympic Games (Regulations for Badminton Competition Dakar 2026): tunggal saja, 32 peserta, usia ≤ 17,
+    // 8 unggulan dari ranking junior; 8 grup × 4, juara grup ke perempat final. ASUMSI: satu atlet per negara per nomor
+    // (kuota NOC), tanpa poin ranking; prioritas negara Afrika tidak dimodelkan.
+    id: 'YOG', name: 'Olimpiade Remaja', grade: 2,
+    points: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    prizeUsd: 0, prizeSplit: NO_PRIZE,
+    drawSize: { MS: 32, WS: 32, MD: 0, WD: 0, XD: 0 },
+    groupStage: { MS: { groups: 8, perGroup: 4, advance: 1 }, WS: { groups: 8, perGroup: 4, advance: 1 } },
+    qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
+    junior: { quota: { singles: 1, doubles: 0 }, maxAge: 17 },
+  },
 ];
 // ASUMSI: S1000/S750 tanpa babak kualifikasi (draw 32 diisi dari ranking); kualifikasi mulai S500.
 
@@ -204,7 +216,7 @@ const ASIA = ['CHN', 'INA', 'JPN', 'KOR', 'MAS', 'TPE', 'THA', 'IND', 'HKG', 'SG
 const SEA = ['INA', 'MAS', 'THA', 'SGP', 'VIE', 'PHI'];
 const AMERICAS = ['CAN', 'USA', 'GUA', 'BRA', 'MEX', 'PER'];
 const EUROPE = ['DEN', 'FRA', 'ENG', 'GER', 'ESP', 'NED', 'SCO', 'IRL', 'SWE', 'FIN', 'SUI', 'POL', 'BUL', 'CZE', 'UKR', 'AUT', 'TUR', 'NOR', 'ITA'];
-const AFRICA = ['EGY', 'NGR', 'RSA', 'ALG', 'MRI', 'BOT'];
+const AFRICA = ['EGY', 'NGR', 'RSA', 'ALG', 'MRI', 'BOT', 'SEN'];
 const COMMONWEALTH = ['ENG', 'SCO', 'IND', 'MAS', 'SGP', 'CAN', 'AUS', 'NZL', 'NGR', 'RSA', 'MRI', 'BOT'];
 
 const IC = 20000, IS = 8000, FS = 5000; // hadiah tipikal grade 3 (ASUMSI, sama dengan tier)
@@ -377,6 +389,9 @@ export const CALENDAR_2026: TournamentDef[] = [
   { id: 'korea-junior', name: 'Korea Junior International', cityId: 'suwon', week: 45, tierId: 'JGP', prizeUsd: 0 },
   { id: 'philippines-junior', name: 'Philippines Junior International', cityId: 'manila', week: 48, tierId: 'JIS', prizeUsd: 0 },
   { id: 'world-junior', name: 'BWF World Junior Championships', cityId: 'guwahati', week: 41, tierId: 'WJC', prizeUsd: 0 },
+  // Youth Olympic Games tiap 4 tahun (Dakar 2026, badminton 1–5 Nov). ASUMSI: tuan rumah berikutnya diundi di antara kota kandidat.
+  { id: 'youth-olympics', name: 'Youth Olympic Games', cityId: 'dakar', week: 45, tierId: 'YOG', prizeUsd: 0, everyYears: { interval: 4, offset: 2 },
+    hosts: { 2026: 'dakar' }, rotation: ['singapore', 'bangkok', 'sao-paulo', 'cairo'] },
 ];
 
 /**

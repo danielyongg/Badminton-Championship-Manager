@@ -252,3 +252,15 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Setelah terbit** hanya bisa mundur: tanpa penalti sampai 2 minggu sebelum turnamen; minggu terakhir (±setelah batas mundur BWF) reputasi −1 per atlet/pasangan, kecuali cedera; atlet wajib (Top Committed) yang mundur tetap dihitung pelanggaran. Tempat kosong diisi cadangan berikutnya. Atlet yang cedera saat turnamen otomatis mundur; atlet AI yang terlalu lelah mundur tanpa penalti (kecuali turnamen wajibnya).
 - **Skuad beregu**: dinominasikan lewat form entry sebelum batas; sesudahnya terkunci (tanpa pop-up saat turnamen). Tanpa nominasi → skuad otomatis; skuad yang tidak lagi sah (mis. cedera) → otomatis. Line-up tiap pertandingan tetap dipilih saat turnamen.
 - Save lama: turnamen yang batasnya sudah lewat tetap bisa diisi sampai daftar entry terbit di minggu berikutnya.
+
+## Protected ranking (BWF Player Commitment Regulations, daftar BWF 3 Jun 2026)
+- Atlet tunggal/pasangan **32 besar** yang cedera ≥ 13 minggu (tingkat berat & kritis; tidak pensiun) otomatis mendapat protected ranking: poin ranking saat cedera dibekukan.
+- Harus dipakai pertama kali (debut) paling lambat **52 minggu** setelah cedera; sejak debut berlaku **26 minggu** (182 hari). Debut = turnamen World Tour pertama yang di-entry memakai protected ranking.
+- Hanya untuk **penerimaan entry World Tour** (Super 1000–100): peringkat entry = posisi poin yang dibekukan di ranking saat ini bila lebih baik dari peringkat sebenarnya. **Tidak untuk unggulan** (unggulan tetap dari ranking sebenarnya) dan tidak untuk turnamen lain. Daftar entry menampilkan "PR #n".
+- AI memilih turnamen menurut peringkat terlindung itu. ASUMSI: pasangan memakai poin pasangan itu sendiri; aturan "poin terlindung + poin pasangan baru" untuk pasangan baru tidak dimodelkan. Pratinjau penerimaan entry di form entry belum memperhitungkannya.
+
+## Youth Olympic Games (Regulations for Badminton Competition Dakar 2026)
+- Tiap 4 tahun (2026 Dakar, minggu 45; badminton 1–5 Nov). Hanya **tunggal putra & putri**, masing-masing 32 peserta, usia ≤ 17 (tahun − tahun lahir).
+- **8 unggulan** dari ranking junior; **8 grup × 4**, juara grup ke perempat final. ASUMSI: undian grup memakai sistem pot yang sama dengan turnamen bergrup lain (aslinya unggulan 1 → grup A, 2 → grup H, 3–4 diundi ke C/F).
+- ASUMSI: satu atlet per negara per nomor (kuota NOC), dipilih menurut ranking junior lalu kemampuan; tanpa poin ranking & hadiah; prioritas kuota negara Afrika tidak dimodelkan. Tuan rumah berikutnya diundi di antara kota kandidat (Singapura, Bangkok, São Paulo, Kairo).
+- Senegal (Dakar) ditambahkan ke daftar negara (Afrika; save lama mendapatkannya saat dimuat).

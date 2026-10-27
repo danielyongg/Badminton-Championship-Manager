@@ -154,6 +154,11 @@ describe('Super 100 tunggal putra', () => {
 });
 
 describe('aturan grade 3 (GCR)', () => {
+  it('protected ranking: entryRank dipakai untuk penerimaan entry, bukan rank sebenarnya', () => {
+    const out = sortByRank([{ id: 'a', countryId: 'A', rank: 5 }, { id: 'pr', countryId: 'B', rank: 80, entryRank: 3 }, { id: 'b', countryId: 'C', rank: 2 }], makeRng(1));
+    expect(out.map((c) => c.id)).toEqual(['b', 'pr', 'a']);
+  });
+
   it('12.6: tanpa ranking bergiliran per negara (nomor 1 nasional semua negara dulu)', () => {
     const c = (id: string, countryId: string, strength: number): Candidate => ({ id, countryId, strength });
     const out = sortByRank([c('a1', 'A', 90), c('a2', 'A', 85), c('a3', 'A', 80), c('b1', 'B', 50), c('c1', 'C', 40), { id: 'r', countryId: 'A', rank: 300 }], makeRng(2));

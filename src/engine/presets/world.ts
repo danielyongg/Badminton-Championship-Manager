@@ -53,6 +53,7 @@ export const WORLD: World = {
     { id: 'ALG', name: 'Aljazair', confederation: 'BCA', traditionStrength: 15, namePool: 'fr' },
     { id: 'MRI', name: 'Mauritius', confederation: 'BCA', traditionStrength: 15, namePool: 'fr' },
     { id: 'BOT', name: 'Botswana', confederation: 'BCA', traditionStrength: 10, namePool: 'en' },
+    { id: 'SEN', name: 'Senegal', confederation: 'BCA', traditionStrength: 10, namePool: 'fr' }, // tuan rumah Youth Olympic Games 2026
     // Badminton Oceania
     { id: 'AUS', name: 'Australia', confederation: 'BO', traditionStrength: 30, namePool: 'en' },
     { id: 'NZL', name: 'Selandia Baru', confederation: 'BO', traditionStrength: 20, namePool: 'en' },
@@ -83,6 +84,7 @@ export const WORLD: World = {
     { id: 'huelva', countryId: 'ESP', name: 'Huelva', venue: 'Palacio de los Deportes Carolina Marín', lat: 37.26, lon: -6.95 },
     { id: 'istanbul', countryId: 'TUR', name: 'Istanbul', venue: 'Başakşehir Sports Complex', lat: 41.09, lon: 28.8 },
     { id: 'gaborone', countryId: 'BOT', name: 'Gaborone', venue: 'Royal Aria Gymnasium', lat: -24.65, lon: 25.91 },
+    { id: 'dakar', countryId: 'SEN', name: 'Dakar', venue: 'Dakar Arena', lat: 14.74, lon: -17.2 },
     { id: 'auckland', countryId: 'NZL', name: 'Auckland', venue: 'Badminton North Harbour', lat: -36.78, lon: 174.74 },
     { id: 'xiamen', countryId: 'CHN', name: 'Xiamen', venue: 'Fenghuang Gymnasium', lat: 24.48, lon: 118.09 },
     { id: 'hangzhou', countryId: 'CHN', name: 'Hangzhou', venue: 'Hangzhou Olympic Sports Center Gymnasium', lat: 30.23, lon: 120.23 },

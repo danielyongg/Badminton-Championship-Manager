@@ -22,6 +22,25 @@ describe('turnamen junior', () => {
     }
   });
 
+  it('Youth Olympic Games 2026: tunggal saja, 32 peserta ≤ 17 tahun, satu per negara, 8 grup lalu juara grup ke perempat final', async () => {
+    const r = structuredClone(rs);
+    const state = newSeason(WORLD, r, 7, undefined, 'INA');
+    const rng = makeRng(7);
+    while (state.date.week <= 45) await playWeek(state, r, WORLD, rng);
+    const players = new Map(state.players.map((p) => [p.id, p]));
+    const recs = state.eventRecords.filter((x) => x.tournamentId === 'youth-olympics' && x.year === 2026);
+    expect(recs.map((x) => x.discipline).sort()).toEqual(['MS', 'WS']);
+    for (const rec of recs) {
+      const ids = [...rec.entry.main, ...rec.entry.wildcards].map((c) => c.id);
+      expect(ids).toHaveLength(32);
+      expect(ids.every((id) => 2026 - players.get(id)!.birth.year <= 17)).toBe(true);
+      expect(new Set(ids.map((id) => players.get(id)!.countryId)).size).toBe(32);
+      expect(rec.groups?.groups).toHaveLength(8);
+    }
+    expect(state.champions.filter((c) => c.tournamentId === 'youth-olympics')).toHaveLength(2);
+    expect(state.juniorResults.filter((x) => x.tournamentId === 'youth-olympics' && x.points > 0)).toHaveLength(0);
+  }, 180_000);
+
   it('negara manajer tanpa pasangan junior otomatis (ganda junior hanya bentukan manajer); negara lain tetap otomatis', async () => {
     const state = newSeason(WORLD, rs, 21, undefined, 'INA');
     const rng = makeRng(21);

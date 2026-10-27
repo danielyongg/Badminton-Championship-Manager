@@ -46,7 +46,7 @@ export function EntryLists({ entry, ...who }: WhoProps & { entry: EventRecord['e
             <td className="num muted-text">{i + 1}</td>
             <td><Who id={c.id} {...who} name={short} /></td>
             <td className="muted-text">{c.countryId}</td>
-            <td className="num">{c.rank ? `#${c.rank}` : '—'}</td>
+            <td className="num">{c.entryRank ? <span title={t('protectedRankingHint', { n: c.rank ?? '—' })}>PR #{c.entryRank}</span> : c.rank ? `#${c.rank}` : '—'}</td>
           </tr>
         ))}</tbody>
       </table>

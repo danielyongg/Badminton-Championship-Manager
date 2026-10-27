@@ -51,9 +51,10 @@ export interface Tier {
   countryQuota?: { base: number; max: number; topRank: number };
   /**
    * Turnamen junior (U19): peserta dipilih otomatis per negara (maks `quota`), poin masuk ranking junior saja.
-   * `play`: peluang atlet ikut (bawaan 1); `local`: atlet dari luar benua tuan rumah hanya sesekali ikut (`ai.awayGrade3`).
+   * `play`: peluang atlet ikut (bawaan 1); `local`: atlet dari luar benua tuan rumah hanya sesekali ikut (`ai.awayGrade3`);
+   * `maxAge`: batas usia (tahun − tahun lahir), mis. 17 untuk Youth Olympic Games (bawaan: U19).
    */
-  junior?: { quota: { singles: number; doubles: number }; play?: number; local?: boolean };
+  junior?: { quota: { singles: number; doubles: number }; play?: number; local?: boolean; maxAge?: number };
 }
 
 export interface TournamentDef {

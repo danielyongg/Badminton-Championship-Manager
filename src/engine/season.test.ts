@@ -5,7 +5,7 @@ import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
 import { presetPack, PRESETS } from './pack';
 import { makeRng } from './rng';
-import { aiEventChoice, drawHosts, entryDeadline, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, weekOf, withdrawEntry, wtfQualifiers } from './season';
+import { aiEventChoice, drawHosts, prActive, protectRanking, entryDeadline, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, weekOf, withdrawEntry, wtfQualifiers } from './season';
 import { ATTRS, DISCIPLINES } from './types';
 
 describe('satu musim penuh (BWF 2026)', () => {
@@ -269,6 +269,24 @@ it('kalender musim baru: tahun resmi tetap, tahun berikutnya bergeser ±1 minggu
   const wc = weekOf(ev('world-championships'), 2029);
   expect(big).not.toContain(wc);
   expect(state.date.year).toBe(2027);
+});
+
+it('protected ranking: entrant 32 besar atlet yang cedera panjang dibekukan poinnya; debut ≤ 52 minggu, lalu 26 minggu', () => {
+  const r = structuredClone(BWF_2027);
+  const state = newSeason(WORLD, r, 3, { year: 2027, week: 1 });
+  const now = absWeek(state.date);
+  const top = computeRanking(state.results, 'MS', now, r)[0];
+  protectRanking(state, r, top.entrantId);
+  const pr = state.protectedRanks!.find((x) => x.id === top.entrantId && x.discipline === 'MS')!;
+  expect(pr.points).toBe(top.points);
+  expect(prActive(pr, now + 52)).toBe(true);
+  expect(prActive(pr, now + 53)).toBe(false);
+  expect(prActive({ ...pr, debut: now + 20 }, now + 45)).toBe(true);
+  expect(prActive({ ...pr, debut: now + 20 }, now + 46)).toBe(false);
+  // Peringkat di luar 32 besar tidak dilindungi.
+  const low = computeRanking(state.results, 'MS', now, r)[40];
+  protectRanking(state, r, low.entrantId);
+  expect(state.protectedRanks!.some((x) => x.id === low.entrantId)).toBe(false);
 });
 
 it('undian tuan rumah: kandidat dari rotation, bukan negara tuan rumah edisi sebelumnya, tuan rumah resmi tetap', () => {

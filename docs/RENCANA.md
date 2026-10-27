@@ -85,6 +85,9 @@ Urutan kerja (tiap fase bisa dirilis sendiri; tes & build hijau di akhir fase):
 - [x] Tanpa pemisahan negara di undian World Tour (6.4.4).
 - [x] Skuad Sudirman & Suhandinata maks 20 (min 2 putra + 2 putri; Major Events Regulations). Thomas/Uber 4–10 sudah sesuai.
 - [x] Undian tuan rumah musim depan di awal musim (event dengan kota kandidat), diumumkan di berita.
+- [x] Protected ranking untuk atlet 32 besar yang cedera panjang (entry World Tour, bukan unggulan).
+- [x] Youth Olympic Games (Dakar 2026; tunggal U17, 8 grup → perempat final).
+- Belum (opsional): kejuaraan junior U17/U15 kontinental; pasangan ganda beda negara; urutan partai beregu yang bisa dipilih.
 
 ## Batasan yang bisa ditinjau ulang
 - Tier tidak bisa ditambah/dihapus di Editor.

@@ -57,6 +57,8 @@ export interface SeasonState {
   /** Turnamen kecil di negara yang sama sudah disebar (`spreadHosts`). Save lama: tidak ada. */
   /** Sifat atlet sudah diacak untuk semua atlet (save lama: diisi saat dimuat). */
   traitsRolled?: true;
+  /** Protected ranking BWF yang masih berlaku (atlet/pasangan 32 besar yang cedera panjang). */
+  protectedRanks?: ProtectedRank[];
   /** Hasil undian tuan rumah terakhir (tahun yang diundi, diumumkan di berita awal musim). */
   hostDraw?: { year: number; drawn: { id: string; cityId: string }[] };
   hostsSpread?: true | 2 | 3; // 2 = juga tier yang sama tidak sepekan, 3 = World Tour sebelum Finals
@@ -220,7 +222,7 @@ export const HOST_GAP = 4;
 export function spreadHosts(rs: Ruleset, year: number, rng: Rng, world: World, movable: (e: TournamentDef) => boolean, fromWeek = 1) {
   const cityCountry = new Map(world.cities.map((c) => [c.id, c.countryId]));
   const juniorTier = new Set(rs.tiers.filter((x) => x.junior).map((x) => x.id));
-  const smallTier = (e: TournamentDef) => !ANCHOR_TIERS.has(e.tierId) && !BIG_TIERS.has(e.tierId) && e.tierId !== 'WJC';
+  const smallTier = (e: TournamentDef) => !ANCHOR_TIERS.has(e.tierId) && !BIG_TIERS.has(e.tierId) && e.tierId !== 'WJC' && e.tierId !== 'YOG';
   const held = rs.calendar.filter((e) => isHeld(e, year));
   const moving = shuffle(rng, held.filter((e) => movable(e) && smallTier(e) && !e.countries && !e.confederation));
   const placed: { country?: string; week: number; junior: boolean; tier?: string }[] = [
@@ -507,6 +509,29 @@ function publishEntries(state: SeasonState, rs: Ruleset, world: World, rng: Rng)
 }
 
 /**
+ * Protected ranking (BWF Player Commitment Regulations): atlet/pasangan 32 besar yang absen ≥ 3 bulan karena cedera
+ * dibekukan poinnya. Dipakai pertama kali (debut) paling lambat 12 bulan setelah cedera, lalu berlaku 182 hari; hanya
+ * untuk penerimaan entry World Tour, bukan unggulan. ASUMSI: pasangan memakai poin pasangan itu sendiri (pasangan baru
+ * dengan atlet yang dilindungi tidak dihitung).
+ */
+export const PR_TOP = 32, PR_MIN_WEEKS = 13, PR_DEBUT_WEEKS = 52, PR_USE_WEEKS = 26;
+export interface ProtectedRank { id: EntrantId; discipline: Discipline; points: number; from: number; debut?: number }
+export const prActive = (pr: ProtectedRank, now: number) => pr.debut === undefined ? now <= pr.from + PR_DEBUT_WEEKS : now < pr.debut + PR_USE_WEEKS;
+
+/** Atlet cedera panjang: lindungi poin semua entrant-nya (tunggal/pasangan) yang ada di 32 besar. */
+export function protectRanking(state: SeasonState, rs: Ruleset, playerId: string) {
+  const now = absWeek(state.date);
+  state.protectedRanks = (state.protectedRanks ?? []).filter((x) => prActive(x, now));
+  for (const d of DISCIPLINES) {
+    const mine = new Set(entrantsFor(state, d).filter((e) => e.playerIds.includes(playerId)).map((e) => e.id));
+    if (!mine.size) continue;
+    for (const row of computeRanking(state.results, d, now, rs).slice(0, PR_TOP))
+      if (mine.has(row.entrantId) && !state.protectedRanks.some((x) => x.id === row.entrantId && x.discipline === d))
+        state.protectedRanks.push({ id: row.entrantId, discipline: d, points: row.points, from: now });
+  }
+}
+
+/**
  * Pilihan turnamen AI untuk semua peserta minggu ini.
  * Urutan nomor MS→XD: turnamen pertama yang dipilih seorang atlet mengikat nomor lainnya (satu turnamen per minggu).
  * Turnamen wajib (Top Committed) selalu dipilih; lainnya menurut rentang peringkat, peluang ikut & kelelahan.
@@ -528,6 +553,17 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
   const hostCountryOf = (ev: TournamentDef) => hostCity.get(hostCityId(ev, state.date.year)) ?? '';
   const playerById = new Map(state.players.map((p) => [p.id, p]));
   const strengthOf = (e: Entrant) => e.playerIds.reduce((sum, id) => sum + currentAbility(playerById.get(id)!.attrs), 0) / e.playerIds.length;
+  // Protected ranking: peringkat poin yang dibekukan di ranking saat ini (lebih baik dari peringkat sebenarnya).
+  const now = absWeek(state.date);
+  const prs = (state.protectedRanks ?? []).filter((x) => prActive(x, now));
+  const pointsOf = new Map<Discipline, number[]>();
+  const protectedOf = (e: Entrant, d: Discipline, rank?: number) => {
+    const pr = prs.find((x) => x.id === e.id && x.discipline === d);
+    if (!pr) return undefined;
+    if (!pointsOf.has(d)) pointsOf.set(d, computeRanking(state.results, d, now, rs).map((r) => r.points));
+    const r = pointsOf.get(d)!.filter((p) => p > pr.points).length + 1;
+    return r < (rank ?? Infinity) ? { pr, rank: r } : undefined;
+  };
 
   const wtf = events.find((e) => e.tierId === 'WTF');
   if (wtf)
@@ -562,6 +598,7 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
     const taken = [wtf, og].some((x) => x && entries.get(x.id)!.get(d)!.some((c) => c.id === e.id));
     if (taken || e.playerIds.some((id) => injured.has(id) || playerDisc.has(`${id}:${d}`))) continue;
     const rank = ranks.get(d)!.get(e.id);
+    const prot = protectedOf(e, d, rank);
     const fixed = e.playerIds.map((id) => playerEvent.get(id)).find(Boolean);
     const options = events.filter((ev) => ev.tierId !== 'WTF' && ev.tierId !== 'OG' && tierOf(rs, ev).drawSize[d] > 0 && (!fixed || ev.id === fixed)
       && (!ev.countries || ev.countries.includes(e.countryId)) && (!ev.confederation || confOf(e.countryId) === ev.confederation)
@@ -577,12 +614,14 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
       // IC/IS/FS: AI terutama mendaftar di benuanya sendiri (sesekali ke luar).
       const local = !world || rng() < (rs.ai.awayGrade3 ?? 1) ? options
         : options.filter((ev) => tierOf(rs, ev).grade !== 3 || confOf(hostCountryOf(ev)) === confOf(e.countryId));
-      const ev = aiEventChoice(local, rs, rank, prefs, rng);
+      const ev = aiEventChoice(local, rs, prot?.rank ?? rank, prefs, rng);
       // prioritas manajer: selalu diikuti (kecuali lelah); tanpa prioritas: peluang ikut per tier & kelelahan
       if (ev && tired <= rs.ai.restAbove && (prefs?.length || rng() < (rs.ai.playProb[ev.tierId] ?? 0.5) * (1 - tired / 150))) choice = ev;
     }
     if (!choice) continue;
-    entries.get(choice.id)!.get(d)!.push({ id: e.id, countryId: e.countryId, rank, ...(rank === undefined && { strength: strengthOf(e) }) });
+    const usePr = prot && rs.race.tiers.includes(choice.tierId); // hanya World Tour
+    if (usePr) prot.pr.debut ??= now;
+    entries.get(choice.id)!.get(d)!.push({ id: e.id, countryId: e.countryId, rank, ...(usePr && { entryRank: prot.rank }), ...(rank === undefined && !usePr && { strength: strengthOf(e) }) });
     e.playerIds.forEach((id) => { playerEvent.set(id, choice.id); playerDisc.add(`${id}:${d}`); });
   }
   return entries;
@@ -907,6 +946,7 @@ function applyEventLoad(state: SeasonState, rs: Ruleset, rng: Rng, firstMatch: n
         }
         p.injury = r.injury;
         (p.injuryHistory ??= []).push({ ...state.date, level: r.injury.level, type: r.injury.type, weeks: r.injury.weeksLeft });
+        if (r.injury.weeksLeft >= PR_MIN_WEEKS && !r.retire) protectRanking(state, rs, p.id);
         if (r.paLoss) applySevereInjury(p, rs.development, rng, r.paLoss);
         if (r.retire) { // cedera parah: langsung pensiun, pasangannya bubar
           p.retired = state.date.year;

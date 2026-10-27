@@ -441,7 +441,8 @@ export function JuniorEntryTable({ ev, onSubmit, onBack }: { ev: TournamentDef; 
     changed();
     void saveGame(game);
   };
-  const junior = (id: string) => { const p = players.get(id); return !!p && p.countryId === country && p.retired === undefined && p.released === undefined && isJuniorAge(p, { year, week: w }); };
+  const junior = (id: string) => { const p = players.get(id); return !!p && p.countryId === country && p.retired === undefined && p.released === undefined && isJuniorAge(p, { year, week: w })
+    && (tier.junior!.maxAge === undefined || year - p.birth.year <= tier.junior!.maxAge); };
   const rows = DISCIPLINES.filter((d) => tier.drawSize[d] > 0).flatMap((d) => (isDoubles(d)
     ? state.pairs.filter((p) => p.discipline === d && !p.dissolved && !p.trial && !p.adHoc && p.playerIds.every(junior)).map((p) => ({ id: p.id, playerIds: p.playerIds }))
     : state.players.filter((p) => p.gender === (d === 'MS' ? 'M' : 'F') && p.focus !== 'D' && junior(p.id)).map((p) => ({ id: p.id, playerIds: [p.id] })))
@@ -475,7 +476,7 @@ export function JuniorEntryTable({ ev, onSubmit, onBack }: { ev: TournamentDef; 
   };
   return (
     <>
-      <p className="hint">{t('juniorEntryHelp', { s: quota.singles, d: quota.doubles })}</p>
+      <p className="hint">{quota.doubles ? t('juniorEntryHelp', { s: quota.singles, d: quota.doubles }) : t('juniorEntryHelpSingles', { s: quota.singles, age: tier.junior!.maxAge ?? 18 })}</p>
       <p className="controls">
         <button onClick={() => {
           const next = { ...decisions };
