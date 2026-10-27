@@ -839,6 +839,7 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 .news .grow > small { display: block; }
 .news .badge.news-firstTitle, .news .badge.news-comeback { background: var(--accent-soft); color: var(--accent-strong); }
 .news .badge.news-youngChamp { background: var(--fair-soft); color: var(--fair); }
+.news .badge.news-hosts { background: var(--fair-soft); color: var(--fair); }
 .news .badge.news-careerHigh { background: color-mix(in srgb, var(--series-1) 15%, transparent); color: var(--series-1); }
 /* HP: badge berita di atas kalimat (lebar seperlunya) agar kalimat memakai lebar penuh. */
 @media (max-width: 600px) {

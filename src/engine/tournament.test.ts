@@ -3,7 +3,7 @@ import { generateWorld } from './generator';
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
-import { nextDayForm, runEvent, simPlay, type EventRecord, type HotForm } from './tournament';
+import { nextDayForm, runEvent, simPlay, tournamentWildcards, type EventRecord, type HotForm } from './tournament';
 import type { Match } from './types';
 
 it('satu turnamen lengkap: S100 MS (draw 48 + kualifikasi) dan ganda', async () => {
@@ -56,6 +56,26 @@ it.each(['peru-ic', 'vietnam-open'])('GCR 7.11: wildcard grade 3 & Super 100 han
   };
   expect((await run(5)).entry.wildcards).toHaveLength(0); // tuan rumah sudah di bagan utama
   expect((await run(110)).entry.wildcards.map((w) => w.countryId)).toEqual([hostId]);
+});
+
+it('World Tour 6.4.2: wildcard S1000–S500 maks 2 per turnamen, berkurang per entri tuan rumah di 32/28 besar', () => {
+  const tier = (id: string) => BWF_2026.tiers.find((t) => t.id === id)!;
+  // Tiap nomor 40 peserta; wakil tuan rumah (HOS) di peringkat yang ditentukan.
+  const field = (hostRanks: number[]) => [
+    ...Array.from({ length: 40 }, (_, i) => ({ id: `x${i}`, countryId: `C${i}`, rank: i + 1 })).filter((c) => !hostRanks.includes(c.rank)),
+    ...hostRanks.map((r) => ({ id: `h${r}`, countryId: 'HOS', rank: r })),
+  ];
+  const wc = (id: string, byD: Partial<Record<'MS' | 'WS' | 'MD', number[]>>) =>
+    Object.fromEntries(tournamentWildcards(tier(id), Object.entries(byD).map(([d, r]) => [d as 'MS', field(r!)]), 'HOS'));
+  // Tanpa entri di 32 besar: 2 wildcard, ke nomor dengan wakil terbaik.
+  expect(wc('S1000', { MS: [35], WS: [33], MD: [38] })).toEqual({ WS: ['h33'], MS: ['h35'] });
+  // Satu entri di 32 besar: 1 wildcard; dua entri: tidak ada.
+  expect(wc('S750', { MS: [10], WS: [33], MD: [36] })).toEqual({ WS: ['h33'] });
+  expect(wc('S750', { MS: [10, 34], WS: [20, 33] })).toEqual({});
+  // Super 500: batasnya 28 besar.
+  expect(wc('S500', { MS: [30], WS: [29] })).toEqual({ WS: ['h29'], MS: ['h30'] });
+  // Satu nomor maksimal satu wildcard.
+  expect(wc('S1000', { MS: [33, 34] })).toEqual({ MS: ['h33'] });
 });
 
 it('WTF (format grup): catatan sementara sejak undian, klasemen terisi per grup, lalu bagan gugur', async () => {

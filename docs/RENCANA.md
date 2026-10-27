@@ -80,7 +80,12 @@ Urutan kerja (tiap fase bisa dirilis sendiri; tes & build hijau di akhir fase):
 - [x] Nama resmi kejuaraan kontinental (berbeda di tahun Thomas/Uber dan Sudirman).
 - [x] Negara kecil (Afrika, NZL) kini bisa menurunkan tim beregu: generator menjamin minimal 2 pasangan MD & WD bila atletnya cukup.
 
+## Koreksi aturan (dicek terhadap regulasi BWF, 2026-10-27)
+- [x] Wildcard Super 1000/750/500 maks 2 per turnamen menurut entri tuan rumah di 32/28 besar (World Tour Regulations 6.4.2); wildcard S1000 kalah di R1 juga 0 poin.
+- [x] Tanpa pemisahan negara di undian World Tour (6.4.4).
+- [x] Skuad Sudirman & Suhandinata maks 20 (min 2 putra + 2 putri; Major Events Regulations). Thomas/Uber 4–10 sudah sesuai.
+- [x] Undian tuan rumah musim depan di awal musim (event dengan kota kandidat), diumumkan di berita.
+
 ## Batasan yang bisa ditinjau ulang
 - Tier tidak bisa ditambah/dihapus di Editor.
-- Tuan rumah beregu tetap tiap edisi (Horsens / Xiamen).
-- Ukuran skuad beregu (4–10, 4–12) dan urutan partai Sudirman Cup masih asumsi.
+- Urutan partai: BWF mengizinkan 8 urutan Thomas/Uber & 7 urutan Sudirman; game memakai satu urutan tetap (S-D-S-D-S; XD-WS-MS-WD-MD, keduanya sah).

@@ -54,32 +54,32 @@ export const TIERS_2026: Tier[] = [
       { minExtraPrizeUsd: 250000, points: [12700, 10800, 9000, 7000, 5100, 3150, 1270, 630, 250] },
     ],
     prizeUsd: 1450000, prizeSplit: PRIZE_SPLIT,
-    drawSize: draws(32), qualifyingPerSlot: 0, wildcards: 1, zeroPointsForR1WildcardLoss: false,
+    drawSize: draws(32), qualifyingPerSlot: 0, wildcards: 2, wildcardTop: 32, zeroPointsForR1WildcardLoss: true, noCountrySeparation: true, // World Tour 6.4.2 & 6.4.4 (Level 2)
   },
   {
     id: 'S750', name: 'Super 750', grade: 2,
     points: [11000, 9350, 7700, 6050, 4320, 2660, 1060, 520, 210],
     prizeUsd: 950000, prizeSplit: PRIZE_SPLIT,
-    drawSize: draws(32), qualifyingPerSlot: 0, wildcards: 1, zeroPointsForR1WildcardLoss: true,
+    drawSize: draws(32), qualifyingPerSlot: 0, wildcards: 2, wildcardTop: 32, zeroPointsForR1WildcardLoss: true, noCountrySeparation: true, // Level 3
   },
   {
     id: 'S500', name: 'Super 500', grade: 2,
     points: [9200, 7800, 6420, 5040, 3600, 2220, 880, 430, 170],
     prizeUsd: 475000, prizeSplit: PRIZE_SPLIT,
-    drawSize: draws(32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: true,
+    drawSize: draws(32), qualifyingPerSlot: 4, wildcards: 2, wildcardTop: 28, zeroPointsForR1WildcardLoss: true, noCountrySeparation: true, // Level 4
   },
   {
     id: 'S300', name: 'Super 300', grade: 2,
     points: [7000, 5950, 4900, 3850, 2750, 1670, 660, 320, 130],
     prizeUsd: 250000, prizeSplit: PRIZE_SPLIT,
-    drawSize: draws(32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: true, wildcardOnlyIfHostAbsent: true, // GCR 7.11 (Level 5)
+    drawSize: draws(32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: true, wildcardOnlyIfHostAbsent: true, noCountrySeparation: true, // GCR 7.11 (Level 5); World Tour 6.4.4
   },
   {
     id: 'S100', name: 'Super 100', grade: 2,
     points: [5500, 4680, 3850, 3030, 2110, 1290, 510, 240, 100],
     prizeUsd: 110000, prizeSplit: PRIZE_SPLIT,
     drawSize: draws(48, 32), qualifierSlots: { MS: 8 }, qualifyingPerSlot: 4, // MS 40 langsung + 8 qualifier
-    wildcards: 1, zeroPointsForR1WildcardLoss: true, wildcardOnlyIfHostAbsent: true, // GCR 7.11 (Level 6)
+    wildcards: 1, zeroPointsForR1WildcardLoss: true, wildcardOnlyIfHostAbsent: true, noCountrySeparation: true, // GCR 7.11 (Level 6); World Tour 6.4.4
   },
   {
     id: 'IC', name: 'International Challenge', grade: 3,
@@ -237,7 +237,7 @@ export const CALENDAR_2026: TournamentDef[] = [
   t('china-open', 'China Open', 'changzhou', 30, 'S1000', 1450000),
   t('taipei-open', 'Taipei Open', 'taipei', 31, 'S300', 250000),
   t('korea-masters', 'Korea Masters', 'asan', 32, 'S300', 250000, { years: { to: 2026 } }),
-  // Tuan rumah asli per tahun (`hosts`); tahun yang belum diumumkan → ASUMSI: bergilir di antara tuan rumah terdahulu (`rotation`).
+  // Tuan rumah asli per tahun (`hosts`); tahun yang belum diumumkan → diundi di antara tuan rumah terdahulu (`rotation`, `drawHosts`).
   t('world-championships', 'Kejuaraan Dunia BWF', 'new-delhi', 34, 'WC', 0, { everyYears: { interval: 4, offset: 0, invert: true },
     hosts: { 2025: 'paris', 2026: 'new-delhi' }, rotation: ['tokyo', 'jakarta', 'glasgow', 'basel', 'paris'] }),
   t('olympics', 'Olimpiade', 'los-angeles', 31, 'OG', 0, { everyYears: { interval: 4, offset: 0 },
@@ -553,7 +553,7 @@ export const BWF_2026: Ruleset = {
   },
   // Tuan rumah asli per tahun (`hosts`): Thomas & Uber 2026 Horsens, Sudirman 2025 Xiamen & 2027 Beijing, Suhandinata
   // 2025 Guwahati & 2026 Kairo, kontinental 2026 (Qingdao, Istanbul, Guatemala City, Gaborone, Auckland), Asia 2027 Qingdao.
-  // ASUMSI: tahun yang belum diumumkan bergilir di antara tuan rumah terdahulu (`rotation`). Eropa 2027 aslinya Tallinn
+  // ASUMSI: tahun yang belum diumumkan diundi di antara tuan rumah terdahulu (`rotation`, `drawHosts`). Eropa 2027 aslinya Tallinn
   // (Estonia belum ada di daftar negara).
   // Minggu per tahun (`weeks`): Sudirman 2027 21 Apr–2 Mei (minggu 16), Asia beregu campuran 2027 12–17 Jan (minggu 2),
   // Eropa 6–10 Jan (minggu 1). ASUMSI: Thomas & Uber 2028 minggu 16 (celah kalender World Tour April–Mei).
@@ -603,8 +603,9 @@ export const BWF_2026: Ruleset = {
       suhandinata: ['XD', 'WS', 'MS', 'WD', 'MD'], // ASUMSI: urutan partai seperti Sudirman Cup
     },
     maxMatchesPerPlayer: 2,
-    // ASUMSI: skuad Thomas/Uber 4–10 atlet, Sudirman 4–12 atlet.
-    squadSize: { thomas: { min: 4, max: 10 }, uber: { min: 4, max: 10 }, sudirman: { min: 4, max: 12 }, suhandinata: { min: 4, max: 12 } },
+    // Major Events Regulations: Thomas/Uber 4–10 atlet; Sudirman & Suhandinata ≥ 2 putra + 2 putri, maks 20 (2+2 dijamin
+    // syarat kelima partai bisa diisi).
+    squadSize: { thomas: { min: 4, max: 10 }, uber: { min: 4, max: 10 }, sudirman: { min: 4, max: 20 }, suhandinata: { min: 4, max: 20 } },
     finals: { teams: 16, groups: { groups: 4, perGroup: 4, advance: 2 } },
     continentalTeams: 8,
   },

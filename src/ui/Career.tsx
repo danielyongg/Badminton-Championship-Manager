@@ -766,6 +766,8 @@ function NewsCard({ onOpen }: { onOpen: (id: string) => void }) {
       case 'youngChamp': return [t('newsYoungTag'), <>{who(n.id)} {t('newsYoungChamp', { n: n.age })}</>, <small className="muted-text">{eventName(ruleset, n.tournamentId, lastYear)} · {n.discipline}</small>];
       case 'seedOut': return [t('newsSeedTag'), <>{t('newsSeedOut', { round: n.m.round })}: {who(n.id)} {t('lostTo')} {who(n.opp)}</>, where(n.m)];
       case 'comeback': return [t('newsComebackTag'), <>{who(n.id)} {t('newsComeback')}</>, where(n.m)];
+      case 'hosts': return [t('newsHostsTag'), <>{t('newsHosts', { year: n.year })}</>,
+        <small className="muted-text">{n.drawn.map((x) => `${eventName(ruleset, x.id, n.year)} — ${dataName(game.world.cities.find((c) => c.id === x.cityId)?.name)}`).join(' · ')}</small>];
       case 'careerHigh': return [t('newsHighTag'), <>{who(n.id)} {t('newsCareerHigh', { n: n.rank })}</>, <small className="muted-text">{n.discipline}</small>];
     }
   };

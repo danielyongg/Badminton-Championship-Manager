@@ -179,7 +179,7 @@ export const en: Record<TextKey, string> = {
   matchesTogether: 'Matches together',
   rank: 'Rank',
   matchesPlayed: 'Matches played', careerStats: 'Career stats', perMatch: 'match', deciderRecord: 'Deciding games (3rd game)',
-  newsFirstTag: 'First title', newsFirstTitle: 'won a first title', newsYoungTag: 'Rising star', newsYoungChamp: '(age {n}) won a senior title', newsSeedTag: 'Top seed out', newsSeedOut: 'Top seed out in the {round}', lostTo: 'lost to', newsComebackTag: 'Comeback', newsComeback: 'won the final after losing the first game', newsHighTag: 'Career high', newsCareerHigh: 'rose to No. {n}, a career high', newsStreakTag: 'Streak', newsTitle: 'This week\'s news', newsUpset: 'Upset', newsStreak: 'won {n} tournaments in a row', newsSmash: 'Smash', newsRally: 'Rally', newsRecord: 'Season record', newsFire: '{n} wins this week', unranked: 'unranked',
+  newsHostsTag: 'Hosts', newsHosts: '{year} host draw results', newsFirstTag: 'First title', newsFirstTitle: 'won a first title', newsYoungTag: 'Rising star', newsYoungChamp: '(age {n}) won a senior title', newsSeedTag: 'Top seed out', newsSeedOut: 'Top seed out in the {round}', lostTo: 'lost to', newsComebackTag: 'Comeback', newsComeback: 'won the final after losing the first game', newsHighTag: 'Career high', newsCareerHigh: 'rose to No. {n}, a career high', newsStreakTag: 'Streak', newsTitle: 'This week\'s news', newsUpset: 'Upset', newsStreak: 'won {n} tournaments in a row', newsSmash: 'Smash', newsRally: 'Rally', newsRecord: 'Season record', newsFire: '{n} wins this week', unranked: 'unranked',
   stratTip: 'Suggested strategy', useTip: 'Use', neverMet: 'never met', lastMeeting: 'Last meeting',
   bestMomentTag: 'Best moment', pts: 'pts', newRank: 'new entry',
   entryWeek: 'Week',

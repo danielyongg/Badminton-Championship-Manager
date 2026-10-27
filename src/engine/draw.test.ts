@@ -88,6 +88,12 @@ describe('pemisahan negara', () => {
     expect(steps.at(-1)!.key).toBe('step_clash');
   });
 
+  it('World Tour 6.4.4: tanpa pemisahan negara (separate = false) tidak ada penukaran posisi', () => {
+    const es = entrants(32, Array(16).fill('CHN'));
+    const { steps } = makeDraw(es, 0, 2, rs, makeRng(1), false);
+    expect(steps.some((s) => s.key === 'step_swap' || s.key === 'step_clash')).toBe(false);
+  });
+
   it('Grade 3: dua entri teratas senegara di paruh berbeda', () => {
     for (let i = 0; i < 50; i++) {
       // e9 & e10 (non-unggulan) senegara dan teratas dari negaranya.

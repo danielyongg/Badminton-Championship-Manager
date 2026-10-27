@@ -4,7 +4,7 @@ import { groupDraw, groupEliminatedRound, knockoutFromGroups, playGroup, type Gr
 import { each, fillQualifiers, playKnockout, qualRoundName, slotField, type KnockoutResult, type PlayFn } from './knockout';
 import { matchConfigFor, simulateMatch, type MatchResult, type SideInput } from './match';
 import { normal, type Rng } from './rng';
-import type { Discipline, DrawSlot, DrawStep, EntrantId, Match, MatchConfig, Pair, Player, Ruleset, TournamentDef } from './types';
+import type { Discipline, DrawSlot, DrawStep, EntrantId, Match, MatchConfig, Pair, Player, Ruleset, Tier, TournamentDef } from './types';
 import type { MatchRound } from './knockout';
 
 // Satu nomor (mis. MS) dalam satu turnamen: entry → kualifikasi → drawing → main draw.
@@ -38,9 +38,31 @@ export type EntriesHook = (e: EntriesShow) => Promise<void> | null;
 /** Kembalikan Promise (selesai saat undian ditutup) untuk menampilkan undian, atau null untuk langsung lanjut. */
 export type DrawHook = (d: DrawShow) => Promise<void> | null;
 
+/**
+ * World Tour 6.4.2 (Level 2–4): tuan rumah tanpa entri di `wildcardTop` besar (ranking) semua nomor → maks `tier.wildcards`
+ * wildcard untuk seluruh turnamen; satu entri → satu kurang; dst. Satu per nomor, ke wakil tuan rumah terbaik yang tidak
+ * masuk `wildcardTop` besar. ASUMSI: tuan rumah memilih nomor dengan wakil berperingkat terbaik.
+ */
+export function tournamentWildcards(tier: Tier, byDiscipline: [Discipline, Candidate[]][], hostCountryId: string): Map<Discipline, EntrantId[]> {
+  const top = tier.wildcardTop ?? 0;
+  const byRank = (a: Candidate, b: Candidate) => (a.rank ?? Infinity) - (b.rank ?? Infinity);
+  let inTop = 0;
+  const options: { d: Discipline; c: Candidate }[] = [];
+  for (const [d, cands] of byDiscipline) {
+    const order = [...cands].sort(byRank);
+    inTop += order.slice(0, top).filter((c) => c.countryId === hostCountryId).length;
+    const best = order.length > top ? order.slice(top).find((c) => c.countryId === hostCountryId) : undefined;
+    if (best) options.push({ d, c: best });
+  }
+  const picked = options.sort((a, b) => byRank(a.c, b.c)).slice(0, Math.max(0, tier.wildcards - inTop));
+  return new Map(picked.map(({ d, c }) => [d, [c.id]]));
+}
+
 export async function runEvent(opts: {
   tournament: TournamentDef; discipline: Discipline; year: number; hostCountryId: string;
   candidates: Candidate[]; ruleset: Ruleset; rng: Rng; play: PlayFn; onDraw?: DrawHook;
+  /** Wildcard nomor ini yang sudah ditentukan untuk seluruh turnamen (`tournamentWildcards`). */
+  wildcardIds?: EntrantId[];
   /** Laga satu babak dimulai bersamaan (untuk gerbang babak). */
   parallel?: boolean;
   /** Dipanggil setelah entry diterima, sebelum undian (menunggu daftar entry semua nomor ditampilkan). */
@@ -54,14 +76,18 @@ export async function runEvent(opts: {
 
   // Wildcard tuan rumah: entri terbaik dari negara tuan rumah yang tidak lolos langsung
   // (GCR 7.11, `wildcardOnlyIfHostAbsent`: hanya bila tuan rumah belum punya wakil di bagan utama nomor itu).
+  // World Tour Level 2–4 (`wildcardTop`): jatah dibagi per turnamen lewat `tournamentWildcards`; tanpa `wildcardIds`
+  // (Test Lab, satu nomor) dihitung dari nomor ini saja.
   const prelim = acceptEntries(candidates, [], tier, size, ruleset, rng, discipline);
   const direct = new Set(prelim.main.map((c) => c.id));
   const hostInMain = prelim.main.some((c) => c.countryId === opts.hostCountryId);
-  const wildcardIds = tier.wildcardOnlyIfHostAbsent && hostInMain ? [] : candidates
-    .filter((c) => c.countryId === opts.hostCountryId && !direct.has(c.id))
-    .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity))
-    .slice(0, tier.wildcards)
-    .map((c) => c.id);
+  const wildcardIds = opts.wildcardIds
+    ?? (tier.wildcardTop ? tournamentWildcards(tier, [[discipline, candidates]], opts.hostCountryId).get(discipline) ?? []
+    : tier.wildcardOnlyIfHostAbsent && hostInMain ? [] : candidates
+      .filter((c) => c.countryId === opts.hostCountryId && !direct.has(c.id))
+      .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity))
+      .slice(0, tier.wildcards)
+      .map((c) => c.id));
 
   const entry = acceptEntries(candidates, wildcardIds, tier, size, ruleset, rng, discipline);
   await opts.onEntries?.(entry);
@@ -90,7 +116,7 @@ export async function runEvent(opts: {
   const qualSections = entry.qualifierSlots ? qualifyingSections(entry.qualifying, entry.qualifierSlots, tier.qualifyingPerSlot, rng, tier.grade === 3) : [];
   const drawEntrants = [...entry.main, ...entry.wildcards.map((w) => ({ ...w, wildcard: true }))]
     .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
-  const draw = makeDraw(drawEntrants, entry.qualifierSlots, tier.grade, ruleset, rng);
+  const draw = makeDraw(drawEntrants, entry.qualifierSlots, tier.grade, ruleset, rng, !tier.noCountrySeparation);
   const qualRounds = qualSections.map(() => [] as (EntrantId | null)[][]);
   const rec: EventRecord = { tournamentId: tournament.id, year: opts.year, discipline, entry, qualRounds, steps: draw.steps, slots: draw.slots, rounds: [slotField(draw.slots)] };
   qualSections.forEach((sec, i) => qualRounds[i].push(sec.map((c) => c?.id ?? null)));

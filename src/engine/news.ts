@@ -15,13 +15,16 @@ export type NewsItem =
   | { kind: 'careerHigh'; id: EntrantId; rank: number; discipline: Discipline }
   | { kind: 'seedOut'; m: Match; id: EntrantId; opp: EntrantId }
   | { kind: 'comeback'; m: Match; id: EntrantId }
-  | { kind: 'youngChamp'; id: EntrantId; age: number; tournamentId: string; discipline: Discipline };
+  | { kind: 'youngChamp'; id: EntrantId; age: number; tournamentId: string; discipline: Discipline }
+  | { kind: 'hosts'; year: number; drawn: { id: string; cityId: string }[] };
 
 /** Kejutan: pemenang ≥ UPSET_GAP peringkat di bawah lawan yang ada di UPSET_TOP besar (ranking senior/junior sebelum minggu itu). */
 const UPSET_TOP = 20, UPSET_GAP = 20;
 /** Urutan tampil (yang lebih jarang/lebih dekat dengan manajer dulu); smash, reli & on fire mengisi sisa tempat. */
 const PRIORITY: NewsItem['kind'][] = ['careerHigh', 'youngChamp', 'firstTitle', 'upset', 'seedOut', 'comeback', 'streak', 'smash', 'rally', 'fire'];
 const MAX_NEWS = 6;
+/** Hasil undian tuan rumah musim depan tampil di berita selama minggu-minggu pertama musim. */
+const HOSTS_WEEKS = 4;
 /** Babak utama sebelum perempat final (unggulan 1 "tersingkir dini"). */
 const EARLY = new Set(['R128', 'R64', 'R32', 'R16']);
 
@@ -34,7 +37,9 @@ export function weeklyNews(state: SeasonState, rs: Ruleset): NewsItem[] {
   const lastAbs = absWeek(last);
   const individual = state.matches.filter((m) => defs.has(m.tournamentId)); // tanpa partai beregu
   const thisWeek = individual.filter((m) => weekIn(m) === lastAbs);
-  if (!thisWeek.length) return [];
+  const hd = state.hostDraw;
+  const hosts: NewsItem[] = hd?.drawn.length && hd.year === year + 1 && week <= HOSTS_WEEKS ? [{ kind: 'hosts', ...hd }] : [];
+  if (!thisWeek.length) return hosts;
   const items: NewsItem[] = [];
 
   // Kejutan terbesar.
@@ -140,5 +145,5 @@ export function weeklyNews(state: SeasonState, rs: Ruleset): NewsItem[] {
     : 'm' in n ? tierRank(n.m.tournamentId) : 0;
   const best = new Map<NewsItem['kind'], NewsItem>();
   for (const n of items) { const b = best.get(n.kind); if (!b || weight(n) < weight(b)) best.set(n.kind, n); }
-  return PRIORITY.filter((k) => best.has(k)).map((k) => best.get(k)!).slice(0, MAX_NEWS);
+  return [...hosts, ...PRIORITY.filter((k) => best.has(k)).map((k) => best.get(k)!)].slice(0, MAX_NEWS);
 }

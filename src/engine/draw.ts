@@ -49,10 +49,10 @@ export interface DrawResult {
 
 /**
  * entrants: peserta main draw (langsung + wildcard), urut ranking. qualifiers: jumlah slot lolosan kualifikasi.
- * grade 3: dua entri teratas dari negara yang sama diundi ke paruh berbeda.
+ * grade 3: dua entri teratas dari negara yang sama diundi ke paruh berbeda. `separate` false (World Tour 6.4.4): tanpa pemisahan negara.
  */
 export function makeDraw(
-  entrants: DrawEntrant[], qualifiers: number, grade: number, ruleset: Ruleset, rng: Rng,
+  entrants: DrawEntrant[], qualifiers: number, grade: number, ruleset: Ruleset, rng: Rng, separate = true,
 ): DrawResult {
   const n = entrants.length + qualifiers;
   const N = nextPow2(n);
@@ -133,7 +133,7 @@ export function makeDraw(
   };
 
   // ponytail: perbaikan rakus O(N²) per putaran; cukup untuk bagan ≤ 128.
-  let current = conflicts();
+  let current = separate ? conflicts() : 0;
   for (let round = 0; current > 0 && round < 50; round++) {
     let improved = false;
     for (const a of movable) {

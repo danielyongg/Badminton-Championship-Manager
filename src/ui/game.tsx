@@ -130,6 +130,15 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
     if (p?.wildcardOnlyIfHostAbsent && tier.wildcardOnlyIfHostAbsent === undefined)
       Object.assign(tier, { wildcardOnlyIfHostAbsent: true, zeroPointsForR1WildcardLoss: p.zeroPointsForR1WildcardLoss });
     if (p?.qualifierSlots && !tier.qualifierSlots) tier.qualifierSlots = { ...p.qualifierSlots };
+    // Save sebelum World Tour Regulations 6.4.2 & 6.4.4: wildcard per turnamen (S1000–S500, termasuk 0 poin S1000) & tanpa pemisahan negara.
+    if (p?.wildcardTop && tier.wildcardTop === undefined)
+      Object.assign(tier, { wildcards: p.wildcards, wildcardTop: p.wildcardTop, zeroPointsForR1WildcardLoss: p.zeroPointsForR1WildcardLoss });
+    if (p?.noCountrySeparation && tier.noCountrySeparation === undefined) tier.noCountrySeparation = true;
+  }
+  // Save sebelum skuad Sudirman & Suhandinata maks 20 (Major Events Regulations): ganti nilai bawaan lama 4–12.
+  for (const f of ['sudirman', 'suhandinata'] as const) {
+    const size = blob.ruleset.team?.squadSize?.[f];
+    if (size?.min === 4 && size.max === 12) size.max = preset.team.squadSize[f].max;
   }
   if (!blob.state.juniorCalibrated) {
     // Save sebelum koreksi tradisi junior: atlet asli yang terkena diturunkan sebesar selisih level & PA versi lama − baru

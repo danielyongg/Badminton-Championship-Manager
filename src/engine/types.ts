@@ -40,6 +40,13 @@ export interface Tier {
   zeroPointsForR1WildcardLoss: boolean;
   /** GCR 7.11 (Grade 3): wildcard tuan rumah hanya bila negara tuan rumah tidak punya wakil di bagan utama nomor itu. */
   wildcardOnlyIfHostAbsent?: boolean;
+  /**
+   * World Tour 6.4.2 (Level 2–4): `wildcards` = maks untuk seluruh turnamen, dikurangi jumlah entri tuan rumah di
+   * `wildcardTop` besar semua nomor; satu per nomor. Tanpa ini: `wildcards` per nomor.
+   */
+  wildcardTop?: number;
+  /** World Tour 6.4.4: tanpa pemisahan negara (GCR 11.11) di undian babak utama. */
+  noCountrySeparation?: boolean;
   /** Kuota per negara (Kejuaraan Dunia/Olimpiade): `base`, atau s/d `max` bila semua di top `topRank`. */
   countryQuota?: { base: number; max: number; topRank: number };
   /**
@@ -62,7 +69,7 @@ export interface TournamentDef {
   hosts?: Record<string, string>;
   /** Minggu per tahun (tahun → minggu), mengganti `week` di tahun itu: jadwal resmi atau hasil `scheduleYear`. */
   weeks?: Record<string, number>;
-  /** Tahun tanpa `hosts`: tuan rumah bergilir dari daftar ini (indeks = tahun % panjang); kosong → `cityId`. */
+  /** Kota kandidat: tahun tanpa `hosts` diundi di antara daftar ini (`drawHosts`); yang belum diundi bergilir (indeks = tahun % panjang). Kosong → `cityId`. */
   rotation?: string[];
   /** Turnamen khusus atlet satu konfederasi (kejuaraan junior kontinental). */
   confederation?: Confederation;

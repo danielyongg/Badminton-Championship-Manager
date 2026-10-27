@@ -5,7 +5,7 @@ import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
 import { presetPack, PRESETS } from './pack';
 import { makeRng } from './rng';
-import { aiEventChoice, entryDeadline, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, weekOf, withdrawEntry, wtfQualifiers } from './season';
+import { aiEventChoice, drawHosts, entryDeadline, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, weekOf, withdrawEntry, wtfQualifiers } from './season';
 import { ATTRS, DISCIPLINES } from './types';
 
 describe('satu musim penuh (BWF 2026)', () => {
@@ -269,6 +269,26 @@ it('kalender musim baru: tahun resmi tetap, tahun berikutnya bergeser ±1 minggu
   const wc = weekOf(ev('world-championships'), 2029);
   expect(big).not.toContain(wc);
   expect(state.date.year).toBe(2027);
+});
+
+it('undian tuan rumah: kandidat dari rotation, bukan negara tuan rumah edisi sebelumnya, tuan rumah resmi tetap', () => {
+  const rs = structuredClone(BWF_2027);
+  const country = new Map(WORLD.cities.map((c) => [c.id, c.countryId]));
+  const tu = () => rs.team.events.find((e) => e.id === 'thomas-uber-cup')!;
+  tu().hosts = { 2026: 'horsens' }; // preset bisa sudah berisi hasil undian dari tes lain (newSeason memakai preset langsung)
+  const seen = new Set<string>();
+  for (const y of [2028, 2030, 2032, 2034, 2036, 2038]) {
+    const drawn = drawHosts(rs, y, makeRng(y), WORLD);
+    expect(drawn.find((d) => d.id === 'thomas-uber-cup')?.cityId).toBe(hostCityId(tu(), y));
+    expect(tu().rotation).toContain(hostCityId(tu(), y));
+    expect(country.get(hostCityId(tu(), y))).not.toBe(country.get(hostCityId(tu(), y - 2)));
+    seen.add(hostCityId(tu(), y));
+  }
+  expect(seen.size).toBeGreaterThan(1);
+  // Tuan rumah resmi tidak diundi ulang; undian kedua untuk tahun yang sama tidak mengubah apa pun.
+  expect(drawHosts(rs, 2027, makeRng(1), WORLD).some((d) => d.id === 'sudirman-cup')).toBe(false);
+  expect(hostCityId(rs.team.events.find((e) => e.id === 'sudirman-cup')!, 2027)).toBe('beijing');
+  expect(drawHosts(rs, 2030, makeRng(2), WORLD)).toEqual([]);
 });
 
 it('kalender musim baru: turnamen senegara berjarak & tier yang sama tidak sepekan (2029)', () => {

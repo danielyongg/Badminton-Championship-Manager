@@ -13,7 +13,7 @@ import type { Standing } from './groups';
 import { each, type MatchRound, type PlayFn } from './knockout';
 import { juniorEntries, juniorTeamEntrants } from './junior';
 import { AD_HOC, adHocEntrants, autoLineup, rankOrder, autoSquad, lineupError, playTie, runTeamEvent, squadError, squadPool, type Lineup, type TeamEntrant } from './team';
-import { runEvent, simPlay, toRecord, type HotForm, type DrawHook, type DrawShow, type EntriesHook, type EntriesShow, type EventRecord, type LiveHook } from './tournament';
+import { runEvent, simPlay, tournamentWildcards, toRecord, type HotForm, type DrawHook, type DrawShow, type EntriesHook, type EntriesShow, type EventRecord, type LiveHook } from './tournament';
 import { roundGate, type RoundHook } from './gate';
 import { makeScouting, recruit, SCOUTING_DEADLINE_WEEK, withdrawCandidates, type Scouting, type ScoutFocus } from './scouting';
 import {
@@ -57,6 +57,8 @@ export interface SeasonState {
   /** Turnamen kecil di negara yang sama sudah disebar (`spreadHosts`). Save lama: tidak ada. */
   /** Sifat atlet sudah diacak untuk semua atlet (save lama: diisi saat dimuat). */
   traitsRolled?: true;
+  /** Hasil undian tuan rumah terakhir (tahun yang diundi, diumumkan di berita awal musim). */
+  hostDraw?: { year: number; drawn: { id: string; cityId: string }[] };
   hostsSpread?: true | 2 | 3; // 2 = juga tier yang sama tidak sepekan, 3 = World Tour sebelum Finals
   /** Top Committed Players musim ini: entrantId → id turnamen wajib. */
   commitments: Record<EntrantId, string[]>;
@@ -154,6 +156,27 @@ export const isHeld = (e: { everyYears?: TournamentDef['everyYears']; skipYears?
 /** Kota tuan rumah event di tahun tertentu: `hosts` (asli) → `rotation` (bergilir) → `cityId`. */
 export const hostCityId = (e: Pick<TournamentDef, 'cityId' | 'hosts' | 'rotation'>, year: number) =>
   e.hosts?.[year] ?? (e.rotation?.length ? e.rotation[year % e.rotation.length] : e.cityId);
+
+/**
+ * Undian tuan rumah: event yang punya kota kandidat (`rotation`) tapi belum punya tuan rumah tahun itu diundi di antara
+ * kandidatnya — sebisa mungkin bukan negara (lalu bukan kota) tuan rumah edisi sebelumnya. Hasilnya dipatok ke `hosts`.
+ */
+export function drawHosts(rs: Ruleset, year: number, rng: Rng, world?: World): { id: string; cityId: string }[] {
+  const country = new Map(world?.cities.map((c) => [c.id, c.countryId]) ?? []);
+  const drawn: { id: string; cityId: string }[] = [];
+  for (const e of [...rs.calendar, ...rs.team.events]) {
+    if (!e.rotation?.length || e.hosts?.[year] !== undefined || !isHeld(e, year)) continue;
+    let prev: string | undefined;
+    for (let y = year - 1; y >= year - 12 && !prev; y--) if (isHeld(e, y)) prev = hostCityId(e, y);
+    const all = [...new Set(e.rotation)];
+    const pool = [all.filter((c) => c !== prev && (!country.has(c) || country.get(c) !== country.get(prev ?? ''))), all.filter((c) => c !== prev), all]
+      .find((l) => l.length)!;
+    const cityId = pool[Math.floor(rng() * pool.length)];
+    (e.hosts ??= {})[year] = cityId;
+    drawn.push({ id: e.id, cityId });
+  }
+  return drawn;
+}
 
 /** Event yang terbuka untuk negara: multi-event hanya anggotanya, kejuaraan kontinental hanya negara konfederasinya. */
 export const openTo = (e: { countries?: string[]; confederation?: Confederation }, countryId: string, world: World) =>
@@ -342,6 +365,10 @@ const tierOf = (rs: Ruleset, e: TournamentDef) => rs.tiers.find((t) => t.id === 
  */
 export function startYear(state: SeasonState, rs: Ruleset, rng: Rng, world?: World) {
   const { year } = state.date;
+  // Tuan rumah musim depan diundi di awal musim (diumumkan di berita); musim ini juga bila belum (save lama).
+  if (year > rs.startYear) drawHosts(rs, year, rng, world);
+  const drawn = drawHosts(rs, year + 1, rng, world);
+  if (drawn.length || state.hostDraw?.year !== year + 1) state.hostDraw = { year: year + 1, drawn };
   if (year > rs.startYear) scheduleYear(rs, year, rng, world); // musim pertama = kalender asli preset
   const now = absWeek(state.date);
   const tc = rs.topCommitted;
@@ -745,6 +772,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     // Main di kandang: atlet tuan rumah yang ikut turnamen ini mendapat dorongan morale.
     const home = new Set(ds.flatMap((d) => entries.get(event.id)!.get(d)!).flatMap((c) => pairs.get(c.id)?.playerIds ?? [c.id]));
     for (const id of home) { const p = players.get(id); if (p?.countryId === city.countryId) bumpForm(p, HOME_BONUS + (hasTrait(p, 'homeHero') ? HOME_HERO_BONUS : 0)); }
+    const wildcards = tier.wildcardTop ? tournamentWildcards(tier, ds.map((d) => [d, entries.get(event.id)!.get(d)!]), city.countryId) : undefined;
     const runs = await each(gated, ds, (d) => {
       let candidates = entries.get(event.id)!.get(d)!;
       if (tier.countryQuota) candidates = applyCountryQuota(candidates, tier.countryQuota);
@@ -755,7 +783,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
         state.eventRecords = state.eventRecords.filter((r) => !(r.tournamentId === event.id && r.year === year && r.discipline === d));
         state.eventRecords.push(rec);
       };
-      return runEvent({ tournament: event, discipline: d, year, hostCountryId: city.countryId, candidates, ruleset: rs, rng, play, onDraw: draw, onEntries: onEntries(d), parallel: gated, onRecord });
+      return runEvent({ tournament: event, discipline: d, year, hostCountryId: city.countryId, candidates, wildcardIds: wildcards && (wildcards.get(d) ?? []), ruleset: rs, rng, play, onDraw: draw, onEntries: onEntries(d), parallel: gated, onRecord });
     });
     // Target babak atlet negara manajer: manual bila diatur, selain itu otomatis (saran realistis menurut perkiraan peserta).
     const manual = state.targets?.[`${year}:${event.id}`] ?? {};
