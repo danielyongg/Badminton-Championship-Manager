@@ -275,3 +275,9 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 
 ## Line-up beregu (2026-10-27)
 - Satu pilihan per partai: tunggal = atlet, ganda = pasangan terdaftar di skuad atau "Ganda dadakan…" (dua pilihan atlet). Teks pilihan: nama (pasangan: nama belakang) · #ranking · kemampuan · ⚠ bila cedera/lelah di atas ambang istirahat AI. Partai yang melanggar batas partai / dobel nomor berwarna merah. Petunjuk lengkap di ikon ⓘ.
+
+## BWF Player of the Year (2026-10-27)
+- Kategori seperti BWF Player of the Year Awards 2025: Pemain Terbaik Putra (MS) & Putri (WS), Pasangan Terbaik MD/WD/XD, Eddy Choong Rising Star (semua atlet ≤ 21 tahun di tahun itu, nomor mana pun). Players' Player of the Year & para badminton tidak dimodelkan.
+- **Nominasi** 3 minggu sebelum World Tour Finals (akhir minggu), 4 per kategori; **pemenang** di akhir minggu WTF, selalu salah satu nominasi. Musim tanpa WTF: tanpa penghargaan.
+- ASUMSI skor = poin ranking senior yang diraih tahun itu + bonus gelar (OG/WC +20.000, WTF +10.000, S1000 +5.000, S750 +2.500); pemenang = skor tertinggi setelah ±5% acak. Murni prestise (tanpa efek morale/reputasi).
+- Tampil di Berita (nominasi sampai pemenang diumumkan, lalu pemenang sampai akhir musim; atlet negara sendiri ditebalkan), profil atlet/pasangan (penghargaan & nominasi), dan Dunia → Rekor (pemenang per tahun). Save lama: mulai musim berjalan bila minggu nominasi belum lewat.

@@ -10,6 +10,7 @@ import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
 import { DISCIPLINES, ROUNDS, type Discipline, type Match, type TeamFormat } from '../engine/types';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
+import { AWARD_CATS } from '../engine/awards';
 import { weeklyNews, type NewsItem } from '../engine/news';
 import type { Challenge, FederationGoal, Ruleset, SeasonReport, TournamentDef } from '../engine/types';
 import { dataName, numLocale, t, type TextKey } from '../i18n';
@@ -778,6 +779,16 @@ function NewsCard({ onOpen }: { onOpen: (id: string) => void }) {
           const c = game.world.cities.find((y) => y.id === x.cityId);
           return <span key={x.id} className="drow"><span className="grow">{eventName(ruleset, x.id, n.year)}</span><b><Flag id={c?.countryId} />{dataName(c?.name)}</b></span>;
         })}</span>];
+      case 'awards': {
+        const a = n.award;
+        const mine = (id: string) => entrantLabel(state, id).country.split('/').includes(state.career?.countryId ?? '');
+        const person = (id: string) => <span key={id} className={mine(id) ? 'mine-award' : undefined}>{who(id)}</span>;
+        return [t('newsAwardsTag'), <>{t(a.winners ? 'newsAwardWinners' : 'newsAwardNominees', { year: a.year })}</>,
+          <span className="host-list">{AWARD_CATS.map((c) => (
+            <span key={c} className="drow"><span className="grow">{t(`award_${c}` as TextKey)}</span>
+              <span>{a.winners ? <>🏆 {person(a.winners[c])}</> : a.nominees[c].map((id, i) => <span key={id}>{i > 0 && ', '}{person(id)}</span>)}</span></span>
+          ))}</span>];
+      }
       case 'careerHigh': return [t('newsHighTag'), <>{who(n.id)} {t('newsCareerHigh', { n: n.rank })}</>, <small className="muted-text">{n.discipline}</small>];
     }
   };

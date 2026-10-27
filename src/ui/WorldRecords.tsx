@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { AWARD_CATS } from '../engine/awards';
 import type { SeasonState } from '../engine/season';
 import type { Ruleset, TeamFormat, World } from '../engine/types';
 import { dataName, t, type TextKey } from '../i18n';
@@ -138,6 +139,19 @@ export function Records({ state, ruleset, world, onOpenPlayer }: { state: Season
           ))}</tbody></table>
         )}
       </section>
+      {(state.awards ?? []).some((a) => a.winners) && <section className="card">
+        <h3>🏆 {t('awardsTitle')}</h3>
+        <table className="fit"><tbody>{[...state.awards!].filter((a) => a.winners).reverse().flatMap((a) => AWARD_CATS.map((c, i) => {
+          const id = a.winners![c], l = entrantLabel(state, id);
+          return (
+            <tr key={`${a.year}${c}`}>
+              <td className="num muted-text">{i === 0 ? a.year : ''}</td><td>{t(`award_${c}` as TextKey)}</td>
+              <td className={l.country.split('/').includes(managed ?? '') ? 'mine' : undefined}><Flag id={l.country} />{onOpenPlayer
+                ? <a href="#" onClick={(e) => { e.preventDefault(); onOpenPlayer(id); }}>{l.name}</a> : l.name}</td>
+            </tr>
+          );
+        }))}</tbody></table>
+      </section>}
       <div className="split">
         {top(data.titles, 'recTitles')}
         {top(data.weeks1, 'recWeeks1', 'weeks')}

@@ -1,4 +1,5 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { awardsOf } from '../engine/awards';
 import { dissolvePair, potentialStars, promoteJunior, recallPlayer, releasePlayer } from '../engine/career';
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { experienceFactor } from '../engine/development';
@@ -326,6 +327,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
   const { year } = state.date;
   const season = mine.filter((m) => m.year === year);
   const titles = state.champions.filter((c) => sides.has(c.winner));
+  const awards = awardsOf(state, [...sides]).sort((a, b) => b.year - a.year || Number(b.won) - Number(a.won)); // BWF Player of the Year
   const activePairs = pairs.filter((x) => !x.dissolved);
   const openOpp = (opp: string) => { setH2hOpp(opp); setTab('h2h'); }; // nama lawan → H2H dengan lawan itu
   const evLink = (eid: string, y: number) => onOpenEvent
@@ -517,6 +519,15 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           </section>
         ))}</div>;
       })()}
+
+      {tab === 'events' && awards.length > 0 && <section className="card">
+        <h3>{t('awardsTitle')}</h3>
+        <table className="fit"><tbody>{awards.map((x, i) => (
+          <tr key={i} className={x.won ? undefined : 'muted-text'}>
+            <td>{x.won ? '🏆' : '·'}</td><td>{t(`award_${x.cat}` as TextKey)} <span className="muted-text">{x.year}{!x.won && ` · ${t('awardNominee')}`}</span></td>
+          </tr>
+        ))}</tbody></table>
+      </section>}
 
       {tab === 'events' && <section className="card">
         <h3>{t('profTitlesAll')} <span className="muted-text">({titleRows.length})</span></h3>

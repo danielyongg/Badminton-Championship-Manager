@@ -3,6 +3,7 @@ import { chemistryMult, ensureTraits, FRAGILE_DOWN, hasTrait, HOME_HERO_BONUS, i
 import { makeChallenges, seasonGoals, seasonReport, suggestJuniorTargets, suggestTargets } from './career';
 import { contingentOf, inContingent, lockContingents } from './contingent';
 import { olympicField } from './olympics';
+import { updateAwards, type AwardYear } from './awards';
 import { INDEPENDENT_QUIT, INDEPENDENT_TOP, isCrossNation, pairIndependents, releaseAthletes } from './independents';
 import { applySevereInjury, capToPa, developQuarter, newJuniors, retirementChance, rollInjury } from './development';
 import { applyCountryQuota, type Candidate, type EntryList } from './entry';
@@ -49,6 +50,8 @@ export interface SeasonState {
   results: RankingEntry[];
   matches: Match[];
   champions: Champion[];
+  /** BWF Player of the Year per tahun (nominasi & pemenang). Save lama: tidak ada. */
+  awards?: AwardYear[];
   /** Poin turnamen junior (ranking junior dunia), terpisah dari ranking senior. */
   juniorResults: RankingEntry[];
   /** Sistem promosi junior aktif (save lama dimigrasi sekali saat dimuat). */
@@ -919,6 +922,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     for (const d of DISCIPLINES)
       state.rankSnapshots.push({ absWeek: absWeek(state.date), discipline: d, ids: computeRanking(state.results, d, absWeek(state.date), rs).slice(0, 300).map((r) => r.entrantId) });
 
+  updateAwards(state, rs, rng);
   if (week % 13 === 0) endQuarter(state, rs, rng);
   if (week >= 52) endYear(state, rs, world, rng);
   state.date = week >= 52 ? { year: year + 1, week: 1 } : { year, week: week + 1 };
