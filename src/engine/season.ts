@@ -499,10 +499,10 @@ export function withdrawEntry(state: SeasonState, rs: Ruleset, eventId: string, 
  * Terbitkan daftar entry turnamen yang batas entrinya sudah tiba (minggu ini atau terlewat, mis. save lama), per minggu
  * turnamen: junior dulu, lalu senior; atlet yang sudah terdaftar di turnamen lain minggu itu tidak didaftarkan lagi.
  */
-function publishEntries(state: SeasonState, rs: Ruleset, world: World, rng: Rng) {
+function publishEntries(state: SeasonState, rs: Ruleset, world: World, rng: Rng, onlyThisWeek = false) {
   const { year, week } = state.date;
   const lists = (state.entryLists ??= {});
-  const due = rs.calendar.filter((e) => isHeld(e, year) && weekOf(e, year) >= week && !lists[`${year}:${e.id}`]
+  const due = rs.calendar.filter((e) => isHeld(e, year) && (onlyThisWeek ? weekOf(e, year) === week : weekOf(e, year) >= week) && !lists[`${year}:${e.id}`]
     && (entryDeadline(rs, e.id, year) ?? Infinity) <= week);
   if (!due.length) return;
   const pairs = new Map(state.pairs.map((p) => [p.id, p]));
@@ -753,19 +753,19 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   // Negara manajer hanya bisa memilih event yang terbuka untuknya; event lain disimulasikan otomatis.
   const managed = state.managedCountryId;
   const choosable = all.filter((x) => !managed || openTo([...events, ...teamEvents].find((e) => e.id === x.id)!, managed, world));
-  // Turnamen (negara manajer) yang batas entrinya minggu ini: layar minggu tetap muncul agar entry bisa di-submit dulu.
+  // Turnamen (negara manajer) yang batas entrinya minggu ini: tetap bisa di-submit di layar minggu, juga sesudah main turnamen.
   const deadlines = managed ? [...rs.calendar, ...rs.team.events].filter((e) => isHeld(e, year) && weekOf(e, year) > week && openTo(e, managed, world)
     && (entryDeadline(rs, e.id, year) === week || ((entryDeadline(rs, e.id, year) ?? Infinity) < week && 'tierId' in e && !entryClosed(state, rs, e.id))))
     .map((e) => e.id) : [];
-  let deadlineAsked = false;
   const ask = () => {
-    if (!hooks.chooseEvent || (!choosable.some((e) => !played.includes(e.id)) && (deadlineAsked || !deadlines.length))) return null;
-    deadlineAsked = true;
+    if (!hooks.chooseEvent || (!choosable.some((e) => !played.includes(e.id)) && !deadlines.length)) return null;
     return hooks.chooseEvent({ week, events: choosable, played, deadlines });
   };
   let pick = await ask();
-  // Batas entry tiba: daftar entry terbit (termasuk turnamen minggu ini yang belum terbit, mis. save lama).
-  publishEntries(state, rs, world, rng);
+  // Turnamen minggu ini yang daftar entrinya belum terbit (mis. save lama). Batas entry minggu ini: terbit di akhir minggu.
+  publishEntries(state, rs, world, rng, true);
+  // Kondisi atlet saat batas entry (sebelum turnamen minggu ini): dipakai saat daftar entry terbit di akhir minggu.
+  const atDeadline = new Map(state.players.map((p) => [p, { fatigue: p.fatigue, injury: p.injury }]));
   for (const p of state.pairs) if (!pairs.has(p.id)) pairs.set(p.id, p);
   // Daftar entry terbit: tanpa yang mundur, cedera/pensiun, dan atlet AI yang terlalu lelah (mundur tanpa penalti).
   const released = releasedIds(state);
@@ -883,6 +883,12 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   }
   for (const e of all) if (!played.includes(e.id)) await playAny(e.id, hooks.chooseEvent ? {} : hooks, false);
   lockFinalsQualifiers(state, rs, world, true); // kejuaraan kontinental minggu ini selesai → peserta final langsung ditetapkan
+  // Akhir minggu: batas entry tiba → daftar entry terbit; entry negara manajer yang belum di-submit diisi AI.
+  // ponytail: kondisi atlet ditukar sementara ke kondisi awal minggu, agar cedera/lelah minggu ini tidak memengaruhi entry.
+  const now = new Map(state.players.map((p) => [p, { fatigue: p.fatigue, injury: p.injury }]));
+  for (const [p, c] of atDeadline) Object.assign(p, c);
+  publishEntries(state, rs, world, rng);
+  for (const [p, c] of now) Object.assign(p, c);
   updateMorale(state, rs, weekMatches, weekChampions, ranks);
   // Istirahat: atlet yang tidak bertanding minggu ini memulihkan morale negatif lebih cepat.
   const busy = new Set(state.matches.slice(weekMatches).flatMap((m) => m.sides.flatMap((s) => pairs.get(s)?.playerIds ?? [s])));

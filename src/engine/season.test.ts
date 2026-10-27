@@ -346,6 +346,24 @@ it('negara manajer hanya bisa memilih event yang terbuka untuknya (kontinental b
   expect(state.teamResults.some((r) => r.eventId === 'europe-team')).toBe(true); // tetap dimainkan otomatis
 });
 
+it('batas entry minggu ini tetap bisa di-submit sesudah main turnamen; daftar entry terbit di akhir minggu', async () => {
+  const rs = structuredClone(BWF_2026);
+  const state = newSeason(WORLD, rs, 3, { year: 2026, week: 6 }, 'INA');
+  state.managedCountryId = 'INA';
+  const asks: { played: string[]; deadlines: string[]; published: boolean[] }[] = [];
+  await playWeek(state, rs, WORLD, makeRng(1), { chooseEvent: (req) => {
+    asks.push({ played: [...req.played], deadlines: req.deadlines ?? [], published: (req.deadlines ?? []).map((id) => !!state.entryLists?.[`2026:${id}`]) });
+    return Promise.resolve(req.played.length ? null : req.events[0].id);
+  } });
+  expect(asks).toHaveLength(2);
+  expect(asks[1].played).toEqual(['asia-team']);
+  expect(asks[1].deadlines).toEqual(asks[0].deadlines);
+  const individual = asks[1].deadlines.filter((id) => rs.calendar.some((e) => e.id === id));
+  expect(individual.length).toBeGreaterThan(0);
+  expect(asks[1].published.some(Boolean)).toBe(false);
+  for (const id of individual) expect(state.entryLists?.[`2026:${id}`]).toBeDefined();
+});
+
 it('AI: dua turnamen grade 3 yang cocok di minggu yang sama (IC & FS) sama-sama kebagian; tanpa rng (Saran) tetap yang tertinggi', () => {
   const options = [{ id: 'ic', tierId: 'IC' }, { id: 'fs', tierId: 'FS' }];
   const rng = makeRng(3);

@@ -44,10 +44,11 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
       })()}
     </section>
   );
-  const deadlines = ask.played.length ? [] : ask.deadlines ?? [];
+  const deadlines = ask.deadlines ?? [];
+  const allPlayed = ask.events.every((e) => ask.played.includes(e.id));
   const skip = (
     <div className="controls">
-      <button onClick={() => onPick(null)}>{!ask.events.length ? t('continue') : ask.played.length ? t('skipRest') : t('skipAll')}</button>
+      <button onClick={() => onPick(null)}>{allPlayed ? t('continue') : ask.played.length ? t('skipRest') : t('skipAll')}</button>
     </div>
   );
   // Dua kotak terpisah: turnamen yang dimainkan minggu ini di atas, batas entry (submit) di bawah.
