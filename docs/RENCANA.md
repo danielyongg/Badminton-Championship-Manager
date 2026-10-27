@@ -14,7 +14,7 @@ Daftar fitur yang belum dibuat. Fase 1–10 sudah selesai (lihat `git log`); asu
 - [x] Grafik atribut per usia di profil atlet (Kemampuan + satu atribut pilihan; tabel tetap ada).
 - [x] Hadiah uang: per atlet per musim (profil: musim ini & karier; Federasi: total negara & pendapatan terbesar).
 - [ ] Avatar atlet di Editor (opsional).
-- [x] Atlet asli di paket bawaan (2.508 atlet termasuk 546 junior, 47 negara, 919 pasangan); atlet fiktif hanya untuk melengkapi tim beregu (7 senior per gender) & negara tanpa data. Detail: `docs/ASUMSI.md`.
+- [x] Atlet asli di paket bawaan (2.424 atlet termasuk 536 junior, 47 negara, 931 pasangan termasuk 24 pasangan beda negara; data 2026-10-27); atlet fiktif hanya untuk melengkapi tim beregu (7 senior per gender) & negara tanpa data. Detail: `docs/ASUMSI.md`.
 
 ## Fitur tambahan dari diskusi
 - [x] **Live drawing** (gaya Football Manager): pilihan header *Mati / Turnamen besar saja / Semua yang diikuti atlet saya*; mangkuk pot + bagan/grup terisi, pengumuman tiap langkah, pemisahan negara menyala; putar ulang dari halaman turnamen & hasil beregu. Undian babak kualifikasi tidak ditampilkan (hanya pembagian seksi acak).
@@ -90,7 +90,7 @@ Urutan kerja (tiap fase bisa dirilis sendiri; tes & build hijau di akhir fase):
 - [x] Kalibrasi junior baru per musim: populasi U19/≤17 stabil setara data asli 2026 (sebelumnya merosot ±75% dalam 4 musim).
 - [x] **Pasangan ganda beda negara** (pemain independen): negara AI melepas atlet di luar 10 besar; AI memasangkan pemain independen lintas negara; hanya turnamen terbuka. Langsung dipasangkan saat manajer melepas atlet. Spesifikasi: `docs/superpowers/specs/2026-10-27-pasangan-beda-negara-design.md`.
 - [x] Pop-up line-up beregu lebih ringkas: satu pilihan per partai (pasangan terdaftar / ganda dadakan), info ranking & kemampuan, partai bermasalah ditandai.
-- Belum (opsional): kejuaraan junior U17/U15 kontinental; urutan partai beregu yang bisa dipilih; data asli pasangan beda negara (jalankan ulang `scripts/fetch-bwf.mjs`).
+- Belum (opsional): kejuaraan junior U17/U15 kontinental; urutan partai beregu yang bisa dipilih.
 
 ## Batasan yang bisa ditinjau ulang
 - Tier tidak bisa ditambah/dihapus di Editor.
