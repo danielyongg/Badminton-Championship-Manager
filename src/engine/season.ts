@@ -1361,6 +1361,15 @@ function endQuarter(state: SeasonState, rs: Ruleset, rng: Rng) {
 }
 
 /** Akhir musim: riwayat atribut, pensiun, junior baru, pasangan baru oleh AI. */
+/** Peringkat terbaik tiap atlet di semua nomor (ganda: peringkat pasangannya) — spesialis ganda tidak dianggap tanpa peringkat. */
+export function bestRanks(state: Pick<SeasonState, 'pairs' | 'results'>, rs: Ruleset, now: number) {
+  const rank = new Map<string, number>();
+  const members = new Map(state.pairs.map((p) => [p.id, p.playerIds]));
+  for (const d of DISCIPLINES) for (const r of computeRanking(state.results, d, now, rs))
+    for (const id of members.get(r.entrantId) ?? [r.entrantId]) rank.set(id, Math.min(rank.get(id) ?? Infinity, r.rank));
+  return rank;
+}
+
 function endYear(state: SeasonState, rs: Ruleset, world: World, rng: Rng) {
   const { year } = state.date;
   const now = absWeek(state.date);
@@ -1377,8 +1386,7 @@ function endYear(state: SeasonState, rs: Ruleset, world: World, rng: Rng) {
   state.eventRecords = state.eventRecords.filter((r) => r.year >= year - 1);
   state.results = state.results.filter((r) => r.expiresAbsWeek > now - 52);
   state.juniorResults = state.juniorResults.filter((r) => r.expiresAbsWeek > now - 52);
-  const rank = new Map<string, number>();
-  for (const d of ['MS', 'WS'] as const) for (const r of computeRanking(state.results, d, now, rs)) rank.set(r.entrantId, r.rank);
+  const rank = bestRanks(state, rs, now);
   for (const p of state.players) {
     if (p.retired !== undefined) continue;
     p.attrHistory.push({ year, attrs: { ...p.attrs } });

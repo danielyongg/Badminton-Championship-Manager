@@ -5,7 +5,7 @@ import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
 import { presetPack, PRESETS } from './pack';
 import { makeRng } from './rng';
-import { aiEventChoice, drawHosts, prActive, protectRanking, entryDeadline, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, weekOf, withdrawEntry, wtfQualifiers } from './season';
+import { aiEventChoice, bestRanks, drawHosts, prActive, protectRanking, entryDeadline, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, weekOf, withdrawEntry, wtfQualifiers } from './season';
 import { ATTRS, DISCIPLINES } from './types';
 
 describe('satu musim penuh (BWF 2026)', () => {
@@ -428,3 +428,14 @@ it('kalender 2028–2036: World Tour tidak sepekan, tier yang sama tidak sepekan
         expect(Math.abs(weekOf(o, y) - weekOf(e, y)), `${y} ${e.id}/${o.id}`).toBeGreaterThanOrEqual(HOST_GAP);
   }
 }, 60000);
+
+it('pensiun: peringkat atlet = terbaik di semua nomor, spesialis ganda memakai peringkat pasangannya', () => {
+  const rs = structuredClone(BWF_2026);
+  const state = newSeason(WORLD, rs, 3, { year: 2026, week: 1 });
+  const now = absWeek(state.date);
+  const topMd = computeRanking(state.results, 'MD', now, rs)[0];
+  const [a, b] = state.pairs.find((p) => p.id === topMd.entrantId)!.playerIds;
+  const ranks = bestRanks(state, rs, now);
+  expect(ranks.get(a)).toBe(1);
+  expect(ranks.get(b)).toBe(1);
+});
