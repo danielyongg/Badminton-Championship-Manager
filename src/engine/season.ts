@@ -5,7 +5,7 @@ import { contingentOf, inContingent, lockContingents } from './contingent';
 import { olympicField } from './olympics';
 import { updateAwards, type AwardYear } from './awards';
 import { INDEPENDENT_QUIT, INDEPENDENT_TOP, isCrossNation, pairIndependents, releaseAthletes } from './independents';
-import { applySevereInjury, capToPa, developQuarter, newJuniors, retirementChance, rollInjury } from './development';
+import { applySevereInjury, capToPa, developQuarter, injuredFor, newJuniors, retirementChance, rollInjury } from './development';
 import { applyCountryQuota, type Candidate, type EntryList } from './entry';
 import { ageAt, currentAbility, generateWorld, isJuniorAge, isPratama } from './generator';
 import { archiveStats, type StatAcc } from './careerStats';
@@ -523,7 +523,7 @@ function publishEntries(state: SeasonState, rs: Ruleset, world: World, rng: Rng,
     // Atlet di daftar entry lain minggu itu (sudah terbit) tidak didaftarkan lagi.
     const busy = new Set(rs.calendar.filter((e) => weekOf(e, year) === w).flatMap((e) => Object.values(lists[`${year}:${e.id}`] ?? {}).flat()
       .flatMap((c) => pairs.get(c!.id)?.playerIds ?? [c!.id])));
-    const junior = juniorEntries(state, evs.filter((e) => tierOf(rs, e).junior), rs, world, juniorRanks, manual, rng, busy);
+    const junior = juniorEntries(state, evs.filter((e) => tierOf(rs, e).junior), rs, world, juniorRanks, manual, rng, busy, w - week);
     state.pairs.push(...junior.created);
     store(junior.entries);
     junior.busy.forEach((id) => busy.add(id));
@@ -567,7 +567,9 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
   const entries = new Map(events.map((e) => [e.id, new Map<Discipline, Candidate[]>(DISCIPLINES.map((d) => [d, []]))]));
   const playerEvent = new Map<string, string>();
   const fatigue = new Map(state.players.map((p) => [p.id, p.fatigue]));
-  const injured = new Set(state.players.filter((p) => p.injury).map((p) => p.id));
+  // Cedera yang sembuh sebelum minggu turnamen tidak menghalangi entry (semua turnamen di sini satu minggu).
+  const ahead = events.length ? weekOf(events[0], state.date.year) - state.date.week : 0;
+  const injured = new Set(state.players.filter((p) => injuredFor(p, ahead)).map((p) => p.id));
   const submitted = (ev: TournamentDef) => state.entriesSubmitted?.[`${state.date.year}:${ev.id}`] === true;
   // Junior pratama negara manajer: tidak didaftarkan otomatis (manual tetap bisa).
   const pratama = new Set(state.players.filter((p) => p.countryId === state.managedCountryId && p.released === undefined && isPratama(p, state.date)).map((p) => p.id));

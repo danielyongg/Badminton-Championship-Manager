@@ -1,4 +1,5 @@
 import type { Candidate } from './entry';
+import { injuredFor } from './development';
 import { currentAbility, isJuniorAge } from './generator';
 import type { Rng } from './rng';
 import { adHocId } from './team';
@@ -27,6 +28,8 @@ export function juniorEntries(
   ranks: Map<Discipline, Map<string, number>>, manual: Record<string, string>, rng: Rng,
   /** Atlet yang sudah terdaftar di turnamen lain minggu itu (daftar entry yang lebih dulu terbit). */
   taken: Set<string> = new Set(),
+  /** Minggu turnamen − minggu ini: cedera yang sembuh sebelum turnamen tidak menghalangi entry. */
+  ahead = 0,
 ) {
   const conf = new Map(world.countries.map((c) => [c.id, c.confederation]));
   const entries = new Map<string, Map<Discipline, Candidate[]>>();
@@ -56,7 +59,7 @@ export function juniorEntries(
     const wants = new Map<string, boolean>();
     const joins = (p: Player) => !optional || forcedPlayers.has(p.id) || (wants.get(p.id) ?? wants.set(p.id, p.fatigue <= rs.ai.restAbove
       && rng() < play && (!local || conf.get(p.countryId) === hostConf(ev) || rng() < rs.ai.awayGrade3)).get(p.id)!);
-    const eligible = (p: Player) => p.retired === undefined && !p.injury && isJuniorAge(p, state.date) && !elsewhere.has(p.id)
+    const eligible = (p: Player) => p.retired === undefined && !injuredFor(p, ahead) && isJuniorAge(p, state.date) && !elsewhere.has(p.id)
       && (maxAge === undefined || state.date.year - p.birth.year <= maxAge)
       && (!ev.confederation || conf.get(p.countryId) === ev.confederation) && free(p.id) && joins(p);
     const byD = new Map<Discipline, Candidate[]>();

@@ -409,6 +409,25 @@ describe('batas entry (aturan BWF)', () => {
     while (state.date.week <= W) await playWeek(state, rs, WORLD, rng);
     expect(state.matches.some((m) => m.tournamentId === ev.id && m.year === 2026 && (m.sides.includes(ina[0].id) || m.sides.includes(ina[1].id)))).toBe(false);
   }, 300000);
+
+  it('cedera saat batas entry: tetap didaftarkan bila sembuh sebelum minggu turnamen', async () => {
+    const rs = BWF_2026;
+    const ev = rs.calendar.find((e) => e.tierId === 'S1000' && weekOf(e, 2026) >= 10)!;
+    const W = weekOf(ev, 2026), d = entryDeadline(rs, ev.id, 2026)!;
+    const state = newSeason(WORLD, rs, 5, undefined, 'INA');
+    const rng = makeRng(5);
+    while (state.date.week < d) await playWeek(state, rs, WORLD, rng);
+    const [healed, still] = entrantsFor(state, 'MS').filter((e) => e.countryId === 'INA').slice(0, 2).map((e) => state.players.find((p) => p.id === e.id)!);
+    (state.manualEntries[`2026-${W}`] ??= {})[healed.id] = ev.id;
+    state.manualEntries[`2026-${W}`][still.id] = ev.id;
+    // Sisa cedera berkurang 1 di awal minggu batas: sisa W − d = sembuh tepat di minggu turnamen.
+    healed.injury = { weeksLeft: W - d + 1, level: 'minor', type: 'x' };
+    still.injury = { weeksLeft: W - d + 2, level: 'moderate', type: 'x' };
+    await playWeek(state, rs, WORLD, rng);
+    const ids = (state.entryLists![`2026:${ev.id}`].MS ?? []).map((c) => c.id);
+    expect(ids).toContain(healed.id);
+    expect(ids).not.toContain(still.id);
+  }, 300000);
 });
 
 it('kalender 2028–2036: World Tour tidak sepekan, tier yang sama tidak sepekan (selain kontinental), kota sama berjarak', () => {

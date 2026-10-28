@@ -13,6 +13,7 @@ import { FitStatus, MoraleTag } from './Squad';
 import { setTarget, suggestJuniorTargets, suggestTargets } from '../engine/career';
 import { moraleTier, pairAbility } from '../engine/match';
 import { currentAbility, isJuniorAge, isPratama } from '../engine/generator';
+import { injuredFor } from '../engine/development';
 import { formatName, PickRow, SquadPicker } from './Team';
 import { Flag } from './Flag';
 import { plannableEvents, planWeek, type PlanCell } from '../engine/plan';
@@ -465,7 +466,7 @@ export function JuniorEntryTable({ ev, onSubmit, onBack }: { ev: TournamentDef; 
     for (const d of sectors) {
       const free = rows.filter((e) => e.d === d && !e.playerIds.some((id) => bound.get(id)));
       const strength = (e: (typeof rows)[number]) => e.playerIds.reduce((sum, id) => sum + currentAbility(players.get(id)!.attrs), 0);
-      const fit = free.filter((e) => e.playerIds.every((id) => { const p = players.get(id)!; return !p.injury && p.fatigue <= ruleset.ai.restAbove; }))
+      const fit = free.filter((e) => e.playerIds.every((id) => { const p = players.get(id)!; return !injuredFor(p, w - state.date.week) && p.fatigue <= ruleset.ai.restAbove; }))
         .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9) || strength(b) - strength(a));
       const play = new Set(fit.slice(0, isDoubles(d) ? quota.doubles : quota.singles));
       for (const e of free) next[e.id] = play.has(e) ? ev.id : 'rest';
@@ -500,7 +501,7 @@ export function JuniorEntryTable({ ev, onSubmit, onBack }: { ev: TournamentDef; 
           <table className="entrytable fit">
             <thead><tr><th>{t('name')}</th><th className="num">{t('ability')}</th><th className="num">{t('rank')}</th><th className="num">{t('enterCol')}</th></tr></thead>
             <tbody>{rows.filter((e) => e.d === sector).map((e) => {
-              const injured = e.playerIds.some((id) => players.get(id)?.injury);
+              const injured = e.playerIds.some((id) => injuredFor(players.get(id)!, w - state.date.week));
               const other = e.playerIds.map((id) => bound.get(id)).find(Boolean);
               return <EntryRow key={e.id} e={e} checked={decisions[e.id] === ev.id} disabled={injured || !!other} other={other}
                 onToggle={(on) => set(e.id, on ? ev.id : 'rest')}
@@ -551,7 +552,8 @@ export function EntryTable({ week: w, eventId, onSubmit, onBack }: { week: numbe
   // Turnamen lain minggu ini tempat atlet sudah didaftarkan (keputusan entrant mana pun yang memuat atlet itu).
   const boundTo = boundElsewhere(state, decisions, eventId);
   const elsewhere = (e: (typeof rows)[number]) => e.playerIds.map((id) => boundTo.get(id)).find(Boolean);
-  const injured = (e: (typeof rows)[number]) => e.playerIds.some((id) => players.get(id)?.injury);
+  // Cedera yang sembuh sebelum minggu turnamen tetap bisa didaftarkan.
+  const injured = (e: (typeof rows)[number]) => e.playerIds.some((id) => injuredFor(players.get(id)!, w - state.date.week));
   // Multi-event: hanya anggota kontingen (setelah dikunci) yang bisa didaftarkan.
   const eligible = (e: (typeof rows)[number]) => !injured(e) && !elsewhere(e) && inContingent(state, eventId, country, e.playerIds);
   const required = (e: (typeof rows)[number]) => !!state.commitments[e.id]?.includes(eventId);

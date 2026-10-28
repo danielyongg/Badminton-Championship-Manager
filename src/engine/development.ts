@@ -115,6 +115,12 @@ export function applySevereInjury(p: Player, cfg: DevelopmentConfig, rng: Rng, t
   capToPa(p);
 }
 
+/**
+ * Masih cedera `ahead` minggu lagi (sisa cedera berkurang 1 tiap awal minggu). Entry dibuat beberapa minggu sebelum
+ * turnamen: atlet yang sembuh sebelum minggu turnamen (ahead = minggu turnamen − minggu ini) tetap bisa didaftarkan.
+ */
+export const injuredFor = (p: Player, ahead = 0) => (p.injury?.weeksLeft ?? 0) > ahead;
+
 /** Undi cedera: tingkat menurut peluang kumulatif, lama absen, jenis, dan apakah langsung pensiun. */
 export function rollInjury(cfg: InjuryConfig, rng: Rng) {
   const roll = rng();

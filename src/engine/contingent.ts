@@ -1,3 +1,4 @@
+import { injuredFor } from './development';
 import { currentAbility } from './generator';
 import { absWeek, computeRanking } from './ranking';
 import { entrantsFor, isHeld, teamStrengths, weekOf, type SeasonState } from './season';
@@ -48,8 +49,10 @@ export function autoContingents(state: SeasonState, rs: Ruleset, ev: TournamentD
   const team = rs.team.events.find((e) => e.id === `${ev.id}-team` && isHeld(e, state.date.year));
   const lineups = (team?.formats ?? []).map((f) => teamStrengths(state, rs, f));
   const out: Record<string, string[]> = {};
+  // Cedera yang sembuh sebelum Games (atau beregunya, bila lebih dulu) tidak menghalangi.
+  const ahead = Math.min(weekOf(ev, state.date.year), team ? weekOf(team, state.date.year) : Infinity) - state.date.week;
   for (const c of countries) {
-    const players = state.players.filter((p) => p.countryId === c && !p.injury && p.retired === undefined && p.released === undefined)
+    const players = state.players.filter((p) => p.countryId === c && !injuredFor(p, ahead) && p.retired === undefined && p.released === undefined)
       .sort((a, b) => (best.get(a.id) ?? Infinity) - (best.get(b.id) ?? Infinity) || currentAbility(b.attrs) - currentAbility(a.attrs));
     const seed = new Set(lineups.flatMap((all) => {
       const t = all.find((x) => x.countryId === c);
