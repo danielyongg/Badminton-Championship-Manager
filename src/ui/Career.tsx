@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { weekRunning } from './UpdateBar';
 import { matchConfigFor, simulateMatch, type MatchResult } from '../engine/match';
 import type { DrawHook, DrawShow, EntriesHook, EntriesShow, LiveHook, LiveRequest } from '../engine/tournament';
@@ -536,29 +536,32 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
   // Ringkasan per turnamen: HP default ringkas (hanya perempat final ke atas), desktop default lengkap.
   const [openEvents, setOpenEvents] = useState<Set<string>>(new Set());
   const [compact] = useState(() => window.matchMedia?.('(max-width: 700px)').matches ?? false);
+  const cols = useDashCols();
   const toggleEvent = (id: string) => setOpenEvents((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
-  return (
-    <div className="dash">
-      {!managed && <p>{t('observerNote')}</p>}
-      {managed && state.scouting && <ScoutingCard />}
-      {managed && (
+  // Kartu dashboard: [prioritas di layar lebar, kartu]. HP: satu kolom urut daftar ini. Layar lebar (2–3 kolom): masonry —
+  // kartu diambil menurut prioritas (target, hasil turnamen, ranking dulu) dan ditaruh di kolom yang saat itu paling pendek.
+  const cards: [number, ReactNode][] = [
+    [-1, !managed && <p>{t('observerNote')}</p>],
+    [3, managed && state.scouting && <ScoutingCard />],
+    [0, managed && (
         <section className="card">
           <h3>{t('goalsCard')} {year}</h3>
           <GoalTable goals={state.career!.goals} current={(g) => goalProgress(state, ruleset, managed, g, world)} year={year} tagged>
             {(state.career!.challenge || (state.career!.challengeOptions?.length && week <= CHALLENGE_DEADLINE_WEEK)) && <ChallengeItems />}
           </GoalTable>
         </section>
-      )}
-      {managed && <ContingentStatus country={managed} onOpenEvent={(id) => onOpenEvent(id, year)} />}
-      {lastReport && week <= 4 && (
+      )],
+    [4, managed && <ContingentStatus country={managed} onOpenEvent={(id) => onOpenEvent(id, year)} />],
+    [5, lastReport && week <= 4 && (
         <section className="card">
           <h3>{t('seasonEndReport')} {lastReport.year}: {t('grade')} {lastReport.grade} ({lastReport.reputationChange >= 0 ? '+' : ''}{lastReport.reputationChange} {t('reputation')})</h3>
           <GoalTable goals={lastReport.goals} year={lastReport.year} />
         </section>
-      )}
-      {managed && (week - 1) % 13 < 4 && <QuarterReportCard country={managed} onOpen={onOpen} />}
-      <NewsCard onOpen={onOpen} />
+      )],
+    [6, managed && (week - 1) % 13 < 4 && <QuarterReportCard country={managed} onOpen={onOpen} />],
+    [7, <NewsCard onOpen={onOpen} />],
+    [8, (
       <section className="card upcoming">
         <h3>{t('upcoming')}</h3>
         {upcoming.length === 0 ? <p>—</p> : [...byWeek].map(([w, list]) => (
@@ -574,7 +577,9 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
           </div>
         ))}
       </section>
-      {/* Ranking sebelum hasil turnamen (kartu panjang): di laptop tetap di kolom kiri, di HP tidak perlu gulir jauh. */}
+    )],
+    // Ranking sebelum hasil turnamen (kartu panjang): di laptop tetap di kolom kiri, di HP tidak perlu gulir jauh.
+    [2, (
       <section className="card rankcard">
         <h3>{t('bwfRankNow')}</h3>
         <nav className="controls subnav">
@@ -595,7 +600,8 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
         })}
         <p><button onClick={() => onFullRanking(rankD)}>{t('fullRanking')} ›</button></p>
       </section>
-      {managed && (
+    )],
+    [1, managed && (
         <section className="card tall">
           <h3>{t('tournamentResults')}</h3>
           {sel !== undefined && (
@@ -677,8 +683,8 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
             })
           )}
         </section>
-      )}
-      {managed && injured.length > 0 && (
+      )],
+    [9, managed && injured.length > 0 && (
         <section className="card">
           <h3>{t('injuries')}</h3>
           {injured.map((p) => {
@@ -697,9 +703,42 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
             );
           })}
         </section>
-      )}
+      )],
+  ];
+  const shown = cards.map(([prio, el], key) => ({ prio, el, key })).filter((x) => x.el);
+  // Tinggi tiap kartu diukur sebelum layar digambar; penempatan diulang hanya bila berubah (tanpa kedip).
+  const boxes = useRef<(HTMLDivElement | null)[]>([]);
+  const [place, setPlace] = useState<number[]>([]);
+  useLayoutEffect(() => {
+    if (cols === 1) return;
+    const h = Array<number>(cols).fill(0), next: number[] = [];
+    for (const x of [...shown].sort((a, b) => a.prio - b.prio)) {
+      const c = h.indexOf(Math.min(...h));
+      next[x.key] = c;
+      const px = boxes.current[x.key]?.offsetHeight ?? 0;
+      if (px) h[c] += px + 16;
+    }
+    if (next.join() !== place.join()) setPlace(next);
+  });
+  if (cols === 1) return <div className="dash">{shown.map((x) => <Fragment key={x.key}>{x.el}</Fragment>)}</div>;
+  return (
+    <div className="dash cols" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+      {Array.from({ length: cols }, (_, c) => (
+        <div key={c} className="dashcol">
+          {shown.filter((x) => (place[x.key] ?? 0) === c).sort((a, b) => a.prio - b.prio)
+            .map((x) => <div key={x.key} ref={(el) => { boxes.current[x.key] = el; }}>{x.el}</div>)}
+        </div>
+      ))}
     </div>
   );
+}
+
+/** Jumlah kolom dashboard menurut lebar layar: 3 (≥ 1280 px), 2 (≥ 1024 px), selain itu 1 (grid biasa). */
+function useDashCols() {
+  const get = () => (window.matchMedia('(min-width: 1280px)').matches ? 3 : window.matchMedia('(min-width: 1024px)').matches ? 2 : 1);
+  const [n, setN] = useState(get);
+  useEffect(() => { const f = () => setN(get()); window.addEventListener('resize', f); return () => window.removeEventListener('resize', f); }, []);
+  return n;
 }
 
 /** Berita mingguan: kejutan, juara beruntun, smash & reli terpanjang, atlet on fire (dari laga minggu lalu). */
