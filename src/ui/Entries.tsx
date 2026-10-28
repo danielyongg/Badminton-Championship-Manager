@@ -715,7 +715,7 @@ export function contingentGames(state: SeasonState, rs: Ruleset, world: World, i
   return ev && c && year === state.date.year && state.date.week <= weekOf(ev, year) && openTo(ev, c, world) ? ev : undefined;
 }
 
-/** Status kontingen (Dashboard): Otomatis (kuning, belum diubah) · ✓ Dipilih · 🔒 Ditutup; diketuk → halaman turnamen Games. */
+/** Status kontingen (Dashboard), sama dengan entry: Belum diisi (kuning) · ✓ Dikirim · 🔒 Ditutup; diketuk → halaman turnamen Games. */
 export function ContingentStatus({ country, onOpenEvent }: { country: string; onOpenEvent: (id: string) => void }) {
   const { state, ruleset, world } = useGame().game;
   const { year, week } = state.date;
@@ -727,8 +727,8 @@ export function ContingentStatus({ country, onOpenEvent }: { country: string; on
       {games.map((e) => {
         const lock = lockWeek(ruleset, e, year);
         const badge = week >= lock ? <span className="badge">🔒 {t('entryClosed')}</span>
-          : state.contingents?.[`${year}:${e.id}`]?.[country] ? <span className="badge good">✓ {t('contingentPicked')}</span>
-          : <span className="badge gold">{t('contingentAuto')}</span>;
+          : state.contingents?.[`${year}:${e.id}`]?.[country] ? <span className="badge good">✓ {t('entrySubmitted')}</span>
+          : <span className="badge gold">{t('entryIncomplete')}</span>;
         return (
           <div key={e.id} className="drow">
             <TierBadge tierId={e.tierId} />
@@ -741,7 +741,10 @@ export function ContingentStatus({ country, onOpenEvent }: { country: string; on
   );
 }
 
-/** Kontingen multi-event di halaman turnamen Games: dipilih sampai batas minggu (default = pilihan otomatis), lalu dikunci sampai Games selesai. */
+/**
+ * Kontingen multi-event di halaman turnamen Games: pilihan berupa draf sampai di-Submit; sesudah Submit tampil daftar
+ * terpilih + Ubah entry (sampai batas minggu). Tidak di-Submit = pilihan otomatis saat batas. Sesudah batas dikunci.
+ */
 export function ContingentCard({ ev }: { ev: TournamentDef }) {
   const { game, version, changed } = useGame();
   const { state, ruleset } = game;
@@ -750,34 +753,44 @@ export function ContingentCard({ ev }: { ev: TournamentDef }) {
   const lock = lockWeek(ruleset, ev, year);
   const locked = week >= lock;
   const saved = state.contingents?.[`${year}:${ev.id}`]?.[country];
+  const auto = () => autoContingents(state, ruleset, ev, [country])[country];
+  const [draft, setDraft] = useState<string[] | undefined>(() => (saved || locked ? undefined : auto())); // undefined = tidak sedang diubah
+  const editing = !locked && !!draft;
+  const picked = draft ?? saved ?? [];
   const best = useMemo(() => playerBestRanks(state, ruleset), [version]);
-  const suggested = useMemo(() => (saved ? [] : autoContingents(state, ruleset, ev, [country])[country]), [version, !!saved]);
-  const picked = saved ?? suggested;
   const cap = ev.contingent!;
   const count = (g: 'M' | 'F') => picked.filter((id) => state.players.find((p) => p.id === id)?.gender === g).length;
-  const save = (ids: string[]) => { setContingent(state, ev.id, year, country, ids); changed(); void saveGame(game); };
   const toggle = (id: string, g: 'M' | 'F') => {
-    if (locked) return;
-    if (picked.includes(id)) save(picked.filter((x) => x !== id));
-    else if (count(g) < cap[g]) save([...picked, id]);
+    if (!draft) return;
+    if (draft.includes(id)) setDraft(draft.filter((x) => x !== id));
+    else if (count(g) < cap[g]) setDraft([...draft, id]);
   };
+  const submit = () => { setContingent(state, ev.id, year, country, draft!); setDraft(undefined); changed(); void saveGame(game); };
+  const status = locked ? <span className="badge">🔒 {t('entryClosed')}</span>
+    : saved && !editing ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge gold">{t('entryIncomplete')}</span>;
   // Nomor & pasangan tiap atlet negara ini (badge nomor + nama pasangan di baris pilih).
   const pool = useMemo(() => Object.fromEntries(DISCIPLINES.map((d) => [d, entrantsFor(state, d).filter((e) => e.countryId === country && !e.trial)])), [version]);
-  const players = state.players.filter((p) => p.countryId === country && p.retired === undefined && p.released === undefined && (!locked || picked.includes(p.id)))
+  const players = state.players.filter((p) => p.countryId === country && p.retired === undefined && p.released === undefined && (editing || picked.includes(p.id)))
     .sort((a, b) => (best.get(a.id) ?? Infinity) - (best.get(b.id) ?? Infinity) || currentAbility(b.attrs) - currentAbility(a.attrs));
   return (
     <section className="card">
-      <h3>{t('contingent')} · {t('men')} {count('M')}/{cap.M} · {t('women')} {count('F')}/{cap.F}</h3>
+      <h3>{t('contingent')} {status}</h3>
       <p className="hint">{locked ? t('contingentLocked') : t('contingentHint', { m: cap.M, f: cap.F, w: lock })}</p>
       {(['M', 'F'] as const).map((g) => (
         <div key={g} className="squadlist">
           <h4>{t(g === 'M' ? 'men' : 'women')} · {count(g)}/{cap[g]}</h4>
           {players.filter((p) => p.gender === g).map((p) => (
-            <PickRow key={p.id} id={p.id} pool={pool} on={picked.includes(p.id)} onToggle={() => toggle(p.id, g)} rank={best.get(p.id)} disabled={locked} />
+            <PickRow key={p.id} id={p.id} pool={pool} on={picked.includes(p.id)} onToggle={() => toggle(p.id, g)} rank={best.get(p.id)} disabled={!editing} />
           ))}
         </div>
       ))}
-      {!locked && <p className="controls"><button onClick={() => save(autoContingents(state, ruleset, ev, [country])[country])}>{t('autoPick')}</button></p>}
+      {editing ? (
+        <p className="controls">
+          <button className="primary" onClick={submit}>{t('submitEntries')}</button>
+          <button onClick={() => setDraft(auto())}>{t('autoPick')}</button>
+          {saved && <button onClick={() => setDraft(undefined)}>{t('cancel')}</button>}
+        </p>
+      ) : !locked && saved && <p className="controls"><button onClick={() => setDraft([...saved])}>{t('modifyEntries')}</button></p>}
     </section>
   );
 }
