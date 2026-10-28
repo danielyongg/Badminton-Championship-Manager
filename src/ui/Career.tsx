@@ -977,6 +977,22 @@ function TargetReportCard({ onOpen }: { onOpen: (id: string) => void }) {
   const rows = targetReport(state, year);
   const total = rows.reduce((s, r) => s + r.n, 0), hit = rows.reduce((s, r) => s + r.hit, 0);
   const pct = (a: number, b: number) => `${Math.round((100 * a) / Math.max(1, b))}%`;
+  // Klik judul kolom: urut menurut kolom itu (angka: terbanyak dulu, nama: A–Z); klik lagi membalik. Seri: urutan bawaan.
+  type Row = (typeof rows)[number];
+  const cols: { key: string; label: ReactNode; title?: string; num?: boolean; value: (r: Row) => number | string }[] = [
+    { key: 'name', label: t('name'), value: (r) => entrantLabel(state, r.id).name },
+    { key: 'n', label: '🎯', title: t('targetReportN'), num: true, value: (r) => r.n },
+    { key: 'hit', label: '✓', title: t('targetHitCol'), num: true, value: (r) => r.hit },
+    { key: 'miss', label: '✗', title: t('targetMissCol'), num: true, value: (r) => r.miss },
+    { key: 'pct', label: '%', num: true, value: (r) => r.hit / r.n },
+  ];
+  const [sort, setSort] = useState<{ key: string; desc: boolean }>();
+  const col = cols.find((c) => c.key === sort?.key);
+  const list = !col ? rows : [...rows].sort((a, b) => {
+    const x = col.value(a), y = col.value(b);
+    const r = typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y));
+    return sort!.desc ? -r : r;
+  });
   return (
     <section className="card">
       <h3>{t('targetReport')} {year}</h3>
@@ -987,8 +1003,13 @@ function TargetReportCard({ onOpen }: { onOpen: (id: string) => void }) {
         <>
           <p>{t('targetReportSummary', { hit, n: total, pct: pct(hit, total) })}</p>
           <table className="fit target-report">
-            <thead><tr><th>{t('name')}</th><th className="num" title={t('targetReportN')}>🎯</th><th className="num" title={t('targetHitCol')}>✓</th><th className="num" title={t('targetMissCol')}>✗</th><th className="num">%</th></tr></thead>
-            <tbody>{rows.map((r) => (
+            <thead><tr>{cols.map((c) => (
+              <th key={c.key} title={c.title} className={`sortable${c.num ? ' num' : ''}`} aria-sort={sort?.key === c.key ? (sort.desc ? 'descending' : 'ascending') : undefined}
+                onClick={() => setSort(sort?.key === c.key ? { key: c.key, desc: !sort.desc } : { key: c.key, desc: !!c.num })}>
+                {c.label}{sort?.key === c.key ? (sort.desc ? ' ▼' : ' ▲') : ''}
+              </th>
+            ))}</tr></thead>
+            <tbody>{list.map((r) => (
               <tr key={r.id}>
                 <td><a href="#" onClick={(e) => { e.preventDefault(); onOpen(state.pairs.find((p) => p.id === r.id)?.playerIds[0] ?? r.id); }}>{entrantLabel(state, r.id).name}</a></td>
                 <td className="num">{r.n}</td><td className="num pos">{r.hit}</td><td className="num neg">{r.miss}</td><td className="num"><b>{pct(r.hit, r.n)}</b></td>
