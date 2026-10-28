@@ -319,6 +319,7 @@ button.wide { width: 100%; text-align: left; }
 .qreport h4 { margin: 0 0 2px; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .qreport .drow { padding: 5px 0; border-bottom: 1px solid var(--line); align-items: center; }
 .qreport .drow:last-child { border-bottom: 0; }
+.qreport .drow > .trait-tags { justify-content: flex-end; max-width: 55%; }
 .badge.q-up { background: var(--accent-soft); color: var(--accent-strong); }
 .badge.q-down { background: var(--danger-soft); color: var(--danger); }
 .bar { display: inline-block; width: 60px; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; vertical-align: middle; }

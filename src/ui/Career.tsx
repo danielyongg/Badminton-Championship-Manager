@@ -437,7 +437,7 @@ function QuarterReportCard({ country, onOpen }: { country: string; onOpen: (id: 
   const rows = ([['qrRisers', '📈', r.risers], ['qrStalled', '⏸', r.stalled], ['qrDeclining', '📉', r.declining], ['qrRevealed', '🔍', r.revealed]] as const).filter(([, , ps]) => ps.length);
   if (!rows.length) return null;
   const { date } = game.state;
-  // Kelompok bertumpuk: judul kecil + satu baris per atlet (usia · kemampuan, perubahan sebagai badge; sifat baru sebagai tag).
+  // Kelompok bertumpuk: judul kecil + satu baris per atlet (usia · kemampuan, perubahan sebagai badge; sifat baru sebagai tag di kanan).
   return (
     <section className="card qreport">
       <h3>{t('quarterReport')}</h3>
@@ -447,8 +447,8 @@ function QuarterReportCard({ country, onOpen }: { country: string; onOpen: (id: 
           {ps.map((p) => (
             <div key={p.id} className="drow">
               <span className="grow"><a href="#" onClick={(e) => { e.preventDefault(); onOpen(p.id); }}>{p.name}</a>
-                <small className="muted-text"> {ageAt(p.birth, date)} {t('yearsShort')} · {currentAbility(p.attrs)}</small>
-                {k === 'qrRevealed' && <> <TraitTags p={p} matches={0} /></>}</span>
+                <small className="muted-text"> {ageAt(p.birth, date)} {t('yearsShort')} · {currentAbility(p.attrs)}</small></span>
+              {k === 'qrRevealed' && <TraitTags p={p} matches={0} />}
               {k !== 'qrRevealed' && !!p.caDelta && <span className={`badge ${p.caDelta > 0 ? 'q-up' : 'q-down'}`}>{arrow(p.caDelta).trim()}</span>}
             </div>
           ))}
