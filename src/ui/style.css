@@ -199,6 +199,8 @@ button.wide { width: 100%; text-align: left; }
 .card h4 { margin: 8px 0 4px; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 @media (min-width: 900px) { .split { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
+/* Pola daftar + panel samping (Ranking, Negara, daftar entry): di layar lebar panel menempel saat daftar digulir. */
+@media (min-width: 900px) { .sidepanel { position: sticky; top: calc(var(--shell-h, 53px) + 12px); align-self: start; max-height: calc(100vh - var(--shell-h, 53px) - 24px); overflow-y: auto; } }
 .groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 12px; }
 /* Kartu grup di halaman turnamen: klasemen + daftar laga ringkas (nama panjang turun baris). */
 .group table { width: 100%; }

@@ -229,11 +229,42 @@ export function EntriesScreen({ show, onDraw, onSkipDraw }: { show: EntriesShow;
           </button>
         ))}
       </nav>
-      {list && <EntryLists key={d} entry={list.entry} name={label} mine={mine} />}
+      <div className="split">
+        <div>{list && <EntryLists key={d} entry={list.entry} name={label} mine={mine} />}</div>
+        <EntrySide show={show} mine={mine} />
+      </div>
       <div className="controls roundbar">
         <button className="primary" onClick={onDraw}>{t('startDraw')} →</button>
         <button onClick={onSkipDraw}>{t('draw_skipEvent')}</button>
       </div>
     </section>
+  );
+}
+
+/** Panel samping daftar entry: atlet negara sendiri di semua nomor (status) + ringkasan jumlah peserta per nomor. */
+function EntrySide({ show, mine }: { show: EntriesShow; mine: (id: string) => boolean }) {
+  const { state } = useGame().game;
+  // Label pendek agar muat di panel (judul tabel: singkatan, status atlet: kata lengkap).
+  const parts = [['main', 'entShortMain', 'entShortMain'], ['wildcards', 'entShortWc', 'wildcard'], ['qualifying', 'entShortQual', 'qualifying'], ['reserves', 'entShortRes', 'reserves']] as const;
+  const own = show.lists.flatMap((l) => parts.flatMap(([k, , label]) => l.entry[k].flatMap((c, i) => (mine(c.id)
+    ? [{ d: l.discipline, id: c.id, status: k === 'reserves' ? `${t(label)} ${i + 1}` : t(label), rank: c.entryRank ?? c.rank }] : []))));
+  return (
+    <aside className="sidepanel">
+      <h4>{t('myAthletesHere')}</h4>
+      {own.length === 0 ? <p className="hint">{t('noMineHere')}</p> : (
+        <table className="fit">
+          <tbody>{own.map((x) => (
+            <tr key={`${x.d}:${x.id}`}><td><span className="chip">{x.d}</span></td><td>{entrantLabel(state, x.id).name}</td><td className="muted-text" style={{ whiteSpace: 'nowrap' }}>{x.status}</td><td className="num">{x.rank ? `#${x.rank}` : '—'}</td></tr>
+          ))}</tbody>
+        </table>
+      )}
+      <h4>{t('entrySummary')}</h4>
+      <table className="fit">
+        <thead><tr><th />{parts.map(([k, short]) => <th key={k} className="num">{t(short)}</th>)}</tr></thead>
+        <tbody>{show.lists.map((l) => (
+          <tr key={l.discipline}><td><span className="chip">{l.discipline}</span></td>{parts.map(([k]) => <td key={k} className="num">{l.entry[k].length}</td>)}</tr>
+        ))}</tbody>
+      </table>
+    </aside>
   );
 }

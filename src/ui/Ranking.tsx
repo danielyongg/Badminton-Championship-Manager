@@ -93,6 +93,9 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
       : mode === 'junior' ? computeRanking(upTo(state.juniorResults ?? []), discipline, at, ruleset)
       : computeRace(upTo(state.results), discipline, yearOfAbs(at), ruleset);
   }, [version, discipline, mode, at, ruleset, olympic]);
+  // Layar lebar: panel kanan tidak pernah kosong — sebelum ada yang diklik tampil atlet terbaik negara sendiri (atau #1).
+  const wide = window.matchMedia('(min-width: 900px)').matches;
+  const shown = selected ?? (wide ? (rows.find((r) => name(r.entrantId).country === state.managedCountryId) ?? rows[0])?.entrantId : undefined);
   // Perubahan peringkat dibanding ranking minggu sebelumnya (world & junior): ▲ naik, ▼ turun, BARU = baru masuk ranking.
   const prevRank = useMemo(() => {
     if (mode !== 'world' && mode !== 'junior') return undefined;
@@ -146,7 +149,7 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
         </>}
       </div>
       {view === 'calendar' && <Calendar state={state} ruleset={ruleset} world={world} year={calYear} short={(id) => name(id).name} onOpenEvent={onOpenEvent} />}
-      {view === 'nations' && <NationsTable state={state} ruleset={ruleset} world={world} />}
+      {view === 'nations' && <NationsTable state={state} ruleset={ruleset} world={world} onOpenPlayer={onOpenPlayer} />}
       {view === 'records' && <Records state={state} ruleset={ruleset} world={world} onOpenPlayer={onOpenPlayer} />}
       {view === 'events' && <EventDirectory state={state} ruleset={ruleset} world={world} onOpenEvent={onOpenEvent} />}
       {view === 'ranking' && mode === 'junior' && rows.length === 0 && nextJunior && (
@@ -165,7 +168,7 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
             <thead><tr><th className="num" title={prevRank ? t('rankMoveHint') : undefined}>#</th><th>{t('name')}</th><th className="hide-sm">{t('country')}</th><th className="num">{t('points')}</th><th className="num hide-sm">{t('tournaments')}</th>{olympic && <th className="hide-sm">{t('olympicQualified')}</th>}</tr></thead>
             <tbody>
               {rows.slice(page * PAGE, (page + 1) * PAGE).map((r) => (
-                <tr key={r.entrantId} onClick={() => setSelected(r.entrantId)} className={[selected === r.entrantId && 'sel', name(r.entrantId).country === state.managedCountryId && 'mine-row'].filter(Boolean).join(' ') || undefined} style={{ cursor: 'pointer' }}>
+                <tr key={r.entrantId} onClick={() => setSelected(r.entrantId)} className={[shown === r.entrantId && 'sel', name(r.entrantId).country === state.managedCountryId && 'mine-row'].filter(Boolean).join(' ') || undefined} style={{ cursor: 'pointer' }}>
                   <td className="num rankcell">{r.rank} <small>{move(r.entrantId, r.rank)}</small></td><td><span className="show-sm"><Flag id={name(r.entrantId).country} /></span>{name(r.entrantId).name}{olympic && <span className="show-sm"> {qualified(r.entrantId)}</span>}</td><td className="hide-sm"><Flag id={name(r.entrantId).country} />{name(r.entrantId).country}</td>
                   <td className="num">{r.points.toLocaleString(numLocale())}</td><td className="num hide-sm">{r.tournamentsPlayed}</td>
                   {olympic && <td className="hide-sm">{qualified(r.entrantId)}</td>}
@@ -175,7 +178,7 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
           </table>
           {pager(true)}
         </div>
-        {selected && <Detail id={selected} label={name(selected).name} onOpen={onOpenPlayer} onOpenEvent={onOpenEvent} state={state} discipline={discipline} ruleset={ruleset} junior={mode === 'junior'} />}
+        {shown && <Detail id={shown} label={name(shown).name} onOpen={onOpenPlayer} onOpenEvent={onOpenEvent} state={state} discipline={discipline} ruleset={ruleset} junior={mode === 'junior'} />}
       </div>}
     </section>
   );
@@ -188,7 +191,7 @@ function Detail({ id, label, onOpen, onOpenEvent, state, discipline, ruleset, ju
   const ref = useRef<HTMLElement>(null);
   useEffect(() => { if (window.innerWidth < 900) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [id]);
   return (
-    <aside ref={ref}>
+    <aside ref={ref} className="sidepanel">
       <h3>{onOpen ? <a href="#" onClick={(e) => { e.preventDefault(); onOpen(id); }}>{label}</a> : label}</h3>
       <RankingDetail state={state} ruleset={ruleset} id={id} discipline={discipline} junior={junior} onOpenEvent={onOpenEvent} />
     </aside>

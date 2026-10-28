@@ -418,7 +418,7 @@ export const en: Record<TextKey, string> = {
   viewEvents: 'Tournaments', everyYear: 'Every year', everyNYears: 'Every {n} years',
   mostYears: 'Every year except one in {n}',
   viewNations: 'Nations', viewRecords: 'Records & Hall of Fame', scopeMajors: 'Majors', scopeTour: 'World Tour', total: 'Total',
-  nationsHint: 'Gold = champion, silver = finalist, bronze = semi-finalist (no bronze match, as at the BWF World Championships). Team: champion / finalist / semi-finalist per format.',
+  entShortMain: 'Direct', entShortWc: 'WC', entShortQual: 'Qual.', entShortRes: 'Res.', myAthletesHere: 'My players in this tournament', noMineHere: 'No players from your country in this tournament.', entrySummary: 'Entry summary', medalsByEvent: 'Medals by event', topMedalists: 'Top medallists', nationsHint: 'Gold = champion, silver = finalist, bronze = semi-finalist (no bronze match, as at the BWF World Championships). Team: champion / finalist / semi-finalist per format.',
   recordsHint: 'Counted from the start of this save ({y}).', hallOfFame: 'Hall of Fame', hofCriteria: 'Retired players with outstanding careers: Olympic or World champion, at least 15 World Tour titles, or at least 52 weeks as world No. 1.', hofEmpty: 'No inductees yet. Players are inducted after they retire.', titlesShort: 'titles',
   recTitles: 'Most titles (World Tour & majors)', recWeeks1: 'Most weeks as world No. 1', recWC: 'Most World Championships titles', recOG: 'Most Olympic gold medals', recWTF: 'Most World Tour Finals titles', recAE: 'Most All England titles', recTeam: 'Team titles per country',
   draw_skipEvent: 'Skip draw',
