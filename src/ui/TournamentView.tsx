@@ -8,7 +8,7 @@ import { LiveDraw } from './LiveDraw';
 import { formatName, TeamResults, winnerOf } from './Team';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
-import { canEnter, EntryPanel } from './Entries';
+import { canEnter, ContingentCard, contingentGames, EntryPanel } from './Entries';
 import { weekRunning } from './UpdateBar';
 
 // Halaman turnamen di karier: entry, kualifikasi/grup, undian, bagan untuk tiap nomor (data 2 musim terakhir).
@@ -48,6 +48,7 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
   const rec = records.find((r) => r.discipline === d);
   const matches = state.matches.filter((m) => m.tournamentId === id && m.year === year && m.discipline === d);
   const country = city && world.countries.find((c) => c.id === city.countryId);
+  const games = page === 'event' && contingentGames(state, ruleset, world, id, year); // Games: kontingen dipilih di sini
   const fact = (k: string, v: ReactNode) => <div><dt>{k}</dt><dd>{v}</dd></div>;
   return (
     <section>
@@ -74,7 +75,7 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
       {page === 'winners' ? <Winners id={id} year={year} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
       : page === 'history' ? <WinnersHistory id={id} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
       : page === 'participants' ? <Participants id={id} year={year} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
-      : team.length > 0 ? <TeamResults results={team} /> : played.length === 0 ? (canEnter(state, ruleset, world, id, year) && !locked ? <EntryPanel id={id} onSubmitted={onBack} /> : <p>{t(locked ? 'inProgressNoResults' : 'notPlayedYet')}</p>) : (
+      : <>{games && !team.length && <ContingentCard ev={games} />}{team.length > 0 ? <TeamResults results={team} /> : played.length === 0 ? (canEnter(state, ruleset, world, id, year) && !locked ? <EntryPanel id={id} onSubmitted={onBack} /> : <p>{t(locked ? 'inProgressNoResults' : 'notPlayedYet')}</p>) : (
         <>
           {/* Bagian (entry, kualifikasi, undian, bagan) dulu, lalu nomor sebagai sub-tab. */}
           {records.length > 0 && (
@@ -122,7 +123,7 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
             </>
           )}
         </>
-      )}
+      )}</>}
     </section>
   );
 }

@@ -5,7 +5,7 @@ import { acceptEntries, applyCountryQuota } from '../engine/entry';
 import { makeRng } from '../engine/rng';
 import { EntryLists } from './EventViews';
 import { autoSquad, squadError, squadPool } from '../engine/team';
-import { contingentOf, inContingent, lockWeek } from '../engine/contingent';
+import { autoContingents, contingentOf, gamesThisYear, inContingent, lockWeek, playerBestRanks, setContingent } from '../engine/contingent';
 import { DISCIPLINES, isDoubles, isJuniorFormat, type Discipline, type Round, type Ruleset, type TeamFormat, type TournamentDef, type World } from '../engine/types';
 import { dataName, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, tierLabel, useGame, TierBadge } from './game';
@@ -13,7 +13,7 @@ import { FitStatus, MoraleTag } from './Squad';
 import { setTarget, suggestJuniorTargets, suggestTargets } from '../engine/career';
 import { moraleTier, pairAbility } from '../engine/match';
 import { currentAbility, isJuniorAge, isPratama } from '../engine/generator';
-import { formatName, SquadPicker } from './Team';
+import { formatName, PickRow, SquadPicker } from './Team';
 import { Flag } from './Flag';
 import { plannableEvents, planWeek, type PlanCell } from '../engine/plan';
 
@@ -705,5 +705,79 @@ function SubmitBar({ onSubmit, onBack, disabled }: { onSubmit: () => void; onBac
       {onBack && <button onClick={onBack}>← {t('back')}</button>}
       <button className="primary" disabled={disabled} onClick={onSubmit}>{t('submitEntries')}</button>
     </p>
+  );
+}
+
+/** Multi-event (Games) yang kontingennya dipilih di halaman turnamen ini: event individu atau beregu (`<id>-team`). */
+export function contingentGames(state: SeasonState, rs: Ruleset, world: World, id: string, year: number) {
+  const ev = gamesThisYear(rs, year).find((e) => e.id === id || `${e.id}-team` === id);
+  const c = state.managedCountryId;
+  return ev && c && year === state.date.year && state.date.week <= weekOf(ev, year) && openTo(ev, c, world) ? ev : undefined;
+}
+
+/** Status kontingen (Dashboard): Otomatis (kuning, belum diubah) · ✓ Dipilih · 🔒 Ditutup; diketuk → halaman turnamen Games. */
+export function ContingentStatus({ country, onOpenEvent }: { country: string; onOpenEvent: (id: string) => void }) {
+  const { state, ruleset, world } = useGame().game;
+  const { year, week } = state.date;
+  const games = gamesThisYear(ruleset, year).filter((e) => week >= lockWeek(ruleset, e, year) - 12 && contingentGames(state, ruleset, world, e.id, year));
+  if (!games.length) return null;
+  return (
+    <section className="card upcoming">
+      <h3>{t('contingent')}</h3>
+      {games.map((e) => {
+        const lock = lockWeek(ruleset, e, year);
+        const badge = week >= lock ? <span className="badge">🔒 {t('entryClosed')}</span>
+          : state.contingents?.[`${year}:${e.id}`]?.[country] ? <span className="badge good">✓ {t('contingentPicked')}</span>
+          : <span className="badge gold">{t('contingentAuto')}</span>;
+        return (
+          <div key={e.id} className="drow">
+            <TierBadge tierId={e.tierId} />
+            <span className="grow"><b>{(eventName(ruleset, e.id, year) ?? '').replace(/ Individual$/, '')}</b><small className="muted-text">{t('contingentDeadline', { w: lock })}</small></span>
+            <button className="badge-btn" title={t('contingentOpen')} onClick={() => onOpenEvent(e.id)}>{badge}</button>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+/** Kontingen multi-event di halaman turnamen Games: dipilih sampai batas minggu (default = pilihan otomatis), lalu dikunci sampai Games selesai. */
+export function ContingentCard({ ev }: { ev: TournamentDef }) {
+  const { game, version, changed } = useGame();
+  const { state, ruleset } = game;
+  const country = state.career!.countryId!;
+  const { year, week } = state.date;
+  const lock = lockWeek(ruleset, ev, year);
+  const locked = week >= lock;
+  const saved = state.contingents?.[`${year}:${ev.id}`]?.[country];
+  const best = useMemo(() => playerBestRanks(state, ruleset), [version]);
+  const suggested = useMemo(() => (saved ? [] : autoContingents(state, ruleset, ev, [country])[country]), [version, !!saved]);
+  const picked = saved ?? suggested;
+  const cap = ev.contingent!;
+  const count = (g: 'M' | 'F') => picked.filter((id) => state.players.find((p) => p.id === id)?.gender === g).length;
+  const save = (ids: string[]) => { setContingent(state, ev.id, year, country, ids); changed(); void saveGame(game); };
+  const toggle = (id: string, g: 'M' | 'F') => {
+    if (locked) return;
+    if (picked.includes(id)) save(picked.filter((x) => x !== id));
+    else if (count(g) < cap[g]) save([...picked, id]);
+  };
+  // Nomor & pasangan tiap atlet negara ini (badge nomor + nama pasangan di baris pilih).
+  const pool = useMemo(() => Object.fromEntries(DISCIPLINES.map((d) => [d, entrantsFor(state, d).filter((e) => e.countryId === country && !e.trial)])), [version]);
+  const players = state.players.filter((p) => p.countryId === country && p.retired === undefined && p.released === undefined && (!locked || picked.includes(p.id)))
+    .sort((a, b) => (best.get(a.id) ?? Infinity) - (best.get(b.id) ?? Infinity) || currentAbility(b.attrs) - currentAbility(a.attrs));
+  return (
+    <section className="card">
+      <h3>{t('contingent')} · {t('men')} {count('M')}/{cap.M} · {t('women')} {count('F')}/{cap.F}</h3>
+      <p className="hint">{locked ? t('contingentLocked') : t('contingentHint', { m: cap.M, f: cap.F, w: lock })}</p>
+      {(['M', 'F'] as const).map((g) => (
+        <div key={g} className="squadlist">
+          <h4>{t(g === 'M' ? 'men' : 'women')} · {count(g)}/{cap[g]}</h4>
+          {players.filter((p) => p.gender === g).map((p) => (
+            <PickRow key={p.id} id={p.id} pool={pool} on={picked.includes(p.id)} onToggle={() => toggle(p.id, g)} rank={best.get(p.id)} disabled={locked} />
+          ))}
+        </div>
+      ))}
+      {!locked && <p className="controls"><button onClick={() => save(autoContingents(state, ruleset, ev, [country])[country])}>{t('autoPick')}</button></p>}
+    </section>
   );
 }

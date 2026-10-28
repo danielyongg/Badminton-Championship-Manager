@@ -15,7 +15,7 @@ import { weeklyNews, type NewsItem } from '../engine/news';
 import type { Challenge, FederationGoal, Ruleset, SeasonReport, TournamentDef } from '../engine/types';
 import { dataName, numLocale, t, type TextKey } from '../i18n';
 import { downloadPack, Editor, useDebounced } from './Editor';
-import { Entries, EntryBadge } from './Entries';
+import { ContingentStatus, Entries, EntryBadge } from './Entries';
 import { LangSelect } from './LangSelect';
 import { ThemeSelect } from './ThemeSelect';
 import { Flag } from './Flag';
@@ -27,9 +27,8 @@ import { arrow, injuryText, isBadInjury, Profile, Squad, TraitTags, usd } from '
 import { quarterReport } from '../engine/development';
 import { autoPick, recruit, recruitSome, SCOUTING_DEADLINE_WEEK, starRangeAt, styleOf } from '../engine/scouting';
 import { ScoutFocusSelect } from './Squad';
-import { autoContingents, gamesThisYear, lockWeek, playerBestRanks, setContingent } from '../engine/contingent';
 import { currentAbility } from '../engine/generator';
-import { formatName, levelName, PickRow, SquadModal, Team, TieLineupModal } from './Team';
+import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
 import { TournamentView } from './TournamentView';
 import { MatchLink } from './MatchDetail';
 import { EntriesScreen, RoundScreen, rowKey, WeekScreen, type WeekAsk } from './WeekFlow';
@@ -372,56 +371,6 @@ function ChallengeItems() {
   );
 }
 
-/** Kontingen multi-event: dipilih sampai batas minggu (default = pilihan otomatis), lalu dikunci sampai Games selesai. */
-function ContingentCard({ ev }: { ev: TournamentDef }) {
-  const { game, version, changed } = useGame();
-  const { state, ruleset } = game;
-  const country = state.career!.countryId!;
-  const { year, week } = state.date;
-  const lock = lockWeek(ruleset, ev, year);
-  const locked = week >= lock;
-  const saved = state.contingents?.[`${year}:${ev.id}`]?.[country];
-  const [open, setOpen] = useState(false);
-  const best = useMemo(() => playerBestRanks(state, ruleset), [version]);
-  const suggested = useMemo(() => (saved ? [] : autoContingents(state, ruleset, ev, [country])[country]), [version, !!saved]);
-  const picked = saved ?? suggested;
-  const cap = ev.contingent!;
-  const count = (g: 'M' | 'F') => picked.filter((id) => state.players.find((p) => p.id === id)?.gender === g).length;
-  const save = (ids: string[]) => { setContingent(state, ev.id, year, country, ids); changed(); void saveGame(game); };
-  const toggle = (id: string, g: 'M' | 'F') => {
-    if (locked) return;
-    if (picked.includes(id)) save(picked.filter((x) => x !== id));
-    else if (count(g) < cap[g]) save([...picked, id]);
-  };
-  // Nomor & pasangan tiap atlet negara ini (badge nomor + nama pasangan di baris pilih).
-  const pool = useMemo(() => Object.fromEntries(DISCIPLINES.map((d) => [d, entrantsFor(state, d).filter((e) => e.countryId === country && !e.trial)])), [version]);
-  const players = state.players.filter((p) => p.countryId === country && p.retired === undefined && p.released === undefined && (!locked || picked.includes(p.id)))
-    .sort((a, b) => (best.get(a.id) ?? Infinity) - (best.get(b.id) ?? Infinity) || currentAbility(b.attrs) - currentAbility(a.attrs));
-  return (
-    <section className="card" style={open ? { gridColumn: '1 / -1' } : undefined}>
-      <h3>{t('contingent')} · {(eventName(ruleset, ev.id, year) ?? '').replace(/ Individual$/, '')}</h3>
-      <p>{t('men')} {count('M')}/{cap.M} · {t('women')} {count('F')}/{cap.F}</p>
-      <p className="hint">{locked ? t('contingentLocked') : t('contingentHint', { m: cap.M, f: cap.F, w: lock })}</p>
-      {!open ? <button className={locked ? undefined : 'primary'} onClick={() => setOpen(true)}>{locked ? t('contingent') : t('contingentOpen')}</button> : (
-        <>
-          {(['M', 'F'] as const).map((g) => (
-            <div key={g} className="squadlist">
-              <h4>{t(g === 'M' ? 'men' : 'women')} · {count(g)}/{cap[g]}</h4>
-              {players.filter((p) => p.gender === g).map((p) => (
-                <PickRow key={p.id} id={p.id} pool={pool} on={picked.includes(p.id)} onToggle={() => toggle(p.id, g)} rank={best.get(p.id)} disabled={locked} />
-              ))}
-            </div>
-          ))}
-          <p className="controls">
-            {!locked && <button onClick={() => save(autoContingents(state, ruleset, ev, [country])[country])}>{t('autoPick')}</button>}
-            <button onClick={() => setOpen(false)}>{t('close')}</button>
-          </p>
-        </>
-      )}
-    </section>
-  );
-}
-
 /** Pencarian bakat junior: pilih kandidat untuk kursi putra/putri sebelum batas minggu (sisa kursi diisi otomatis). */
 function ScoutingCard() {
   const { game, changed } = useGame();
@@ -601,8 +550,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
           </GoalTable>
         </section>
       )}
-      {managed && gamesThisYear(ruleset, year).filter((e) => openTo(e, managed, world) && week >= lockWeek(ruleset, e, year) - 12 && week <= weekOf(e, year))
-        .map((e) => <ContingentCard key={e.id} ev={e} />)}
+      {managed && <ContingentStatus country={managed} onOpenEvent={(id) => onOpenEvent(id, year)} />}
       {lastReport && week <= 4 && (
         <section className="card">
           <h3>{t('seasonEndReport')} {lastReport.year}: {t('grade')} {lastReport.grade} ({lastReport.reputationChange >= 0 ? '+' : ''}{lastReport.reputationChange} {t('reputation')})</h3>
