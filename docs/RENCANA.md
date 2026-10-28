@@ -91,8 +91,8 @@ Urutan kerja (tiap fase bisa dirilis sendiri; tes & build hijau di akhir fase):
 - [x] **Pasangan ganda beda negara** (pemain independen): negara AI melepas atlet di luar 10 besar; AI memasangkan pemain independen lintas negara; hanya turnamen terbuka. Langsung dipasangkan saat manajer melepas atlet. Spesifikasi: `docs/superpowers/specs/2026-10-27-pasangan-beda-negara-design.md`.
 - [x] Pop-up line-up beregu lebih ringkas: satu pilihan per partai (pasangan terdaftar / ganda dadakan), info ranking & kemampuan, partai bermasalah ditandai.
 - [x] **BWF Player of the Year**: nominasi 3 minggu sebelum WTF, pemenang di minggu WTF (MS, WS, MD, WD, XD, Rising Star); berita, profil, Rekor.
-- Belum (opsional): kejuaraan junior U17/U15 kontinental; urutan partai beregu yang bisa dipilih.
+- [x] **Urutan partai beregu** sesuai regulasi BWF (T&U 10.2, Sudirman 13.2): ditentukan wasit dari kedua line-up, bukan dipilih manajer (urutan tetap sebelumnya hanya 10.1.1 / 13.1.5).
+- Belum (opsional): kejuaraan junior U17/U15 kontinental.
 
 ## Batasan yang bisa ditinjau ulang
 - Tier tidak bisa ditambah/dihapus di Editor.
-- Urutan partai: BWF mengizinkan 8 urutan Thomas/Uber & 7 urutan Sudirman; game memakai satu urutan tetap (S-D-S-D-S; XD-WS-MS-WD-MD, keduanya sah).

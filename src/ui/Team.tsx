@@ -224,7 +224,7 @@ export function LineupPicker({ format, order, pool, squad, value, onChange }: {
         const adHoc = isDoubles(d) && (!!value[i]?.startsWith(AD_HOC) || (adHocSlots.has(i) && !value[i]));
         return (
           <tr key={i} className={bad(i) ? 'bad' : undefined}>
-            <td>{t('matchNo')} {i + 1}</td><td><span className="chip">{d}</span></td>
+            <td><span className="chip">{d}{order.filter((x) => x === d).length > 1 ? order.slice(0, i + 1).filter((x) => x === d).length : ''}</span></td>
             <td>
               <select value={adHoc ? ADHOC : value[i] ?? ''} onChange={(e) => {
                 const v = e.target.value;

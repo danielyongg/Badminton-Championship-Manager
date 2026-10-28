@@ -58,7 +58,7 @@ td select { width: 100%; min-width: 7.5rem; }
 .lineup td:last-child { width: 100%; }
 .lineup .adhoc { display: flex; gap: 6px; margin-top: 4px; }
 .lineup .adhoc select { flex: 1; min-width: 0; }
-.lineup tr.bad td:first-child, .lineup tr.bad select { color: var(--danger); border-color: var(--danger); }
+.lineup tr.bad .chip, .lineup tr.bad select { color: var(--danger); border-color: var(--danger); }
 .info { cursor: help; }
 @media (max-width: 700px) { .lineup .adhoc { flex-direction: column; gap: 0; } } /* tabel sempit (HP): kotak pilihan mengikuti lebar kolom, tidak melewati layar */
 button { cursor: pointer; transition: background-color 150ms, color 150ms, border-color 150ms; }
@@ -560,7 +560,7 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
   .board td.pt { font-size: 1.3rem; min-width: 1.8em; }
   .board .bar { width: 36px; }
   .lineup td { white-space: normal; }
-  .lineup td:first-child, .lineup td:nth-child(2) { white-space: nowrap; }
+  .lineup td:first-child { white-space: nowrap; }
   .board.scoreline td:first-child { min-width: 0; white-space: normal; }
   .lineup select { display: block; width: 100%; max-width: 100%; margin: 2px 0; }
   /* Dashboard: kartu hasil turnamen (panjang) di paling bawah agar ranking & cedera terlihat dulu. */

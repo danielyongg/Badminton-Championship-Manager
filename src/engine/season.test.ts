@@ -5,7 +5,7 @@ import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
 import { presetPack, PRESETS } from './pack';
 import { makeRng } from './rng';
-import { aiEventChoice, bestRanks, drawHosts, prActive, protectRanking, entryDeadline, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, weekOf, withdrawEntry, wtfQualifiers } from './season';
+import { aiEventChoice, bestRanks, drawHosts, entrantsFor, prActive, protectRanking, entryDeadline, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, weekOf, withdrawEntry, wtfQualifiers } from './season';
 import { ATTRS, DISCIPLINES } from './types';
 
 describe('satu musim penuh (BWF 2026)', () => {
@@ -16,12 +16,14 @@ describe('satu musim penuh (BWF 2026)', () => {
   state.eventRecords.push({ tournamentId: 'kuno', year: 2024, discipline: 'MS', entry: { main: [], wildcards: [], qualifying: [], reserves: [], qualifierSlots: 0 }, qualRounds: [], steps: [], slots: [], rounds: [[null]] });
   const rng = makeRng(2);
   let qualifiers: Record<string, ReturnType<typeof wtfQualifiers>> = {};
+  let eligible = new Set<string>();
   let ms = 0;
   beforeAll(async () => {
     const t0 = performance.now();
     // Sampai minggu 49: kualifikasi WTF diperiksa sebelum WTF dimainkan.
     while (state.date.week < 50) await playWeek(state, rs, WORLD, rng);
     qualifiers = Object.fromEntries(DISCIPLINES.map((d) => [d, wtfQualifiers(state, d, rs)]));
+    eligible = new Set(DISCIPLINES.flatMap((d) => entrantsFor(state, d).map((e) => e.id))); // juara dunia cedera/pensiun tidak lolos
     while (state.date.year === 2026) await playWeek(state, rs, WORLD, rng);
     ms = performance.now() - t0;
   }, 60000);
@@ -147,7 +149,7 @@ describe('satu musim penuh (BWF 2026)', () => {
       const q = qualifiers[d];
       expect(q).toHaveLength(8);
       const champ = state.champions.find((c) => c.year === 2026 && c.discipline === d && wcIds.has(c.tournamentId))!.winner;
-      expect(q.some((c) => c.id === champ), `${d} juara dunia`).toBe(true);
+      expect(q.some((c) => c.id === champ), `${d} juara dunia`).toBe(eligible.has(champ));
       const perCountry: Record<string, number> = {};
       q.filter((c) => c.id !== champ).forEach((c) => (perCountry[c.countryId] = (perCountry[c.countryId] ?? 0) + 1));
       expect(Math.max(...Object.values(perCountry))).toBeLessThanOrEqual(2);

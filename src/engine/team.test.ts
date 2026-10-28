@@ -6,7 +6,7 @@ import { WORLD } from './presets/world';
 import { makeRng } from './rng';
 import { entrantsFor, entryDeadline, finalsTeams, newSeason, playWeek, teamStrengths, type SeasonState, type TeamHook, type WeekHooks } from './season';
 import { isJuniorAge } from './generator';
-import { adHocId, autoLineup, rankOrder, autoSquad, lineupError, playTie, squadError, type Lineup, type TeamEntrant } from './team';
+import { adHocId, autoLineup, rankOrder, autoSquad, lineupError, PLAY_ORDERS, playOrder, playTie, squadError, type Lineup, type TeamEntrant } from './team';
 import type { DrawShow } from './tournament';
 import type { Ruleset } from './types';
 
@@ -242,7 +242,8 @@ describe('Thomas, Uber & Sudirman Cup', () => {
       const ms = tie.matchIds!.map((id) => byId.get(id)!);
       expect(ms.length).toBe(tie.score[0] + tie.score[1]);
       expect(ms.every((m) => m.tournamentId === 'thomas-uber-cup' && m.round === tie.round)).toBe(true);
-      expect(ms.map((m) => m.discipline)).toEqual(BWF_2026.team.order.thomas.slice(0, ms.length));
+      const T = BWF_2026.team.order.thomas; // salah satu urutan sah BWF 10.1
+      expect(PLAY_ORDERS.thomas.orders.map((seq) => seq.slice(0, ms.length).map((i) => T[i]).join())).toContain(ms.map((m) => m.discipline).join());
     }
   });
 
@@ -346,5 +347,23 @@ describe('Thomas, Uber & Sudirman Cup', () => {
     expect(first.sides).toContain(firstLineup![4]);
     // Uber: skuad tidak sah diganti otomatis.
     expect(state.teamResults.find((r) => r.eventId === 'thomas-uber-cup' && r.format === 'uber')!.squads.INA).not.toContain('bukan-atlet');
+  });
+});
+
+describe('urutan partai (BWF T&U 10.2, Sudirman 13.2)', () => {
+  const T = BWF_2026.team.order.thomas, S = BWF_2026.team.order.sudirman;
+  const playersOf = (id: string) => id.split('+'); // 'a+b' = pasangan
+  const rng = makeRng(1);
+  it('Thomas: tanpa atlet rangkap → 10.1.1', () => {
+    expect(playOrder('thomas', T, [['a', 'b+c', 'd', 'e+f', 'g'], ['h', 'i+j', 'k', 'l+m', 'n']], playersOf, rng)).toEqual([0, 1, 2, 3, 4]);
+  });
+  it('Thomas: tunggal 3 juga main ganda 2 → 10.1.5 (tiga tunggal dulu)', () => {
+    expect(playOrder('thomas', T, [['a', 'b+c', 'd', 'g+f', 'g'], ['h', 'i+j', 'k', 'l+m', 'n']], playersOf, rng)).toEqual([0, 2, 4, 1, 3]);
+  });
+  it('Sudirman: atlet WS yang juga main XD → WS lebih dulu dan tidak berturut-turut', () => {
+    for (let i = 0; i < 20; i++) {
+      const seq = playOrder('sudirman', S, [['b+w', 'w', 'm', 'x+y', 'n+o'], ['p+q', 'r', 's', 't+u', 'v+z']], playersOf, rng);
+      expect(seq.indexOf(1)).toBeLessThan(seq.indexOf(0) - 1);
+    }
   });
 });

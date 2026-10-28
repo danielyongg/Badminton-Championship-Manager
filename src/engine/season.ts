@@ -14,7 +14,7 @@ import { makeRng, shuffle, type Rng } from './rng';
 import type { Standing } from './groups';
 import { each, type MatchRound, type PlayFn } from './knockout';
 import { juniorEntries, juniorTeamEntrants } from './junior';
-import { AD_HOC, adHocEntrants, autoLineup, rankOrder, autoSquad, lineupError, playTie, runTeamEvent, squadError, squadPool, type Lineup, type TeamEntrant } from './team';
+import { AD_HOC, adHocEntrants, autoLineup, rankOrder, autoSquad, lineupError, playOrder, playTie, runTeamEvent, squadError, squadPool, type Lineup, type TeamEntrant } from './team';
 import { runEvent, simPlay, tournamentWildcards, toRecord, type HotForm, type DrawHook, type DrawShow, type EntriesHook, type EntriesShow, type EventRecord, type LiveHook } from './tournament';
 import { roundGate, type RoundHook } from './gate';
 import { makeScouting, recruit, SCOUTING_DEADLINE_WEEK, withdrawCandidates, type Scouting, type ScoutFocus } from './scouting';
@@ -1253,7 +1253,8 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
     const tie: PlayFn = async (a, b, round) => {
       const lineups: [Lineup, Lineup] = [await lineupOf(a, b, round), await lineupOf(b, a, round)];
       const from = state.matches.length;
-      const r = await playTie(lineups, order, round, playOf, round === 'G');
+      const seq = playOrder(format, order, lineups, (id) => pairs.get(id)?.playerIds ?? [id], rng);
+      const r = await playTie(lineups, order, round, playOf, round === 'G', seq);
       const won = r.scores.filter(([x, y]) => x > y).length;
       ties.push({ round, sides: [a, b], score: [won, r.scores.length - won], matchIds: state.matches.slice(from).map((m) => m.id) });
       return r;

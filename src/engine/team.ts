@@ -1,7 +1,7 @@
 import { groupDraw, knockoutFromGroups, playGroup, type Standing } from './groups';
 import { each, playKnockout, type MatchRound, type PlayFn, type PlayResult } from './knockout';
 import type { Rng } from './rng';
-import type { Discipline, DrawStep, EntrantId, GroupStage } from './types';
+import { isDoubles, type Discipline, type DrawStep, type EntrantId, type GroupStage, type TeamFormat } from './types';
 import { t } from '../i18n';
 
 // Beregu (Thomas/Uber/Sudirman): line-up, satu pertandingan beregu (5 partai), dan format grup + gugur.
@@ -107,16 +107,45 @@ export function autoLineup(order: Discipline[], pool: Record<string, TeamEntrant
 }
 
 /**
+ * Urutan main yang sah per format, sebagai indeks slot `team.order[format]` (slot baku: T/U S1-D1-S2-D2-S3, Sudirman XD-WS-MS-WD-MD).
+ * Thomas & Uber Cup Regulations 10.1–10.2: dicoba berurutan, dipakai yang pertama tanpa atlet main di dua partai berturut-turut
+ * atau main ganda sebelum tunggal; bila tidak ada, 10.1.5. Sudirman Cup 13.1–13.2 (daftar 7 urutan, cadangan 13.1.2);
+ * ASUMSI: seperti Sudirman Cup 2025 wasit memilih di antara urutan yang sah (dimodelkan acak). Suhandinata = Sudirman.
+ */
+const SUDIRMAN = { orders: [[4, 1, 2, 3, 0], [2, 1, 4, 3, 0], [0, 2, 4, 1, 3], [0, 2, 1, 4, 3], [0, 1, 2, 3, 4], [1, 2, 3, 4, 0], [4, 3, 2, 1, 0]], fallback: 1, random: true };
+const THOMAS = { orders: [[0, 1, 2, 3, 4], [0, 3, 2, 1, 4], [0, 2, 1, 4, 3], [0, 2, 3, 4, 1], [0, 2, 4, 1, 3], [0, 2, 4, 3, 1], [0, 1, 2, 4, 3], [0, 3, 2, 4, 1]], fallback: 4, random: false };
+export const PLAY_ORDERS: Record<TeamFormat, { orders: number[][]; fallback: number; random: boolean }> = { thomas: THOMAS, uber: THOMAS, sudirman: SUDIRMAN, suhandinata: SUDIRMAN };
+
+/** Urutan main satu pertandingan beregu dari line-up kedua tim (`playersOf`: atlet sebuah peserta). */
+export function playOrder(format: TeamFormat, order: Discipline[], lineups: [Lineup, Lineup], playersOf: (id: EntrantId) => string[], rng: Rng): number[] {
+  const { orders, fallback, random } = PLAY_ORDERS[format];
+  const ok = (seq: number[]) => {
+    const last = new Map<string, number>(), doubled = new Set<string>();
+    return seq.every((slot, k) => lineups.every((l) => (l[slot] ? playersOf(l[slot]!) : []).every((p) => {
+      if (last.get(p) === k - 1) return false; // dua partai berturut-turut
+      if (!isDoubles(order[slot]) && doubled.has(p)) return false; // ganda sebelum tunggal
+      last.set(p, k);
+      if (isDoubles(order[slot])) doubled.add(p);
+      return true;
+    })));
+  };
+  const valid = orders.filter(ok);
+  if (!valid.length) return orders[fallback];
+  return random ? valid[Math.floor(rng() * valid.length)] : valid[0];
+}
+
+/**
  * Satu pertandingan beregu. `scores` berisi [game menang A, game menang B] per partai, sehingga klasemen grup
  * (`playGroup`) otomatis memakai urutan beregu: kemenangan → head-to-head → selisih partai → selisih game.
  * Babak gugur berhenti begitu satu tim memastikan kemenangan; fase grup memainkan semua partai.
  */
 export async function playTie(
   lineups: [Lineup, Lineup], order: Discipline[], round: MatchRound, play: (d: Discipline) => PlayFn, allMatches: boolean,
+  seq = order.map((_, i) => i), // urutan main (indeks slot), lihat `playOrder`
 ): Promise<PlayResult> {
   const wins = [0, 0];
   const scores: [number, number][] = [];
-  for (let i = 0; i < order.length; i++) {
+  for (const i of seq) {
     if (!allMatches && Math.max(...wins) > order.length / 2) break;
     const a = lineups[0][i], b = lineups[1][i];
     if (!a || !b) {
