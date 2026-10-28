@@ -476,7 +476,7 @@ export function JuniorEntryTable({ ev, onSubmit, onBack }: { ev: TournamentDef; 
   };
   return (
     <>
-      <p className="hint">{quota.doubles ? t('juniorEntryHelp', { s: quota.singles, d: quota.doubles }) : t('juniorEntryHelpSingles', { s: quota.singles, age: tier.junior!.maxAge ?? 18 })}</p>
+      <p className="hint">{quota.doubles ? t(tier.junior!.maxAge ? 'juniorEntryHelpAge' : 'juniorEntryHelp', { s: quota.singles, d: quota.doubles, age: tier.junior!.maxAge ?? 18 }) : t('juniorEntryHelpSingles', { s: quota.singles, age: tier.junior!.maxAge ?? 18 })}</p>
       <p className="controls">
         <button onClick={() => {
           const next = { ...decisions };

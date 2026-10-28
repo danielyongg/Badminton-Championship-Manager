@@ -461,7 +461,7 @@ function distanceKm(a: City, b: City) {
  */
 export const ENTRY_LEAD: Record<string, number> = {
   S1000: 6, S750: 6, S500: 5, S300: 5, S100: 4, IC: 4, IS: 4, FS: 4, CCA: 4, CCE: 4, CCP: 4, CCI: 4, WC: 2,
-  WJC: 3, JC: 4, JC2: 4, JGP: 4, JIC: 4, JIS: 4,
+  WJC: 3, JC: 4, JC2: 4, JU17: 4, JGP: 4, JIC: 4, JIS: 4,
 };
 /** Nominasi skuad beregu: 14 hari sebelum turnamen (regulasi Thomas & Uber Cup 9.1). */
 export const TEAM_ENTRY_LEAD = 2;

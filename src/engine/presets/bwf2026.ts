@@ -194,6 +194,17 @@ export const TIERS_2026: Tier[] = [
     junior: { quota: { singles: 2, doubles: 1 }, play: 0.5, local: true },
   },
   {
+    // Kejuaraan U17 kontinental (Badminton Asia U17 Junior Championships, European U17 Championships): usia ≤ 16 di tahun itu
+    // (Asia 2026: lahir 2010 atau sesudahnya). ASUMSI: tanpa poin ranking junior BWF (ranking junior hanya U19), kuota & bagan
+    // seperti kejuaraan junior kontinental; nomor ganda hanya pasangan yang keduanya ≤ 16.
+    id: 'JU17', name: 'Kejuaraan U17 Kontinental', grade: 3,
+    points: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    prizeUsd: 0, prizeSplit: NO_PRIZE,
+    drawSize: { MS: 64, WS: 64, MD: 32, WD: 32, XD: 32 },
+    qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
+    junior: { quota: { singles: 4, doubles: 3 }, maxAge: 16 },
+  },
+  {
     // Youth Olympic Games (Regulations for Badminton Competition Dakar 2026): tunggal saja, 32 peserta, usia ≤ 17,
     // 8 unggulan dari ranking junior; 8 grup × 4, juara grup ke perempat final. ASUMSI: satu atlet per negara per nomor
     // (kuota NOC), tanpa poin ranking; prioritas negara Afrika tidak dimodelkan.
@@ -389,6 +400,12 @@ export const CALENDAR_2026: TournamentDef[] = [
   { id: 'korea-junior', name: 'Korea Junior International', cityId: 'suwon', week: 45, tierId: 'JGP', prizeUsd: 0 },
   { id: 'philippines-junior', name: 'Philippines Junior International', cityId: 'manila', week: 48, tierId: 'JIS', prizeUsd: 0 },
   { id: 'world-junior', name: 'BWF World Junior Championships', cityId: 'guwahati', week: 41, tierId: 'WJC', prizeUsd: 0 },
+  // U17: Asia tiap tahun (2026 Chengdu, 8–13 Sep), Eropa tiap tahun ganjil (2025 Lanzarote, 29 Nov–7 Des; 2027 Slovenia).
+  // ASUMSI: tuan rumah berikutnya diundi di antara kota kandidat (Slovenia belum ada di data → kota Eropa lain).
+  { id: 'asia-u17', name: 'Badminton Asia U17 Junior Championships', cityId: 'chengdu', week: 37, tierId: 'JU17', prizeUsd: 0, confederation: 'BA',
+    hosts: { 2026: 'chengdu' }, rotation: ['chengdu', 'surabaya', 'bangkok', 'kuala-lumpur', 'ho-chi-minh'] },
+  { id: 'europe-u17', name: 'European U17 Championships', cityId: 'brno', week: 49, tierId: 'JU17', prizeUsd: 0, confederation: 'BE',
+    everyYears: { interval: 2, offset: 1 }, rotation: ['brno', 'sofia', 'vantaa', 'almere', 'dublin'] },
   // Youth Olympic Games tiap 4 tahun (Dakar 2026, badminton 1–5 Nov). ASUMSI: tuan rumah berikutnya diundi di antara kota kandidat.
   { id: 'youth-olympics', name: 'Youth Olympic Games', cityId: 'dakar', week: 45, tierId: 'YOG', prizeUsd: 0, everyYears: { interval: 4, offset: 2 },
     hosts: { 2026: 'dakar' }, rotation: ['singapore', 'bangkok', 'sao-paulo', 'cairo'] },

@@ -92,7 +92,8 @@ Urutan kerja (tiap fase bisa dirilis sendiri; tes & build hijau di akhir fase):
 - [x] Pop-up line-up beregu lebih ringkas: satu pilihan per partai (pasangan terdaftar / ganda dadakan), info ranking & kemampuan, partai bermasalah ditandai.
 - [x] **BWF Player of the Year**: nominasi 3 minggu sebelum WTF, pemenang di minggu WTF (MS, WS, MD, WD, XD, Rising Star); berita, profil, Rekor.
 - [x] **Urutan partai beregu** sesuai regulasi BWF (T&U 10.2, Sudirman 13.2): ditentukan wasit dari kedua line-up, bukan dipilih manajer (urutan tetap sebelumnya hanya 10.1.1 / 13.1.5).
-- Belum (opsional): kejuaraan junior U17/U15 kontinental.
+- [x] **Kejuaraan U17 kontinental**: Badminton Asia U17 (tiap tahun) & European U17 (tahun ganjil), usia ≤ 16, tanpa poin.
+- Belum (opsional): kejuaraan U15 (perlu junior masuk game lebih muda dari 15 tahun).
 
 ## Batasan yang bisa ditinjau ulang
 - Tier tidak bisa ditambah/dihapus di Editor.

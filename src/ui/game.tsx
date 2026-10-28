@@ -231,7 +231,7 @@ const CONTINENTAL_TIERS = new Set(['CCA', 'CCE', 'CCP', 'CCI']);
 /** Label tier untuk tampilan: multi-event (tier MSG) & kejuaraan kontinental ditulis lengkap. */
 export const tierLabel = (id: string) => (id === 'MSG' ? t('multiEvent') : CONTINENTAL_TIERS.has(id) ? t('continental') : id);
 /** Kode tier junior seperti di kalender BWF (Junior International Grand Prix = IGP, dst.). */
-const JUNIOR_CODE: Record<string, string> = { JGP: 'IGP', JIC: 'IC', JIS: 'IS', JC2: 'JC' };
+const JUNIOR_CODE: Record<string, string> = { JGP: 'IGP', JIC: 'IC', JIS: 'IS', JC2: 'JC', JU17: 'U17' };
 /** Kelompok tier untuk tampilan, urut dari yang tertinggi (lihat TierBadge). */
 export const TIER_GROUPS = ['g1', 'msg', 'cont', 'g2', 'g3', 'junior'] as const;
 /** Urutan & label filter kalender: Grade 1–3, lalu Multi-sport, Continental, Junior (urutan gelar di profil tetap TIER_GROUPS). */

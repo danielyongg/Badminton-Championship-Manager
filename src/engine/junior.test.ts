@@ -5,7 +5,7 @@ import { BWF_2027 } from './presets/bwf2027';
 import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
 import { makeRng } from './rng';
-import { entrantsFor, entryDeadline, newSeason, playWeek, weekKey, weekOf } from './season';
+import { entrantsFor, entryDeadline, isHeld, newSeason, playWeek, weekKey, weekOf } from './season';
 import { currentAbility } from './generator';
 import { isDoubles, type Discipline } from './types';
 
@@ -39,6 +39,32 @@ describe('turnamen junior', () => {
     }
     expect(state.champions.filter((c) => c.tournamentId === 'youth-olympics')).toHaveLength(2);
     expect(state.juniorResults.filter((x) => x.tournamentId === 'youth-olympics' && x.points > 0)).toHaveLength(0);
+  }, 180_000);
+
+  it('Kejuaraan U17 kontinental (Asia tiap tahun, Eropa tahun ganjil): 5 nomor, usia ≤ 16, satu konfederasi, tanpa poin', async () => {
+    const u17 = juniorEvents(BWF_2027).filter((e) => e.tierId === 'JU17');
+    expect(u17.map((e) => e.confederation).sort()).toEqual(['BA', 'BE']);
+    expect([2026, 2027, 2028, 2029].map((y) => u17.filter((e) => isHeld(e, y)).length)).toEqual([1, 2, 1, 2]);
+    const r = structuredClone(rs);
+    const state = newSeason(WORLD, r, 11, undefined, 'INA');
+    const rng = makeRng(11);
+    while (state.date.week <= 37) await playWeek(state, r, WORLD, rng);
+    const players = new Map(state.players.map((p) => [p.id, p]));
+    const pairs = new Map(state.pairs.map((p) => [p.id, p]));
+    const conf = new Map(WORLD.countries.map((c) => [c.id, c.confederation]));
+    const sizes: string[] = [];
+    for (const [id, c] of [['asia-u17', 'BA']] as const) {
+      const recs = state.eventRecords.filter((x) => x.tournamentId === id && x.year === 2026);
+      expect(recs.map((x) => x.discipline).sort()).toEqual(['MD', 'MS', 'WD', 'WS', 'XD']);
+      for (const rec of recs) {
+        const ids = [...rec.entry.main, ...rec.entry.wildcards].flatMap((e) => pairs.get(e.id)?.playerIds ?? [e.id]);
+        sizes.push(`${rec.discipline} ${rec.entry.main.length + rec.entry.wildcards.length}`);
+        expect(ids.length, `${id} ${rec.discipline}`).toBeGreaterThanOrEqual(isDoubles(rec.discipline) ? 8 : 16);
+        expect(ids.every((p) => 2026 - players.get(p)!.birth.year <= 16 && conf.get(players.get(p)!.countryId) === c)).toBe(true);
+      }
+      expect(state.juniorResults.filter((x) => x.tournamentId === id && x.points > 0)).toHaveLength(0);
+    }
+    if (process.env.U17_OUT) (await import('fs')).writeFileSync(process.env.U17_OUT, sizes.join('\n'));
   }, 180_000);
 
   it('negara manajer tanpa pasangan junior otomatis (ganda junior hanya bentukan manajer); negara lain tetap otomatis', async () => {
