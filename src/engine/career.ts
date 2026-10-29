@@ -149,7 +149,26 @@ export function seasonGoals(state: SeasonState, rs: Ruleset, countryId: string, 
     ...majorGoals(state, rs, countryId),
     ...gamesGoals(state, rs, countryId),
     ...olympicGoal(state, rs, countryId, world),
+    ...juniorGoals(state, rs, countryId),
   ];
+}
+
+/**
+ * Target junior (ASUMSI): medali Kejuaraan Dunia Junior sebanyak nomor dengan junior top 4 ranking junior;
+ * Suhandinata dari peringkat kekuatan tim junior (1 → juara, 2 → final, 3–4 → semifinal, 5–8 → perempat final).
+ */
+function juniorGoals(state: SeasonState, rs: Ruleset, countryId: string): FederationGoal[] {
+  const year = state.date.year, out: FederationGoal[] = [];
+  const wjc = heldOfTier(rs, 'WJC', year);
+  const country = countryOfEntrant(state), now = absWeek(state.date);
+  const top4 = DISCIPLINES.filter((d) => computeRanking(state.juniorResults ?? [], d, now, rs).some((r) => r.rank <= 4 && country(r.entrantId) === countryId)).length;
+  if (wjc && top4) out.push({ kind: 'medals', eventId: wjc.id, target: top4 });
+  if (rs.team.events.some((e) => e.formats?.includes('suhandinata') && isHeld(e, year))) {
+    const rank = teamStrengths(state, rs, 'suhandinata').findIndex((t) => t.countryId === countryId) + 1;
+    const target = rank === 1 ? 5 : rank === 2 ? 4 : rank >= 3 && rank <= 4 ? 3 : rank >= 5 && rank <= 8 ? 2 : 0;
+    if (target) out.push({ kind: 'team', format: 'suhandinata', target });
+  }
+  return out;
 }
 
 /** Capaian terkini suatu target (dipakai Dashboard & rapor). */

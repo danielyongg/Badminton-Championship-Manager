@@ -263,7 +263,8 @@ describe('Thomas, Uber & Sudirman Cup', () => {
     for (const m of ids) for (const s of m.sides) for (const id of pairs.get(s)?.playerIds ?? [s])
       expect(isJuniorAge(players.get(id)!, { year: 2026, week: 40 })).toBe(true);
     expect(Object.values(res.squads).flat().every((id) => isJuniorAge(players.get(id)!, { year: 2026, week: 40 }))).toBe(true);
-    expect(state.career!.goals.some((g) => g.format === 'suhandinata')).toBe(false);
+    // Target Suhandinata (bila ada) dari kekuatan tim junior peringkat 1–8.
+    for (const g of state.career!.goals.filter((x) => x.format === 'suhandinata')) expect(g.target).toBeGreaterThanOrEqual(2);
     // Kejuaraan kontinental tidak memainkan format junior.
     expect(state.teamResults.some((r) => r.confederation && r.format === 'suhandinata')).toBe(false);
   }, 60000);

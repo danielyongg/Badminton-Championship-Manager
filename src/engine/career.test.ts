@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dissolvePair, formPair, peakRange, potentialStars, promoteJunior, promoteTrial, setTarget, suggestJuniorTargets, suggestTargets, targetReport } from './career';
+import { dissolvePair, formPair, peakRange, seasonGoals, potentialStars, promoteJunior, promoteTrial, setTarget, suggestJuniorTargets, suggestTargets, targetReport } from './career';
 import { currentAbility, isJuniorAge as isJunior } from './generator';
 import { ATTRS, ROUNDS, type Player } from './types';
 import { isJuniorAge, isPratama } from './generator';
@@ -33,7 +33,7 @@ describe('mode karier', () => {
     const state = newSeason(WORLD, rs, 1, undefined, 'INA');
     const rng = makeRng(1);
     await playWeek(state, rs, WORLD, rng);
-    expect(state.career!.goals.map((g) => g.kind)).toEqual(['titles', 'top10', 'team', 'team', 'medals', 'medals', 'olympic']);
+    expect(state.career!.goals.map((g) => g.kind)).toEqual(['titles', 'top10', 'team', 'team', 'medals', 'medals', 'olympic', 'team']); // terakhir: Suhandinata (target junior)
     expect(state.career!.goals.filter((g) => g.kind === 'medals').map((g) => g.eventId)).toEqual(['world-championships', 'asian-games']);
     expect(state.career!.goals.every((g) => g.target >= 1)).toBe(true);
     expect(state.career!.goals.find((g) => g.kind === 'olympic')!.year).toBe(2028);
@@ -310,4 +310,22 @@ it('prediksi puncak: rentang menyempit seiring usia & laga, dibulatkan', () => {
   expect(young[1]).toBeGreaterThanOrEqual(old[1]);
   expect(young[1]).toBeGreaterThan(young[0]);
   for (const r of [...young, ...old]) expect([1, 3, 5, 10, 20, 30, 50, 100, 200, 300, 500]).toContain(r);
+});
+
+it('target junior: medali Kejuaraan Dunia Junior sebanyak nomor dengan junior top 4; Suhandinata dari kekuatan tim junior 1–8', () => {
+  const rs = BWF_2026;
+  const state = newSeason(WORLD, rs, 2, { year: 2026, week: 1 }, 'INA');
+  const now = absWeek(state.date);
+  const countryOf = (id: string) => state.players.find((p) => p.id === (state.pairs.find((x) => x.id === id)?.playerIds[0] ?? id))?.countryId;
+  const juniorTop4 = (c: string) => (['MS', 'WS', 'MD', 'WD', 'XD'] as const)
+    .filter((d) => computeRanking(state.juniorResults, d, now, rs).some((r) => r.rank <= 4 && countryOf(r.entrantId) === c)).length;
+  for (const c of ['INA', 'CHN', 'NGR']) {
+    const goals = seasonGoals(state, rs, c);
+    const wjc = goals.find((g) => g.kind === 'medals' && g.eventId === rs.calendar.find((e) => e.tierId === 'WJC')!.id);
+    const n = juniorTop4(c);
+    if (n) expect(wjc?.target).toBe(n); else expect(wjc).toBeUndefined();
+    const suh = goals.find((g) => g.format === 'suhandinata');
+    if (suh) expect(suh.target).toBeGreaterThanOrEqual(2);
+  }
+  expect(seasonGoals(state, rs, 'INA').some((g) => g.format === 'suhandinata')).toBe(true); // Indonesia tim junior kuat
 });
