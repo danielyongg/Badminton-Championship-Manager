@@ -894,6 +894,7 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 .news .badge.news-hosts { background: var(--fair-soft); color: var(--fair); }
 .news .badge.news-breakthrough { background: var(--accent-soft); color: var(--accent-strong); }
 .news .badge.news-ready { background: var(--accent-soft); color: var(--accent-strong); }
+.chip.junior-chip { background: var(--fair-soft); color: var(--fair); font-size: .7rem; vertical-align: middle; }
 .tag.up-tag { background: var(--accent-soft); color: var(--accent-strong); font-weight: 700; }
 .news .badge.news-gem { background: var(--gold-soft); color: var(--gold); }
 /* Pencarian bakat: baris yang panelnya terbuka diberi garis aksen; tanda permata & tag emas. */

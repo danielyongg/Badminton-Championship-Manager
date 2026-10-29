@@ -162,7 +162,7 @@ function juniorGoals(state: SeasonState, rs: Ruleset, countryId: string): Federa
   const wjc = heldOfTier(rs, 'WJC', year);
   const country = countryOfEntrant(state), now = absWeek(state.date);
   const top4 = DISCIPLINES.filter((d) => computeRanking(state.juniorResults ?? [], d, now, rs).some((r) => r.rank <= 4 && country(r.entrantId) === countryId)).length;
-  if (wjc && top4) out.push({ kind: 'medals', eventId: wjc.id, target: top4 });
+  if (wjc && top4) out.push({ kind: 'medals', eventId: wjc.id, target: top4, junior: true });
   if (rs.team.events.some((e) => e.formats?.includes('suhandinata') && isHeld(e, year))) {
     const rank = teamStrengths(state, rs, 'suhandinata').findIndex((t) => t.countryId === countryId) + 1;
     const target = rank === 1 ? 5 : rank === 2 ? 4 : rank >= 3 && rank <= 4 ? 3 : rank >= 5 && rank <= 8 ? 2 : 0;
@@ -181,7 +181,7 @@ export function goalProgress(state: SeasonState, rs: Ruleset, countryId: string,
 }
 
 /** Bobot target di rapor: Kejuaraan Dunia & Olimpiade 2×, multi-event 1×; siklus Olimpiade hanya dinilai di tahun Olimpiade (2×). */
-export const goalWeight = (g: FederationGoal, year: number): number => (g.kind === 'medals' ? (g.games ? 1 : 2) : g.kind === 'olympic' ? (g.year === year ? 2 : 0) : 1);
+export const goalWeight = (g: FederationGoal, year: number): number => (g.kind === 'medals' ? (g.games || g.junior ? 1 : 2) : g.kind === 'olympic' ? (g.year === year ? 2 : 0) : 1);
 
 // ASUMSI: bonus / penalti reputasi tantangan opsional.
 export const CHALLENGE_REWARD = 8;

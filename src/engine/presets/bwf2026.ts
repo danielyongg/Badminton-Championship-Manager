@@ -148,7 +148,8 @@ export const TIERS_2026: Tier[] = [
     prizeUsd: 0, prizeSplit: NO_PRIZE,
     drawSize: { MS: 128, WS: 128, MD: 64, WD: 64, XD: 64 },
     qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
-    junior: { quota: { singles: 3, doubles: 2 } },
+    // Kejuaraan Dunia Junior 2025 (Guwahati): negara besar mengirim 4 tunggal & s/d 3 pasangan per nomor. ASUMSI: 4/3.
+    junior: { quota: { singles: 4, doubles: 3 } },
   },
   {
     id: 'JC', name: 'Kejuaraan Junior Kontinental', grade: 3,
@@ -165,7 +166,8 @@ export const TIERS_2026: Tier[] = [
     prizeUsd: 0, prizeSplit: NO_PRIZE,
     drawSize: { MS: 64, WS: 64, MD: 32, WD: 32, XD: 32 },
     qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
-    junior: { quota: { singles: 4, doubles: 3 } },
+    // Regulasi Pan Am Junior: 4 tunggal, 2 ganda (campuran 4; game tidak membedakan campuran).
+    junior: { quota: { singles: 4, doubles: 2 } },
   },
   // ASUMSI: turnamen junior internasional (gaya BWF Junior International Grand Prix / Challenge / Series). Poin di bawah
   // kejuaraan kontinental; Challenge & Series sebagian besar diikuti atlet dari benua tuan rumah (`local`).

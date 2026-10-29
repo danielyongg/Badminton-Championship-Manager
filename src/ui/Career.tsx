@@ -8,7 +8,7 @@ import { entrantsFor, forgetPlayer, hasHistory, hostCityId, isHeld, openTo, team
 import type { RoundHook, RoundShow } from '../engine/gate';
 import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
-import { DISCIPLINES, ROUNDS, type Discipline, type Match, type TeamFormat } from '../engine/types';
+import { DISCIPLINES, isJuniorFormat, ROUNDS, type Discipline, type Match, type TeamFormat } from '../engine/types';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import { AWARD_CATS } from '../engine/awards';
 import { weeklyNews, type NewsItem } from '../engine/news';
@@ -21,7 +21,7 @@ import { ThemeSelect } from './ThemeSelect';
 import { Flag } from './Flag';
 import { LiveDraw } from './LiveDraw';
 import { LiveMatch, PreMatch } from './LiveMatch';
-import { advance, entrantLabel, eventName, teamLabel, lookup, saveGame, useGame, TierBadge } from './game';
+import { advance, entrantLabel, eventName, teamLabel, lookup, saveGame, tierGroup, useGame, TierBadge } from './game';
 import { SeasonViews } from './Ranking';
 import { arrow, injuryText, isBadInjury, Profile, Squad, TraitTags, usd } from './Squad';
 import { quarterReport } from '../engine/development';
@@ -407,6 +407,13 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
   // Ranking BWF saat ini: 10 besar dunia per nomor + perubahan dibanding snapshot ≥ 4 minggu lalu.
   const { version } = useGame();
   const [rankD, setRankD] = useState<Discipline>('MS');
+  // Turnamen junior yang badge tier-nya bukan "Junior" (Kejuaraan Dunia Junior & Suhandinata = Grade 1, kejuaraan kontinental) diberi chip Junior.
+  const juniorChip = (id: string) => {
+    const c = ruleset.calendar.find((e) => e.id === id), team = ruleset.team.events.find((e) => e.id === id);
+    const tier = c && ruleset.tiers.find((x) => x.id === c.tierId);
+    const junior = c ? !!tier?.junior : !!team?.formats?.some(isJuniorFormat);
+    return junior && tierGroup(tier, team) !== 'junior' ? <> <span className="chip junior-chip">{t('juniorShort')}</span></> : null;
+  };
   const top10 = useMemo(() => {
     const now = absWeek(state.date);
     const prev = state.rankSnapshots.filter((x) => x.discipline === rankD && x.absWeek <= now - 4).at(-1);
@@ -511,7 +518,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
             {list.map((e) => (
               <div key={e.id} className="drow" data-ev={e.id}>
                 <TierBadge tierId={e.tierId} team={'team' in e ? e.team : undefined} />
-                <span className="grow"><b>{eventName(ruleset, e.id, year)}</b><small className="muted-text">{city(hostCityId(e, year))}</small></span>
+                <span className="grow"><b>{eventName(ruleset, e.id, year)}{juniorChip(e.id)}</b><small className="muted-text">{city(hostCityId(e, year))}</small></span>
                 {managed && <EntryBadge id={e.id} onOpen={() => onOpenEvent(e.id, year)} />}
               </div>
             ))}
@@ -557,7 +564,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
             return (
               <div key={r.eventId + r.format} className={`drow${reached === 'W' ? ' champ' : ''}`}>
                 <span className="chip">{teamLabel(r)}</span>
-                <span className="grow"><b><EventLink id={r.eventId} year={r.year} onOpen={onOpenEvent} /> · {formatName(r.format, r.eventId)}</b></span>
+                <span className="grow"><b><EventLink id={r.eventId} year={r.year} onOpen={onOpenEvent} /> · {formatName(r.format, r.eventId)}</b>{juniorChip(r.eventId)}</span>
                 <span className={`badge${reached === 'W' ? ' gold' : reached === 'F' || reached === 'SF' ? ' good' : ''}`}>{reached === 'W' ? `🏆 ${t('champion')}` : reached ?? t('group')}</span>
               </div>
             );
@@ -571,7 +578,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
               const goals = (state.targetLog ?? []).filter((x) => x.eventId === event && x.year === selYear);
               return (
               <div key={event} className="dlist">
-                <h4><EventLink id={event} year={selYear} onOpen={onOpenEvent} /></h4>
+                <h4><EventLink id={event} year={selYear} onOpen={onOpenEvent} />{juniorChip(event)}</h4>
                 <p className="week-sum">
                   {(['W', 'F', 'SF', 'QF'] as const).filter((rd) => count(rd)).map((rd) => <span key={rd} className={`badge${rd === 'W' ? ' gold' : rd === 'QF' ? '' : ' good'}`}>{rd === 'W' ? '🏆' : rd} ×{count(rd)}</span>)}
                   <span className="muted-text">{t('weekSumEntrants', { n: list.length })}</span>

@@ -100,7 +100,7 @@ Spesifikasi: `docs/superpowers/specs/2026-10-29-junior-scouting-promosi-design.m
 - [x] **Bagian 1 — Pencarian bakat**: permata & tipe, daftar + panel (laporan pemandu, gaya mirip), berita Bakat, asal-usul di profil.
 - [x] **Bagian 2 — Promosi**: ⬆ siap promosi (+ berita), terlalu cepat (morale ×1,5 saat kalah senior, 26 minggu) / terlambat (pertumbuhan ×0,9).
 - [x] **Bagian 3 — Kabar**: berita Terobosan (lonjakan ≥ 4 sekuartal, menang pertama atas top 50), prediksi puncak di profil.
-- [ ] **Bagian 4 — Turnamen junior**: target junior, chip Junior, Pratama top ke grade 3 senior, kuota BWF.
+- [x] **Bagian 4 — Turnamen junior**: target junior (medali Dunia Junior, Suhandinata), chip Junior, Pratama siap ke grade 3 senior, kuota Dunia Junior 4/3 & Pan Am 4/2.
 
 ## Batasan yang bisa ditinjau ulang
 - Tier tidak bisa ditambah/dihapus di Editor.

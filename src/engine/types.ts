@@ -488,6 +488,8 @@ export interface FederationGoal {
   gold?: boolean;
   /** medals: multi-event (bobot biasa, bukan 2×). */
   games?: true;
+  /** Target junior (Kejuaraan Dunia Junior): bobot biasa, bukan ganda seperti medali Kejuaraan Dunia/Olimpiade. */
+  junior?: true;
   /** olympic: tahun Olimpiade tujuan (dinilai di tahun itu saja). */
   year?: number;
   target: number;

@@ -114,7 +114,8 @@ describe('turnamen junior', () => {
       const entered = [...rec(d).entry.main, ...rec(d).entry.qualifying, ...rec(d).entry.reserves];
       const per = new Map<string, number>();
       for (const c of entered) per.set(c.countryId, (per.get(c.countryId) ?? 0) + 1);
-      expect(Math.max(...per.values())).toBeLessThanOrEqual(isDoubles(d) ? 2 : 3);
+      const q = BWF_2026.tiers.find((x) => x.id === 'WJC')!.junior!.quota;
+      expect(Math.max(...per.values())).toBeLessThanOrEqual(isDoubles(d) ? q.doubles : q.singles);
     }
     const auto = state.pairs.filter((p) => p.junior);
     expect(auto.length).toBeGreaterThan(0);
