@@ -8,9 +8,11 @@ cerita, atau satu keputusan sederhana. Dikerjakan & di-commit per bagian (1 → 
 Masalah yang dijawab: pilihan terasa tidak penting, kurang cerita, info kurang jelas. Jumlah kandidat & kursi tidak diubah.
 
 ### 1a. Kandidat beragam
-- **Permata**: per gender per angkatan 1 kandidat, peluang 40 % jadi 2. PA diundi 84–94 (± ★4–5); kandidat ini
-  menggantikan kandidat biasa (jumlah kandidat tetap). Usia 15–16 agar ada waktu tumbuh. ASUMSI: hanya negara manajer,
-  negara AI tetap memakai `newJuniors` biasa — negara manajer sedikit lebih kuat dari sekarang.
+- **Permata**: per gender per angkatan 1 kandidat, peluang 40 % jadi 2. Ambang permata relatif terhadap tradisi
+  negara: `gemLine` = rata-rata PA negara + 1,5 sd (Indonesia ≈ 91, negara tradisi 30 ≈ 65). PA permata = maks(PA-nya,
+  ambang + 0–0,7 sd), maks 99; kandidat lain dibatasi PA ≤ ambang − 1 agar permata benar-benar menonjol (potensi alami
+  setinggi itu sudah ±3 per gender per musim untuk Indonesia, jadi efek ke kekuatan negara kecil). Permata dipilih dari
+  kandidat berusia ≤ 16 bila ada. Jumlah kandidat tetap. Hanya negara manajer; negara AI tetap memakai `newJuniors`.
 - **Tipe** untuk kandidat lain (diundi rata): `doubles` (Spesialis ganda: `focus: 'D'`, net/serve/smash +6),
   `attack` (smash/deception +6), `defense` (defense/consistency +6), `worker` (speed/stamina +6), `ready` (CA dekat PA,
   PA biasa), `raw` (usia 15, CA rendah, PA biasa sampai tinggi). Atribut yang dinaikkan diimbangi penurunan atribut lain
@@ -33,7 +35,8 @@ Masalah yang dijawab: pilihan terasa tidak penting, kurang cerita, info kurang j
 - Laporan pemandu & "mirip X" dihitung saat ditampilkan (tidak disimpan) → langsung jalan di save lama.
 
 ### 1d. Cerita
-- Berita mingguan jenis baru `gem` di minggu 1: "Pemandu menemukan talenta luar biasa dari {kota}" per kandidat ⭐.
+- Berita mingguan jenis baru `gem` selama pencarian terbuka (minggu 1–4, selama kandidat ⭐ belum direkrut/mundur):
+  "Pemandu menemukan talenta luar biasa dari {kota}" per kandidat ⭐.
 - `Player.scouted = { year, cityId?, stars: [lo, hi], gem: boolean }` diisi saat direkrut (rentang ★ pada minggu
   direkrut). Profil (Ringkasan): "Ditemukan di pencarian bakat {tahun} · {kota} · perkiraan ★lo–hi" + perbandingan
   dengan ★ sekarang: *sesuai perkiraan* (di dalam rentang), *melampaui*, *di bawah perkiraan*.
