@@ -674,9 +674,8 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
     }
     if (next.join() !== place.join()) setPlace(next);
   });
-  if (cols === 1) return <>{arrange}<div className="dash">{shown.map((x) => <Fragment key={x.key}>{x.el}</Fragment>)}</div></>;
+  if (cols === 1) return <><div className="dash">{shown.map((x) => <Fragment key={x.key}>{x.el}</Fragment>)}</div>{arrange}</>;
   return (<>
-    {arrange}
     <div className="dash cols" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
       {Array.from({ length: cols }, (_, c) => (
         <div key={c} className="dashcol">
@@ -685,6 +684,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
         </div>
       ))}
     </div>
+    {arrange}
   </>);
 }
 
