@@ -271,14 +271,15 @@ export function potentialEstimate(p: Player, date: { year: number; week: number 
 
 const PEAK_STEPS = [1, 3, 5, 10, 20, 30, 50, 100, 200, 300, 500];
 /**
- * Prediksi peringkat puncak [terbaik, terburuk] dari perkiraan potensi (est ± ½ sd): berapa atlet `pool` (aktif segender)
+ * Prediksi peringkat puncak [terbaik, tengah, terburuk] dari perkiraan potensi (est ± ½ sd): berapa atlet `pool` (aktif segender)
  * yang kemampuannya sekarang di atas level itu, dibulatkan ke PEAK_STEPS (500 = 500 ke bawah).
  */
-export function peakRange(p: Player, date: { year: number; week: number }, matchesPlayed: number, pool: Player[]): [number, number] {
+export function peakRange(p: Player, date: { year: number; week: number }, matchesPlayed: number, pool: Player[]): [number, number, number] {
   const { est, sd } = potentialEstimate(p, date, matchesPlayed);
   const cas = pool.map((x) => currentAbility(x.attrs));
   const rankAt = (lvl: number) => { const n = cas.filter((c) => c > lvl).length + 1; return PEAK_STEPS.find((s) => s >= n) ?? 500; };
-  return [rankAt(Math.min(99, est + sd / 2)), rankAt(est - sd / 2)]; // ½ sd: rentang tetap berguna di usia 15–17
+  // ½ sd: rentang tetap berguna di usia 15–17; tengah = perkiraan utama (rentang usia 15 bisa lebar, mis. 30–300)
+  return [rankAt(Math.min(99, est + sd / 2)), rankAt(Math.min(99, est)), rankAt(est - sd / 2)];
 }
 
 const PAIR_GENDERS: Record<Pair['discipline'], string> = { MD: 'MM', WD: 'FF', XD: 'FM' };

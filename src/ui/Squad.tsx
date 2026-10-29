@@ -431,8 +431,9 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           {fact(t('potential'), <span className="stars">{starText(potentialStars(p, state.date, counts.get(p.id) ?? 0))}</span>)}
           {p.retired === undefined && ageAt(p.birth, state.date) <= 21 && (() => {
             // Prediksi puncak dari perkiraan potensi (rentang menyempit seiring usia & laga), bukan PA asli.
-            const [a, b] = peakRange(p, state.date, counts.get(p.id) ?? 0, peakPool);
-            return fact(t('peakFact'), t('peakText', { age: p.focus === 'D' ? 26 : 25, a, b: b >= 500 ? '500+' : b }));
+            const [a, m, b] = peakRange(p, state.date, counts.get(p.id) ?? 0, peakPool);
+            const n = (x: number) => (x >= 500 ? '500+' : x);
+            return fact(t('peakFact'), <>{t('peakText', { age: p.focus === 'D' ? 26 : 25, m: n(m) })}{a !== b && <> <small className="muted-text">({t('peakSpan', { a, b: n(b) })})</small></>}</>);
           })()}
           {isPratama(p, state.date) && p.readySince !== undefined && fact(t('promotion'), <span className="tag up-tag">⬆ {t('readyPromo')}</span>)}
           {p.scouted && (() => {

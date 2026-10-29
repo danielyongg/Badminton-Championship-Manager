@@ -307,8 +307,10 @@ it('prediksi puncak: rentang menyempit seiring usia & laga, dibulatkan', () => {
   const young = peakRange(p, { year: 2026, week: 1 }, 0, pool);
   const old = peakRange(p, { year: 2031, week: 1 }, 200, pool);
   expect(young[0]).toBeLessThanOrEqual(old[0]);
-  expect(young[1]).toBeGreaterThanOrEqual(old[1]);
-  expect(young[1]).toBeGreaterThan(young[0]);
+  expect(young[2]).toBeGreaterThanOrEqual(old[2]);
+  expect(young[2]).toBeGreaterThan(young[0]);
+  expect(young[1]).toBeGreaterThanOrEqual(young[0]);
+  expect(young[1]).toBeLessThanOrEqual(young[2]);
   for (const r of [...young, ...old]) expect([1, 3, 5, 10, 20, 30, 50, 100, 200, 300, 500]).toContain(r);
 });
 
