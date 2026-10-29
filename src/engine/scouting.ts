@@ -1,4 +1,5 @@
 import { potentialStars } from './career';
+import { capToPa } from './development';
 import { ageAt, currentAbility, generatePlayer } from './generator';
 import type { Rng } from './rng';
 import { ensureTraits, traitHints, type TraitId } from './traits';
@@ -18,10 +19,42 @@ export interface Scouting {
   recruited?: number;
   /** Nama kandidat yang mundur selagi manajer menunggu. */
   withdrawn?: string[];
+  /** Tipe kandidat (gaya yang menonjol). Tidak ada di pencarian dari save lama. */
+  types?: Record<string, ScoutType>;
+  /** Kandidat yang ditandai ⭐ Bakat langka oleh pemandu (±90 % tepat, kadang permata palsu). */
+  gems?: string[];
+  /** Permata asli (PA ≥ ambang), tidak ditampilkan. */
+  trueGems?: string[];
 }
 
 export type ScoutFocus = 'balanced' | 'singles' | 'doubles' | 'attack' | 'defense' | 'raw' | 'ready';
 export const SCOUT_FOCI: ScoutFocus[] = ['balanced', 'singles', 'doubles', 'attack', 'defense', 'raw', 'ready'];
+
+export type ScoutType = 'doubles' | 'attack' | 'defense' | 'worker' | 'ready' | 'raw';
+export const SCOUT_TYPES: ScoutType[] = ['doubles', 'attack', 'defense', 'worker', 'ready', 'raw'];
+/** Atribut yang dinaikkan per tipe; atribut lain diturunkan sama rata agar kemampuan kira-kira tetap. ASUMSI. */
+const TYPE_ATTRS: Partial<Record<ScoutType, Attr[]>> = {
+  doubles: ['net', 'serve', 'smash'], attack: ['smash', 'deception'], defense: ['defense', 'consistency'], worker: ['speed', 'stamina'],
+};
+const TYPE_BOOST = 8;
+/** Peluang angkatan per gender punya 2 permata; peluang permata ditandai; peluang ada satu permata palsu. ASUMSI. */
+export const GEM_SECOND = 0.4, GEM_FLAG = 0.9, FALSE_GEM = 0.1;
+/** Ambang permata: rata-rata PA negara + 1,5 sd (Indonesia ≈ 91). */
+export const gemLine = (country: Country, gen: GeneratorConfig) =>
+  Math.round(gen.potential.base + country.traditionStrength * gen.potential.perTradition + 1.5 * gen.potential.sd);
+
+/** Geser atribut kandidat sesuai tipenya (siap pakai: semua naik, mentah: semua turun), lalu jaga CA ≤ PA. */
+function shapeType(p: Player, type: ScoutType) {
+  const up = TYPE_ATTRS[type];
+  if (up) {
+    const down = (TYPE_BOOST * up.length) / (ATTRS.length - up.length);
+    for (const a of ATTRS) p.attrs[a] += up.includes(a) ? TYPE_BOOST : -down;
+  } else for (const a of ATTRS) p.attrs[a] += type === 'ready' ? 5 : -4;
+  if (type === 'doubles') p.focus = 'D';
+  capToPa(p);
+  for (const a of ATTRS) p.attrs[a] = Math.round(p.attrs[a]);
+  p.attrHistory = [{ year: p.attrHistory[0]?.year ?? 0, attrs: { ...p.attrs } }];
+}
 /** Peluang per gender per minggu (minggu 2 s/d batas) satu kandidat mundur. ASUMSI. */
 export const WITHDRAW_CHANCE = 0.5;
 
@@ -58,15 +91,36 @@ export function makeScouting(
   const slots = { M: base.filter((p) => p.gender === 'M').length, F: base.filter((p) => p.gender === 'F').length };
   const candidates: Player[] = [];
   const starRange: Scouting['starRange'] = {};
+  const types: Record<string, ScoutType> = {};
+  const trueGems: string[] = [], gems: string[] = [];
+  const line = gemLine(country, gen);
   for (const g of ['M', 'F'] as const) {
     const n = Math.max(MIN_CANDIDATES, slots[g] * 2);
-    // Fokus: dibuat 2× lalu disaring menurut kecocokan + derau (fokus mengarahkan, tidak memastikan).
+    // Tipe diundi dulu: mentah = usia termuda, siap pakai = usia tertua, lainnya acak.
     const pool = Array.from({ length: focus === 'balanced' ? n : n * 2 }, (_, i) => {
-      const age = gen.juniorAge.min + Math.floor(rng() * (gen.juniorAge.max - gen.juniorAge.min + 1));
-      return generatePlayer(rng, gen, country, g, age, date, `${country.id}-${g}${date.year}-s${i + 1}`, usedNames, 99, cities);
+      const type = SCOUT_TYPES[Math.floor(rng() * SCOUT_TYPES.length)];
+      const age = type === 'raw' ? gen.juniorAge.min : type === 'ready' ? gen.juniorAge.max
+        : gen.juniorAge.min + Math.floor(rng() * (gen.juniorAge.max - gen.juniorAge.min + 1));
+      const p = generatePlayer(rng, gen, country, g, age, date, `${country.id}-${g}${date.year}-s${i + 1}`, usedNames, 99, cities);
+      types[p.id] = type;
+      return p;
     });
+    pool.forEach((p) => shapeType(p, types[p.id]));
+    // Fokus: dibuat 2× lalu disaring menurut kecocokan + derau (fokus mengarahkan, tidak memastikan).
     const noisy = new Map(pool.map((p) => [p.id, focusScore(p, focus, date) + rng() * 10]));
     const chosen = focus === 'balanced' ? pool : [...pool].sort((x, y) => noisy.get(y.id)! - noisy.get(x.id)!).slice(0, n);
+    // Permata: 1 (40 %: 2) kandidat PA tertinggi, sebisa mungkin usia ≤ 16, dinaikkan ke atas ambang; sisanya di bawah ambang.
+    const k = rng() < GEM_SECOND ? 2 : 1;
+    const young = chosen.filter((p) => ageAt(p.birth, date) <= 16);
+    const byPa = (xs: Player[]) => [...xs].sort((a, b) => b.pa - a.pa);
+    const picks = [...byPa(young), ...byPa(chosen.filter((p) => !young.includes(p)))].slice(0, k);
+    for (const p of chosen) {
+      if (picks.includes(p)) { p.pa = Math.min(99, Math.max(p.pa, line + Math.round(rng() * gen.potential.sd * 0.7))); trueGems.push(p.id); }
+      else { p.pa = Math.min(p.pa, line - 1); capToPa(p); }
+    }
+    for (const p of picks) if (rng() < GEM_FLAG) gems.push(p.id);
+    const rest = byPa(chosen.filter((p) => !picks.includes(p)));
+    if (rest.length && rng() < FALSE_GEM) gems.push(rest[0].id); // permata palsu: kandidat biasa terbaik
     for (const p of chosen) {
       const s = potentialStars(p, date, 0);
       let lo = s - Math.floor(rng() * 5) * 0.5; // posisi perkiraan di dalam rentang diacak
@@ -77,7 +131,9 @@ export function makeScouting(
   }
   ensureTraits(candidates);
   const notes = Object.fromEntries(candidates.map((p) => [p.id, traitHints(p, rng)])); // setelah semua kandidat dibuat
-  return { year: date.year, slots, candidates, starRange, notes };
+  const kept = new Set(candidates.map((p) => p.id));
+  return { year: date.year, slots, candidates, starRange, notes,
+    types: Object.fromEntries(Object.entries(types).filter(([id]) => kept.has(id))), gems, trueGems };
 }
 
 /** Saran pilihan sejumlah kursi per gender: nilai tengah rentang bintang tertinggi lalu kemampuan; `keep` = pilihan manajer dipertahankan. */

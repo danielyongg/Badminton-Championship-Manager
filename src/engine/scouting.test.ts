@@ -3,7 +3,7 @@ import { potentialStars } from './career';
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
-import { autoPick, focusScore, makeScouting, recruit, recruitSome, starRangeAt, styleOf, withdrawCandidates, type Scouting } from './scouting';
+import { autoPick, focusScore, gemLine, makeScouting, SCOUT_TYPES, recruit, recruitSome, starRangeAt, styleOf, withdrawCandidates, type Scouting } from './scouting';
 import { currentAbility } from './generator';
 import { traitHints } from './traits';
 import { ATTRS, type Player } from './types';
@@ -127,5 +127,48 @@ describe('waktu merekrut', () => {
     const s = { year: 2027, slots: { M: 5, F: 5 }, candidates: Array.from({ length: 5 }, (_, i) => ({ id: `m${i}`, gender: 'M', name: `M${i}` })), starRange: {} } as unknown as Scouting;
     for (let i = 0; i < 10; i++) withdrawCandidates(s, makeRng(i + 1));
     expect(s.candidates.length).toBe(5);
+  });
+
+  it('permata & tipe: jumlah kandidat tetap, permata di atas ambang, sisanya di bawah, CA ≤ PA', () => {
+    const rs = BWF_2026, gen = rs.generator, ina = WORLD.countries.find((c) => c.id === 'INA')!;
+    const line = gemLine(ina, gen);
+    expect(line).toBe(Math.round(35 + 95 * 0.4 + 1.5 * 12)); // 91
+    let flagged = 0, real = 0, twoGems = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const base = Array.from({ length: 9 }, (_, i) => ({ gender: i % 2 ? 'F' : 'M' }) as Player);
+      const s = makeScouting(base, ina, gen, { year: 2027, week: 1 }, makeRng(seed));
+      for (const g of ['M', 'F'] as const) {
+        const pool = s.candidates.filter((p) => p.gender === g);
+        expect(pool.length).toBe(Math.max(5, s.slots[g] * 2));
+        const gems = pool.filter((p) => s.trueGems!.includes(p.id));
+        expect(gems.length === 1 || gems.length === 2).toBe(true);
+        if (gems.length === 2) twoGems++;
+        for (const p of gems) expect(p.pa).toBeGreaterThanOrEqual(line);
+        for (const p of pool.filter((x) => !gems.includes(x))) expect(p.pa).toBeLessThan(line);
+      }
+      for (const p of s.candidates) {
+        expect(currentAbility(p.attrs)).toBeLessThanOrEqual(p.pa);
+        expect(SCOUT_TYPES).toContain(s.types![p.id]);
+        if (s.types![p.id] === 'doubles') expect(p.focus).toBe('D');
+      }
+      real += s.trueGems!.length;
+      flagged += s.gems!.filter((id) => s.trueGems!.includes(id)).length;
+    }
+    expect(flagged / real).toBeGreaterThan(0.8); // ±90 % permata asli ditandai
+    expect(twoGems).toBeGreaterThan(10); // ±40 % gender-angkatan punya 2 permata
+  });
+
+  it('tipe menggeser atribut: penyerang punya smash+deception di atas rata-rata atributnya', () => {
+    const rs = BWF_2026, ina = WORLD.countries.find((c) => c.id === 'INA')!;
+    const base = Array.from({ length: 9 }, (_, i) => ({ gender: i % 2 ? 'F' : 'M' }) as Player);
+    let n = 0, above = 0;
+    for (let seed = 1; seed <= 20; seed++) {
+      const s = makeScouting(base, ina, rs.generator, { year: 2027, week: 1 }, makeRng(seed));
+      for (const p of s.candidates.filter((x) => s.types![x.id] === 'attack')) {
+        n++;
+        if ((p.attrs.smash + p.attrs.deception) / 2 > currentAbility(p.attrs)) above++;
+      }
+    }
+    expect(above / n).toBeGreaterThan(0.85);
   });
 });
