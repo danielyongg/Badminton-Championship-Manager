@@ -98,7 +98,7 @@ Urutan kerja (tiap fase bisa dirilis sendiri; tes & build hijau di akhir fase):
 ## Perbaikan junior (disetujui 2026-10-29)
 Spesifikasi: `docs/superpowers/specs/2026-10-29-junior-scouting-promosi-design.md`.
 - [x] **Bagian 1 — Pencarian bakat**: permata & tipe, daftar + panel (laporan pemandu, gaya mirip), berita Bakat, asal-usul di profil.
-- [ ] **Bagian 2 — Promosi**: ⬆ siap promosi, terlalu cepat / terlambat.
+- [x] **Bagian 2 — Promosi**: ⬆ siap promosi (+ berita), terlalu cepat (morale ×1,5 saat kalah senior, 26 minggu) / terlambat (pertumbuhan ×0,9).
 - [ ] **Bagian 3 — Kabar**: berita terobosan, prediksi puncak.
 - [ ] **Bagian 4 — Turnamen junior**: target junior, chip Junior, Pratama top ke grade 3 senior, kuota BWF.
 

@@ -20,7 +20,8 @@ export type NewsItem =
   | { kind: 'youngChamp'; id: EntrantId; age: number; tournamentId: string; discipline: Discipline }
   | { kind: 'hosts'; year: number; drawn: { id: string; cityId: string }[] }
   | { kind: 'awards'; award: AwardYear }
-  | { kind: 'gem'; ids: string[] };
+  | { kind: 'gem'; ids: string[] }
+  | { kind: 'ready'; ids: string[] };
 
 /** Kejutan: pemenang ≥ UPSET_GAP peringkat di bawah lawan yang ada di UPSET_TOP besar (ranking senior/junior sebelum minggu itu). */
 const UPSET_TOP = 20, UPSET_GAP = 20;
@@ -47,6 +48,9 @@ export function weeklyNews(state: SeasonState, rs: Ruleset): NewsItem[] {
   const sc = state.scouting;
   const gemIds = sc && sc.year === year && week <= SCOUTING_DEADLINE_WEEK ? (sc.gems ?? []).filter((id) => sc.candidates.some((c) => c.id === id)) : [];
   if (gemIds.length) hosts.push({ kind: 'gem', ids: gemIds });
+  // Junior Pratama negara manajer yang minggu lalu dinilai siap promosi.
+  const ready = state.players.filter((p) => p.countryId === state.managedCountryId && p.readySince === lastAbs).map((p) => p.id);
+  if (ready.length) hosts.push({ kind: 'ready', ids: ready });
   // BWF Player of the Year: nominasi tampil sampai pemenang diumumkan, pemenang sampai akhir musim (paling atas).
   const award = state.awards?.find((a) => a.year === year);
   if (award) hosts.unshift({ kind: 'awards', award });

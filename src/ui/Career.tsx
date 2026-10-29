@@ -374,7 +374,7 @@ function ChallengeItems() {
 function QuarterReportCard({ country, onOpen }: { country: string; onOpen: (id: string) => void }) {
   const { game } = useGame();
   const r = quarterReport(game.state.players, country, game.state.date);
-  const rows = ([['qrRisers', '📈', r.risers], ['qrStalled', '⏸', r.stalled], ['qrDeclining', '📉', r.declining], ['qrRevealed', '🔍', r.revealed]] as const).filter(([, , ps]) => ps.length);
+  const rows = ([['qrRisers', '📈', r.risers], ['qrStalled', '⏸', r.stalled], ['qrDeclining', '📉', r.declining], ['qrHeldBack', '⏳', r.heldBack], ['qrRevealed', '🔍', r.revealed]] as const).filter(([, , ps]) => ps.length);
   if (!rows.length) return null;
   const { date } = game.state;
   // Kelompok bertumpuk: judul kecil + satu baris per atlet (usia · kemampuan, perubahan sebagai badge; sifat baru sebagai tag di kanan).
@@ -780,6 +780,7 @@ function NewsCard({ onOpen }: { onOpen: (id: string) => void }) {
               <span>{a.winners ? <>🏆 {person(a.winners[c])}</> : a.nominees[c].map((id, i) => <span key={id}>{i > 0 && ' · '}{person(id)}</span>)}</span></span>
           ))}</span>];
       }
+      case 'ready': return [t('newsReadyTag'), <>{n.ids.map((id, i) => <span key={id}>{i > 0 && ', '}{who(id)}</span>)}</>, <small className="muted-text">{t('newsReady')}</small>];
       case 'gem': return [t('newsGemTag'), <>{n.ids.map((id, i) => {
         const p = state.scouting?.candidates.find((c) => c.id === id);
         return <span key={id}>{i > 0 && ' · '}{t('newsGem', { city: dataName(game.world.cities.find((c) => c.id === p?.hometown)?.name) ?? '—' })}</span>;

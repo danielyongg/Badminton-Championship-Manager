@@ -159,6 +159,10 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - Paket bawaan: atlet dari ranking **senior** BWF yang masih U19 langsung Utama; atlet dari ranking junior & junior fiktif = Pratama.
 - Save lama (sebelum fitur ini): sekali saat dimuat, junior yang sudah pernah bermain di turnamen senior dijadikan Utama.
 
+- **Siap promosi** (2026-10-29, `src/engine/promotion.ts`): Pratama negara manajer siap bila kemampuannya ≥ kemampuan atlet peringkat 200 tunggal senior segender (spesialis ganda: rata-rata pasangan peringkat 100 MD/WD), atau masuk 10 besar ranking junior di nomor mana pun. Dicek tiap akhir minggu; minggu pertama siap dicatat (`readySince`) dan diberitakan sekali ("Siap naik").
+- **Terlalu cepat**: dipromosikan saat kemampuan < ambang − 5 → selama 26 minggu penurunan morale karena kalah di turnamen senior ×1,5 (laga beregu junior ikut terhitung senior).
+- **Terlambat**: siap > 26 minggu dan masih Pratama → pertumbuhan kuartal ×0,9; tampil di laporan kuartal "Tertahan di junior".
+
 ## Junior: turnamen junior individu & ranking junior (tahap 2)
 - **Kalender** (2026 & 2027+): minggu 28 Kejuaraan Junior Kontinental — Asia (Surabaya) & Eropa (Brno) tier `JC`; Pan Am (Lima), Afrika (Lagos), Oseania (Sydney) tier `JC2` (poin lebih kecil karena persaingan lebih ringan); minggu 41 BWF World Junior Championships (Guwahati) tier `WJC`. Kota & minggu disederhanakan.
 - **Peserta** U19 (tahun − tahun lahir ≤ 18), dipilih otomatis per negara: maks 3 tunggal & 2 pasangan (Dunia Junior), 4 & 3 (kontinental). Kontinental hanya negara konfederasinya. Urutan: ranking junior, lalu kemampuan. Junior pratama ikut. Keputusan entry manajer minggu itu (istirahat / turnamen senior) dihormati — atlet itu tidak ikut turnamen junior. Tab Kalender & Entry tidak menampilkan turnamen junior.

@@ -4,6 +4,7 @@ import { dissolvePair, potentialStars, promoteJunior, recallPlayer, releasePlaye
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { experienceFactor } from '../engine/development';
 import { visibleTraits } from '../engine/traits';
+import { EARLY_GAP, promotionLine, readyLines } from '../engine/promotion';
 import { SCOUT_FOCI, scoutVerdict, styleOf, type ScoutFocus } from '../engine/scouting';
 import { emptyStats, moraleTier, pairAbility } from '../engine/match';
 import { addOriented, careerStats, statTotals, v2 } from '../engine/careerStats';
@@ -73,6 +74,8 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   const { game, version, changed } = useGame();
   const { state, ruleset } = game;
   const country = state.career!.countryId!;
+  // Ambang promosi junior (Promote sebelum siap = peringatan di tombol).
+  const lines = useMemo(() => readyLines(state, ruleset), [version]);
   // Skuad → Senior/Junior (semua pemain) → sektor: Semua (atlet) / MS / WS (atlet tunggal) / MD / WD / XD (pasangan ganda).
   // Kelompok: Senior / Junior (pelatnas) / Non-pelatnas (atlet yang dilepas, senior & junior; yang pensiun tidak).
   const [group, setGroup] = useState<'senior' | 'junior' | 'released'>('senior');
@@ -164,7 +167,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
             <tr key={p.id} onClick={() => onOpen(p.id)} style={{ cursor: 'pointer' }}>
               <td>{p.name}</td>{!singlesView && <td className="m-hide">{p.gender}</td>}
               {juniorCols && <td>{isPratama(p, state.date)
-                ? <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>
+                ? <><span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>{p.readySince !== undefined && <> <span className="tag up-tag">⬆ {t('readyPromo')}</span></>}</>
                 : <span className="tag">{t('utama')}</span>}</td>}
               {!singlesView && <td>{sectorsOf(p).map((d) => {
                 const pair = d.length === 2 && d[1] === 'D' ? mainPair(p.id, d as DoublesD) : undefined;
@@ -182,7 +185,8 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
                 ? <button className="mini" onClick={() => { recallPlayer(state, p.id); commit(); }}>{t('recall')}</button>
                 : singlesView ? <TierPrefs id={p.id} /> : <>
                   <SectorPicker p={p} onChange={commit} />
-                  {isPratama(p, state.date) && <>{' '}<button className="mini btn-go" onClick={() => { promoteJunior(state, p.id); commit(); }}>{t('promote')}</button></>}
+                  {isPratama(p, state.date) && <>{' '}<button className="mini btn-go" title={currentAbility(p.attrs) < promotionLine(p, lines) - EARLY_GAP ? t('promoteEarlyHint') : undefined}
+                      onClick={() => { promoteJunior(state, p.id, ruleset); commit(); }}>{t('promote')}</button></>}
                   {' '}<button className="mini btn-danger" onClick={() => { if (confirm(t('confirmRelease', { name: p.name }))) { releasePlayer(state, p.id, { rs: game.ruleset, world: game.world, rng: game.rng }); commit(); } }}>{t('releaseShort')}</button>
                 </>}</td>
             </tr>
@@ -423,6 +427,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           {fact(t('ability'), <>{currentAbility(p.attrs)}{arrow(p.caDelta)}</>)}
           {fact(t('morale'), <MoraleTag value={p.form} />)}
           {fact(t('potential'), <span className="stars">{starText(potentialStars(p, state.date, counts.get(p.id) ?? 0))}</span>)}
+          {isPratama(p, state.date) && p.readySince !== undefined && fact(t('promotion'), <span className="tag up-tag">⬆ {t('readyPromo')}</span>)}
           {p.scouted && (() => {
             // Asal-usul pencarian bakat: perkiraan ★ saat direkrut dibandingkan dengan ★ sekarang.
             const v = scoutVerdict(p, potentialStars(p, state.date, counts.get(p.id) ?? 0))!;

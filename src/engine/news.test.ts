@@ -5,6 +5,8 @@ import { WORLD } from './presets/world';
 import { makeRng } from './rng';
 import { newSeason, playWeek } from './season';
 import { makeScouting } from './scouting';
+import { absWeek } from './ranking';
+import { isPratama } from './generator';
 import type { Player } from './types';
 
 it('berita mingguan: dari laga minggu lalu, kejutan sesuai ambang ranking', async () => {
@@ -37,4 +39,14 @@ it('berita permata selama pencarian terbuka', () => {
   expect(weeklyNews(state, rs).find((n) => n.kind === 'gem')).toEqual({ kind: 'gem', ids: [state.scouting.candidates[0].id] });
   state.date.week = 5;
   expect(weeklyNews(state, rs).some((n) => n.kind === 'gem')).toBe(false);
+});
+
+it('berita siap promosi: minggu sesudah junior Pratama dinilai siap', () => {
+  const rs = BWF_2026;
+  const state = newSeason(WORLD, rs, 9, { year: 2026, week: 10 }, 'INA');
+  const p = state.players.find((x) => x.countryId === 'INA' && isPratama(x, state.date))!;
+  p.readySince = absWeek({ year: 2026, week: 9 });
+  expect(weeklyNews(state, rs).find((n) => n.kind === 'ready')).toEqual({ kind: 'ready', ids: [p.id] });
+  state.date.week = 11;
+  expect(weeklyNews(state, rs).some((n) => n.kind === 'ready')).toBe(false);
 });
