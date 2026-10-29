@@ -790,10 +790,10 @@ function NewsCard({ onOpen }: { onOpen: (id: string) => void }) {
       case 'breakthrough': return [t('newsBreakTag'), n.surge !== undefined ? <>{who(n.id)} {t('newsSurge', { n: n.surge })}</>
         : <>{who(n.id)} {t('newsTop50')} {who(n.opp!)} <span className="muted-text">(#{n.rank})</span></>, null];
       case 'ready': return [t('newsReadyTag'), <>{n.ids.map((id, i) => <span key={id}>{i > 0 && ', '}{who(id)}</span>)}</>, <small className="muted-text">{t('newsReady')}</small>];
-      case 'gem': return [t('newsGemTag'), <>{n.ids.map((id, i) => {
-        const p = state.scouting?.candidates.find((c) => c.id === id);
-        return <span key={id}>{i > 0 && ' · '}{t('newsGem', { city: dataName(game.world.cities.find((c) => c.id === p?.hometown)?.name) ?? '—' })}</span>;
-      })}</>, null];
+      case 'gem': { // satu kalimat: "… dari Surabaya dan Jakarta", bukan kalimat yang diulang per talenta
+        const cities = n.ids.map((id) => dataName(game.world.cities.find((c) => c.id === state.scouting?.candidates.find((p) => p.id === id)?.hometown)?.name) ?? '—');
+        return [t('newsGemTag'), t('newsGem', { city: new Intl.ListFormat(numLocale()).format(cities) }), null];
+      }
       case 'careerHigh': return [t('newsHighTag'), <>{who(n.id)} {t('newsCareerHigh', { n: n.rank })}</>, <small className="muted-text">{n.discipline}</small>];
     }
   };

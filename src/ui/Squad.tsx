@@ -167,7 +167,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
             <tr key={p.id} onClick={() => onOpen(p.id)} style={{ cursor: 'pointer' }}>
               <td>{p.name}</td>{!singlesView && <td className="m-hide">{p.gender}</td>}
               {juniorCols && <td>{isPratama(p, state.date)
-                ? <><span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>{p.readySince !== undefined && <> <span className="tag up-tag">⬆ {t('readyPromo')}</span></>}</>
+                ? <><span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>{p.readySince !== undefined && <> <span className="tag up-tag" title={t('readyPromo')}>⬆ <span className="m-hide">{t('readyPromo')}</span><span className="m-only">{t('newsReadyTag')}</span></span></>}</>
                 : <span className="tag">{t('utama')}</span>}</td>}
               {!singlesView && <td>{sectorsOf(p).map((d) => {
                 const pair = d.length === 2 && d[1] === 'D' ? mainPair(p.id, d as DoublesD) : undefined;

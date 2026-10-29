@@ -900,6 +900,14 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 /* Pencarian bakat: baris yang panelnya terbuka diberi garis aksen; tanda permata & tag emas. */
 .scoutlist tr.focus td { box-shadow: inset 0 -2px 0 var(--accent); }
 .scoutlist td:first-child { width: 2em; }
+/* HP: kolom centang tetap sempit (aturan kolom-nama-melekat tabel HP memberinya 110px), nama pecah di spasi saja, semua kolom muat tanpa geser. */
+@media (max-width: 700px) {
+  .scroll .scoutlist td:first-child, .scroll .scoutlist th:first-child { position: static; min-width: 0; max-width: none; width: 24px; box-shadow: none; }
+  .scoutlist th, .scoutlist td { padding-left: 3px; padding-right: 3px; }
+  .scoutlist th { white-space: normal; letter-spacing: 0; }
+  table.fit.scoutlist td:nth-child(2) { overflow-wrap: normal; }
+  table.fit.scoutlist td.stars { white-space: nowrap; padding-left: 8px; }
+}
 .scoutmodal { width: min(1100px, 100%); }
 .scoutmodal .attrlist { display: grid; gap: 2px; }
 .gem { color: var(--gold); }
