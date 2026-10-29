@@ -95,5 +95,12 @@ Urutan kerja (tiap fase bisa dirilis sendiri; tes & build hijau di akhir fase):
 - [x] **Kejuaraan U17 kontinental**: Badminton Asia U17 (tiap tahun) & European U17 (tahun ganjil), usia ≤ 16, tanpa poin.
 - Belum (opsional): kejuaraan U15 (perlu junior masuk game lebih muda dari 15 tahun).
 
+## Perbaikan junior (disetujui 2026-10-29)
+Spesifikasi: `docs/superpowers/specs/2026-10-29-junior-scouting-promosi-design.md`.
+- [x] **Bagian 1 — Pencarian bakat**: permata & tipe, daftar + panel (laporan pemandu, gaya mirip), berita Bakat, asal-usul di profil.
+- [ ] **Bagian 2 — Promosi**: ⬆ siap promosi, terlalu cepat / terlambat.
+- [ ] **Bagian 3 — Kabar**: berita terobosan, prediksi puncak.
+- [ ] **Bagian 4 — Turnamen junior**: target junior, chip Junior, Pratama top ke grade 3 senior, kuota BWF.
+
 ## Batasan yang bisa ditinjau ulang
 - Tier tidak bisa ditambah/dihapus di Editor.

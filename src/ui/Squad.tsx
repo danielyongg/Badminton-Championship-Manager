@@ -4,7 +4,7 @@ import { dissolvePair, potentialStars, promoteJunior, recallPlayer, releasePlaye
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { experienceFactor } from '../engine/development';
 import { visibleTraits } from '../engine/traits';
-import { SCOUT_FOCI, styleOf, type ScoutFocus } from '../engine/scouting';
+import { SCOUT_FOCI, scoutVerdict, styleOf, type ScoutFocus } from '../engine/scouting';
 import { emptyStats, moraleTier, pairAbility } from '../engine/match';
 import { addOriented, careerStats, statTotals, v2 } from '../engine/careerStats';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
@@ -423,6 +423,13 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           {fact(t('ability'), <>{currentAbility(p.attrs)}{arrow(p.caDelta)}</>)}
           {fact(t('morale'), <MoraleTag value={p.form} />)}
           {fact(t('potential'), <span className="stars">{starText(potentialStars(p, state.date, counts.get(p.id) ?? 0))}</span>)}
+          {p.scouted && (() => {
+            // Asal-usul pencarian bakat: perkiraan ★ saat direkrut dibandingkan dengan ★ sekarang.
+            const v = scoutVerdict(p, potentialStars(p, state.date, counts.get(p.id) ?? 0))!;
+            const half = (n: number) => `${Math.floor(n) || ''}${n % 1 ? '½' : ''}`;
+            return fact(t('scoutedFact'), <>{p.scouted.gem && '⭐ '}{t('scoutedText', { y: p.scouted.year, lo: half(p.scouted.stars[0]), hi: half(p.scouted.stars[1]) })}
+              {' '}<span className={v === 'above' ? 'up' : v === 'below' ? 'down' : 'muted-text'}>({t(`scoutVerdict_${v}` as TextKey)})</span></>);
+          })()}
           {fact(t('fatigue'), <FatigueBar value={p.fatigue} />)}
           {fact(t('traits'), visibleTraits(p, counts.get(p.id) ?? 0).length ? <TraitTags p={p} matches={counts.get(p.id) ?? 0} /> : <span className="muted-text">{t('traitsUnknown')}</span>)}
           {p.retired === undefined && ageAt(p.birth, state.date) <= ruleset.development.experience.untilAge
