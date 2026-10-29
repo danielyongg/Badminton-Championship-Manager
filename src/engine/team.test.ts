@@ -330,7 +330,9 @@ describe('Thomas, Uber & Sudirman Cup', () => {
     const deadline = entryDeadline(BWF_2026, 'thomas-uber-cup', 2026)!;
     while (state.date.week < deadline) await playWeek(state, BWF_2026, WORLD, rng, { team: hook });
     const chosen = nominate();
-    while (state.date.week < 19) await playWeek(state, BWF_2026, WORLD, rng, { team: hook });
+    // Yang diuji = nominasi dipakai; cedera acak sesudah batas entry (skuad diganti otomatis) tidak relevan di sini.
+    const heal = () => { for (const p of state.players) if (chosen.includes(p.id)) delete p.injury; };
+    while (state.date.week < 19) { heal(); await playWeek(state, BWF_2026, WORLD, rng, { team: hook }); }
     const finals = state.teamResults.find((r) => r.eventId === 'thomas-uber-cup' && r.format === 'thomas')!;
     expect(finals.squads.INA).toEqual(chosen);
     // Semua atlet INA yang bermain di final Thomas berasal dari skuad terdaftar.
