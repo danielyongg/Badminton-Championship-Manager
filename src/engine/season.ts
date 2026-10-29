@@ -558,6 +558,9 @@ export function protectRanking(state: SeasonState, rs: Ruleset, playerId: string
   }
 }
 
+/** Turnamen senior yang boleh diisi otomatis untuk junior Pratama yang siap promosi. ASUMSI. */
+const PRATAMA_SENIOR_TIERS = ['IC', 'IS', 'FS'];
+
 /**
  * Pilihan turnamen AI untuk semua peserta minggu ini.
  * Urutan nomor MS→XD: turnamen pertama yang dipilih seorang atlet mengikat nomor lainnya (satu turnamen per minggu).
@@ -574,6 +577,8 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
   const submitted = (ev: TournamentDef) => state.entriesSubmitted?.[`${state.date.year}:${ev.id}`] === true;
   // Junior pratama negara manajer: tidak didaftarkan otomatis (manual tetap bisa).
   const pratama = new Set(state.players.filter((p) => p.countryId === state.managedCountryId && p.released === undefined && isPratama(p, state.date)).map((p) => p.id));
+  // Pratama yang sudah siap promosi: boleh didaftarkan otomatis, tetapi hanya ke turnamen senior grade 3 (pengalaman).
+  const readyPratama = new Set(state.players.filter((p) => pratama.has(p.id) && p.readySince !== undefined).map((p) => p.id));
   const released = releasedIds(state);
   const mine = (e: Entrant) => isManaged(state, released, e);
   const conf = new Map(world?.countries.map((c) => [c.id, c.confederation as string]));
@@ -632,14 +637,15 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
     const prot = protectedOf(e, d, rank);
     const fixed = e.playerIds.map((id) => playerEvent.get(id)).find(Boolean);
     const cross = isCrossNation(e.playerIds, (id) => playerById.get(id)?.countryId);
-    const options = events.filter((ev) => ev.tierId !== 'WTF' && ev.tierId !== 'OG' && tierOf(rs, ev).drawSize[d] > 0 && (!fixed || ev.id === fixed)
+    let options = events.filter((ev) => ev.tierId !== 'WTF' && ev.tierId !== 'OG' && tierOf(rs, ev).drawSize[d] > 0 && (!fixed || ev.id === fixed)
       && (!cross || openTier(ev))
       && (!ev.countries || ev.countries.includes(e.countryId)) && (!ev.confederation || confOf(e.countryId) === ev.confederation)
       && inContingent(state, ev.id, e.countryId, e.playerIds)
       // Turnamen yang entry-nya sudah di-submit manajer: atlet sendiri yang tidak dicentang tidak diisi AI ke sana (wajib tetap).
       && (!mine(e) || manual[e.id] === ev.id || !submitted(ev) || !!state.commitments[e.id]?.includes(ev.id)));
     const decision = mine(e) ? manual[e.id] : undefined;
-    if (!decision && e.playerIds.some((id) => pratama.has(id) || busy.has(id))) continue;
+    if (!decision && e.playerIds.some((id) => (pratama.has(id) && !readyPratama.has(id)) || busy.has(id))) continue;
+    if (!decision && e.playerIds.some((id) => pratama.has(id))) options = options.filter((ev) => PRATAMA_SENIOR_TIERS.includes(ev.tierId));
     let choice = decision ? options.find((ev) => ev.id === decision) : options.find((ev) => state.commitments[e.id]?.includes(ev.id));
     if (!choice && !decision && !e.trial) { // pasangan percobaan tidak pernah didaftarkan AI
       const tired = Math.max(...e.playerIds.map((id) => fatigue.get(id)!));

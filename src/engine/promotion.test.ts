@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
-import { newSeason } from './season';
+import { newSeason, playWeek } from './season';
 import { currentAbility, isPratama } from './generator';
 import { absWeek } from './ranking';
 import { EARLY_WEEKS, isEarly, isHeldBack, isReady, LATE_WEEKS, promote, promotionLine, readyLines, updateReadiness } from './promotion';
@@ -75,4 +75,22 @@ describe('promosi junior', () => {
     p.caDelta = 0;
     expect(quarterReport(s.players, 'INA', s.date).heldBack).toContain(p);
   });
+
+  it('Pratama siap ikut turnamen senior grade 3 (IC/IS/FS) saja; Pratama belum siap tidak ke senior', async () => {
+    const s = newSeason(WORLD, rs, 6, { year: 2026, week: 1 }, 'INA');
+    const ps = pratama(s).sort((a, b) => currentAbility(b.attrs) - currentAbility(a.attrs));
+    const star = ps[0], weak = ps[ps.length - 1];
+    for (const a of ATTRS) star.attrs[a] = 75;
+    star.pa = 90;
+    star.readySince = absWeek(s.date);
+    const rng = makeRng(6);
+    while (s.date.week < 30) await playWeek(s, rs, WORLD, rng);
+    const tierOf = (id: string) => rs.calendar.find((e) => e.id === id)?.tierId;
+    const senior = (id: string) => s.matches.filter((m) => m.sides.some((x) => x === id || s.pairs.find((p) => p.id === x)?.playerIds.includes(id)))
+      .map((m) => tierOf(m.tournamentId)).filter((t) => t && !rs.tiers.find((x) => x.id === t)?.junior);
+    const starTiers = new Set(senior(star.id));
+    expect(starTiers.size).toBeGreaterThan(0);
+    expect([...starTiers].every((t) => ['IC', 'IS', 'FS'].includes(t!))).toBe(true);
+    if (weak.readySince === undefined) expect(senior(weak.id)).toEqual([]);
+  }, 120000);
 });
