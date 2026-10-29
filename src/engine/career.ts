@@ -1,3 +1,4 @@
+import { promote } from './promotion';
 import { bumpForm, DISSOLVE_PENALTY } from './boosts';
 import { ageAt, currentAbility, isJuniorAge } from './generator';
 import { markReleased, pairIndependents } from './independents';
@@ -278,8 +279,9 @@ export function promoteTrial(state: SeasonState, pairId: string) {
   delete pair.trial;
 }
 
-/** Promosikan junior ke pelatnas utama (ikut didaftarkan otomatis ke turnamen senior). */
-export function promoteJunior(state: Pick<SeasonState, 'players'>, playerId: string) {
+/** Promosikan junior ke pelatnas utama (ikut didaftarkan otomatis ke turnamen senior); `rs` = catat promosi terlalu cepat. */
+export function promoteJunior(state: SeasonState, playerId: string, rs?: Ruleset) {
+  if (rs) return promote(state, rs, playerId);
   const p = state.players.find((x) => x.id === playerId);
   if (p) p.promoted = true;
 }

@@ -328,6 +328,10 @@ export interface Player {
   focus?: 'D' | 'S'; // 'S' = hanya tunggal: tidak muncul di form bentuk pasangan
   /** Junior (U19) yang sudah dipromosikan ke pelatnas utama: ikut didaftarkan otomatis ke turnamen senior. */
   promoted?: boolean;
+  /** Minggu absolut pertama kali junior Pratama dinilai siap promosi (negara manajer). */
+  readySince?: number;
+  /** Dipromosikan sebelum siap: sampai minggu absolut ini kekalahan di turnamen senior lebih menurunkan morale. */
+  earlyPromo?: number;
   retired?: number; // tahun pensiun
   /** Tahun keluar pelatnas (negara manajer): tetap bertanding sebagai pemain independen yang diatur AI. */
   released?: number;
