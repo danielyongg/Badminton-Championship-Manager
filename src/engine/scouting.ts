@@ -3,7 +3,9 @@ import { capToPa } from './development';
 import { ageAt, currentAbility, generatePlayer } from './generator';
 import type { Rng } from './rng';
 import { ensureTraits, traitHints, type TraitId } from './traits';
-import { ATTRS, type Attr, type City, type Country, type GameDate, type GeneratorConfig, type Player } from './types';
+import { absWeek, computeRanking } from './ranking';
+import type { SeasonState } from './season';
+import { ATTRS, type Attr, type City, type Country, type Discipline, type GameDate, type GeneratorConfig, type Player, type Ruleset } from './types';
 
 // Pencarian bakat junior negara manajer: kandidat 2× kursi di akhir musim; manajer merekrut berapa pun, atau diisi otomatis sejumlah kursi.
 
@@ -192,4 +194,38 @@ export function withdrawCandidates(s: Scouting, rng: Rng) {
     s.candidates = s.candidates.filter((p) => p !== out);
     (s.withdrawn ??= []).push(out.name);
   }
+}
+
+/** Laporan pemandu: dua atribut terkuat & satu terlemah (urutan ATTRS memecah seri). Selalu benar. */
+export function scoutReport(p: Player): { strong: [Attr, Attr]; weak: Attr } {
+  const s = [...ATTRS].sort((x, y) => p.attrs[y] - p.attrs[x] || ATTRS.indexOf(x) - ATTRS.indexOf(y));
+  return { strong: [s[0], s[1]], weak: s[s.length - 1] };
+}
+
+/** Saran nomor: ganda bila tipe/fokus ganda atau rata-rata net+serve+smash jauh di atas speed+stamina. */
+export function suggestedEvent(p: Player, type?: ScoutType): Discipline {
+  const a = p.attrs;
+  const doubles = type === 'doubles' || p.focus === 'D' || (a.net + a.serve + a.smash) / 3 > (a.speed + a.stamina) / 2 + 2;
+  return doubles ? (p.gender === 'M' ? 'MD' : 'WD') : p.gender === 'M' ? 'MS' : 'WS';
+}
+
+/** Atlet di `pool` yang profil atributnya (selisih dari rata-rata sendiri) paling mirip — kemiripan kosinus. */
+export function similarTo(p: Player, pool: Player[]): Player | undefined {
+  const vec = (x: Player) => { const m = ATTRS.reduce((s, k) => s + x.attrs[k], 0) / ATTRS.length; return ATTRS.map((k) => x.attrs[k] - m); };
+  const pv = vec(p), pn = Math.hypot(...pv) || 1;
+  let best: Player | undefined, score = -Infinity;
+  for (const q of pool) {
+    const qv = vec(q), c = qv.reduce((s, x, i) => s + x * pv[i], 0) / ((Math.hypot(...qv) || 1) * pn);
+    if (c > score) { score = c; best = q; }
+  }
+  return best;
+}
+
+/** Pembanding "gayanya mirip": atlet senior aktif segender di top 100 nomor itu (ganda: atlet di pasangan top 100). */
+export function similarPool(state: Pick<SeasonState, 'players' | 'pairs' | 'results' | 'date'>, rs: Ruleset, d: Discipline, gender: 'M' | 'F') {
+  const byId = new Map(state.players.map((p) => [p.id, p]));
+  const pairs = new Map(state.pairs.map((p) => [p.id, p]));
+  const ids = computeRanking(state.results, d, absWeek(state.date), rs).slice(0, 100)
+    .flatMap((r) => pairs.get(r.entrantId)?.playerIds ?? [r.entrantId]);
+  return [...new Set(ids)].map((id) => byId.get(id)).filter((p): p is Player => !!p && p.gender === gender && p.retired === undefined);
 }

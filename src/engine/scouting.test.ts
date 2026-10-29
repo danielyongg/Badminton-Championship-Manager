@@ -3,7 +3,7 @@ import { potentialStars } from './career';
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
-import { autoPick, focusScore, gemLine, makeScouting, SCOUT_TYPES, recruit, recruitSome, starRangeAt, styleOf, withdrawCandidates, type Scouting } from './scouting';
+import { autoPick, focusScore, gemLine, makeScouting, SCOUT_TYPES, scoutReport, similarPool, similarTo, suggestedEvent, recruit, recruitSome, starRangeAt, styleOf, withdrawCandidates, type Scouting } from './scouting';
 import { currentAbility } from './generator';
 import { traitHints } from './traits';
 import { ATTRS, type Player } from './types';
@@ -170,5 +170,27 @@ describe('waktu merekrut', () => {
       }
     }
     expect(above / n).toBeGreaterThan(0.85);
+  });
+
+  it('laporan pemandu, saran nomor & mirip atlet', () => {
+    const p = { gender: 'M', focus: undefined, attrs: { speed: 70, stamina: 66, serve: 40, warmup: 50, consistency: 50, net: 45, defense: 50, smash: 52, deception: 48, mental: 30 } } as unknown as Player;
+    expect(scoutReport(p)).toEqual({ strong: ['speed', 'stamina'], weak: 'mental' });
+    expect(suggestedEvent(p)).toBe('MS');
+    expect(suggestedEvent({ ...p, gender: 'F' } as Player, 'doubles')).toBe('WD');
+    const twin = { ...p, id: 'a', attrs: { ...p.attrs, speed: 80, stamina: 76 } } as Player; // profil sama, lebih kuat
+    const other = { ...p, id: 'b', attrs: { ...p.attrs, speed: 40, smash: 80 } } as Player;
+    expect(similarTo(p, [other, twin])?.id).toBe('a');
+    expect(similarTo(p, [])).toBeUndefined();
+  });
+
+  it('similarPool: top 100 senior aktif segender di nomor itu', () => {
+    const rs = BWF_2026;
+    const state = newSeason(WORLD, rs, 3, { year: 2026, week: 1 }, 'INA');
+    const ms = similarPool(state, rs, 'MS', 'M');
+    expect(ms.length).toBe(100);
+    expect(ms.every((x) => x.gender === 'M' && x.retired === undefined)).toBe(true);
+    const md = similarPool(state, rs, 'MD', 'M');
+    expect(md.length).toBeGreaterThan(50);
+    expect(md.every((x) => x.gender === 'M')).toBe(true);
   });
 });
