@@ -322,6 +322,8 @@ export interface Player {
   beatTop10?: true;
   /** Kota asal (cityId negaranya); hanya atlet yang dibuat sejak fitur ini. */
   hometown?: string;
+  /** Asal-usul dari pencarian bakat negara manajer: tahun, kota, rentang ★ saat direkrut, ditandai permata. */
+  scouted?: { year: number; cityId?: string; stars: [number, number]; gem: boolean };
   /** Spesialis ganda: tidak diberi ranking tunggal awal & tidak didaftarkan AI di nomor tunggal (manajer tetap boleh). */
   focus?: 'D' | 'S'; // 'S' = hanya tunggal: tidak muncul di form bentuk pasangan
   /** Junior (U19) yang sudah dipromosikan ke pelatnas utama: ikut didaftarkan otomatis ke turnamen senior. */

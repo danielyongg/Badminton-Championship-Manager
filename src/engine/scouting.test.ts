@@ -3,7 +3,7 @@ import { potentialStars } from './career';
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
-import { autoPick, focusScore, gemLine, makeScouting, SCOUT_TYPES, scoutReport, similarPool, similarTo, suggestedEvent, recruit, recruitSome, starRangeAt, styleOf, withdrawCandidates, type Scouting } from './scouting';
+import { autoPick, focusScore, gemLine, makeScouting, SCOUT_TYPES, scoutVerdict, scoutReport, similarPool, similarTo, suggestedEvent, recruit, recruitSome, starRangeAt, styleOf, withdrawCandidates, type Scouting } from './scouting';
 import { currentAbility } from './generator';
 import { traitHints } from './traits';
 import { ATTRS, type Player } from './types';
@@ -192,5 +192,22 @@ describe('waktu merekrut', () => {
     const md = similarPool(state, rs, 'MD', 'M');
     expect(md.length).toBeGreaterThan(50);
     expect(md.every((x) => x.gender === 'M')).toBe(true);
+  });
+
+  it('rekrut mencatat asal-usul: tahun, kota, rentang ★ minggu itu, permata', () => {
+    const rs = BWF_2026, ina = WORLD.countries.find((c) => c.id === 'INA')!;
+    const base = Array.from({ length: 4 }, (_, i) => ({ gender: i % 2 ? 'F' : 'M' }) as Player);
+    const s = makeScouting(base, ina, rs.generator, { year: 2027, week: 1 }, makeRng(5), undefined, WORLD.cities);
+    const state = { players: [] as Player[], scouting: s, date: { year: 2027, week: 3 } };
+    const gem = s.candidates.find((p) => s.trueGems!.includes(p.id))!;
+    const range = starRangeAt(s, gem, 3);
+    recruitSome(state, [gem.id]);
+    expect(state.players[0].scouted).toEqual({ year: 2027, cityId: gem.hometown, stars: range, gem: true });
+    recruit(state, []); // sisanya diisi otomatis, juga tercatat
+    expect(state.players.every((p) => p.scouted?.year === 2027)).toBe(true);
+    expect(scoutVerdict(state.players[0], range[1] + 0.5)).toBe('above');
+    expect(scoutVerdict(state.players[0], range[0])).toBe('match');
+    expect(scoutVerdict(state.players[0], range[0] - 0.5)).toBe('below');
+    expect(scoutVerdict({ ...state.players[0], scouted: undefined }, 3)).toBeUndefined();
   });
 });

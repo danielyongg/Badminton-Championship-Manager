@@ -155,12 +155,27 @@ export function autoPick(s: Scouting, keep: string[] = []) {
  * Rekrut: kandidat terpilih masuk daftar atlet (jumlah bebas), pencarian selesai.
  * Tanpa pilihan (batas minggu lewat / akhir musim): diisi otomatis sejumlah kursi.
  */
-export function recruit(state: { players: Player[]; scouting?: Scouting }, ids: string[]) {
+export function recruit(state: { players: Player[]; scouting?: Scouting; date: GameDate }, ids: string[]) {
   const s = state.scouting;
   if (!s) return;
   const chosen = new Set(ids.length || s.recruited ? ids : autoPick(s)); // sudah rekrut bertahap: tidak diisi otomatis lagi
-  state.players.push(...s.candidates.filter((p) => chosen.has(p.id)));
+  const week = state.date.year === s.year ? state.date.week : 1;
+  const picked = s.candidates.filter((p) => chosen.has(p.id));
+  picked.forEach((p) => markScouted(s, p, week));
+  state.players.push(...picked);
   delete state.scouting;
+}
+
+/** Catat asal-usul kandidat yang direkrut (rentang ★ yang terlihat minggu itu). */
+function markScouted(s: Scouting, p: Player, week: number) {
+  p.scouted = { year: s.year, cityId: p.hometown, stars: starRangeAt(s, p, week), gem: !!s.trueGems?.includes(p.id) };
+}
+
+/** Perbandingan perkiraan saat direkrut dengan bintang potensi sekarang. */
+export function scoutVerdict(p: Player, now: number): 'above' | 'match' | 'below' | undefined {
+  if (!p.scouted) return undefined;
+  const [lo, hi] = p.scouted.stars;
+  return now > hi ? 'above' : now < lo ? 'below' : 'match';
 }
 
 const half = (x: number) => Math.round(x * 2) / 2;
@@ -174,11 +189,13 @@ export function starRangeAt(s: Scouting, p: Player, week: number): [number, numb
 }
 
 /** Rekrut bertahap: kandidat terpilih langsung masuk, kursi berkurang, pencarian tetap terbuka. */
-export function recruitSome(state: { players: Player[]; scouting?: Scouting }, ids: string[]) {
+export function recruitSome(state: { players: Player[]; scouting?: Scouting; date: GameDate }, ids: string[]) {
   const s = state.scouting;
   if (!s || !ids.length) return;
   const set = new Set(ids);
+  const week = state.date.year === s.year ? state.date.week : 1;
   const picked = s.candidates.filter((p) => set.has(p.id));
+  picked.forEach((p) => markScouted(s, p, week));
   state.players.push(...picked);
   for (const p of picked) s.slots[p.gender] = Math.max(0, s.slots[p.gender] - 1);
   s.candidates = s.candidates.filter((p) => !set.has(p.id));

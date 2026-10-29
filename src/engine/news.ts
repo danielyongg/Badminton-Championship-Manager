@@ -2,6 +2,7 @@ import { ageAt, JUNIOR_MAX_AGE } from './generator';
 import { absWeek, computeRanking, rankMap } from './ranking';
 import { weekOf, type SeasonState } from './season';
 import type { AwardYear } from './awards';
+import { SCOUTING_DEADLINE_WEEK } from './scouting';
 import type { Discipline, EntrantId, Match, Ruleset } from './types';
 
 // Berita mingguan Dashboard: judul singkat dari laga minggu lalu (tanpa data baru di save).
@@ -18,7 +19,8 @@ export type NewsItem =
   | { kind: 'comeback'; m: Match; id: EntrantId }
   | { kind: 'youngChamp'; id: EntrantId; age: number; tournamentId: string; discipline: Discipline }
   | { kind: 'hosts'; year: number; drawn: { id: string; cityId: string }[] }
-  | { kind: 'awards'; award: AwardYear };
+  | { kind: 'awards'; award: AwardYear }
+  | { kind: 'gem'; ids: string[] };
 
 /** Kejutan: pemenang ≥ UPSET_GAP peringkat di bawah lawan yang ada di UPSET_TOP besar (ranking senior/junior sebelum minggu itu). */
 const UPSET_TOP = 20, UPSET_GAP = 20;
@@ -41,6 +43,10 @@ export function weeklyNews(state: SeasonState, rs: Ruleset): NewsItem[] {
   const thisWeek = individual.filter((m) => weekIn(m) === lastAbs);
   const hd = state.hostDraw;
   const hosts: NewsItem[] = hd?.drawn.length && hd.year === year + 1 && week <= HOSTS_WEEKS ? [{ kind: 'hosts', ...hd }] : [];
+  // Pencarian bakat terbuka: kandidat ⭐ yang masih ada (belum direkrut / mundur) diberitakan.
+  const sc = state.scouting;
+  const gemIds = sc && sc.year === year && week <= SCOUTING_DEADLINE_WEEK ? (sc.gems ?? []).filter((id) => sc.candidates.some((c) => c.id === id)) : [];
+  if (gemIds.length) hosts.push({ kind: 'gem', ids: gemIds });
   // BWF Player of the Year: nominasi tampil sampai pemenang diumumkan, pemenang sampai akhir musim (paling atas).
   const award = state.awards?.find((a) => a.year === year);
   if (award) hosts.unshift({ kind: 'awards', award });

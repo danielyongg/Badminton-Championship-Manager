@@ -840,6 +840,7 @@ function NewsCard({ onOpen }: { onOpen: (id: string) => void }) {
               <span>{a.winners ? <>🏆 {person(a.winners[c])}</> : a.nominees[c].map((id, i) => <span key={id}>{i > 0 && ' · '}{person(id)}</span>)}</span></span>
           ))}</span>];
       }
+      case 'gem': return ['', null, null]; // diisi di Task 4
       case 'careerHigh': return [t('newsHighTag'), <>{who(n.id)} {t('newsCareerHigh', { n: n.rank })}</>, <small className="muted-text">{n.discipline}</small>];
     }
   };

@@ -4,6 +4,8 @@ import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
 import { newSeason, playWeek } from './season';
+import { makeScouting } from './scouting';
+import type { Player } from './types';
 
 it('berita mingguan: dari laga minggu lalu, kejutan sesuai ambang ranking', async () => {
   const state = newSeason(WORLD, BWF_2026, 1, { year: 2026, week: 1 }, 'INA');
@@ -24,3 +26,15 @@ it('berita mingguan: dari laga minggu lalu, kejutan sesuai ambang ranking', asyn
   }
   expect([...kinds]).toEqual(expect.arrayContaining(['upset', 'seedOut', 'comeback', 'streak', 'careerHigh', 'smash']));
 }, 60000);
+
+it('berita permata selama pencarian terbuka', () => {
+  const rs = BWF_2026;
+  const state = newSeason(WORLD, rs, 9, { year: 2027, week: 2 }, 'INA');
+  const ina = WORLD.countries.find((c) => c.id === 'INA')!;
+  const base = Array.from({ length: 4 }, (_, i) => ({ gender: i % 2 ? 'F' : 'M' }) as Player);
+  state.scouting = makeScouting(base, ina, rs.generator, { year: 2027, week: 1 }, makeRng(2), undefined, WORLD.cities);
+  state.scouting.gems = [state.scouting.candidates[0].id];
+  expect(weeklyNews(state, rs).find((n) => n.kind === 'gem')).toEqual({ kind: 'gem', ids: [state.scouting.candidates[0].id] });
+  state.date.week = 5;
+  expect(weeklyNews(state, rs).some((n) => n.kind === 'gem')).toBe(false);
+});
