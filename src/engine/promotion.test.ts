@@ -6,6 +6,8 @@ import { currentAbility, isPratama } from './generator';
 import { absWeek } from './ranking';
 import { EARLY_WEEKS, isEarly, isHeldBack, isReady, LATE_WEEKS, promote, promotionLine, readyLines, updateReadiness } from './promotion';
 import { ATTRS } from './types';
+import { developQuarter, quarterReport } from './development';
+import { makeRng } from './rng';
 
 describe('promosi junior', () => {
   const rs = BWF_2026;
@@ -60,5 +62,17 @@ describe('promosi junior', () => {
     p.promoted = true;
     expect(isHeldBack(p, s.date)).toBe(false);
     expect(currentAbility(p.attrs)).toBeGreaterThan(0);
+  });
+
+  it('tertahan memperlambat pertumbuhan kuartal ×0,9 & tampil di laporan kuartal', () => {
+    const s = fresh(), p = pratama(s)[0];
+    const twin = structuredClone(p);
+    const ctx = { date: s.date, experience: new Map<string, number>(), doublesPlayers: new Set<string>() };
+    developQuarter(p, rs.development, { ...ctx, heldBack: new Set([p.id]) }, makeRng(1));
+    developQuarter(twin, rs.development, ctx, makeRng(1));
+    expect(currentAbility(p.attrs)).toBeLessThanOrEqual(currentAbility(twin.attrs));
+    p.readySince = absWeek(s.date) - LATE_WEEKS - 1;
+    p.caDelta = 0;
+    expect(quarterReport(s.players, 'INA', s.date).heldBack).toContain(p);
   });
 });

@@ -1,6 +1,7 @@
 import { ageAt, currentAbility, generatePlayer } from './generator';
 import { normal, type Rng } from './rng';
 import { AGELESS_YEARS, hasTrait, REVEAL_SEASONS, visibleTraits } from './traits';
+import { isHeldBack, LATE_GROWTH } from './promotion';
 import { ELITE_AGE, ELITE_MAX, ELITE_PER, MENTOR_GROWTH, MENTOR_MENTAL, MORALE_GROWTH } from './boosts';
 import { ATTRS, type AgeBand, type City, type Country, type DevelopmentConfig, type GameDate, type GeneratorConfig, type Player, type InjuryConfig, type InjuryLevel } from './types';
 
@@ -22,6 +23,8 @@ export interface QuarterContext {
   elite?: Map<string, number>;
   /** Atlet muda yang punya mentor (pasangan senior jauh lebih kuat). */
   mentored?: Set<string>;
+  /** Junior Pratama yang tertahan (siap promosi > 26 minggu): pertumbuhan melambat. */
+  heldBack?: Set<string>;
 }
 
 /** Atribut dijepit 1–100 dan rata-ratanya (CA) tidak melampaui PA. Atribut yang sudah di batas bawah tidak bisa turun lagi, maka diulang. */
@@ -55,6 +58,7 @@ export function developQuarter(p: Player, cfg: DevelopmentConfig, ctx: QuarterCo
   if (realAge <= ELITE_AGE) rate *= 1 + Math.min(ELITE_MAX, ELITE_PER * (ctx.elite?.get(p.countryId) ?? 0));
   const mentored = ctx.mentored?.has(p.id);
   if (mentored) rate *= 1 + MENTOR_GROWTH;
+  if (ctx.heldBack?.has(p.id)) rate *= LATE_GROWTH;
   const growth = Math.max(0, p.pa - before) * (rate / 4);
   // Dibagi ke atribut dengan bobot acak (gaya bermain ikut terbentuk).
   const weights = ATTRS.map(() => 0.5 + rng());
@@ -147,6 +151,7 @@ export function quarterReport(players: Player[], countryId: string, date: GameDa
     risers: own.filter((p) => p.caDelta! > 0).sort((a, b) => b.caDelta! - a.caDelta!).slice(0, 3),
     stalled: own.filter((p) => age(p) <= 21 && p.caDelta! <= 0).slice(0, 3),
     declining: own.filter((p) => age(p) >= 27 && p.caDelta! < 0).sort((a, b) => a.caDelta! - b.caDelta!).slice(0, 3),
+    heldBack: own.filter((p) => isHeldBack(p, date)).slice(0, 3),
     // Sifat fisik/perkembangan baru terbaca musim ini (sifat lain terungkap bertahap lewat jumlah laga).
     revealed: own.filter((p) => p.attrHistory.length === REVEAL_SEASONS && visibleTraits(p, 0).length).slice(0, 3),
   };

@@ -1,3 +1,4 @@
+import { EARLY_LOSS, isEarly, isHeldBack, updateReadiness } from './promotion';
 import { bumpForm, CAREER_HIGH_BONUS, CLOSE_LOSS_EXP, CLOSE_LOSS_GAP, COMEBACK_CHANCE, COMEBACK_MENTAL, eliteCounts, isCloseLoss, mentorsOf, FIRST_TITLE_BONUS, FIRST_TOP10_WIN_BONUS, HOME_BONUS, hitTarget, PAIR_STREAK_BONUS, PAIR_STREAK_FROM, REST_RECOVERY, SELECT_BONUS, SNUB_PENALTY, snubbed, TARGET_HIT, TARGET_MISS } from './boosts';
 import { chemistryMult, ensureTraits, FRAGILE_DOWN, hasTrait, HOME_HERO_BONUS, injuryMult, LEADER_PARTNER, LEADER_SQUAD, QUICK_RECOVERY, TRAVELER_FATIGUE } from './traits';
 import { makeChallenges, seasonGoals, seasonReport, suggestJuniorTargets, suggestTargets } from './career';
@@ -703,15 +704,26 @@ function updateMorale(state: SeasonState, rs: Ruleset, fromMatch: number, fromCh
   const pairs = new Map(state.pairs.map((p) => [p.id, p]));
   const members = (id: string) => (pairs.get(id)?.playerIds ?? [id]).map((x) => players.get(x)).filter((p): p is Player => !!p);
   const ability = (ps: Player[]) => ps.reduce((s, p) => s + currentAbility(p.attrs), 0) / Math.max(1, ps.length);
-  const add = (ps: Player[], d: number) => { for (const p of ps) bumpForm(p, d < 0 && hasTrait(p, 'fragileMorale') ? d * FRAGILE_DOWN : d); };
+  // Promosi terlalu cepat: kekalahan di turnamen senior lebih menurunkan morale selama masa "belum siap".
+  // ponytail: laga beregu junior (Suhandinata) dihitung senior — jarang, atlet "belum siap" biasanya di kejuaraan individu.
+  const now = absWeek(state.date);
+  const juniorEv = new Set(rs.calendar.filter((e) => rs.tiers.find((x) => x.id === e.tierId)?.junior).map((e) => e.id));
+  const add = (ps: Player[], d: number, senior = false) => {
+    for (const p of ps) {
+      let x = d < 0 && hasTrait(p, 'fragileMorale') ? d * FRAGILE_DOWN : d;
+      if (x < 0 && senior && isEarly(p, now)) x *= EARLY_LOSS;
+      bumpForm(p, x);
+    }
+  };
   for (const m of state.matches.slice(fromMatch)) {
     if (m.walkover) continue;
     const sides = m.sides.map(members);
     if (sides.some((ps) => !ps.length)) continue;
     const p0 = 1 / (1 + Math.exp((ability(sides[1]) - ability(sides[0])) / cfg.scale)); // peluang sisi 0 menang
     const d = cfg.k * ((m.winner === 0 ? 1 : 0) - p0);
-    add(sides[0], d);
-    add(sides[1], -d);
+    const senior = !juniorEv.has(m.tournamentId);
+    add(sides[0], d, senior);
+    add(sides[1], -d, senior);
     if (m.round === 'F') add(sides[1 - m.winner], cfg.finalBonus);
     const ws = sides[m.winner];
     // Pemimpin: pasangannya ikut terangkat saat menang.
@@ -902,6 +914,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   publishEntries(state, rs, world, rng);
   for (const [p, c] of now) Object.assign(p, c);
   updateMorale(state, rs, weekMatches, weekChampions, ranks);
+  updateReadiness(state, rs); // junior Pratama yang baru siap promosi (berita minggu depan)
   // Istirahat: atlet yang tidak bertanding minggu ini memulihkan morale negatif lebih cepat.
   const busy = new Set(state.matches.slice(weekMatches).flatMap((m) => m.sides.flatMap((s) => pairs.get(s)?.playerIds ?? [s])));
   for (const p of state.players) if (p.form < 0 && !busy.has(p.id)) p.form *= REST_RECOVERY;
@@ -1376,7 +1389,8 @@ function doublesPlayers(state: SeasonState, rs: Ruleset) {
 /** Tiap 13 minggu: perkembangan & penuaan semua atlet aktif. */
 function endQuarter(state: SeasonState, rs: Ruleset, rng: Rng) {
   const ctx = { date: state.date, experience: new Map(Object.entries(state.experience)), doublesPlayers: doublesPlayers(state, rs),
-    elite: eliteCounts(state, rs), mentored: mentorsOf(state, state.date) };
+    elite: eliteCounts(state, rs), mentored: mentorsOf(state, state.date),
+    heldBack: new Set(state.players.filter((p) => isHeldBack(p, state.date)).map((p) => p.id)) };
   for (const p of state.players) if (p.retired === undefined) developQuarter(p, rs.development, ctx, rng);
   state.experience = {};
 }
