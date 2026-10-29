@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { dissolvePair, formPair, potentialStars, promoteJunior, promoteTrial, setTarget, suggestJuniorTargets, suggestTargets, targetReport } from './career';
+import { dissolvePair, formPair, peakRange, potentialStars, promoteJunior, promoteTrial, setTarget, suggestJuniorTargets, suggestTargets, targetReport } from './career';
 import { currentAbility, isJuniorAge as isJunior } from './generator';
-import { ROUNDS } from './types';
+import { ATTRS, ROUNDS, type Player } from './types';
 import { isJuniorAge, isPratama } from './generator';
 import { validatePack } from './pack';
 import { BWF_2026 } from './presets/bwf2026';
@@ -299,4 +299,15 @@ describe('saran target junior', () => {
     expect(s.get(best.id)).toBeDefined();
     expect(s.get(weak.id)).toBeUndefined();
   });
+});
+
+it('prediksi puncak: rentang menyempit seiring usia & laga, dibulatkan', () => {
+  const pool = Array.from({ length: 300 }, (_, i) => ({ attrs: Object.fromEntries(ATTRS.map((a) => [a, 95 - i * 0.15])) }) as unknown as Player);
+  const p = { id: 'abc', pa: 85, birth: { year: 2010, week: 1 }, attrs: {} } as unknown as Player;
+  const young = peakRange(p, { year: 2026, week: 1 }, 0, pool);
+  const old = peakRange(p, { year: 2031, week: 1 }, 200, pool);
+  expect(young[0]).toBeLessThanOrEqual(old[0]);
+  expect(young[1]).toBeGreaterThanOrEqual(old[1]);
+  expect(young[1]).toBeGreaterThan(young[0]);
+  for (const r of [...young, ...old]) expect([1, 3, 5, 10, 20, 30, 50, 100, 200, 300, 500]).toContain(r);
 });

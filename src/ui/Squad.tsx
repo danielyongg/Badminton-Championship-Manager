@@ -1,6 +1,6 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { awardsOf } from '../engine/awards';
-import { dissolvePair, potentialStars, promoteJunior, recallPlayer, releasePlayer } from '../engine/career';
+import { dissolvePair, peakRange, potentialStars, promoteJunior, recallPlayer, releasePlayer } from '../engine/career';
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { experienceFactor } from '../engine/development';
 import { visibleTraits } from '../engine/traits';
@@ -315,6 +315,8 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
   const [statSide, setStatSide] = useState<string>();
   const [statYear, setStatYear] = useState<number | 'all'>('all');
   const pairs = useMemo(() => (pair ? [] : state.pairs.filter((x) => x.playerIds.includes(id))), [version, id]);
+  // Pembanding prediksi puncak: atlet senior aktif segender (kemampuan sekarang).
+  const peakPool = useMemo(() => state.players.filter((x) => x.gender === p?.gender && x.retired === undefined && ageAt(x.birth, state.date) >= 19), [version, p?.gender]);
   const singles: Discipline = p?.gender === 'F' ? 'WS' : 'MS';
   // Ranking dunia saat ini: tunggal + tiap pasangan aktif.
   const ranks = useMemo(() => {
@@ -427,6 +429,11 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
           {fact(t('ability'), <>{currentAbility(p.attrs)}{arrow(p.caDelta)}</>)}
           {fact(t('morale'), <MoraleTag value={p.form} />)}
           {fact(t('potential'), <span className="stars">{starText(potentialStars(p, state.date, counts.get(p.id) ?? 0))}</span>)}
+          {p.retired === undefined && ageAt(p.birth, state.date) <= 21 && (() => {
+            // Prediksi puncak dari perkiraan potensi (rentang menyempit seiring usia & laga), bukan PA asli.
+            const [a, b] = peakRange(p, state.date, counts.get(p.id) ?? 0, peakPool);
+            return fact(t('peakFact'), t('peakText', { age: p.focus === 'D' ? 26 : 25, a, b: b >= 500 ? '500+' : b }));
+          })()}
           {isPratama(p, state.date) && p.readySince !== undefined && fact(t('promotion'), <span className="tag up-tag">⬆ {t('readyPromo')}</span>)}
           {p.scouted && (() => {
             // Asal-usul pencarian bakat: perkiraan ★ saat direkrut dibandingkan dengan ★ sekarang.

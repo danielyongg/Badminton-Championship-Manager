@@ -237,12 +237,29 @@ export function seasonReport(state: SeasonState, rs: Ruleset, countryId: string,
  * Galat tetap per atlet (dari id) agar tidak berubah-ubah tiap dibuka. (ASUMSI: sd 15 → 2 poin PA)
  */
 export function potentialStars(p: Player, date: { year: number; week: number }, matchesPlayed: number) {
+  const { est } = potentialEstimate(p, date, matchesPlayed);
+  return Math.max(0.5, Math.min(5, Math.round(est / 10) / 2));
+}
+
+/** Perkiraan potensi yang terlihat (bukan PA asli): titik tengah & sebaran yang menyempit dengan usia & jumlah laga. */
+export function potentialEstimate(p: Player, date: { year: number; week: number }, matchesPlayed: number) {
   let h = 0;
   for (const ch of p.id) h = (h * 31 + ch.charCodeAt(0)) | 0;
   const unit = ((h >>> 0) % 1000) / 1000 - 0.5; // −0,5..0,5
   const sd = Math.max(2, 15 - (ageAt(p.birth, date) - 15) * 1.2 - matchesPlayed / 30);
-  const est = p.pa + unit * 2 * sd * 1.5;
-  return Math.max(0.5, Math.min(5, Math.round(est / 10) / 2));
+  return { est: p.pa + unit * 2 * sd * 1.5, sd };
+}
+
+const PEAK_STEPS = [1, 3, 5, 10, 20, 30, 50, 100, 200, 300, 500];
+/**
+ * Prediksi peringkat puncak [terbaik, terburuk] dari perkiraan potensi (est ± ½ sd): berapa atlet `pool` (aktif segender)
+ * yang kemampuannya sekarang di atas level itu, dibulatkan ke PEAK_STEPS (500 = 500 ke bawah).
+ */
+export function peakRange(p: Player, date: { year: number; week: number }, matchesPlayed: number, pool: Player[]): [number, number] {
+  const { est, sd } = potentialEstimate(p, date, matchesPlayed);
+  const cas = pool.map((x) => currentAbility(x.attrs));
+  const rankAt = (lvl: number) => { const n = cas.filter((c) => c > lvl).length + 1; return PEAK_STEPS.find((s) => s >= n) ?? 500; };
+  return [rankAt(Math.min(99, est + sd / 2)), rankAt(est - sd / 2)]; // ½ sd: rentang tetap berguna di usia 15–17
 }
 
 const PAIR_GENDERS: Record<Pair['discipline'], string> = { MD: 'MM', WD: 'FF', XD: 'FM' };

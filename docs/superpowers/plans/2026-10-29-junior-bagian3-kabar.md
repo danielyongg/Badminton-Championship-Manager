@@ -99,7 +99,7 @@ export function peakRange(p: Player, date, matchesPlayed: number, pool: Player[]
   const { est, sd } = potentialEstimate(p, date, matchesPlayed);
   const cas = pool.map((x) => currentAbility(x.attrs));
   const rankAt = (lvl: number) => { const n = cas.filter((c) => c > lvl).length + 1; return PEAK_STEPS.find((s) => s >= n) ?? 500; };
-  return [rankAt(Math.min(99, est + sd)), rankAt(est - sd)];
+  return [rankAt(Math.min(99, est + sd / 2)), rankAt(est - sd / 2)];
 }
 ```
 
