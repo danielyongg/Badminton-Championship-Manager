@@ -21,6 +21,8 @@ export const FIRST_TITLE_BONUS = 2, FIRST_TOP10_WIN_BONUS = 1.5, CAREER_HIGH_BON
 export const CLOSE_LOSS_EXP = 1.4, CLOSE_LOSS_GAP = 5;
 /** Perkembangan: ±MORALE_GROWTH pada morale ±10. */
 export const MORALE_GROWTH = 0.1;
+/** Berita terobosan: atlet negara manajer s/d usia ini; lonjakan = kemampuan naik ≥ SURGE_MIN dalam sekuartal. ASUMSI. */
+export const BREAKTHROUGH_AGE = 21, SURGE_MIN = 4;
 /** Lingkungan pelatnas: +ELITE_PER per atlet top 20 senegara, maks ELITE_MAX, untuk usia ≤ ELITE_AGE. */
 export const ELITE_PER = 0.02, ELITE_MAX = 0.1, ELITE_AGE = 23;
 /** Mentor: pasangan aktif berusia ≥ 25 dan CA ≥ +10 dari atlet ≤ 21 → mental +MENTOR_MENTAL/tahun, faktor pertumbuhan +MENTOR_GROWTH. */

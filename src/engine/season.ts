@@ -1,5 +1,5 @@
 import { EARLY_LOSS, isEarly, isHeldBack, updateReadiness } from './promotion';
-import { bumpForm, CAREER_HIGH_BONUS, CLOSE_LOSS_EXP, CLOSE_LOSS_GAP, COMEBACK_CHANCE, COMEBACK_MENTAL, eliteCounts, isCloseLoss, mentorsOf, FIRST_TITLE_BONUS, FIRST_TOP10_WIN_BONUS, HOME_BONUS, hitTarget, PAIR_STREAK_BONUS, PAIR_STREAK_FROM, REST_RECOVERY, SELECT_BONUS, SNUB_PENALTY, snubbed, TARGET_HIT, TARGET_MISS } from './boosts';
+import { bumpForm, CAREER_HIGH_BONUS, CLOSE_LOSS_EXP, CLOSE_LOSS_GAP, COMEBACK_CHANCE, COMEBACK_MENTAL, eliteCounts, isCloseLoss, mentorsOf, FIRST_TITLE_BONUS, FIRST_TOP10_WIN_BONUS, HOME_BONUS, hitTarget, PAIR_STREAK_BONUS, PAIR_STREAK_FROM, REST_RECOVERY, SELECT_BONUS, SNUB_PENALTY, snubbed, TARGET_HIT, TARGET_MISS, BREAKTHROUGH_AGE } from './boosts';
 import { chemistryMult, ensureTraits, FRAGILE_DOWN, hasTrait, HOME_HERO_BONUS, injuryMult, LEADER_PARTNER, LEADER_SQUAD, QUICK_RECOVERY, TRAVELER_FATIGUE } from './traits';
 import { makeChallenges, seasonGoals, seasonReport, suggestJuniorTargets, suggestTargets } from './career';
 import { contingentOf, inContingent, lockContingents } from './contingent';
@@ -735,6 +735,10 @@ function updateMorale(state: SeasonState, rs: Ruleset, fromMatch: number, fromCh
     // Menang pertama atas top 10 (ranking sebelum minggu ini).
     if ((ranks.get(m.discipline)?.get(m.sides[1 - m.winner]) ?? 9999) <= 10)
       for (const p of ws) if (!p.beatTop10) { p.beatTop10 = true; bumpForm(p, FIRST_TOP10_WIN_BONUS); }
+    // Terobosan: atlet muda negara manajer pertama kali menang atas top 50 senior (berita minggu depan).
+    const lr = ranks.get(m.discipline)?.get(m.sides[1 - m.winner]) ?? 9999;
+    if (senior && lr <= 50)
+      for (const p of ws) if (!p.firstTop50 && p.countryId === state.managedCountryId && ageAt(p.birth, state.date) <= BREAKTHROUGH_AGE) p.firstTop50 = { w: now, opp: m.sides[1 - m.winner], rank: lr };
   }
   const earlier = new Set(state.champions.slice(0, fromChampion).map((c) => c.winner));
   for (const c of state.champions.slice(fromChampion)) {

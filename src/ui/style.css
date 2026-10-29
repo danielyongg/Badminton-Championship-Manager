@@ -892,6 +892,7 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 .news .host-list .drow { flex-direction: row; padding: 3px 0; gap: 12px; }
 .news .host-list .drow b { white-space: nowrap; font-weight: 600; }
 .news .badge.news-hosts { background: var(--fair-soft); color: var(--fair); }
+.news .badge.news-breakthrough { background: var(--accent-soft); color: var(--accent-strong); }
 .news .badge.news-ready { background: var(--accent-soft); color: var(--accent-strong); }
 .tag.up-tag { background: var(--accent-soft); color: var(--accent-strong); font-weight: 700; }
 .news .badge.news-gem { background: var(--gold-soft); color: var(--gold); }

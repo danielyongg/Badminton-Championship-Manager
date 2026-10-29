@@ -332,6 +332,8 @@ export interface Player {
   readySince?: number;
   /** Dipromosikan sebelum siap: sampai minggu absolut ini kekalahan di turnamen senior lebih menurunkan morale. */
   earlyPromo?: number;
+  /** Kemenangan pertama atas top 50 senior (atlet muda negara manajer): minggu absolut, lawan, peringkat lawan. */
+  firstTop50?: { w: number; opp: string; rank: number };
   retired?: number; // tahun pensiun
   /** Tahun keluar pelatnas (negara manajer): tetap bertanding sebagai pemain independen yang diatur AI. */
   released?: number;

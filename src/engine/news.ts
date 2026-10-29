@@ -2,6 +2,7 @@ import { ageAt, JUNIOR_MAX_AGE } from './generator';
 import { absWeek, computeRanking, rankMap } from './ranking';
 import { weekOf, type SeasonState } from './season';
 import type { AwardYear } from './awards';
+import { BREAKTHROUGH_AGE, SURGE_MIN } from './boosts';
 import { SCOUTING_DEADLINE_WEEK } from './scouting';
 import type { Discipline, EntrantId, Match, Ruleset } from './types';
 
@@ -21,7 +22,8 @@ export type NewsItem =
   | { kind: 'hosts'; year: number; drawn: { id: string; cityId: string }[] }
   | { kind: 'awards'; award: AwardYear }
   | { kind: 'gem'; ids: string[] }
-  | { kind: 'ready'; ids: string[] };
+  | { kind: 'ready'; ids: string[] }
+  | { kind: 'breakthrough'; id: string; surge?: number; opp?: string; rank?: number };
 
 /** Kejutan: pemenang ≥ UPSET_GAP peringkat di bawah lawan yang ada di UPSET_TOP besar (ranking senior/junior sebelum minggu itu). */
 const UPSET_TOP = 20, UPSET_GAP = 20;
@@ -51,6 +53,11 @@ export function weeklyNews(state: SeasonState, rs: Ruleset): NewsItem[] {
   // Junior Pratama negara manajer yang minggu lalu dinilai siap promosi.
   const ready = state.players.filter((p) => p.countryId === state.managedCountryId && p.readySince === lastAbs).map((p) => p.id);
   if (ready.length) hosts.push({ kind: 'ready', ids: ready });
+  // Terobosan atlet muda negara manajer: lonjakan kemampuan (minggu sesudah akhir kuartal) & menang pertama atas top 50.
+  const young = state.players.filter((p) => p.countryId === state.managedCountryId && p.retired === undefined && ageAt(p.birth, state.date) <= BREAKTHROUGH_AGE);
+  if (last.week % 13 === 0)
+    for (const p of young.filter((x) => (x.caDelta ?? 0) >= SURGE_MIN).sort((a, b) => b.caDelta! - a.caDelta!).slice(0, 2)) hosts.push({ kind: 'breakthrough', id: p.id, surge: p.caDelta });
+  for (const p of young) if (p.firstTop50?.w === lastAbs) hosts.push({ kind: 'breakthrough', id: p.id, opp: p.firstTop50.opp, rank: p.firstTop50.rank });
   // BWF Player of the Year: nominasi tampil sampai pemenang diumumkan, pemenang sampai akhir musim (paling atas).
   const award = state.awards?.find((a) => a.year === year);
   if (award) hosts.unshift({ kind: 'awards', award });

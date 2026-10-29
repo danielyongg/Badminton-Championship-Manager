@@ -50,3 +50,18 @@ it('berita siap promosi: minggu sesudah junior Pratama dinilai siap', () => {
   state.date.week = 11;
   expect(weeklyNews(state, rs).some((n) => n.kind === 'ready')).toBe(false);
 });
+
+it('berita terobosan: lonjakan sesudah akhir kuartal & kemenangan pertama atas top 50', () => {
+  const rs = BWF_2026;
+  const state = newSeason(WORLD, rs, 9, { year: 2026, week: 14 }, 'INA');
+  const young = state.players.filter((x) => x.countryId === 'INA' && 2026 - x.birth.year <= 21);
+  young[0].caDelta = 5;
+  young[1].caDelta = 3;
+  young[2].firstTop50 = { w: absWeek({ year: 2026, week: 13 }), opp: 'x', rank: 23 };
+  const items = weeklyNews(state, rs).filter((n) => n.kind === 'breakthrough');
+  expect(items).toContainEqual({ kind: 'breakthrough', id: young[0].id, surge: 5 });
+  expect(items.some((n) => n.kind === 'breakthrough' && n.id === young[1].id)).toBe(false);
+  expect(items).toContainEqual({ kind: 'breakthrough', id: young[2].id, opp: 'x', rank: 23 });
+  state.date.week = 15; // bukan minggu sesudah kuartal
+  expect(weeklyNews(state, rs).some((n) => n.kind === 'breakthrough')).toBe(false);
+});

@@ -780,6 +780,8 @@ function NewsCard({ onOpen }: { onOpen: (id: string) => void }) {
               <span>{a.winners ? <>🏆 {person(a.winners[c])}</> : a.nominees[c].map((id, i) => <span key={id}>{i > 0 && ' · '}{person(id)}</span>)}</span></span>
           ))}</span>];
       }
+      case 'breakthrough': return [t('newsBreakTag'), n.surge !== undefined ? <>{who(n.id)} {t('newsSurge', { n: n.surge })}</>
+        : <>{who(n.id)} {t('newsTop50')} {who(n.opp!)} <span className="muted-text">(#{n.rank})</span></>, null];
       case 'ready': return [t('newsReadyTag'), <>{n.ids.map((id, i) => <span key={id}>{i > 0 && ', '}{who(id)}</span>)}</>, <small className="muted-text">{t('newsReady')}</small>];
       case 'gem': return [t('newsGemTag'), <>{n.ids.map((id, i) => {
         const p = state.scouting?.candidates.find((c) => c.id === id);
