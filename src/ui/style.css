@@ -505,10 +505,38 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 .drawhead .controls { margin-bottom: 4px; }
 .announce { font-size: 1.1rem; font-weight: 800; min-height: 1.6em; }
 .drawlayout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-@media (min-width: 700px) { .drawlayout { grid-template-columns: minmax(160px, 1fr) minmax(0, 3fr); } }
-.bowl ul { margin: 0; padding-left: 1.2em; max-height: 360px; overflow-y: auto; }
-.halves { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
-.drawboard td { padding: 1px 6px; font-size: .82rem; }
+.drawboard td { padding: 1px 6px; font-size: .82rem; } /* daftar unggulan */
+/* Pot di atas bagan: chip atlet yang belum diundi (yang berikutnya diberi garis). */
+.bowl h4 { margin: 0 0 4px; }
+.bowl ul { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; padding: 0; list-style: none; max-height: 96px; overflow-y: auto; }
+.bowl li { padding: 1px 8px; border: 1px solid var(--line); border-radius: 12px; font-size: .8rem; background: var(--surface-2, var(--bg)); white-space: nowrap; }
+.bowl li.next { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+/* Sorotan langkah terakhir: nama besar + seksi/posisi tujuan. */
+.drawspot { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; padding: 8px 12px; margin: 4px 0; border-radius: 8px;
+  background: var(--gold-soft); border-left: 4px solid var(--gold, #c9a227); animation: spotin .35s ease-out; }
+.drawspot.mine { background: var(--accent-soft); border-left-color: var(--accent); }
+.drawspot .nm { font-size: 1.15rem; font-weight: 800; }
+.drawspot .to { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
+@keyframes spotin { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
+/* Bagan per seksi: 4 kartu (Q1–Q4), 2 per baris (4 di laptop), 1 di HP. */
+.drawquarters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 1280px) { .drawquarters { grid-template-columns: repeat(4, minmax(0, 1fr)); } } /* laptop: 4 seksi sebaris */
+.drawquarters.one { grid-template-columns: minmax(0, 420px); }
+.drawq { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; transition: border-color .3s; min-width: 0; }
+.drawq.active { border-color: var(--accent); }
+.drawq h4 { display: flex; gap: 8px; align-items: baseline; margin: 0 0 4px; }
+.drawq h4 b { color: var(--accent-strong); }
+.drawq h4 span:not(.mine) { color: var(--muted); font-weight: 500; font-size: .8rem; }
+.drawq h4 small { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+.drawslots { list-style: none; margin: 0; padding: 0; }
+.drawslots li { display: grid; grid-template-columns: 2.2em 1.8em minmax(0, 1fr); align-items: center; gap: 4px; padding: 2px 4px; font-size: .82rem; border-radius: 4px; }
+.drawslots li:nth-child(2n) { border-bottom: 1px dashed var(--line); border-radius: 0; } /* garis tiap 2 posisi = pasangan laga babak pertama */
+.drawslots li.empty { opacity: .45; }
+.drawslots li.minerow { box-shadow: inset 3px 0 0 var(--accent); }
+.drawslots .pos { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.drawslots .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seedtag:not(:empty) { display: inline-block; min-width: 1.6em; padding: 0 4px; border-radius: 4px; background: var(--gold-soft); color: var(--text); font-size: .72rem; font-weight: 800; text-align: center; }
+.seedtag.big { font-size: .9rem; padding: 2px 6px; background: var(--gold); color: var(--surface); } /* sorotan: unggulan kontras di latar emas */
 .flash { background: var(--gold-soft); transition: background .3s; }
 
 /* Layar HP: header tidak ikut melekat (terlalu tinggi), menu tab jadi satu baris geser yang melekat di atas,
@@ -626,10 +654,9 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
   .drawlayout .groups .card { padding: 6px 8px; }
   .drawlayout .groups ol { padding-left: 1.4em; margin: 4px 0 0; }
   .drawlayout .groups li { overflow-wrap: anywhere; } /* nama panjang / pasangan turun baris, tetap utuh terlihat */
-  /* Bagan undian: nama panjang turun baris agar tidak melewati lebar layar. */
-  .halves { grid-template-columns: minmax(0, 1fr); }
-  .drawboard { width: 100%; }
-  .drawboard td:last-child { white-space: normal; }
+  /* Bagan undian: satu seksi per baris; nama panjang turun baris agar tidak melewati lebar layar. */
+  .drawquarters { grid-template-columns: minmax(0, 1fr); }
+  .drawslots .nm { white-space: normal; overflow-wrap: anywhere; }
 }
 /* Halaman turnamen yang dimainkan (dulu pop-up): kepala undian tidak menempel karena menu tab sudah menempel di atas. */
 .hub .drawhead { position: static; margin: 0 0 8px; padding: 0 0 4px; }

@@ -55,21 +55,43 @@ export function LiveDraw({ title, qualTitle, show, name, mine, onClose, onSkipEv
   const bowl = done ? [] : bowlAt(steps, idx);
   const left = done ? 0 : steps.slice(idx).filter((s) => phaseOf(s) === phaseOf(next)).length;
   const who = (id?: string) => (id ? <span className={mine(id) ? 'mine' : undefined}><Flag id={id} />{name(id)}</span> : null);
+  // Di slot bagan bendera sudah menunjukkan negara: kode "(INA)" dibuang agar nama muat.
+  const slotWho = (id?: string) => (id ? <span className={mine(id) ? 'mine' : undefined}><Flag id={id} />{name(id).replace(/ \([A-Z]{3}\)$/, '')}</span> : null);
 
-  const half = (from: number, to: number) => (
-    <table className="drawboard">
-      <tbody>{Array.from({ length: to - from + 1 }, (_, i) => from + i).map((p) => {
-        const s = board.slots[p] ?? {};
-        return (
-          <tr key={p} className={touched.has(p) ? 'flash' : ''}>
-            <td className="num">{p}</td>
-            <td>{s.seed ? `[${s.seed}]` : s.qualifier ? '[Q]' : ''}</td>
-            <td>{s.bye ? <span className="muted">{t('bye')}</span> : s.qualifier ? <span className="muted">{t('qualifying')}</span> : who(s.entrant)}</td>
-          </tr>
-        );
-      })}</tbody>
-    </table>
-  );
+  // Bagan dibagi 4 seksi (kuarter) seperti bagan BWF; tiap posisi satu baris, posisi kosong disamarkan.
+  const size = show.size ?? 0;
+  const per = size >= 8 ? size / 4 : size;
+  const quarterOf = (p: number) => Math.ceil(p / per);
+  const quarter = (q: number) => {
+    const from = (q - 1) * per + 1, pos = Array.from({ length: per }, (_, i) => from + i);
+    const filled = pos.filter((p) => { const x = board.slots[p]; return x && (x.entrant || x.bye || x.qualifier); }).length;
+    const hasMine = pos.some((p) => { const e = board.slots[p]?.entrant; return e && mine(e); });
+    return (
+      <section key={q} className={`drawq${pos.some((p) => touched.has(p)) ? ' active' : ''}`}>
+        <h4>{per < size && <b>Q{q}</b>}<span>{from}–{from + per - 1}</span>{hasMine && <span className="mine">●</span>}<small>{filled}/{per}</small></h4>
+        <ol className="drawslots">{pos.map((p) => {
+          const x = board.slots[p] ?? {};
+          const empty = !x.entrant && !x.bye && !x.qualifier;
+          return (
+            <li key={p} className={`${touched.has(p) ? 'flash' : ''}${empty ? ' empty' : ''}${x.entrant && mine(x.entrant) ? ' minerow' : ''}`}>
+              <span className="pos">{p}</span>
+              <span className="seedtag">{x.seed ? x.seed : x.qualifier ? 'Q' : ''}</span>
+              <span className="nm">{x.bye ? <span className="muted">{t('bye')}</span> : x.qualifier ? <span className="muted">{t('qualifying')}</span> : empty ? '·' : slotWho(x.entrant)}</span>
+            </li>
+          );
+        })}</ol>
+      </section>
+    );
+  };
+  // Sorotan langkah terakhir: atlet besar + posisinya; langkah tanpa atlet (bye, pemisahan) cukup kalimatnya.
+  const lastSlot = last?.pos !== undefined ? board.slots[last.pos] : undefined;
+  const spotlight = last?.entrant && last.pos !== undefined && last.key !== 'step_swap' ? (
+    <div className={`drawspot${mine(last.entrant) ? ' mine' : ''}`} key={idx}>
+      {lastSlot?.seed ? <span className="seedtag big">{lastSlot.seed}</span> : null}
+      <span className="nm"><Flag id={last.entrant} />{name(last.entrant)}</span>
+      <span className="to">→ {per < size ? `Q${quarterOf(last.pos)} · ` : ''}{last.pos}</span>
+    </div>
+  ) : null;
 
   if (!drawing) {
     const who2 = { name, mine };
@@ -104,7 +126,7 @@ export function LiveDraw({ title, qualTitle, show, name, mine, onClose, onSkipEv
         {/* Judul, pengumuman & kontrol menempel di atas saat bagan digulir. */}
         <div className="drawhead">
         <h3>{title} · {t('draw_title')}</h3>
-        <p className="announce">{last ? stepText(last, name) : t('draw_start')}</p>
+        {spotlight ?? <p className="announce">{last ? stepText(last, name) : t('draw_start')}</p>}
         {/* Kontrol putar: tombol ringkas sebaris + pilihan kecepatan bersegmen. */}
         <div className="drawctl">
           {!done && (
@@ -124,10 +146,11 @@ export function LiveDraw({ title, qualTitle, show, name, mine, onClose, onSkipEv
         </div>
         </div>
         <div className="drawlayout">
+          {/* Pot: atlet yang belum diundi di fase ini, sebagai chip; yang berikutnya diundi ditandai. */}
           <section className="bowl">
-            <h4>{done ? t('draw_done') : phaseLabel(phaseOf(next))}</h4>
+            <h4>{done ? t('draw_done') : phaseLabel(phaseOf(next))}{!done && <small> · {left}</small>}</h4>
             {!done && (bowl.length
-              ? <ul>{bowl.map((id) => <li key={id}>{who(id)}</li>)}</ul>
+              ? <ul>{bowl.map((id, i) => <li key={id} className={i === 0 ? 'next' : undefined}>{who(id)}</li>)}</ul>
               : <p className="muted">{t('draw_left', { n: left })}</p>)}
           </section>
           {show.groups ? (
@@ -140,10 +163,7 @@ export function LiveDraw({ title, qualTitle, show, name, mine, onClose, onSkipEv
               ))}
             </div>
           ) : (
-            <div className="halves">
-              <div><h4>{t('draw_topHalf')}</h4>{half(1, (show.size ?? 0) / 2)}</div>
-              <div><h4>{t('draw_bottomHalf')}</h4>{half((show.size ?? 0) / 2 + 1, show.size ?? 0)}</div>
-            </div>
+            <div className={`drawquarters${per < size ? '' : ' one'}`}>{Array.from({ length: size / per }, (_, i) => quarter(i + 1))}</div>
           )}
         </div>
         <div className="controls roundbar">

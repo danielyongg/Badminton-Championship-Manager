@@ -132,23 +132,25 @@ export function SeedsView({ rec, ...who }: ViewProps) {
   );
 }
 
-/** Hasil undian bagan gugur: posisi demi posisi (unggulan, Q, WC, bye), dibagi paruh atas & bawah. */
+/** Hasil undian bagan gugur: posisi demi posisi (unggulan, Q, WC, bye), dibagi 4 seksi seperti live drawing. */
 export function DrawResultView({ rec, ...who }: ViewProps) {
-  const half = rec.slots.length / 2;
-  const rows = (from: number, to: number) => (
-    <table className="drawboard"><tbody>{rec.slots.slice(from, to).map((s) => (
-      <tr key={s.pos} className={s.entrant && who.mine?.(s.entrant) ? 'sel' : undefined}>
-        <td className="num muted-text">{s.pos}</td>
-        <td className="muted-text">{s.seed ? `[${s.seed}]` : s.qualifier ? '[Q]' : s.wildcard ? '[WC]' : ''}</td>
-        <td>{s.bye ? <span className="muted">{t('bye')}</span> : s.entrant ? <Who id={s.entrant} {...who} /> : <span className="muted">{t('qualifying')}</span>}</td>
-      </tr>
-    ))}</tbody></table>
-  );
+  const size = rec.slots.length, per = size >= 8 ? size / 4 : size;
   return (
-    <div className="halves">
-      <div><h4>{t('draw_topHalf')}</h4>{rows(0, half)}</div>
-      <div><h4>{t('draw_bottomHalf')}</h4>{rows(half, rec.slots.length)}</div>
-    </div>
+    <div className={`drawquarters${per < size ? '' : ' one'}`}>{Array.from({ length: size / per }, (_, q) => {
+      const slots = rec.slots.slice(q * per, (q + 1) * per);
+      return (
+        <section key={q} className="drawq">
+          <h4>{per < size && <b>Q{q + 1}</b>}<span>{q * per + 1}–{(q + 1) * per}</span>{slots.some((s) => s.entrant && who.mine?.(s.entrant)) && <span className="mine">●</span>}</h4>
+          <ol className="drawslots">{slots.map((s) => (
+            <li key={s.pos} className={s.entrant && who.mine?.(s.entrant) ? 'minerow' : undefined}>
+              <span className="pos">{s.pos}</span>
+              <span className="seedtag">{s.seed ? s.seed : s.qualifier ? 'Q' : s.wildcard ? 'WC' : ''}</span>
+              <span className="nm">{s.bye ? <span className="muted">{t('bye')}</span> : s.entrant ? <Who id={s.entrant} {...who} /> : <span className="muted">{t('qualifying')}</span>}</span>
+            </li>
+          ))}</ol>
+        </section>
+      );
+    })}</div>
   );
 }
 
