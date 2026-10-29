@@ -25,8 +25,7 @@ import { advance, entrantLabel, eventName, teamLabel, lookup, saveGame, useGame,
 import { SeasonViews } from './Ranking';
 import { arrow, injuryText, isBadInjury, Profile, Squad, TraitTags, usd } from './Squad';
 import { quarterReport } from '../engine/development';
-import { autoPick, recruit, recruitSome, SCOUTING_DEADLINE_WEEK, starRangeAt, styleOf } from '../engine/scouting';
-import { ScoutFocusSelect } from './Squad';
+import { ScoutingCard } from './Scouting';
 import { currentAbility } from '../engine/generator';
 import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
 import { TournamentView } from './TournamentView';
@@ -368,65 +367,6 @@ function ChallengeItems() {
         <li key={i} className="choice"><span>{challengeText(game, c, year)}</span><button className="mini btn-go" onClick={() => pick(c)}>{t('challengeChoose')}</button></li>
       ))}
     </>
-  );
-}
-
-/** Pencarian bakat junior: pilih kandidat untuk kursi putra/putri sebelum batas minggu (sisa kursi diisi otomatis). */
-function ScoutingCard() {
-  const { game, changed } = useGame();
-  const { state } = game;
-  const s = state.scouting!;
-  const [open, setOpen] = useState(false);
-  const [picked, setPicked] = useState<string[]>([]);
-  const count = (g: 'M' | 'F') => s.candidates.filter((p) => p.gender === g && picked.includes(p.id)).length;
-  const toggle = (id: string) => setPicked(picked.includes(id) ? picked.filter((x) => x !== id) : [...picked, id]);
-  const done = () => { recruit(state, picked); changed(); void saveGame(game); };
-  const some = () => { recruitSome(state, picked); setPicked([]); changed(); void saveGame(game); };
-  const week = state.date.year === s.year ? state.date.week : 1; // rentang potensi menyempit tiap minggu
-  const city = (id: string) => dataName(game.world.cities.find((c) => c.id === id)?.name);
-  const half = (n: number) => `${Math.floor(n) || ''}${n % 1 ? '½' : ''}`; // 2.5 → "2½"
-  const status = t(s.recruited ? 'scoutingStatusPartial' : 'scoutingStatus', { m: count('M'), f: count('F'), sm: s.slots.M, sf: s.slots.F, week: SCOUTING_DEADLINE_WEEK, n: s.recruited ?? 0 });
-  return (
-    <section className="card" style={open ? { gridColumn: '1 / -1' } : undefined}>
-      <h3>{t('scouting')} {s.year}</h3>
-      <p>{status}</p>
-      {!open ? <button className="primary" onClick={() => setOpen(true)}>{t('scoutingOpen')}</button> : (
-        <>
-          <p className="hint">{t('scoutingHint', { week: SCOUTING_DEADLINE_WEEK })}</p>
-          {!!s.withdrawn?.length && <p className="hint">{t('scoutWithdrawn', { names: s.withdrawn.join(', ') })}</p>}
-          {(['M', 'F'] as const).filter((g) => s.candidates.some((p) => p.gender === g)).map((g) => (
-            <div key={g} className="scroll">
-              <h4>{t(g === 'M' ? 'men' : 'women')} · {count(g)}</h4>
-              <table>
-                <thead><tr><th>{t('name')}</th><th className="num">{t('age')}</th><th className="num">{t('ability')}</th><th>{t('potential')}</th></tr></thead>
-                <tbody>{s.candidates.filter((p) => p.gender === g).map((p) => {
-                  const [lo, hi] = starRangeAt(s, p, week);
-                  return (
-                    <tr key={p.id} className={picked.includes(p.id) ? 'sel' : undefined} onClick={() => toggle(p.id)} style={{ cursor: 'pointer' }}>
-                      <td><input type="checkbox" checked={picked.includes(p.id)} readOnly /> {p.name}
-                        <div className="entry-meta muted-text">
-                          <span>{[...styleOf(p).map((a) => t(a)), p.hometown && city(p.hometown)].filter(Boolean).join(' · ')}</span>
-                          {(s.notes?.[p.id] ?? []).map((n) => <span key={n} className="tag muted-tag" title={t(`traitHint_${n}` as TextKey)}>{t(`trait_${n}` as TextKey)}?</span>)}
-                        </div>
-                      </td>
-                      <td className="num">{ageAt(p.birth, state.date)}</td>
-                      <td className="num">{currentAbility(p.attrs)}</td>
-                      <td className="stars">{half(lo)}–{half(hi)} ★</td>
-                    </tr>
-                  );
-                })}</tbody>
-              </table>
-            </div>
-          ))}
-          <p className="controls scout-actions">
-            <button onClick={() => setPicked(autoPick(s, picked))}>{t('autoPick')}</button>
-            <button disabled={!picked.length} onClick={some}>{t('scoutRecruitSome')} ({picked.length})</button>
-            <button className="primary" disabled={!picked.length && !s.recruited} onClick={done}>{t('scoutFinish')}{picked.length ? ` (${picked.length})` : ''}</button>
-          </p>
-          <ScoutFocusSelect />
-        </>
-      )}
-    </section>
   );
 }
 
@@ -840,7 +780,10 @@ function NewsCard({ onOpen }: { onOpen: (id: string) => void }) {
               <span>{a.winners ? <>🏆 {person(a.winners[c])}</> : a.nominees[c].map((id, i) => <span key={id}>{i > 0 && ' · '}{person(id)}</span>)}</span></span>
           ))}</span>];
       }
-      case 'gem': return ['', null, null]; // diisi di Task 4
+      case 'gem': return [t('newsGemTag'), <>{n.ids.map((id, i) => {
+        const p = state.scouting?.candidates.find((c) => c.id === id);
+        return <span key={id}>{i > 0 && ' · '}{t('newsGem', { city: dataName(game.world.cities.find((c) => c.id === p?.hometown)?.name) ?? '—' })}</span>;
+      })}</>, null];
       case 'careerHigh': return [t('newsHighTag'), <>{who(n.id)} {t('newsCareerHigh', { n: n.rank })}</>, <small className="muted-text">{n.discipline}</small>];
     }
   };
