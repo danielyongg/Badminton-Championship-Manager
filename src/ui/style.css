@@ -152,6 +152,7 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 /* Dua pilihan berdampingan (ranking: jenis & per minggu), juga di HP. */
 .controls.pair { display: grid; grid-template-columns: 1fr 1fr; }
 .controls.pair select { width: 100%; }
+.controls.pair > label:only-child { grid-column: 1 / -1; } /* satu pilihan saja (mis. ranking Olimpiade): selebar baris, teks tidak terpotong */
 /* Bentuk pasangan: dua pilihan atlet sama lebar (bukan selebar nama terpanjang di daftarnya); tombol & centang mengikuti.
    HP: tiap pilihan selebar kartu. */
 .controls.formpair { align-items: center; }
@@ -916,3 +917,9 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 /* Baris turnamen yang baru dibuka/di-submit: sorot sebentar saat kembali ke Kalender/Dashboard. */
 .flash { animation: flash 1.5s ease-out; }
 @keyframes flash { from { background: var(--accent-soft); } to { background: transparent; } }
+
+/* Dashboard: tombol Atur urutan kecil di kanan atas; panel urutan dengan tombol naik/turun. */
+.dash-arrange-btn { justify-content: flex-end; margin-bottom: 8px; }
+.dash-arrange-btn button { font-size: .85rem; padding: 2px 10px; }
+.dash-arrange { max-width: 520px; margin-bottom: 16px; }
+.dash-arrange .drow button { min-width: 40px; padding: 2px 8px; }

@@ -54,7 +54,7 @@ export const en: Record<TextKey, string> = {
   noQualifying: 'This tournament has no qualifying rounds.',
   section: 'Section',
   champion: 'Champion',
-  pageEvent: 'Tournament', winnersOf: 'Winners {y}', winnersHistory: 'Winners history', runnerUp: 'Runner-up', finalScore: 'Final score', noChampions: 'No winners recorded yet.',
+  pageEvent: 'Tournament', winnersOf: 'Winners {y}', winnersHistory: 'Winners history', winnersTab: 'Winners', pastWinners: 'Past winners', dashArrange: 'Arrange cards', dashArrangeHint: 'Order applies on phone and laptop (laptop still fills the shortest column). Saved on this device.', dashArrangeReset: 'Restore default order', done: 'Done', runnerUp: 'Runner-up', finalScore: 'Final score', noChampions: 'No winners recorded yet.',
   all: 'All', sector_singles: 'Singles', sector_pairs: 'Pairs',
   bye: 'Bye',
   tabRanking: 'Ranking',

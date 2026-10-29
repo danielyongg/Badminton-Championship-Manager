@@ -214,7 +214,7 @@ export function RankingDetail({ state, ruleset, id, discipline: d, junior, onOpe
   const me = computeRanking(results, d, now, ruleset).find((r) => r.entrantId === id);
   const active = activeEntries(results, d, now).filter((e) => e.entrantId === id).sort((a, b) => b.points - a.points);
   const counted = new Set(active.slice(0, bestOf));
-  const history = junior ? [] : rankFromSnapshots(state, id, d); // snapshot hanya ranking senior
+  const history = junior ? [] : rankFromSnapshots(state, id, d, ruleset); // snapshot hanya ranking senior
   const ranked = history.filter((h) => h.rank !== undefined);
   const best = ranked.length ? Math.min(...ranked.map((h) => h.rank!)) : undefined;
   const race = junior ? undefined : computeRace(state.results, d, state.date.year, ruleset).find((r) => r.entrantId === id);

@@ -18,18 +18,23 @@ type Section = (typeof SECTIONS)[number];
 const LABEL = { entry: 'stageEntry', qual: 'stageQual', draw: 'stageDraw', bracket: 'stageBracket' } as const;
 
 /** `onBack` kosong = disematkan di halaman turnamen yang sedang dimainkan (sudah ada sub-tab Jadwal), tanpa tombol Kembali. */
-export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string; year: number; onOpenPlayer: (id: string) => void; onBack?: () => void }) {
+export function TournamentView({ id, year: startYear, onOpenPlayer, onBack }: { id: string; year: number; onOpenPlayer: (id: string) => void; onBack?: () => void }) {
   const { game } = useGame();
   const { state, ruleset, world } = game;
+  // Tahun bisa diganti dari pilihan di atas: tahun yang punya juara/hasil + tahun berjalan.
+  const [year, setYear] = useState(startYear);
+  const years = [...new Set([startYear, state.date.year, ...state.champions.filter((c) => c.tournamentId === id).map((c) => c.year),
+    ...state.teamResults.filter((r) => r.eventId === id).map((r) => r.year)])].sort((a, b) => b - a);
   const managed = state.career?.countryId;
   const def = ruleset.calendar.find((e) => e.id === id) ?? ruleset.team.events.find((e) => e.id === id);
   const city = world.cities.find((c) => def && c.id === hostCityId(def, year));
   const records = state.eventRecords.filter((r) => r.tournamentId === id && r.year === year);
   const played = DISCIPLINES.filter((d) => records.some((r) => r.discipline === d) || state.matches.some((m) => m.tournamentId === id && m.year === year && m.discipline === d));
-  const [d, setD] = useState<Discipline | undefined>(played.find((x) => x === 'MS') ?? played[0]);
+  const [pick, setD] = useState<Discipline>();
+  const d = pick && played.includes(pick) ? pick : played.find((x) => x === 'MS') ?? played[0]; // nomor terpilih tetap bila ada di tahun lain
   const [section, setSection] = useState<Section>('bracket');
   const [replay, setReplay] = useState(false);
-  const [page, setPage] = useState<'event' | 'participants' | 'winners' | 'history'>('event');
+  const [page, setPage] = useState<'event' | 'participants' | 'winners'>('event');
 
   const label = (x: string) => { const l = entrantLabel(state, x); return `${l.name} (${l.country})`; };
   const who = {
@@ -52,7 +57,14 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
   const fact = (k: string, v: ReactNode) => <div><dt>{k}</dt><dd>{v}</dd></div>;
   return (
     <section>
-      {onBack && <div className="controls"><button onClick={onBack}>{t('back')}</button></div>}
+      <div className="controls">
+        {onBack && <button onClick={onBack}>{t('back')}</button>}
+        {years.length > 1 && <label>{t('year')}
+          <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
+            {years.map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </label>}
+      </div>
       {/* Info turnamen: tier, tuan rumah, kota, venue, minggu, hadiah. */}
       <section className="card evinfo">
         <h2>{eventName(ruleset, id, year)} {year}</h2>
@@ -66,14 +78,17 @@ export function TournamentView({ id, year, onOpenPlayer, onBack }: { id: string;
         </dl>
       </section>
       <nav className="controls">
-        {(['event', 'participants', 'winners', 'history'] as const).map((x) => (
+        {(['event', 'participants', 'winners'] as const).map((x) => (
           <button key={x} aria-pressed={page === x} onClick={() => setPage(x)}>
-            {x === 'event' ? t('pageEvent') : x === 'participants' ? t('participants') : x === 'winners' ? t('winnersOf', { y: year }) : t('winnersHistory')}
+            {x === 'event' ? t('pageEvent') : x === 'participants' ? t('participants') : t('winnersTab')}
           </button>
         ))}
       </nav>
-      {page === 'winners' ? <Winners id={id} year={year} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
-      : page === 'history' ? <WinnersHistory id={id} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
+      {/* Juara: kotak tahun terpilih, lalu kotak juara tahun-tahun lainnya. */}
+      {page === 'winners' ? <>
+        <section className="card"><h3>{t('winnersOf', { y: year })}</h3><Winners id={id} year={year} who={{ ...who, name: (x) => entrantLabel(state, x).name }} /></section>
+        <section className="card"><h3>{t('pastWinners')}</h3><WinnersHistory id={id} skip={year} who={{ ...who, name: (x) => entrantLabel(state, x).name }} /></section>
+      </>
       : page === 'participants' ? <Participants id={id} year={year} who={{ ...who, name: (x) => entrantLabel(state, x).name }} />
       : <>{games && !team.length && <ContingentCard ev={games} />}{team.length > 0 ? <TeamResults results={team} /> : played.length === 0 ? (canEnter(state, ruleset, world, id, year) && !locked ? <EntryPanel id={id} onSubmitted={onBack} /> : <p>{t(locked ? 'inProgressNoResults' : 'notPlayedYet')}</p>) : (
         <>
@@ -226,11 +241,11 @@ function Winners({ id, year, who }: { id: string; year: number; who: WhoFns }) {
 }
 
 /** Riwayat juara turnamen ini di semua tahun yang sudah dimainkan (terbaru dulu). */
-function WinnersHistory({ id, who }: { id: string; who: WhoFns }) {
+function WinnersHistory({ id, skip, who }: { id: string; skip: number; who: WhoFns }) {
   const { game } = useGame();
   const { state } = game;
   const country = (c: string) => dataName(game.world.countries.find((x) => x.id === c)?.name) ?? c;
-  const team = state.teamResults.filter((r) => r.eventId === id);
+  const team = state.teamResults.filter((r) => r.eventId === id && r.year !== skip);
   if (team.length) {
     const formats = [...new Set(team.map((r) => r.format))];
     const years = [...new Set(team.map((r) => r.year))].sort((a, b) => b - a);
@@ -247,7 +262,7 @@ function WinnersHistory({ id, who }: { id: string; who: WhoFns }) {
       </table></div>
     );
   }
-  const champs = state.champions.filter((c) => c.tournamentId === id);
+  const champs = state.champions.filter((c) => c.tournamentId === id && c.year !== skip);
   if (!champs.length) return <p>{t('noChampions')}</p>;
   const years = [...new Set(champs.map((c) => c.year))].sort((a, b) => b - a);
   const ds = DISCIPLINES.filter((d) => champs.some((c) => c.discipline === d));

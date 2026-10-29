@@ -456,7 +456,7 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         </section>
         <section className="card">
           <h3>{t('rankHistory')}</h3>
-          <RankChart history={rankFromSnapshots(state, pair.id, pair.discipline)} />
+          <RankChart history={rankFromSnapshots(state, pair.id, pair.discipline, ruleset)} />
         </section>
       </div>{careerCard}</>}
       {tab === 'summary' && !pair && <>

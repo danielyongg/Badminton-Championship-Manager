@@ -539,12 +539,13 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
   const cols = useDashCols();
   const toggleEvent = (id: string) => setOpenEvents((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
-  // Kartu dashboard: [prioritas di layar lebar, kartu]. HP: satu kolom urut daftar ini. Layar lebar (2–3 kolom): masonry —
+  // Kartu dashboard: [id, prioritas di layar lebar, kartu]. HP: satu kolom urut daftar ini. Layar lebar (2–3 kolom): masonry —
   // kartu diambil menurut prioritas (target, hasil turnamen, ranking dulu) dan ditaruh di kolom yang saat itu paling pendek.
-  const cards: [number, ReactNode][] = [
-    [-1, !managed && <p>{t('observerNote')}</p>],
-    [3, managed && state.scouting && <ScoutingCard />],
-    [0, managed && (
+  // Urutan buatan pemain (Atur urutan) menggantikan keduanya: HP mengikuti urutannya, layar lebar memakainya sebagai prioritas.
+  const cards: [DashCard | 'observer', number, ReactNode][] = [
+    ['observer', -1, !managed && <p>{t('observerNote')}</p>],
+    ['scouting', 3, managed && state.scouting && <ScoutingCard />],
+    ['goals', 0, managed && (
         <section className="card">
           <h3>{t('goalsCard')} {year}</h3>
           <GoalTable goals={state.career!.goals} current={(g) => goalProgress(state, ruleset, managed, g, world)} year={year} tagged>
@@ -552,16 +553,16 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
           </GoalTable>
         </section>
       )],
-    [4, managed && <ContingentStatus country={managed} onOpenEvent={(id) => onOpenEvent(id, year)} />],
-    [5, lastReport && week <= 4 && (
+    ['contingent', 4, managed && <ContingentStatus country={managed} onOpenEvent={(id) => onOpenEvent(id, year)} />],
+    ['report', 5, lastReport && week <= 4 && (
         <section className="card">
           <h3>{t('seasonEndReport')} {lastReport.year}: {t('grade')} {lastReport.grade} ({lastReport.reputationChange >= 0 ? '+' : ''}{lastReport.reputationChange} {t('reputation')})</h3>
           <GoalTable goals={lastReport.goals} year={lastReport.year} />
         </section>
       )],
-    [6, managed && (week - 1) % 13 < 4 && <QuarterReportCard country={managed} onOpen={onOpen} />],
-    [7, <NewsCard onOpen={onOpen} />],
-    [8, (
+    ['quarter', 6, managed && (week - 1) % 13 < 4 && <QuarterReportCard country={managed} onOpen={onOpen} />],
+    ['news', 7, <NewsCard onOpen={onOpen} />],
+    ['upcoming', 8, (
       <section className="card upcoming">
         <h3>{t('upcoming')}</h3>
         {upcoming.length === 0 ? <p>—</p> : [...byWeek].map(([w, list]) => (
@@ -579,7 +580,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
       </section>
     )],
     // Ranking sebelum hasil turnamen (kartu panjang): di laptop tetap di kolom kiri, di HP tidak perlu gulir jauh.
-    [2, (
+    ['ranking', 2, (
       <section className="card rankcard">
         <h3>{t('bwfRankNow')}</h3>
         <nav className="controls subnav">
@@ -601,7 +602,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
         <p><button onClick={() => onFullRanking(rankD)}>{t('fullRanking')} ›</button></p>
       </section>
     )],
-    [1, managed && (
+    ['results', 1, managed && (
         <section className="card tall">
           <h3>{t('tournamentResults')}</h3>
           {sel !== undefined && (
@@ -684,7 +685,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
           )}
         </section>
       )],
-    [9, managed && injured.length > 0 && (
+    ['injuries', 9, managed && injured.length > 0 && (
         <section className="card">
           <h3>{t('injuries')}</h3>
           {injured.map((p) => {
@@ -705,7 +706,13 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
         </section>
       )],
   ];
-  const shown = cards.map(([prio, el], key) => ({ prio, el, key })).filter((x) => x.el);
+  const [order, setOrder] = useState(loadDashOrder);
+  const [arranging, setArranging] = useState(false);
+  const rank = (id: string, i: number) => (order ? (id === 'observer' ? -1 : order.indexOf(id as DashCard)) : i);
+  const shown = cards.map(([id, prio, el], key) => ({ prio: order ? rank(id, key) : prio, at: rank(id, key), el, key })).filter((x) => x.el)
+    .sort((a, b) => a.at - b.at);
+  const arrange = arranging ? <DashArrange order={order ?? DASH_CARDS} onChange={(o) => { setOrder(o); saveDashOrder(o); }} onDone={() => setArranging(false)} />
+    : <div className="controls dash-arrange-btn"><button onClick={() => setArranging(true)}>{t('dashArrange')}</button></div>;
   // Tinggi tiap kartu diukur sebelum layar digambar; penempatan diulang hanya bila berubah (tanpa kedip).
   const boxes = useRef<(HTMLDivElement | null)[]>([]);
   const [place, setPlace] = useState<number[]>([]);
@@ -720,8 +727,9 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
     }
     if (next.join() !== place.join()) setPlace(next);
   });
-  if (cols === 1) return <div className="dash">{shown.map((x) => <Fragment key={x.key}>{x.el}</Fragment>)}</div>;
-  return (
+  if (cols === 1) return <>{arrange}<div className="dash">{shown.map((x) => <Fragment key={x.key}>{x.el}</Fragment>)}</div></>;
+  return (<>
+    {arrange}
     <div className="dash cols" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
       {Array.from({ length: cols }, (_, c) => (
         <div key={c} className="dashcol">
@@ -730,6 +738,47 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
         </div>
       ))}
     </div>
+  </>);
+}
+
+/** Kartu dashboard yang bisa diurutkan pemain (urutan bawaan = urutan HP). */
+const DASH_CARDS = ['scouting', 'goals', 'contingent', 'report', 'quarter', 'news', 'upcoming', 'ranking', 'results', 'injuries'] as const;
+type DashCard = (typeof DASH_CARDS)[number];
+const DASH_LABEL = { scouting: 'scouting', goals: 'goalsCard', contingent: 'contingent', report: 'seasonEndReport', quarter: 'quarterReport',
+  news: 'newsTitle', upcoming: 'upcoming', ranking: 'bwfRankNow', results: 'tournamentResults', injuries: 'injuries' } as const;
+
+// ponytail: disimpan per perangkat (seperti tema), bukan per save.
+function loadDashOrder(): DashCard[] | undefined {
+  try {
+    const v = JSON.parse(localStorage.getItem('bcm-dash-order') ?? 'null') as string[] | null;
+    if (!Array.isArray(v)) return undefined;
+    const known = v.filter((x): x is DashCard => (DASH_CARDS as readonly string[]).includes(x));
+    return [...new Set([...known, ...DASH_CARDS])]; // kartu baru (versi berikutnya) masuk di akhir
+  } catch { return undefined; }
+}
+function saveDashOrder(o: DashCard[] | undefined) {
+  try { if (o) localStorage.setItem('bcm-dash-order', JSON.stringify(o)); else localStorage.removeItem('bcm-dash-order'); } catch { /* mode privat */ }
+}
+
+/** Panel Atur urutan: daftar nama kartu dengan tombol naik/turun, Reset ke urutan bawaan, Selesai. */
+function DashArrange({ order, onChange, onDone }: { order: readonly DashCard[]; onChange: (o: DashCard[] | undefined) => void; onDone: () => void }) {
+  const move = (i: number, by: number) => { const o = [...order]; [o[i], o[i + by]] = [o[i + by], o[i]]; onChange(o); };
+  return (
+    <section className="card dash-arrange">
+      <h3>{t('dashArrange')}</h3>
+      <p className="hint">{t('dashArrangeHint')}</p>
+      <div className="dlist">{order.map((id, i) => (
+        <div key={id} className="drow">
+          <span className="grow">{i + 1}. {t(DASH_LABEL[id])}</span>
+          <button aria-label="▲" disabled={i === 0} onClick={() => move(i, -1)}>▲</button>
+          <button aria-label="▼" disabled={i === order.length - 1} onClick={() => move(i, 1)}>▼</button>
+        </div>
+      ))}</div>
+      <div className="controls">
+        <button className="primary" onClick={onDone}>{t('done')}</button>
+        <button onClick={() => onChange(undefined)}>{t('dashArrangeReset')}</button>
+      </div>
+    </section>
   );
 }
 

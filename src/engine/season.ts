@@ -1346,11 +1346,18 @@ export function forgetPlayer(state: SeasonState, playerId: string, pairIds: stri
   }
 }
 
-export function rankFromSnapshots(state: SeasonState, entrantId: string, d: Discipline) {
-  return state.rankSnapshots.filter((s) => s.discipline === d).map((s) => {
+export function rankFromSnapshots(state: SeasonState, entrantId: string, d: Discipline, rs: Ruleset) {
+  const out: { absWeek: number; rank?: number }[] = state.rankSnapshots.filter((s) => s.discipline === d).map((s) => {
     const i = s.ids.indexOf(entrantId);
     return { absWeek: s.absWeek, rank: i === -1 ? undefined : i + 1 };
   });
+  // Titik terakhir = peringkat minggu ini (snapshot hanya tiap 4 minggu), agar grafik sama dengan kotak World ranking.
+  const now = absWeek(state.date);
+  if (out.length && out[out.length - 1].absWeek < now) {
+    const r = computeRanking(state.results, d, now, rs).findIndex((x) => x.entrantId === entrantId);
+    out.push({ absWeek: now, rank: r === -1 || r >= 300 ? undefined : r + 1 });
+  }
+  return out;
 }
 
 /** Atlet yang terutama bermain ganda (pasangannya berperingkat lebih baik dari peringkat tunggalnya). */
