@@ -102,5 +102,8 @@ Spesifikasi: `docs/superpowers/specs/2026-10-29-junior-scouting-promosi-design.m
 - [x] **Bagian 3 — Kabar**: berita Terobosan (lonjakan ≥ 4 sekuartal, menang pertama atas top 50), prediksi puncak di profil.
 - [x] **Bagian 4 — Turnamen junior**: target junior (medali Dunia Junior, Suhandinata), chip Junior, Pratama siap ke grade 3 senior, kuota Dunia Junior 4/3 & Pan Am 4/2.
 
+## Fitur berikutnya (diusulkan 2026-10-30)
+- [ ] **Jadwal harian realistis**: turnamen per hari pertandingan, order of play per lapangan & jam, kelelahan antar hari, cedera di tengah turnamen, Hawk-Eye hanya di lapangan TV. Spesifikasi (draf): `docs/superpowers/specs/2026-10-30-jadwal-harian-realistis-design.md`.
+
 ## Batasan yang bisa ditinjau ulang
 - Tier tidak bisa ditambah/dihapus di Editor.

@@ -191,9 +191,9 @@ export function simPlay(opts: {
   const side = (id: EntrantId, big: boolean): SideInput => {
     const pair = opts.pairs.get(id);
     const day = opts.hot && nextDayForm(opts.hot, id, opts.cfg, opts.rng);
-    return pair
-      ? { players: pair.playerIds.map((p) => opts.players.get(p)!), chemistry: pair.chemistry, day, big }
-      : { players: [opts.players.get(id)!], day, big };
+    const players = pair ? pair.playerIds.map((p) => opts.players.get(p)!) : [opts.players.get(id)!];
+    const age = players.reduce((t, p) => t + opts.year - p.birth.year, 0) / players.length;
+    return pair ? { players, chemistry: pair.chemistry, day, big, age } : { players, day, big, age };
   };
   const record = (a: EntrantId, b: EntrantId, round: MatchRound, r: MatchResult) => {
     const won = opts.hot?.[r.winner === 0 ? a : b];

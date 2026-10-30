@@ -254,6 +254,22 @@ describe('Instant Review (Hawk-Eye)', () => {
     expect(r).toEqual(simulateMatch([side(player(flat(70))), side(player(flat(68)))], cfg, makeRng(3), undefined, false));
   });
 
+  it('atlet berpengalaman (lebih tua) lebih tepat membaca bola tipis', () => {
+    const rate = (age: number) => {
+      const rng = makeRng(21);
+      let hit = 0, n = 0;
+      for (let i = 0; i < 300; i++) {
+        const st = createMatch([{ ...side(player(flat(70))), age }, { ...side(player(flat(70))), age }], cfg, rng, true);
+        while (st.winner === undefined) {
+          const l = playRally(st, cfg, rng).line;
+          if (l && l.react !== 'unsure') { n++; if ((l.react === 'sure') === l.wrong) hit++; }
+        }
+      }
+      return hit / n;
+    };
+    expect(rate(33)).toBeGreaterThan(rate(17) + 0.1);
+  });
+
   it("'ask' menjeda laga sampai challenge() diputuskan; 'never' tidak pernah challenge", () => {
     const rng = makeRng(11);
     const st = createMatch([{ ...side(player(flat(70))), challenge: 'ask' }, { ...side(player(flat(70))), challenge: 'never' }], cfg, rng, true);

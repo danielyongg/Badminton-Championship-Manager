@@ -13,6 +13,8 @@ export interface SideInput {
   big?: boolean;
   /** Kapan sisi ini memakai challenge (Hawk-Eye); bawaan 'sure' (AI). 'ask' hanya di Live Match, selain itu = 'sure'. */
   challenge?: ChallengePolicy;
+  /** Usia rata-rata sisi ini (tahun laga − tahun lahir): ukuran pengalaman di tur; kosong = setara ±24 tahun. */
+  age?: number;
 }
 
 export type ChallengePolicy = 'never' | 'sure' | 'ask';
@@ -42,6 +44,7 @@ interface SideState {
   /** Instruksi manajer sampai jeda berikutnya (interval / akhir game); kosong = tanpa instruksi. */
   instruction?: Instruction;
   challenge?: ChallengePolicy;
+  age?: number;
 }
 
 /** Hasil reli yang sudah ditentukan tetapi belum dicatat ke skor (menunggu keputusan challenge). */
@@ -161,8 +164,8 @@ export function createMatch(sides: [SideInput, SideInput], cfg: MatchConfig, rng
   const start = (s: SideInput) => clamp(100 - Math.max(...s.players.map((p) => p.fatigue)) * cfg.energy.fatigueToStart, 0, 100);
   return {
     sides: [
-      { attrs: sideAttrs(sides[0], cfg, sides[0].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[0]), strategy: 'balanced', male: sides[0].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[0]), slow: traitShare(sides[0].players, 'slowStarter'), rider: traitShare(sides[0].players, 'momentumRider'), challenge: sides[0].challenge },
-      { attrs: sideAttrs(sides[1], cfg, sides[1].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[1]), strategy: 'balanced', male: sides[1].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[1]), slow: traitShare(sides[1].players, 'slowStarter'), rider: traitShare(sides[1].players, 'momentumRider'), challenge: sides[1].challenge },
+      { attrs: sideAttrs(sides[0], cfg, sides[0].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[0]), strategy: 'balanced', male: sides[0].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[0]), slow: traitShare(sides[0].players, 'slowStarter'), rider: traitShare(sides[0].players, 'momentumRider'), challenge: sides[0].challenge, age: sides[0].age },
+      { attrs: sideAttrs(sides[1], cfg, sides[1].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[1]), strategy: 'balanced', male: sides[1].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[1]), slow: traitShare(sides[1].players, 'slowStarter'), rider: traitShare(sides[1].players, 'momentumRider'), challenge: sides[1].challenge, age: sides[1].age },
     ],
     review,
     fails: [0, 0],
@@ -305,8 +308,8 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
   if (st.review && shot && rng() < TIGHT) {
     const by = (1 - winner) as 0 | 1;
     const wrong = rng() < WRONG;
-    // ponytail: Mental sebagai ganti pengalaman; atlet membaca bola dengan benar ±70% (55% Mental 0 … 85% Mental 100).
-    const thinksWrong = rng() < 0.55 + 0.3 * st.sides[by].attrs.mental / 100 ? wrong : !wrong;
+    // ponytail: usia sebagai ukuran pengalaman; atlet membaca bola dengan benar 55% (usia 17) … 85% (usia 32+), ±70% di usia 24.
+    const thinksWrong = rng() < 0.55 + 0.3 * clamp(((st.sides[by].age ?? 24.5) - 17) / 15, 0, 1) ? wrong : !wrong;
     const react: Reaction = thinksWrong ? (rng() < 0.65 ? 'sure' : 'unsure') : (rng() < 0.3 ? 'unsure' : 'none');
     o.line = { by, call: type === 'error' ? 'out' : 'in', wrong, react };
     if (st.fails[by] < REVIEW_FAILS && st.sides[by].challenge === 'ask') {
