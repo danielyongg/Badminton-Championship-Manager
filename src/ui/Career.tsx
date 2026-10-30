@@ -20,7 +20,7 @@ import { LangSelect } from './LangSelect';
 import { ThemeSelect } from './ThemeSelect';
 import { Flag } from './Flag';
 import { LiveDraw } from './LiveDraw';
-import { LiveMatch, PreMatch } from './LiveMatch';
+import { challengePolicy, LiveMatch, PreMatch } from './LiveMatch';
 import { advance, entrantLabel, eventName, teamLabel, lookup, saveGame, tierGroup, useGame, TierBadge } from './game';
 import { SeasonViews } from './Ranking';
 import { arrow, injuryText, isBadInjury, Profile, Squad, TraitTags, usd } from './Squad';
@@ -93,7 +93,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
     setRoundAsk(undefined);
     if (ask && ask.show.phase !== 'playing') ask.resolve(); // babak yang menunggu klik langsung lanjut
     // Pop-up yang sedang terbuka ikut diselesaikan otomatis (laga disimulasikan, line-up saran dipakai).
-    if (live) { setLive(undefined); live.resolve(simulateMatch(live.req.sides, matchConfigFor(game.ruleset.match, state.date.year), game.rng)); }
+    if (live) { setLive(undefined); live.resolve(simulateMatch(live.req.sides, matchConfigFor(game.ruleset.match, state.date.year), game.rng, undefined, live.req.review)); }
     if (teamAsk?.kind === 'lineup') { setTeamAsk(undefined); teamAsk.resolve(teamAsk.suggested); }
   };
   const roundHook: RoundHook = (show) => {
@@ -113,9 +113,10 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
 
   // Tiap laga atlet negara sendiri di turnamen yang dimainkan tampil Live; sisanya langsung disimulasikan.
   const hook: LiveHook = (req) => {
-    if (skipRound.current || skipRows.current.has(currentRow.current)) return null;
     const mine = req.entrants.map((id) => entrantLabel(state, id).country === managed);
     if (!mine[0] && !mine[1]) return null;
+    mine.forEach((x, i) => { if (x) req.sides[i].challenge = challengePolicy(); }); // juga saat laga disimulasikan
+    if (skipRound.current || skipRows.current.has(currentRow.current)) return null;
     return new Promise((resolve) => setLive({ req, mySide: mine[0] ? 0 : 1, resolve }));
   };
 
@@ -234,6 +235,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
           cfg={matchConfigFor(game.ruleset.match, state.date.year)}
           rng={game.rng}
           title={`${eventName(game.ruleset, live.req.tournamentId, state.date.year)} · ${live.req.discipline} ${live.req.round}`}
+          review={live.req.review}
           preview={<PreMatch state={state} ruleset={game.ruleset} req={live.req} mySide={live.mySide} />}
           onDone={(r) => { setLive(undefined); live.resolve(r); }}
           onSkipRound={() => { skipRound.current = true; }}

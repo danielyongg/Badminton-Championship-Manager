@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { createMatch, headToHead, matchResult, playRally, suggestInstruction, suggestStrategy, type MatchResult, type MatchState, type RallyEvent, type SideInput } from '../engine/match';
+import { challenge, createMatch, headToHead, matchResult, playRally, REVIEW_FAILS, suggestInstruction, suggestStrategy, type ChallengePolicy, type MatchResult, type MatchState, type RallyEvent, type SideInput } from '../engine/match';
 import type { Rng } from '../engine/rng';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
 import type { SeasonState } from '../engine/season';
@@ -13,19 +13,27 @@ import { MatchStatsView } from './MatchStats';
 import { MoraleTag } from './Squad';
 
 const SPEEDS = { slow: 600, normal: 250, fast: 60 } as const;
+const POLICIES: ChallengePolicy[] = ['never', 'sure', 'ask'];
+
+/** Pengaturan challenge manajer (per perangkat); juga dipakai saat laga atlet sendiri disimulasikan tanpa Live Match. */
+export function challengePolicy(): ChallengePolicy {
+  try { const v = localStorage.getItem('bcm-challenge'); return POLICIES.includes(v as ChallengePolicy) ? v as ChallengePolicy : 'ask'; } catch { return 'ask'; }
+}
+const saveChallengePolicy = (v: ChallengePolicy) => { try { localStorage.setItem('bcm-challenge', v); } catch { /* mode privat */ } };
 
 /**
  * Live Match: rally demi rally. Strategi dipilih sebelum laga, saat interval (11 poin; 8 poin di sistem 3×15), dan antar game.
- * Lawan (AI) memakai strategi 'balanced'.
+ * Lawan (AI) memakai strategi 'balanced' dan challenge hanya bila atletnya sangat yakin.
+ * `review`: Instant Review (Hawk-Eye) — bola tipis yang merugikan atlet sendiri menjeda laga bila pengaturannya 'Tanya saya'.
  */
-export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview, onDone, onSkipRound }: {
-  sides: [SideInput, SideInput]; names: [string, string]; ids?: [string, string]; mySide: 0 | 1; cfg: MatchConfig; rng: Rng; title: string;
+export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, review, preview, onDone, onSkipRound }: {
+  sides: [SideInput, SideInput]; names: [string, string]; ids?: [string, string]; mySide: 0 | 1; cfg: MatchConfig; rng: Rng; title: string; review?: boolean;
   /** Kartu pra-laga (H2H, ranking), tampil sampai reli pertama. */
   preview?: ReactNode;
   onDone: (r: MatchResult) => void; onSkipRound?: () => void;
 }) {
   const st = useRef<MatchState>(null);
-  if (!st.current) st.current = createMatch(sides, cfg, rng);
+  if (!st.current) st.current = createMatch(sides, cfg, rng, review);
   const m = st.current;
   const [, render] = useState(0);
   const [running, setRunning] = useState(false);
@@ -36,6 +44,9 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
   const [tip] = useState(() => suggestStrategy(sides[mySide].players, sides[1 - mySide].players));
   const [hidden, setHidden] = useState(false);
   const [view, setView] = useState<'log' | 'stats'>('log');
+  const [policy, setPolicy] = useState(challengePolicy);
+  const [hawk, setHawk] = useState(false); // tayangan Hawk-Eye sedang berjalan
+  const resume = useRef(false); // lanjut otomatis setelah keputusan challenge bila laga sedang berjalan
   const hide = () => { setRunning(false); setHidden(true); }; // laga dijeda selama pop-up disembunyikan
 
   useEffect(() => {
@@ -44,16 +55,29 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const step = () => {
-    if (m.winner !== undefined) return false;
-    m.sides[mySide].strategy = strategy;
-    m.sides[mySide].instruction = instruction === 'none' ? undefined : instruction;
-    const ev = playRally(m, cfg, rng);
+  const record = (ev: RallyEvent) => {
     if (ev.interval || ev.gameOver) setInstruction('none'); // instruksi berlaku sampai jeda berikutnya
     const score = ev.gameOver ? m.games.at(-1)!.join('-') : m.score.join('-');
     setLog((l) => [{ ev, score }, ...l].slice(0, 12));
     render((x) => x + 1);
     return !(ev.interval || ev.gameOver); // berhenti di interval & akhir game agar strategi bisa diganti
+  };
+
+  const step = () => {
+    if (m.winner !== undefined || m.pending) return false;
+    m.sides[mySide].strategy = strategy;
+    m.sides[mySide].instruction = instruction === 'none' ? undefined : instruction;
+    m.sides[mySide].challenge = policy;
+    const ev = playRally(m, cfg, rng);
+    if (ev.pending) { resume.current = running; render((x) => x + 1); return false; } // bola tipis: tunggu keputusan
+    return record(ev);
+  };
+
+  const decide = (yes: boolean) => {
+    const go = () => { setHawk(false); if (record(challenge(m, cfg, yes)) && resume.current) setRunning(true); };
+    if (!yes) return go();
+    setHawk(true);
+    setTimeout(go, 1500); // ponytail: jeda tegang "Hawk-Eye…" tanpa animasi lapangan
   };
 
   useEffect(() => {
@@ -65,6 +89,8 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
   const finish = () => {
     m.sides[mySide].strategy = strategy;
     m.sides[mySide].instruction = instruction === 'none' ? undefined : instruction;
+    m.sides[mySide].challenge = policy === 'ask' ? 'sure' : policy; // disimulasikan: tidak ada yang ditanya
+    if (m.pending) challenge(m, cfg);
     while (m.winner === undefined) playRally(m, cfg, rng); // instruksi hilang sendiri di jeda berikutnya
     setRunning(false);
     setInstruction('none');
@@ -133,7 +159,24 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
         </div>
 
         {m.rallies === 0 && preview && <div className="prematch">{preview}</div>}
-        {!done && (m.rallies === 0 || !running) && (
+        {m.pending && (() => {
+          const l = m.pending.line!;
+          const left = REVIEW_FAILS - m.fails[mySide];
+          return (
+            <div className="review card" role="alert">
+              {hawk
+                ? <p className="hawk">🎥 {t('hawkEye')}</p>
+                : <>
+                  <p>🎥 {t('lineJudge')}: <b>{t(l.call === 'in' ? 'callIn' : 'callOut')}</b> · <span className="muted-text">{t(`react_${l.react}` as TextKey, { name: names[mySide] })}</span></p>
+                  <div className="secondary">
+                    <button className="primary" onClick={() => decide(true)}>{t('reviewBtn')} ({t('challengesLeft', { n: left })})</button>
+                    <button onClick={() => decide(false)}>{t('continue')}</button>
+                  </div>
+                </>}
+            </div>
+          );
+        })()}
+        {!done && !m.pending && (m.rallies === 0 || !running) && (
           <div className="live-tips">
             {m.rallies === 0 && (
               <p>
@@ -163,6 +206,13 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
                 {INSTRUCTIONS.map((s) => <option key={s} value={s}>{t(`instr_${s}` as TextKey)}</option>)}
               </select>
             </label>
+            {review && (
+              <label title={t('reviewHint')}>{t('reviewBtn')}
+                <select value={policy} onChange={(e) => { const v = e.target.value as ChallengePolicy; setPolicy(v); saveChallengePolicy(v); }}>
+                  {POLICIES.map((p) => <option key={p} value={p}>{t(`challenge_${p}` as TextKey)}</option>)}
+                </select>
+              </label>
+            )}
             <label>{t('gameSpeed')}
               <select value={speed} onChange={(e) => setSpeed(e.target.value as keyof typeof SPEEDS)}>
                 {Object.keys(SPEEDS).map((s) => <option key={s} value={s}>{t(`speed_${s}` as TextKey)}</option>)}
@@ -170,10 +220,10 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
             </label>
             {running
               ? <button className="primary main" onClick={() => setRunning(false)}>{t('pause')}</button>
-              : <button className="primary main" onClick={() => setRunning(true)}>{m.rallies === 0 ? t('startMatch') : t('resume')}</button>}
+              : <button className="primary main" disabled={!!m.pending} onClick={() => setRunning(true)}>{m.rallies === 0 ? t('startMatch') : t('resume')}</button>}
             <div className="secondary">
-              <button disabled={running} onClick={() => step()}>{t('oneRally')}</button>
-              <button onClick={finish} title={t('autoFinish')}>{t('simMatchShort')}</button>
+              <button disabled={running || !!m.pending} onClick={() => step()}>{t('oneRally')}</button>
+              <button disabled={hawk} onClick={finish} title={t('autoFinish')}>{t('simMatchShort')}</button>
               {onSkipRound && <button onClick={() => { finish(); onDone(matchResult(m)); onSkipRound(); }} title={t('simRound')}>{t('simRoundShort')}</button>}
             </div>
           </div>
@@ -199,6 +249,9 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, preview,
             {log.map(({ ev, score }, i) => (
               <li key={i}><b>{score}</b> <span className={`chip${ev.winner === mySide ? '' : ' opp'}`}>{t(ev.type)}</span> {names[ev.winner]}
                 <small className="muted-text">{ev.kmh ? ` · ${ev.kmh} km/h` : ''}{ev.shots >= 15 ? ` · ${ev.shots} ${t('shotsUnit')}` : ''}</small>
+                {/* Hawk-Eye: bola sebenarnya (keputusan hakim garis dibalik bila salah); warna dari sudut pandang atlet sendiri. */}
+                {ev.line?.challenged && <small> · 🎥 {t('challengeBy', { name: names[ev.line.by] })}: <b className={(ev.line.by === mySide) === ev.line.wrong ? 'pos' : 'neg'}>
+                  {t((ev.line.call === 'in') !== ev.line.wrong ? 'callIn' : 'callOut')}!</b> {t(ev.line.wrong ? 'challengeWon' : 'challengeLost')}</small>}
                 {ev.interval ? ` · ${t('interval')}` : ''}{ev.gameOver ? ` · ${t('gameOver')}` : ''}</li>
             ))}
           </ol>

@@ -147,6 +147,12 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .pre-grid .pos { color: var(--accent-strong); }
 .pre-grid .neg { color: var(--danger); }
 .live-tips { display: grid; gap: 4px; margin-bottom: 8px; }
+.review { border: 2px solid var(--gold); margin-bottom: 8px; }
+.review p { margin: 0 0 6px; }
+.review .secondary { display: flex; gap: 8px; flex-wrap: wrap; }
+.review .hawk { font-weight: 700; animation: hawk 0.5s ease-in-out infinite alternate; }
+@keyframes hawk { from { opacity: .35; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .review .hawk { animation: none; } }
 .live-tips p { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
 .controls.subnav.pager-bottom { margin: 16px 0 8px; } /* pemilih halaman di bawah tabel: beri jarak dari baris terakhir */
 /* Dua pilihan berdampingan (ranking: jenis & per minggu), juga di HP. */

@@ -203,6 +203,7 @@ export const en: Record<TextKey, string> = {
   energy: 'Energy',
   momentum: 'Momentum',
   strategy: 'Strategy',
+  reviewBtn: 'Challenge', challenge_never: 'Never', challenge_sure: 'When the player is sure', challenge_ask: 'Ask me', reviewHint: 'Hawk-Eye (Instant Review, Super 500 and above & grade 1 events): max 2 failed challenges per game, a successful challenge is kept. This setting is also used when matches are simulated (Ask me = when sure).', lineJudge: 'Line judge', callIn: 'IN', callOut: 'OUT', react_sure: '{name} is sure the call is wrong', react_unsure: '{name} looks unsure', react_none: '{name} doesn’t protest', challengesLeft: '{n} left', hawkEye: 'Hawk-Eye reviewing…', challengeBy: '{name} challenges', challengeWon: 'overturned', challengeLost: 'call stands',
   gameSpeed: 'Speed',
   speed_slow: 'Slow',
   speed_normal: 'Normal',

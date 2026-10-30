@@ -869,7 +869,9 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     const runs = await each(gated, ds, (d) => {
       let candidates = entries.get(event.id)!.get(d)!;
       if (tier.countryQuota) candidates = applyCountryQuota(candidates, tier.countryQuota);
-      const sim = simPlay({ players, pairs, cfg: rs.match, rng, tournamentId: event.id, year, discipline: d, matches: state.matches, live: h.live, hot: hotFormOf(state), big: tier.grade === 1 || tier.points[0] >= 9000 });
+      const sim = simPlay({ players, pairs, cfg: rs.match, rng, tournamentId: event.id, year, discipline: d, matches: state.matches, live: h.live, hot: hotFormOf(state), big: tier.grade === 1 || tier.points[0] >= 9000,
+        // ponytail: Instant Review di semua laga turnamen senior Super 500 ke atas & grade 1 (aslinya hanya lapangan TV di babak awal).
+        review: !tier.junior && (tier.grade === 1 || tier.points[0] >= 9000) });
       const play = gate ? gate.wrap(d, sim) : sim;
       // Catatan sementara sejak undian: halaman turnamen bisa dibuka selagi turnamen dimainkan.
       const onRecord = (rec: EventRecord) => {

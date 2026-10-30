@@ -11,7 +11,25 @@ export interface SideInput {
   day?: number; // kondisi hari itu (termasuk efek on fire); kosong = diacak baru
   /** Laga besar (SF/F atau turnamen besar): sifat mental juara/demam panggung berlaku penuh. */
   big?: boolean;
+  /** Kapan sisi ini memakai challenge (Hawk-Eye); bawaan 'sure' (AI). 'ask' hanya di Live Match, selain itu = 'sure'. */
+  challenge?: ChallengePolicy;
 }
+
+export type ChallengePolicy = 'never' | 'sure' | 'ask';
+/** Reaksi atlet yang dirugikan keputusan hakim garis: sangat yakin salah / ragu / tanpa protes. */
+export type Reaction = 'sure' | 'unsure' | 'none';
+/**
+ * Bola tipis di garis (hanya laga dengan Instant Review). `by` = sisi yang dirugikan keputusan `call` (atas pukulan lawan bila
+ * 'in', atas pukulannya sendiri bila 'out'); `wrong` = kebenaran tersembunyi (keputusan hakim garis salah).
+ */
+export interface LineCall { by: 0 | 1; call: 'in' | 'out'; wrong: boolean; react: Reaction; challenged?: boolean }
+
+/**
+ * Instant Review (ASUMSI angka, aturan dari BWF Statutes 4.1.8 v2.0): maks 2 challenge gagal per game; challenge berhasil
+ * tidak mengurangi jatah. TIGHT = peluang poin non-net jadi bola tipis; WRONG = peluang hakim garis salah.
+ */
+export const REVIEW_FAILS = 2;
+const TIGHT = 0.065, WRONG = 0.27;
 
 interface SideState {
   attrs: Attrs; // atribut dasar sisi ini (rata-rata pasangan + form + chemistry)
@@ -23,6 +41,19 @@ interface SideState {
   rider?: number; // bagian sisi yang pemburu momentum (0–1)
   /** Instruksi manajer sampai jeda berikutnya (interval / akhir game); kosong = tanpa instruksi. */
   instruction?: Instruction;
+  challenge?: ChallengePolicy;
+}
+
+/** Hasil reli yang sudah ditentukan tetapi belum dicatat ke skor (menunggu keputusan challenge). */
+interface Outcome {
+  winner: 0 | 1;
+  type: PointType;
+  shots: number;
+  kmh?: number;
+  energyMult: number;
+  own?: boolean; // kesalahan sendiri (unforced) — untuk statistik
+  shot?: WinnerShot; // pukulan sisi yang kalah bila tercatat 'error' (dipakai bila challenge membalikkan poin)
+  line?: LineCall;
 }
 
 export interface MatchState {
@@ -37,6 +68,11 @@ export interface MatchState {
   srng: Rng; // acak khusus statistik (panjang reli, kecepatan smash): tidak menggeser urutan acak hasil laga
   rallies: number;
   momentum: number; // −1 (sisi 1 unggul) .. 1 (sisi 0 unggul)
+  /** Laga dengan Instant Review (Hawk-Eye); `fails` = challenge gagal tiap sisi di game berjalan. */
+  review?: boolean;
+  fails: [number, number];
+  /** Bola tipis yang menunggu keputusan challenge manajer (lihat `challenge`). */
+  pending?: Outcome;
 }
 
 export interface RallyEvent {
@@ -47,6 +83,10 @@ export interface RallyEvent {
   interval?: boolean; // baru masuk interval (11 poin; 8 poin di sistem 3×15)
   gameOver?: boolean;
   matchOver?: boolean;
+  /** Bola tipis (keputusan akhir setelah challenge, bila ada). */
+  line?: LineCall;
+  /** Reli belum dicatat: menunggu `challenge(st, cfg, ya/tidak)`. */
+  pending?: boolean;
 }
 
 export type MatchResult = Pick<Match, 'scores' | 'winner'> & { stats: MatchStats };
@@ -117,13 +157,15 @@ function gamePointFor(st: MatchState, cfg: MatchConfig): 0 | 1 | undefined {
 
 const clutchOf = (s: SideInput) => CLUTCH_MENTAL * traitShare(s.players, 'clutch') - CHOKER_MENTAL * traitShare(s.players, 'choker');
 
-export function createMatch(sides: [SideInput, SideInput], cfg: MatchConfig, rng: Rng): MatchState {
+export function createMatch(sides: [SideInput, SideInput], cfg: MatchConfig, rng: Rng, review = false): MatchState {
   const start = (s: SideInput) => clamp(100 - Math.max(...s.players.map((p) => p.fatigue)) * cfg.energy.fatigueToStart, 0, 100);
   return {
     sides: [
-      { attrs: sideAttrs(sides[0], cfg, sides[0].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[0]), strategy: 'balanced', male: sides[0].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[0]), slow: traitShare(sides[0].players, 'slowStarter'), rider: traitShare(sides[0].players, 'momentumRider') },
-      { attrs: sideAttrs(sides[1], cfg, sides[1].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[1]), strategy: 'balanced', male: sides[1].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[1]), slow: traitShare(sides[1].players, 'slowStarter'), rider: traitShare(sides[1].players, 'momentumRider') },
+      { attrs: sideAttrs(sides[0], cfg, sides[0].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[0]), strategy: 'balanced', male: sides[0].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[0]), slow: traitShare(sides[0].players, 'slowStarter'), rider: traitShare(sides[0].players, 'momentumRider'), challenge: sides[0].challenge },
+      { attrs: sideAttrs(sides[1], cfg, sides[1].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[1]), strategy: 'balanced', male: sides[1].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[1]), slow: traitShare(sides[1].players, 'slowStarter'), rider: traitShare(sides[1].players, 'momentumRider'), challenge: sides[1].challenge },
     ],
+    review,
+    fails: [0, 0],
     games: [],
     score: [0, 0],
     server: rng() < 0.5 ? 0 : 1,
@@ -200,6 +242,7 @@ const recover = (st: MatchState, amount: number) => st.sides.forEach((s) => (s.e
 
 export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEvent {
   if (st.winner !== undefined) throw new Error('Pertandingan sudah selesai');
+  if (st.pending) throw new Error('Menunggu keputusan challenge');
   const srv = st.server;
   const rcv = (1 - srv) as 0 | 1;
   let winner: 0 | 1;
@@ -208,8 +251,8 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
   let erred: 0 | 1 | undefined;
   let shots: number;
   let kmh: number | undefined;
+  let shot: WinnerShot | undefined = 'clear'; // undefined = bukan bola garis (servis, net)
   const s = st.stats;
-  const gpSide = gamePointFor(st, cfg);
 
   const serveProb = cfg.serviceEvent.base + (100 - eff(st, srv, 'serve', cfg)) * cfg.serviceEvent.perMissingServe;
   if (rng() < serveProb) {
@@ -218,12 +261,12 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
     type = 'service';
     energyMult = 0.2;
     if (winner === srv) { s.sw[srv]++; shots = 2; } else { s.sf[srv]++; shots = 1; }
+    shot = undefined;
   } else if ((erred = ownError(st, cfg, rng)) !== undefined) {
     // Kesalahan sendiri sebelum pola berkembang: lawan dapat poin.
     winner = (1 - erred) as 0 | 1;
     type = 'error';
     energyMult = 0.5;
-    s.ue[erred]++;
     shots = 2 + Math.floor(st.srng() * 8);
   } else {
     const p = pickPattern(patterns(st, cfg), rng);
@@ -247,7 +290,7 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
     const loser = (1 - winner) as 0 | 1;
     if (rng() < 0.18 + ((100 - eff(st, loser, 'consistency', cfg)) / 100) * 0.3) type = 'error';
     energyMult = p.energyMult * clamp(normal(rng, 1, 0.3), 0.3, 2);
-    if (type === 'error') s.fe[loser]++; else s.win[type as WinnerShot][winner]++;
+    shot = p.kind === 'net' ? undefined : (loser === x ? p.winType : p.loseType) as WinnerShot;
     const [lo, n] = SHOTS[p.kind];
     shots = lo + Math.floor(st.srng() * n);
     if (p.kind === 'smash') {
@@ -256,6 +299,54 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
       if (type !== 'smash') kmh = undefined; // hanya smash penentu yang ditampilkan di log
     }
   }
+
+  const o: Outcome = { winner, type, shots, kmh, energyMult, own: erred !== undefined, shot };
+  // Bola tipis hanya bila ada Instant Review (tanpa itu urutan acak laga tidak bergeser).
+  if (st.review && shot && rng() < TIGHT) {
+    const by = (1 - winner) as 0 | 1;
+    const wrong = rng() < WRONG;
+    // ponytail: Mental sebagai ganti pengalaman; atlet membaca bola dengan benar ±70% (55% Mental 0 … 85% Mental 100).
+    const thinksWrong = rng() < 0.55 + 0.3 * st.sides[by].attrs.mental / 100 ? wrong : !wrong;
+    const react: Reaction = thinksWrong ? (rng() < 0.65 ? 'sure' : 'unsure') : (rng() < 0.3 ? 'unsure' : 'none');
+    o.line = { by, call: type === 'error' ? 'out' : 'in', wrong, react };
+    if (st.fails[by] < REVIEW_FAILS && st.sides[by].challenge === 'ask') {
+      st.pending = o;
+      return { winner, type, shots, line: o.line, pending: true };
+    }
+    return decide(st, cfg, o);
+  }
+  return applyOutcome(st, cfg, o);
+}
+
+/** Keputusan manajer atas bola tipis yang tertunda: `yes` = challenge; kosong = otomatis seperti 'sure'. */
+export function challenge(st: MatchState, cfg: MatchConfig, yes?: boolean): RallyEvent {
+  const o = st.pending;
+  if (!o) throw new Error('Tidak ada bola tipis');
+  st.pending = undefined;
+  return decide(st, cfg, o, yes);
+}
+
+/** Challenge (bila jatah masih ada) lalu catat poin; challenge berhasil membalikkan poin. */
+function decide(st: MatchState, cfg: MatchConfig, o: Outcome, yes?: boolean): RallyEvent {
+  const l = o.line!;
+  yes ??= st.sides[l.by].challenge !== 'never' && l.react === 'sure'; // AI & 'sure': hanya bila sangat yakin
+  if (yes && st.fails[l.by] < REVIEW_FAILS) {
+    l.challenged = true;
+    if (!l.wrong) st.fails[l.by]++;
+    else if (o.type === 'error') { o.winner = l.by; o.type = o.shot!; o.own = false; } // bola ternyata masuk: pukulan penentu
+    else { o.winner = l.by; o.type = 'error'; o.own = true; o.kmh = undefined; } // bola ternyata keluar: salah sendiri
+  }
+  return applyOutcome(st, cfg, o);
+}
+
+/** Catat hasil reli: statistik, skor, momentum, interval & akhir game. */
+function applyOutcome(st: MatchState, cfg: MatchConfig, { winner, type, shots, kmh, energyMult, own, line }: Outcome): RallyEvent {
+  const s = st.stats;
+  const srv = st.server;
+  const loser = (1 - winner) as 0 | 1;
+  const gpSide = gamePointFor(st, cfg);
+  if (type === 'error') (own ? s.ue : s.fe)[loser]++;
+  else if (type !== 'service') s.win[type as WinnerShot][winner]++;
 
   spendEnergy(st, energyMult, cfg);
   st.rallies++;
@@ -275,7 +366,7 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
   st.score[winner]++;
   st.server = winner;
   st.momentum = st.momentum * cfg.momentum.decay + (winner === 0 ? 1 : -1) * (1 - cfg.momentum.decay);
-  const ev: RallyEvent = { winner, type, shots, ...(kmh && { kmh }) };
+  const ev: RallyEvent = { winner, type, shots, ...(kmh && { kmh }), ...(line && { line }) };
 
   const [a, b] = st.score;
   const w = a > b ? a : b;
@@ -283,6 +374,7 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
     st.games.push([a, b]);
     st.score = [0, 0];
     st.intervalDone = false;
+    st.fails = [0, 0]; // jatah challenge per game
     ev.gameOver = true;
     for (const x of st.sides) x.instruction = undefined; // instruksi berlaku sampai jeda berikutnya
     s.sec += 120; // jeda antar game
@@ -303,10 +395,11 @@ export function playRally(st: MatchState, cfg: MatchConfig, rng: Rng): RallyEven
 
 export const matchResult = (st: MatchState): MatchResult => ({ scores: st.games, winner: st.winner!, stats: st.stats });
 
-/** Mode Auto: seluruh laga disimulasikan sekaligus. `strategies` opsional (default 'balanced'). */
-export function simulateMatch(sides: [SideInput, SideInput], cfg: MatchConfig, rng: Rng, strategies?: [Strategy, Strategy]): MatchResult {
-  const st = createMatch(sides, cfg, rng);
+/** Mode Auto: seluruh laga disimulasikan sekaligus. `strategies` opsional (default 'balanced'); `review` = Instant Review. */
+export function simulateMatch(sides: [SideInput, SideInput], cfg: MatchConfig, rng: Rng, strategies?: [Strategy, Strategy], review = false): MatchResult {
+  const st = createMatch(sides, cfg, rng, review);
   if (strategies) { st.sides[0].strategy = strategies[0]; st.sides[1].strategy = strategies[1]; }
+  for (const s of st.sides) if (s.challenge === 'ask') s.challenge = 'sure'; // tanpa Live Match tidak ada yang ditanya
   while (st.winner === undefined) playRally(st, cfg, rng);
   return matchResult(st);
 }

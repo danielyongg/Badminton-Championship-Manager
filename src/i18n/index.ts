@@ -203,6 +203,7 @@ const id = {
   energy: 'Energi',
   momentum: 'Momentum',
   strategy: 'Strategi',
+  reviewBtn: 'Challenge', challenge_never: 'Tidak pernah', challenge_sure: 'Bila atlet sangat yakin', challenge_ask: 'Tanya saya', reviewHint: 'Hawk-Eye (Instant Review, turnamen Super 500 ke atas & grade 1): maks 2 challenge gagal per game, challenge berhasil tidak mengurangi jatah. Pengaturan ini juga dipakai saat laga disimulasikan (Tanya saya = bila sangat yakin).', lineJudge: 'Hakim garis', callIn: 'MASUK', callOut: 'KELUAR', react_sure: '{name} sangat yakin keputusan itu salah', react_unsure: '{name} tampak ragu', react_none: '{name} tidak protes', challengesLeft: 'sisa {n}', hawkEye: 'Hawk-Eye memeriksa…', challengeBy: 'challenge {name}', challengeWon: 'berhasil', challengeLost: 'gagal',
   gameSpeed: 'Kecepatan',
   speed_slow: 'Lambat',
   speed_normal: 'Normal',

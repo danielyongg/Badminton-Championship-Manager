@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createMatch, headToHead, matchConfigFor, playRally, simulateMatch, suggestInstruction, suggestStrategy, type SideInput } from './match';
+import { challenge, createMatch, REVIEW_FAILS, headToHead, matchConfigFor, playRally, simulateMatch, suggestInstruction, suggestStrategy, type SideInput } from './match';
 import { BWF_2026 } from './presets/bwf2026';
 import { makeRng } from './rng';
 import { ATTRS, STRATEGIES, type Attrs, type Instruction, type Match, type Player, type Strategy } from './types';
@@ -222,5 +222,53 @@ describe('instruksi interval', () => {
     expect(suggestInstruction(st, 0).instruction).toBe('conserve');
     st.sides[0].energy = 80; st.momentum = -0.6;
     expect(suggestInstruction(st, 0).instruction).toBe('calm');
+  });
+});
+
+describe('Instant Review (Hawk-Eye)', () => {
+  it('bola tipis hanya di laga dengan review; jatah gagal ≤ 2 per game; challenge berhasil membalikkan poin', () => {
+    const rng = makeRng(5);
+    let tight = 0, points = 0, challenged = 0, won = 0;
+    for (let i = 0; i < 200; i++) {
+      const st = createMatch([side(player(flat(70))), side(player(flat(70)))], cfg, rng, true);
+      while (st.winner === undefined) {
+        const before = [...st.score];
+        const ev = playRally(st, cfg, rng);
+        points++;
+        expect(st.fails.every((f) => f <= REVIEW_FAILS)).toBe(true);
+        if (!ev.line) continue;
+        tight++;
+        expect(ev.type).not.toBe('net');
+        expect(ev.type).not.toBe('service');
+        if (ev.line.challenged) { challenged++; if (ev.line.wrong) { won++; expect(ev.winner).toBe(ev.line.by); } }
+        else expect(ev.winner).toBe(1 - ev.line.by);
+        if (!ev.gameOver) expect(st.score[ev.winner]).toBe(before[ev.winner] + 1);
+      }
+    }
+    expect(tight / points).toBeGreaterThan(0.03);
+    expect(tight / points).toBeLessThan(0.08);
+    expect(won / challenged).toBeGreaterThan(0.3); // reaksi "sangat yakin" lebih sering benar daripada keputusan acak (27%)
+    expect(won / challenged).toBeLessThan(0.65);
+    // Tanpa review: tidak ada bola tipis & urutan acak tidak bergeser.
+    const r = simulateMatch([side(player(flat(70))), side(player(flat(68)))], cfg, makeRng(3));
+    expect(r).toEqual(simulateMatch([side(player(flat(70))), side(player(flat(68)))], cfg, makeRng(3), undefined, false));
+  });
+
+  it("'ask' menjeda laga sampai challenge() diputuskan; 'never' tidak pernah challenge", () => {
+    const rng = makeRng(11);
+    const st = createMatch([{ ...side(player(flat(70))), challenge: 'ask' }, { ...side(player(flat(70))), challenge: 'never' }], cfg, rng, true);
+    let asked = 0;
+    while (st.winner === undefined) {
+      let ev = playRally(st, cfg, rng);
+      if (ev.pending) {
+        asked++;
+        expect(ev.line!.by).toBe(0);
+        expect(() => playRally(st, cfg, rng)).toThrow();
+        ev = challenge(st, cfg, true);
+        expect(ev.line!.challenged).toBe(true);
+      }
+      if (ev.line?.by === 1) expect(ev.line.challenged).toBeUndefined();
+    }
+    expect(asked).toBeGreaterThan(0);
   });
 });

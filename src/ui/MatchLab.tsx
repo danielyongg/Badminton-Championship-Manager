@@ -59,7 +59,7 @@ export function MatchLab({ players, cfg: base }: { players: Player[]; cfg: Match
       {live && (
         <LiveMatch
           sides={[{ players: [pa] }, { players: [pb] }]} names={[pa.name, pb.name]} mySide={0} cfg={cfg}
-          rng={makeRng(Date.now())} title={t('liveMatch')}
+          rng={makeRng(Date.now())} title={t('liveMatch')} review
           onDone={(r) => {
             setLive(false);
             setLast(r);

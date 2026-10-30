@@ -160,6 +160,8 @@ export interface LiveRequest {
   round: MatchRound;
   tournamentId: string;
   discipline: Discipline;
+  /** Laga memakai Instant Review (Hawk-Eye). */
+  review?: boolean;
 }
 /** Kembalikan Promise hasil laga untuk memainkannya Live, atau null untuk Auto. */
 export type LiveHook = (req: LiveRequest) => Promise<MatchResult> | null;
@@ -183,6 +185,8 @@ export function simPlay(opts: {
   tournamentId: string; year: number; discipline: Discipline; matches: Match[]; live?: LiveHook; hot?: HotForm;
   /** Turnamen besar: semua laganya "laga besar" (sifat mental); selain itu hanya SF/F. */
   big?: boolean;
+  /** Instant Review (Hawk-Eye) dipakai di semua laga turnamen ini. */
+  review?: boolean;
 }): PlayFn {
   const side = (id: EntrantId, big: boolean): SideInput => {
     const pair = opts.pairs.get(id);
@@ -203,8 +207,8 @@ export function simPlay(opts: {
   return (a, b, round) => {
     const big = !!opts.big || round === 'SF' || round === 'F';
     const sides: [SideInput, SideInput] = [side(a, big), side(b, big)];
-    const live = opts.live?.({ sides, entrants: [a, b], round, tournamentId: opts.tournamentId, discipline: opts.discipline });
+    const live = opts.live?.({ sides, entrants: [a, b], round, tournamentId: opts.tournamentId, discipline: opts.discipline, review: opts.review });
     if (live) return live.then((r) => record(a, b, round, r));
-    return record(a, b, round, simulateMatch(sides, matchConfigFor(opts.cfg, opts.year), opts.rng));
+    return record(a, b, round, simulateMatch(sides, matchConfigFor(opts.cfg, opts.year), opts.rng, undefined, opts.review));
   };
 }
