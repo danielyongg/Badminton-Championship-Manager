@@ -150,7 +150,7 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .live-tips p { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
 .controls.subnav.pager-bottom { margin: 16px 0 8px; } /* pemilih halaman di bawah tabel: beri jarak dari baris terakhir */
 /* Dua pilihan berdampingan (ranking: jenis & per minggu), juga di HP. */
-.controls.pair { display: grid; grid-template-columns: 1fr 1fr; }
+.controls.pair { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } /* HP: jenis ranking (teks panjang, mis. World junior ranking) lebih lebar dari "As of" */
 .controls.pair select { width: 100%; }
 .controls.pair > label:only-child { grid-column: 1 / -1; } /* satu pilihan saja (mis. ranking Olimpiade): selebar baris, teks tidak terpotong */
 /* Bentuk pasangan: dua pilihan atlet sama lebar (bukan selebar nama terpanjang di daftarnya); tombol & centang mengikuti.
