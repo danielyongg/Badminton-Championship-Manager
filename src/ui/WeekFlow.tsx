@@ -206,20 +206,31 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
             </span>
           </div>
         )}
+        {/* Atlet sendiri dengan dua laga hari ini: satu baris per atlet, tombol nomor untuk mundur (💡 = saran: nomor laga keduanya). */}
         {doubleDuty.length > 0 && (
-          <div className="live-tips">
-            {doubleDuty.map(([pid, ms]) => (
-              <p key={pid} title={t('withdrawTwoHint')}>
-                <span>⚡ <b>{pname(pid)}</b> <small className="muted-text">{t('twoToday')}</small></span>
-                <span className="seg">{ms.map((m, i) => {
-                  const id = m.sides.find(isMine)!, k = `${m.key}:${id}`;
-                  return pulled.includes(k)
-                    ? <small key={k} className="muted-text">{t('withdrewFrom', { d: m.key })}</small>
-                    : <button key={k} className="mini" onClick={() => { show.withdraw!(m.key, id); setPulled([...pulled, k]); }}>{i === ms.length - 1 ? '💡 ' : ''}{t('withdrawFrom', { d: m.key })}</button>;
-                })}</span>
-              </p>
-            ))}
-          </div>
+          <section className="duty">
+            <p className="duty-head">⚡ {t('twoToday')} <small className="muted-text">{t('withdrawPick')}</small></p>
+            <ul>
+              {doubleDuty.map(([pid, ms]) => {
+                const keyOf = (m: RoundMatch) => `${m.key}:${m.sides.find(isMine)!}`;
+                const done = ms.find((m) => pulled.includes(keyOf(m)));
+                return (
+                  <li key={pid}>
+                    <span className="duty-name">{pname(pid)}</span>
+                    {done ? <small className="muted-text">✓ {t('withdrewFrom', { d: done.key })}</small> : (
+                      <span className="seg">{ms.map((m, i) => (
+                        <button key={m.key} title={t('withdrawFrom', { d: m.key })} aria-label={t('withdrawFrom', { d: m.key })}
+                          onClick={() => { show.withdraw!(m.key, m.sides.find(isMine)!); setPulled([...pulled, keyOf(m)]); }}>
+                          {m.key}{i === ms.length - 1 && ' 💡'}
+                        </button>
+                      ))}</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="hint">{t('withdrawTwoHint')}</p>
+          </section>
         )}
         <table className="roundlist">
           <colgroup><col className="side" /><col className="vs" /><col className="side" /><col className="score" /></colgroup>
