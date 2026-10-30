@@ -237,7 +237,8 @@ describe('pembentukan pasangan AI', () => {
 
 describe('prioritas tier entry otomatis', () => {
   it('atlet dengan prioritas S1000/S750/S500 tidak pernah ke S300/S100 dan selalu ikut bila tier itu ada', async () => {
-    const rs = { ...BWF_2026, ai: { ...BWF_2026.ai, restAbove: 999 } }; // tanpa istirahat karena lelah
+    // Tanpa istirahat karena lelah & tanpa cedera (cedera parah bisa membuat atlet pensiun).
+    const rs = { ...BWF_2026, ai: { ...BWF_2026.ai, restAbove: 999 }, injury: { ...BWF_2026.injury, base: 0, fatigueFactor: 0 } };
     const state = newSeason(WORLD, rs, 5, undefined, 'INA');
     const ms = state.players.filter((p) => p.countryId === 'INA' && p.gender === 'M' && p.focus !== 'D')
       .sort((a, b) => ATTRS.reduce((s, k) => s + b.attrs[k] - a.attrs[k], 0))[0]; // terkuat: pasti lolos cut-off S1000

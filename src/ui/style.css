@@ -652,6 +652,10 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 @media (max-width: 600px) { .roundlist td { white-space: normal; overflow-wrap: anywhere; } /* nama panjang tetap utuh terlihat, tidak terpotong "…" */ .roundlist col.side { width: auto; } .roundlist col.score { width: 6em; } }
 .roundbar { position: sticky; bottom: 0; z-index: 2; background: var(--surface); padding: 10px 0; border-top: 1px solid var(--line); }
 .roundlist tr.current td { background: var(--gold-soft); }
+.roundlist tr.court-row th { text-align: left; font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding-top: 10px; }
+.subnav.days button { display: grid; line-height: 1.15; text-align: center; }
+.subnav.days button small { font-size: .68rem; opacity: .8; }
+.subnav.days button[aria-current='date'] { outline: 2px solid var(--gold); outline-offset: -2px; }
 .roundlist .game { display: block; white-space: nowrap; }
 .roundlist .rowtoggle { font-size: .75rem; padding: 1px 8px; min-height: 0; white-space: nowrap; }
 @media (max-width: 600px) {

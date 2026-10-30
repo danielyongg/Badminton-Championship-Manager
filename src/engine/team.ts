@@ -157,8 +157,9 @@ export async function playTie(
     }
     const r = await play(order[i])(a, b, round);
     wins[r.winner]++;
+    // Walkover / mundur cedera: dihitung 2–0 game untuk pemenang.
     const games = r.scores.filter(([x, y]) => x > y).length;
-    scores.push([games, r.scores.length - games]);
+    scores.push(r.walkover || r.retired ? (r.winner === 0 ? [2, 0] : [0, 2]) : [games, r.scores.length - games]);
   }
   return { winner: wins[0] >= wins[1] ? 0 : 1, scores };
 }

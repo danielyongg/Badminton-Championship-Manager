@@ -64,8 +64,10 @@ export function EntryLists({ entry, ...who }: WhoProps & { entry: EventRecord['e
 
 const matchOf = (matches: Match[], a?: string | null, b?: string | null) =>
   (a && b && matches.find((x) => x.sides.includes(a) && x.sides.includes(b))) || undefined;
+/** Penanda laga tanpa skor penuh: walkover / mundur cedera. */
+export const endTag = (m: { walkover?: boolean; retired?: boolean }) => (m.walkover ? ' w/o' : m.retired ? ' ret.' : '');
 const scoreText = (m: Match, a: string) =>
-  m.scores.map(([x, y]) => (m.sides[0] === a ? `${x}-${y}` : `${y}-${x}`)).join(', ') + (m.walkover ? ' w/o' : m.retired ? ' ret.' : '');
+  m.scores.map(([x, y]) => (m.sides[0] === a ? `${x}-${y}` : `${y}-${x}`)).join(', ') + endTag(m);
 
 export function QualView({ rec, matches, ...who }: ViewProps) {
   if (!rec.qualRounds.length) return <p>{t('noQualifying')}</p>;

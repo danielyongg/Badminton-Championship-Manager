@@ -16,8 +16,9 @@ import type { Standing } from './groups';
 import { each, type MatchRound, type PlayFn } from './knockout';
 import { juniorEntries, juniorTeamEntrants } from './junior';
 import { AD_HOC, adHocEntrants, autoLineup, rankOrder, autoSquad, lineupError, playOrder, playTie, runTeamEvent, squadError, squadPool, type Lineup, type TeamEntrant } from './team';
-import { runEvent, simPlay, tournamentWildcards, toRecord, type HotForm, type DrawHook, type DrawShow, type EntriesHook, type EntriesShow, type EventRecord, type LiveHook } from './tournament';
+import { newTour, runEvent, simPlay, tournamentWildcards, toRecord, type HotForm, type DrawHook, type DrawShow, type EntriesHook, type EntriesShow, type EventRecord, type LiveHook } from './tournament';
 import { roundGate, type RoundHook } from './gate';
+import { dayPlan } from './schedule';
 import { makeScouting, recruit, SCOUTING_DEADLINE_WEEK, withdrawCandidates, type Scouting, type ScoutFocus } from './scouting';
 import {
   DISCIPLINES, isDoubles, isJuniorFormat, ROUNDS, type Career, type City, type Confederation, type Discipline, type DrawStep, type EntrantId, type GameDate, type Match, type Pair,
@@ -833,8 +834,21 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     const tier = tierOf(rs, event);
     const city = cities.get(hostCityId(event, year))!;
     const firstMatch = state.matches.length;
-    const gate = gated ? roundGate(event.id, DISCIPLINES, h.round) : undefined;
     const ds = DISCIPLINES.filter((d) => tier.drawSize[d] > 0 && entries.get(event.id)!.get(d)!.length >= 2);
+    const plan = dayPlan(tier, ds);
+    // Lapangan utama: laga unggulan teratas & atlet tuan rumah (unggulan dari catatan undian nomor itu).
+    const seedOf = (d: string, id: string) => state.eventRecords.find((r) => r.tournamentId === event.id && r.year === year && r.discipline === d)?.slots.find((x) => x.entrant === id)?.seed;
+    const isHome = (id: string) => (pairs.get(id)?.playerIds ?? [id]).some((x) => players.get(x)?.countryId === city.countryId);
+    const prio = (d: string, sides: [string, string]) => sides.reduce((t, id) => {
+      const seed = seedOf(d, id);
+      return t + (seed ? 10 - Math.min(8, seed) : 0) + (isHome(id) ? 3 : 0);
+    }, 0);
+    const tour = newTour(), injury = injuryRoll(state, rs, rng);
+    // Laga siaran: QF ke atas, unggulan 1–4, atau atlet tuan rumah. ponytail: aslinya 1–2 lapangan TV, tanpa batas jumlah laga.
+    const tv = (d: string, sides: [string, string], round: string) => ['QF', 'SF', 'F'].includes(round) || sides.some((id) => (seedOf(d, id) ?? 99) <= 4 || isHome(id));
+    const gate = gated ? roundGate(event.id, DISCIPLINES, h.round, {
+      plan, prio, tv, who: (_d, id) => pairs.get(id)?.playerIds ?? [id], withdraw: (d, id) => tour.withdrawn.add(`${d}:${id}`),
+    }) : undefined;
     // Undian semua nomor dikumpulkan dulu: bagan kualifikasi kelima nomor tampil sekaligus, lalu undian babak utama per nomor.
     const shows: DrawShow[] = [];
     let drawn: () => void = () => {};
@@ -870,6 +884,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
       let candidates = entries.get(event.id)!.get(d)!;
       if (tier.countryQuota) candidates = applyCountryQuota(candidates, tier.countryQuota);
       const sim = simPlay({ players, pairs, cfg: rs.match, rng, tournamentId: event.id, year, discipline: d, matches: state.matches, live: h.live, hot: hotFormOf(state), big: tier.grade === 1 || tier.points[0] >= 9000,
+        plan, tour, injury, tv: (sides, round) => tv(d, sides, round),
         // ponytail: Instant Review di semua laga turnamen senior Super 500 ke atas & grade 1 (aslinya hanya lapangan TV di babak awal).
         review: !tier.junior && (tier.grade === 1 || tier.points[0] >= 9000) });
       const play = gate ? gate.wrap(d, sim) : sim;
@@ -978,6 +993,37 @@ function awardPrizes(state: SeasonState, event: TournamentDef, tier: Tier, d: Di
  * Beban satu turnamen pada atlet yang bermain: kelelahan (tiap laga + jarak perjalanan), pengalaman
  * (menang & turnamen besar bernilai lebih), chemistry pasangan, dan cedera.
  */
+/**
+ * Undian cedera sebelum laga: peluang naik tajam bila lelah (kelelahan sebelum turnamen + `perMatch` per laga turnamen ini,
+ * termasuk laga ini). Cedera dicatat langsung; atlet mundur di tengah laga & walkover di sisa turnamen (lihat `simPlay`).
+ */
+function injuryRoll(state: SeasonState, rs: Ruleset, rng: Rng) {
+  const inj = rs.injury;
+  return (p: Player, played: number) => {
+    if (p.injury || rng() >= (inj.base + inj.fatigueFactor * (Math.min(100, p.fatigue + rs.fatigue.perMatch * TOUR_INJURY * (played + 1)) / 100) ** 2) * injuryMult(p)) return false;
+    let r = rollInjury(inj, rng);
+    if (hasTrait(p, 'injuryProne')) { // rawan cedera: tingkat = yang terburuk dari dua undian
+      const r2 = rollInjury(inj, rng), lvl = (x: typeof r) => inj.levels.findIndex((l) => l.id === x.injury.level);
+      if (lvl(r2) > lvl(r)) r = r2;
+    }
+    p.injury = r.injury;
+    (p.injuryHistory ??= []).push({ ...state.date, level: r.injury.level, type: r.injury.type, weeks: r.injury.weeksLeft });
+    if (r.injury.weeksLeft >= PR_MIN_WEEKS && !r.retire) protectRanking(state, rs, p.id);
+    if (r.paLoss) applySevereInjury(p, rs.development, rng, r.paLoss);
+    if (r.retire) { // cedera parah: langsung pensiun, pasangannya bubar
+      p.retired = state.date.year;
+      for (const pair of state.pairs) if (!pair.dissolved && pair.playerIds.includes(p.id)) pair.dissolved = { ...state.date };
+    }
+    return true;
+  };
+}
+
+/** Bobot laga turnamen ini pada peluang cedera (kalibrasi: jumlah cedera semusim ±sama dengan undian setelah turnamen). */
+const TOUR_INJURY = 1.7;
+
+/** Durasi laga patokan (rata-rata semua laga semusim ±47 menit): kelelahan per laga = `perMatch` × durasi/patokan (0,5–2×). */
+const REF_MINUTES = 47;
+
 function applyEventLoad(state: SeasonState, rs: Ruleset, rng: Rng, firstMatch: number, city: City, big: boolean, cities: Map<string, City>) {
   const players = new Map(state.players.map((p) => [p.id, p]));
   const pairs = new Map(state.pairs.map((p) => [p.id, p]));
@@ -990,33 +1036,15 @@ function applyEventLoad(state: SeasonState, rs: Ruleset, rng: Rng, firstMatch: n
       // Kalah tipis dari lawan yang jauh lebih kuat: pengalaman lebih besar dari kalah biasa.
       const ab = (s: string) => { const ids = pairs.get(s)?.playerIds ?? [s]; return ids.reduce((t, x) => t + currentAbility(players.get(x)!.attrs), 0) / ids.length; };
       const close = m.winner !== i && !m.walkover && ab(m.sides[1 - i]) - ab(side) >= CLOSE_LOSS_GAP && isCloseLoss(m.scores, i as 0 | 1);
+      // Laga panjang lebih melelahkan; walkover tidak (save lama tanpa statistik: laga rata-rata).
+      const minutes = m.stats && 'sec' in m.stats ? m.stats.sec / 60 : REF_MINUTES;
+      const tiring = m.walkover ? 0 : Math.min(2, Math.max(0.5, minutes / REF_MINUTES));
       for (const id of pair?.playerIds ?? [side]) {
-        players.get(id)!.fatigue += rs.fatigue.perMatch;
+        players.get(id)!.fatigue += rs.fatigue.perMatch * tiring;
         state.experience[id] = (state.experience[id] ?? 0) + (m.winner === i ? 1.5 : close ? CLOSE_LOSS_EXP : 1) * (big ? 1.3 : 1);
         played.add(id);
       }
     });
-  // Cedera: peluang per laga naik tajam bila lelah. (ASUMSI: atlet menyelesaikan turnamen, absen mulai minggu depan)
-  const inj = rs.injury;
-  for (const m of state.matches.slice(firstMatch))
-    for (const side of m.sides)
-      for (const id of pairs.get(side)?.playerIds ?? [side]) {
-        const p = players.get(id)!;
-        if (p.injury || rng() >= (inj.base + inj.fatigueFactor * (p.fatigue / 100) ** 2) * injuryMult(p)) continue;
-        let r = rollInjury(inj, rng);
-        if (hasTrait(p, 'injuryProne')) { // rawan cedera: tingkat = yang terburuk dari dua undian
-          const r2 = rollInjury(inj, rng), lvl = (x: typeof r) => inj.levels.findIndex((l) => l.id === x.injury.level);
-          if (lvl(r2) > lvl(r)) r = r2;
-        }
-        p.injury = r.injury;
-        (p.injuryHistory ??= []).push({ ...state.date, level: r.injury.level, type: r.injury.type, weeks: r.injury.weeksLeft });
-        if (r.injury.weeksLeft >= PR_MIN_WEEKS && !r.retire) protectRanking(state, rs, p.id);
-        if (r.paLoss) applySevereInjury(p, rs.development, rng, r.paLoss);
-        if (r.retire) { // cedera parah: langsung pensiun, pasangannya bubar
-          p.retired = state.date.year;
-          for (const pair of state.pairs) if (!pair.dissolved && pair.playerIds.includes(p.id)) pair.dissolved = { ...state.date };
-        }
-      }
   for (const id of played) {
     const p = players.get(id)!;
     const from = p.location && cities.get(p.location);
@@ -1268,8 +1296,9 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
       return pair.id;
     };
     const plays = new Map<Discipline, PlayFn>();
+    const tour = newTour(), injury = injuryRoll(state, rs, rng); // beregu: satu babak = satu hari (tanpa `plan`)
     const playOf = (d: Discipline) => plays.get(d) ?? plays.set(d, simPlay({
-      players, pairs, cfg: rs.match, rng, tournamentId: ev.id, year, discipline: d, matches: state.matches, live, hot: hotFormOf(state),
+      players, pairs, cfg: rs.match, rng, tournamentId: ev.id, year, discipline: d, matches: state.matches, live, hot: hotFormOf(state), tour, injury,
     })).get(d)!;
     const ties: TeamTie[] = [];
     const current: TeamResult = {

@@ -19,23 +19,27 @@ const weekOf = async (week: number, hooks: (s: ReturnType<typeof newSeason>) => 
 const choose = (ids: string[]): ChooseEvent => async ({ played }) => ids.find((id) => !played.includes(id)) ?? null;
 
 describe('gerbang babak (turnamen dimainkan per babak)', () => {
-  it('semua turnamen individu minggu 2: babak berurutan, tiap babak sekali (pending → done), hasil lengkap', async () => {
+  it('semua turnamen individu minggu 2: per hari pertandingan (hari maju, babak urut), order of play, hasil lengkap', async () => {
     const ids = rs.calendar.filter((e) => e.week === 2).map((e) => e.id);
     const shows: RoundShow[] = [];
     const state = await weekOf(2, () => ({ chooseEvent: choose(ids), round: (r) => { shows.push({ ...r, matches: r.matches.map((m) => ({ ...m })) }); return Promise.resolve(); } }));
     for (const id of ids) {
       const mine = shows.filter((s) => s.tournamentId === id);
-      const rounds = mine.filter((s) => s.phase === 'pending').map((s) => s.round);
-      expect(mine.filter((s) => s.phase === 'done').map((s) => s.round)).toEqual(rounds);
-      expect(new Set(rounds).size).toBe(rounds.length);
-      expect(rounds.map(roundOrder)).toEqual([...rounds.map(roundOrder)].sort((a, b) => a - b));
-      expect(rounds.at(-1)).toBe('F');
-      // Semua laga turnamen tampil di layar babak dengan skor; final = juara kelima nomor.
-      const done = mine.filter((s) => s.phase === 'done').flatMap((s) => s.matches);
-      expect(done.every((m) => m.result)).toBe(true);
+      const days = mine.filter((s) => s.phase === 'pending').map((s) => s.day!);
+      expect(days).toEqual([...days].sort((a, b) => a - b));
+      const pend = mine.filter((s) => s.phase === 'pending');
+      expect(pend.flatMap((s) => s.matches.filter((m) => !m.result).map((m) => m.round!)).map(roundOrder))
+        .toEqual(pend.flatMap((s) => s.matches.filter((m) => !m.result).map((m) => roundOrder(m.round!))).sort((a, b) => a - b));
+      expect(mine.at(-1)!.round).toBe('F');
+      expect(mine.at(-1)!.day).toBe(mine.at(-1)!.plan!.days - 1);
+      // Semua laga turnamen tampil sekali di layar hari dengan skor, lapangan & urutan; final = juara kelima nomor.
+      const lastOfDay = new Map(mine.filter((s) => s.phase === 'done').map((s) => [s.day, s.matches]));
+      const done = [...lastOfDay.values()].flat();
+      expect(done.every((m) => m.result && m.court! >= 1 && m.order! >= 1)).toBe(true);
+      for (const ms of lastOfDay.values()) expect(new Set(ms.map((m) => `${m.court}-${m.order}`)).size).toBe(ms.length);
       expect(done.length).toBe(state.matches.filter((m) => m.tournamentId === id).length);
       const champs = state.champions.filter((c) => c.tournamentId === id && c.year === 2026);
-      const finals = mine.find((s) => s.round === 'F' && s.phase === 'done')!.matches;
+      const finals = mine.filter((s) => s.round === 'F' && s.phase === 'done').at(-1)!.matches;
       expect(champs.length).toBe(finals.length);
       for (const f of finals) expect(champs.find((c) => c.discipline === f.key)!.winner).toBe(f.sides[f.result!.winner]);
       expect(state.eventRecords.filter((r) => r.tournamentId === id && r.year === 2026).length).toBe(champs.length);
@@ -154,7 +158,7 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
     const inaTies = res.flatMap((r) => r.ties.filter((t) => t.sides.includes('INA')).map((t) => `${r.format}:${t.round}`));
     expect(lineups.sort()).toEqual(inaTies.sort());
     for (const r of res) for (const t of r.ties) expect(Math.max(...t.score)).toBeGreaterThanOrEqual(3);
-    expect(shows.map((s) => s.round)).toEqual(['G', 'QF', 'SF', 'F']);
+    expect(shows.map((s) => s.round)).toEqual(['G', 'G', 'G', 'QF', 'SF', 'F']); // grup: satu matchday (tie) per hari
     expect(shows.flatMap((s) => s.matches).length).toBe(res.reduce((n, r) => n + r.ties.length, 0));
   });
 });

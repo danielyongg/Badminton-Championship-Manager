@@ -2,10 +2,10 @@ import { entryClosed, hostCityId, weekOf } from '../engine/season';
 import { useEffect, useRef, useState } from 'react';
 import type { RoundMatch, RoundShow } from '../engine/gate';
 import { DISCIPLINES, type Discipline, type TeamFormat } from '../engine/types';
-import { dataName, t } from '../i18n';
+import { dataName, t, type TextKey } from '../i18n';
 import { Flag } from './Flag';
 import { EntryPanel, EntryTable, JuniorEntryTable } from './Entries';
-import { EntryLists } from './EventViews';
+import { endTag, EntryLists } from './EventViews';
 import type { EntriesShow } from '../engine/tournament';
 import { entrantLabel, eventName, saveGame, useGame, TierBadge } from './game';
 import { formatName } from './Team';
@@ -104,13 +104,16 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
   );
 }
 
-/** Satu babak turnamen yang dimainkan: tab per nomor, laga (pasangan laga → skor). */
 /** Kunci baris laga (untuk pilihan Live/Skip per laga). */
 export const rowKey = (m: RoundMatch) => `${m.key}:${m.sides.join('-')}`;
 
+/** Nama hari ke-`k` dari `n` hari turnamen (hari terakhir = Minggu). */
+export const weekday = (k: number, n: number) => t(`wd${(((7 - (n - 1 - k)) % 7) + 7) % 7}` as TextKey);
+
 /**
- * Layar babak: laga dimainkan satu per satu (baris giliran disorot). Laga atlet sendiri tampil Live,
+ * Layar babak / hari pertandingan: laga dimainkan satu per satu (baris giliran disorot). Laga atlet sendiri tampil Live,
  * kecuali barisnya di-Skip. `tab`: tab terakhir yang dipilih (disimpan pemanggil antar babak).
+ * Jadwal harian (`show.day`): strip hari (hari lalu bisa dibuka), laga per lapangan menurut order of play, filter nomor.
  * `skipped`: kunci baris yang di-Skip (diubah langsung; pemanggil membacanya saat giliran laga itu).
  */
 export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkipRest, onSkipEvent }: {
@@ -123,14 +126,18 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   const label = (id: string) => team
     ? { name: dataName(world.countries.find((c) => c.id === id)?.name) ?? id, country: id }
     : entrantLabel(state, id);
-  const keys = [...new Set(show.matches.map((m) => m.key))];
+  const keys = [...new Set(show.matches.map((m) => m.key))].sort((a, b) => DISCIPLINES.indexOf(a as Discipline) - DISCIPLINES.indexOf(b as Discipline)); // beregu: tidak ada di DISCIPLINES, urutan tetap
   // Nomor unggulan di turnamen ini (dari hasil undian nomor itu); beregu tanpa unggulan.
   const seedOf = (key: string, id: string) => state.eventRecords
     .find((r) => r.tournamentId === show.tournamentId && r.year === state.date.year && r.discipline === key)?.slots.find((x) => x.entrant === id)?.seed;
   const seedTag = (key: string, id: string) => { const n = seedOf(key, id); return n ? <> <small className="seed">[{n}]</small></> : null; }; // spasi di luar: unggulan boleh turun baris
   // Laga individu yang sudah selesai → catatan laga (detail & statistik lewat klik skor).
   const recordOf = (m: RoundMatch) => state.matches.find((x) => x.tournamentId === show.tournamentId && x.year === state.date.year
-    && x.discipline === m.key && x.round === show.round && x.sides[0] === m.sides[0] && x.sides[1] === m.sides[1]);
+    && x.discipline === m.key && x.round === (m.round ?? show.round) && x.sides[0] === m.sides[0] && x.sides[1] === m.sides[1]);
+  const daily = show.day !== undefined;
+  const [view, setView] = useState(show.day); // hari yang dibuka di strip (hari lalu = hasil)
+  const viewing = view ?? show.day;
+  const rows = !daily || viewing === show.day ? show.matches : show.past?.[viewing!] ?? [];
   const isMine = (id: string) => label(id).country === managed;
   const mineKeys = new Set(show.matches.filter((m) => m.sides.some(isMine)).map((m) => m.key));
   const [picked, pick] = useState(lastTab);
@@ -143,27 +150,55 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   const playing = show.phase === 'playing';
   const current = playing ? show.matches[show.current!] : undefined;
   // Saat dimainkan, tab mengikuti laga yang sedang giliran; selain itu tab terakhir / nomor pertama berisi atlet sendiri.
-  const tab = current?.key ?? (picked && keys.includes(picked) ? picked : keys.find((k) => mineKeys.has(k)) ?? keys[0]);
+  // Jadwal harian: bawaan "Semua" (urut lapangan); tab nomor tetap mengikuti laga yang sedang giliran.
+  const tab = daily
+    ? (picked && picked !== 'all' && keys.includes(picked) ? current?.key ?? picked : 'all')
+    : current?.key ?? (picked && keys.includes(picked) ? picked : keys.find((k) => mineKeys.has(k)) ?? keys[0]);
+  const shown = (daily ? [...rows].sort((a, b) => (a.court ?? 0) - (b.court ?? 0) || (a.order ?? 0) - (b.order ?? 0)) : rows)
+    .filter((m) => tab === 'all' || m.key === tab);
+  const multiRound = new Set(rows.map((m) => m.round)).size > 1;
+  // Atlet sendiri dengan dua laga belum dimainkan hari ini (dua nomor): boleh mundur dari salah satunya (saran: nomor laga keduanya).
+  const [pulled, setPulled] = useState<string[]>([]);
+  const twice = new Map<string, RoundMatch[]>();
+  if (daily && show.phase === 'pending' && show.withdraw && viewing === show.day)
+    for (const m of [...show.matches].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)))
+      for (const id of m.sides.filter(isMine)) if (!m.result)
+        for (const pid of state.pairs.find((x) => x.id === id)?.playerIds ?? [id]) twice.set(pid, [...(twice.get(pid) ?? []), m]);
+  const doubleDuty = [...twice].filter(([, ms]) => new Set(ms.map((m) => m.key)).size > 1);
+  const pname = (id: string) => state.players.find((p) => p.id === id)?.name ?? id;
   const done = show.phase === 'done';
   const final = show.round === 'F';
   const box = useRef<HTMLElement>(null);
   useEffect(() => { box.current?.querySelector('tr.current')?.scrollIntoView({ block: 'nearest' }); }, [show.current]);
   const roundName = show.round === 'G' ? t('roundG') : /^Q\d/.test(show.round) ? `${t('qualifying')} R${show.round.slice(1)}` : show.round;
-  const title = `${eventName(ruleset, show.tournamentId, state.date.year)} · ${roundName}`;
+  const nameOf = (r: string) => r === 'G' ? t('roundG') : /^Q\d/.test(r) ? `${t('qualifying')} R${r.slice(1)}` : r;
+  const title = daily
+    ? `${eventName(ruleset, show.tournamentId, state.date.year)} · ${t('dayN', { n: show.day! + 1 })} (${weekday(show.day!, show.plan!.days)}) · ${[...new Set(show.matches.map((m) => m.round!))].map(nameOf).join(', ')}`
+    : `${eventName(ruleset, show.tournamentId, state.date.year)} · ${roundName}`;
   return (
     <section className="card hub" ref={box}>
         <h3>{title}</h3>
+        {daily && (
+          <nav className="controls subnav days" aria-label={t('schedule')}>
+            {show.plan!.rounds.map((rs, k) => (
+              <button key={k} aria-pressed={k === viewing} aria-current={k === show.day ? 'date' : undefined} disabled={k > show.day!} onClick={() => setView(k)}>
+                <b>{weekday(k, show.plan!.days)}</b> <small>{rs.map(nameOf).join(' · ')}</small>
+              </button>
+            ))}
+          </nav>
+        )}
         {/* Individu: nomor selalu terlihat, juga saat babak hanya berisi satu nomor (mis. R64 hanya MS). */}
         {(keys.length > 1 || !team) && (
           <nav className="controls subnav">
+            {daily && <button aria-pressed={tab === 'all'} onClick={() => setTab('all')}>{t('allDisc')}</button>}
             {keys.map((k) => (
-              <button key={k} aria-pressed={k === tab} disabled={playing && k !== tab} onClick={() => setTab(k)}>
+              <button key={k} aria-pressed={k === tab} disabled={playing && k !== tab && tab !== 'all'} onClick={() => setTab(k)}>
                 {team ? formatName(k as TeamFormat, show.tournamentId) : k}{mineKeys.has(k) && <span className="mine"> ●</span>}
               </button>
             ))}
           </nav>
         )}
-        {!done && mineRows.length > 0 && (
+        {!done && mineRows.length > 0 && viewing === show.day && (
           <div className="drawctl">
             <span className="seg">
               <button aria-pressed={mineRows.every((k) => !skipped.has(k))} onClick={() => setAll(false)}>▶ {t('liveAll')}</button>
@@ -171,22 +206,40 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
             </span>
           </div>
         )}
+        {doubleDuty.length > 0 && (
+          <div className="live-tips">
+            {doubleDuty.map(([pid, ms]) => (
+              <p key={pid} title={t('withdrawTwoHint')}>
+                <span>⚡ <b>{pname(pid)}</b> <small className="muted-text">{t('twoToday')}</small></span>
+                <span className="seg">{ms.map((m, i) => {
+                  const id = m.sides.find(isMine)!, k = `${m.key}:${id}`;
+                  return pulled.includes(k)
+                    ? <small key={k} className="muted-text">{t('withdrewFrom', { d: m.key })}</small>
+                    : <button key={k} className="mini" onClick={() => { show.withdraw!(m.key, id); setPulled([...pulled, k]); }}>{i === ms.length - 1 ? '💡 ' : ''}{t('withdrawFrom', { d: m.key })}</button>;
+                })}</span>
+              </p>
+            ))}
+          </div>
+        )}
         <table className="roundlist">
           <colgroup><col className="side" /><col className="vs" /><col className="side" /><col className="score" /></colgroup>
-          <tbody>{show.matches.filter((m) => m.key === tab).map((m) => {
+          <tbody>{shown.flatMap((m, i) => {
             const sides = m.sides.map(label);
             const mine = m.sides.some(isMine);
             const w = m.result?.winner;
             // Beregu: jumlah partai dimenangkan; individu: skor per game.
             const score = !m.result ? '' : team
               ? `${m.result.scores.filter(([x, y]) => x > y).length}–${m.result.scores.filter(([x, y]) => x < y).length}`
-              : m.result.scores.map(([x, y], i) => <span key={i} className="game">{x}-{y}</span>); // satu game per baris
+              : [...m.result.scores.map(([x, y], i) => <span key={i} className="game">{x}-{y}</span>), endTag(m.result)]; // satu game per baris
             const k = rowKey(m);
             const rec = score && !team ? recordOf(m) : undefined;
-            return (
+            // Jadwal harian: judul lapangan setiap pergantian lapangan; kolom tengah = nomor (& babak bila sehari lebih dari satu babak).
+            const court = daily && m.court !== shown[i - 1]?.court
+              ? [<tr key={`c${m.court}`} className="court-row"><th colSpan={4}>{t('courtN', { n: m.court! })}</th></tr>] : [];
+            return [...court, (
               <tr key={k} className={[mine && 'mine-row', m === current && 'current'].filter(Boolean).join(' ') || undefined}>
                 <td className={w === 0 ? 'win' : undefined}><Flag id={sides[0].country} />{sides[0].name}{seedTag(m.key, m.sides[0])}</td>
-                <td className="muted-text">vs</td>
+                <td className="muted-text">{daily ? <small>{tab === 'all' ? m.key : ''}{multiRound ? ` ${m.round}` : ''}{tab !== 'all' && !multiRound ? 'vs' : ''}{m.tv && <span title={t('tvMatch')}> 📺</span>}</small> : 'vs'}</td>
                 <td className={w === 1 ? 'win' : undefined}><Flag id={sides[1].country} />{sides[1].name}{seedTag(m.key, m.sides[1])}</td>
                 <td className="num">{rec ? <MatchLink m={rec} name={(x) => label(x).name} title={eventName(ruleset, show.tournamentId, state.date.year)}>{score}</MatchLink> : score || (m === current ? '…'
                   : mine && !done && <button className="rowtoggle" title={t('rowToggleHint')} aria-label={t(skipped.has(k) ? 'rowSkip' : 'rowLive')} onClick={() => toggle(k)}>
@@ -194,16 +247,16 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
                     {skipped.has(k) ? '⏭' : '▶'}<span className="hide-sm"> {t(skipped.has(k) ? 'rowSkip' : 'rowLive')}</span>
                   </button>)}</td>
               </tr>
-            );
+            )];
           })}</tbody>
         </table>
-        {done && final && show.matches.filter((m) => m.key === tab).map((m, i) => (
+        {done && final && viewing === show.day && show.matches.filter((m) => (tab === 'all' || m.key === tab) && (m.round ?? 'F') === 'F').map((m, i) => (
           <p key={i}>🏆 {t('champion')}: <b>{label(m.sides[m.result!.winner]).name}</b></p>
         ))}
         <div className="controls roundbar">
           {playing
-            ? <button onClick={onSkipRest}>{t('simRound')}</button>
-            : <button className="primary" onClick={onNext}>{!done ? t('playRound') : final ? t('doneEvent') : t('nextRound')}</button>}
+            ? <button onClick={onSkipRest}>{t(daily ? 'simDay' : 'simRound')}</button>
+            : <button className="primary" onClick={onNext}>{!done ? t(daily ? 'playDay' : 'playRound') : final ? t('doneEvent') : t(daily ? 'nextDay' : 'nextRound')}</button>}
           {!(done && final) && <button onClick={onSkipEvent}>{t('simEvent')}</button>}
         </div>
     </section>

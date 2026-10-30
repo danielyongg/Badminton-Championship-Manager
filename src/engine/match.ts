@@ -15,6 +15,12 @@ export interface SideInput {
   challenge?: ChallengePolicy;
   /** Usia rata-rata sisi ini (tahun laga − tahun lahir): ukuran pengalaman di tur; kosong = setara ±24 tahun. */
   age?: number;
+  /** Energi yang belum pulih dari laga sebelumnya di turnamen ini (dikurangkan dari energi awal). */
+  load?: number;
+  /** Jumlah laga sisi ini yang sudah dimainkan hari ini (laga ke-2 hari ini = 1). */
+  today?: number;
+  /** Cedera di laga ini: sisi ini mundur (retired) setelah reli ke-n bila laga belum selesai. */
+  retireAt?: number;
 }
 
 export type ChallengePolicy = 'never' | 'sure' | 'ask';
@@ -45,6 +51,7 @@ interface SideState {
   instruction?: Instruction;
   challenge?: ChallengePolicy;
   age?: number;
+  retireAt?: number;
 }
 
 /** Hasil reli yang sudah ditentukan tetapi belum dicatat ke skor (menunggu keputusan challenge). */
@@ -76,6 +83,8 @@ export interface MatchState {
   fails: [number, number];
   /** Bola tipis yang menunggu keputusan challenge manajer (lihat `challenge`). */
   pending?: Outcome;
+  /** Sisi yang mundur karena cedera. */
+  retired?: 0 | 1;
 }
 
 export interface RallyEvent {
@@ -90,9 +99,11 @@ export interface RallyEvent {
   line?: LineCall;
   /** Reli belum dicatat: menunggu `challenge(st, cfg, ya/tidak)`. */
   pending?: boolean;
+  /** Sisi yang mundur karena cedera setelah reli ini (laga selesai). */
+  retired?: 0 | 1;
 }
 
-export type MatchResult = Pick<Match, 'scores' | 'winner'> & { stats: MatchStats };
+export type MatchResult = Pick<Match, 'scores' | 'winner' | 'walkover' | 'retired'> & { stats: MatchStats };
 
 const PHYSICAL: Attr[] = ['speed', 'stamina', 'smash', 'defense'];
 
@@ -161,11 +172,11 @@ function gamePointFor(st: MatchState, cfg: MatchConfig): 0 | 1 | undefined {
 const clutchOf = (s: SideInput) => CLUTCH_MENTAL * traitShare(s.players, 'clutch') - CHOKER_MENTAL * traitShare(s.players, 'choker');
 
 export function createMatch(sides: [SideInput, SideInput], cfg: MatchConfig, rng: Rng, review = false): MatchState {
-  const start = (s: SideInput) => clamp(100 - Math.max(...s.players.map((p) => p.fatigue)) * cfg.energy.fatigueToStart, 0, 100);
+  const start = (s: SideInput) => clamp(100 - Math.max(...s.players.map((p) => p.fatigue)) * cfg.energy.fatigueToStart - (s.load ?? 0), 0, 100);
   return {
     sides: [
-      { attrs: sideAttrs(sides[0], cfg, sides[0].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[0]), strategy: 'balanced', male: sides[0].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[0]), slow: traitShare(sides[0].players, 'slowStarter'), rider: traitShare(sides[0].players, 'momentumRider'), challenge: sides[0].challenge, age: sides[0].age },
-      { attrs: sideAttrs(sides[1], cfg, sides[1].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[1]), strategy: 'balanced', male: sides[1].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[1]), slow: traitShare(sides[1].players, 'slowStarter'), rider: traitShare(sides[1].players, 'momentumRider'), challenge: sides[1].challenge, age: sides[1].age },
+      { attrs: sideAttrs(sides[0], cfg, sides[0].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[0]), strategy: 'balanced', male: sides[0].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[0]), slow: traitShare(sides[0].players, 'slowStarter'), rider: traitShare(sides[0].players, 'momentumRider'), challenge: sides[0].challenge, age: sides[0].age, retireAt: sides[0].retireAt },
+      { attrs: sideAttrs(sides[1], cfg, sides[1].day ?? normal(rng, 0, cfg.dayForm.sd)), energy: start(sides[1]), strategy: 'balanced', male: sides[1].players.some((p) => p.gender === 'M'), clutch: clutchOf(sides[1]), slow: traitShare(sides[1].players, 'slowStarter'), rider: traitShare(sides[1].players, 'momentumRider'), challenge: sides[1].challenge, age: sides[1].age, retireAt: sides[1].retireAt },
     ],
     review,
     fails: [0, 0],
@@ -393,10 +404,20 @@ function applyOutcome(st: MatchState, cfg: MatchConfig, { winner, type, shots, k
     s.sec += 60;
     recover(st, cfg.energy.intervalRecovery);
   }
+  // Cedera: sisi mundur di tengah laga; skor game berjalan tetap dicatat.
+  const out = ([0, 1] as const).find((x) => st.sides[x].retireAt !== undefined && st.rallies >= st.sides[x].retireAt!);
+  if (out !== undefined && st.winner === undefined) {
+    if (st.score[0] + st.score[1] > 0) st.games.push([...st.score]);
+    st.score = [0, 0];
+    st.winner = (1 - out) as 0 | 1;
+    st.retired = out;
+    ev.retired = out;
+    ev.matchOver = true;
+  }
   return ev;
 }
 
-export const matchResult = (st: MatchState): MatchResult => ({ scores: st.games, winner: st.winner!, stats: st.stats });
+export const matchResult = (st: MatchState): MatchResult => ({ scores: st.games, winner: st.winner!, stats: st.stats, ...(st.retired !== undefined && { retired: true }) });
 
 /** Mode Auto: seluruh laga disimulasikan sekaligus. `strategies` opsional (default 'balanced'); `review` = Instant Review. */
 export function simulateMatch(sides: [SideInput, SideInput], cfg: MatchConfig, rng: Rng, strategies?: [Strategy, Strategy], review = false): MatchResult {

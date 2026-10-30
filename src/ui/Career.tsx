@@ -29,6 +29,7 @@ import { ScoutingCard } from './Scouting';
 import { currentAbility } from '../engine/generator';
 import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
 import { TournamentView } from './TournamentView';
+import { endTag } from './EventViews';
 import { MatchLink } from './MatchDetail';
 import { EntriesScreen, RoundScreen, rowKey, WeekScreen, type WeekAsk } from './WeekFlow';
 
@@ -199,7 +200,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
           onSkipEvent={() => { skipDraw.current = true; }} />
       )
       : roundAsk ? (
-        <RoundScreen key={`${roundAsk.show.tournamentId}-${roundAsk.show.round}`} show={roundAsk.show} skipped={skipRows.current}
+        <RoundScreen key={`${roundAsk.show.tournamentId}-${roundAsk.show.day ?? roundAsk.show.round}`} show={roundAsk.show} skipped={skipRows.current}
           tab={roundTab.current} onTab={(k) => { roundTab.current = k; }} onSkipRest={() => { skipRound.current = true; }} onSkipEvent={skipTournament}
           onNext={() => { if (roundAsk.show.phase !== 'pending') setRoundAsk(undefined); roundAsk.resolve(); }} />
       )
@@ -610,7 +611,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
                       <span className="chip">{m.discipline}</span>
                       <span className="grow">
                         <a href="#" onClick={(e) => { e.preventDefault(); onOpen(id); }}>{entrantLabel(state, id).name}</a>
-                        <small className="muted-text">{m.winner === i ? t('wins') : t('lost')} vs <Flag id={opp} />{entrantLabel(state, opp).name} · <MatchLink m={m} name={(x) => entrantLabel(state, x).name} title={eventName(ruleset, m.tournamentId, m.year)}>{m.scores.map((g) => `${g[i]}-${g[1 - i]}`).join(', ')}</MatchLink></small>
+                        <small className="muted-text">{m.winner === i ? t('wins') : t('lost')} vs <Flag id={opp} />{entrantLabel(state, opp).name} · <MatchLink m={m} name={(x) => entrantLabel(state, x).name} title={eventName(ruleset, m.tournamentId, m.year)}>{m.scores.map((g) => `${g[i]}-${g[1 - i]}`).join(', ')}{endTag(m)}</MatchLink></small>
                         {(sum.points || sum.after) && (
                           <small className="muted-text">
                             {sum.points ? `+${sum.points.toLocaleString(numLocale())} ${t('pts')}` : ''}

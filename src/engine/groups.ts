@@ -73,7 +73,7 @@ export async function playGroup(ids: EntrantId[], play: PlayFn, parallel = false
   const st = new Map(ids.map((id) => [id, { id, wins: 0, gameDiff: 0, pointDiff: 0 }]));
   const beat = new Set<string>();
   const pending: Promise<void>[] = [];
-  for (const day of roundRobin(ids.length)) {
+  for (const [md, day] of roundRobin(ids.length).entries()) {
     for (const [i, j] of day) {
       const settle = (r: PlayResult) => {
         const [w, l] = r.winner === 0 ? [ids[i], ids[j]] : [ids[j], ids[i]];
@@ -85,7 +85,7 @@ export async function playGroup(ids: EntrantId[], play: PlayFn, parallel = false
           sa.pointDiff += x - y; sb.pointDiff += y - x;
         }
       };
-      const r = play(ids[i], ids[j], 'G');
+      const r = play(ids[i], ids[j], 'G', { i: 0, n: 1, md });
       if (parallel) pending.push(Promise.resolve(r).then(settle)); else settle(await r);
     }
     // Paralel: beri giliran grup lain mendaftarkan hari yang sama → urutan laga hari 1 semua grup, lalu hari 2, dst.

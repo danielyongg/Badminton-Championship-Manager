@@ -55,6 +55,8 @@ export interface Tier {
    * `maxAge`: batas usia (tahun − tahun lahir), mis. 17 untuk Youth Olympic Games (bawaan: U19).
    */
   junior?: { quota: { singles: number; doubles: number }; play?: number; local?: boolean; maxAge?: number };
+  /** Jumlah hari pertandingan (lihat schedule.ts `dayPlan`); kosong = satu hari per babak. */
+  days?: number;
 }
 
 export interface TournamentDef {
@@ -231,6 +233,11 @@ export interface MatchConfig {
     /** Energi 0 → atribut fisik turun sebesar persentase ini. */
     effect: number;
     fatigueToStart: number; // energi awal = 100 − kelelahan × faktor ini
+    /**
+     * Beban antar laga dalam satu turnamen: tiap menit laga meninggalkan `perMinute` energi yang belum pulih; tiap malam
+     * tersisa `night` bagiannya, laga berikutnya di hari yang sama `sameDay`. Kosong (save lama) = TOUR_LOAD.
+     */
+    tour?: { perMinute: number; night: number; sameDay: number };
   };
   warmup: { points: number; maxPenalty: number }; // poin awal game 1 yang terpengaruh pemanasan
   pressure: { fromScore: number; weight: number }; // poin kritis: Mental lebih menentukan

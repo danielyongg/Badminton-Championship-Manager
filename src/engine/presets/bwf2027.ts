@@ -8,6 +8,7 @@ import { BWF_2026, CALENDAR_2026, OFFICIAL_WEEKS, TIERS_2026 } from './bwf2026';
 const TIER_CHANGES: Record<string, Partial<Tier>> = {
   // ASUMSI: tunggal Super 1000 = 48 pemain, 16 grup × 3, juara grup ke R16.
   S1000: {
+    days: 11, // mulai 2027: 11 hari, dua akhir pekan
     drawSize: { MS: 48, WS: 48, MD: 32, WD: 32, XD: 32 },
     groupStage: { MS: { groups: 16, perGroup: 3, advance: 1 }, WS: { groups: 16, perGroup: 3, advance: 1 } },
   },

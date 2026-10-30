@@ -1,6 +1,6 @@
 # Jadwal harian realistis (order of play, lapangan, kelelahan antar hari)
 
-Tanggal: 2026-10-30 · Status: **draf — menunggu keputusan manajer** (lihat "Pertanyaan terbuka")
+Tanggal: 2026-10-30 · Status: **dikerjakan (tahap 1–6)** — keputusan di bagian akhir
 
 ## Tujuan
 
@@ -108,9 +108,17 @@ Tahap 1–2 = tampilan realistis tanpa risiko keseimbangan; tahap 3 = inti reali
 - **Kecepatan simulasi**: penjadwal berjalan untuk semua turnamen (juga yang tidak dimainkan); harus O(jumlah laga).
 - **Save lama**: semua field baru opsional; turnamen tidak disimpan di tengah minggu, jadi tidak perlu migrasi state.
 
-## Pertanyaan terbuka (perlu keputusan)
+## Keputusan (2026-10-30)
 
-1. **Mundur dari nomor** (tahap 5): dibuat, atau cukup saran asisten tanpa tombol?
-2. **Cedera**: hanya walkover di laga berikutnya, atau juga **retired di tengah laga** (skor terhenti)?
-3. **Perkiraan jam** ditampilkan, atau cukup urutan & lapangan?
-4. **Turnamen yang tidak dimainkan** (otomatis): ikut memakai kelelahan per hari (konsisten, sedikit lebih lambat) — saran: ya.
+1. Mundur dari nomor: **tombol** (panel "main 2 nomor hari ini" di layar hari, 💡 saran = nomor laga keduanya).
+2. Cedera: **juga retired di tengah laga** (lalu walkover di sisa laga semua nomor).
+3. Jadwal: **urutan & lapangan saja**, tanpa jam.
+4. Turnamen otomatis: **ikut kelelahan per hari**.
+
+## Yang dikerjakan vs rancangan
+
+- Kondisi hari itu tetap per laga (bukan per hari): MD & XD adalah peserta berbeda, jadi efeknya kecil.
+- Laga siaran (📺, Hawk-Eye) = QF ke atas, unggulan 1–4, atau atlet tuan rumah — tanpa batas 1–2 lapangan TV.
+- Tombol mundur hanya untuk atlet dengan dua laga hari itu (bukan berdasarkan angka kelelahan).
+- Beregu: satu babak / satu matchday grup = satu hari (tanpa templat hari & lapangan).
+- Angka kalibrasi & asumsi: `docs/ASUMSI.md` bagian "Jadwal harian".

@@ -21,7 +21,7 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Ganda**: atribut pasangan = rata-rata kedua pemain + bonus chemistry ((chemistry − 50) × 0,15).
 - **Energi**: turun tiap rally (lebih sedikit bila Stamina tinggi, lebih banyak di reli panjang), pulih saat interval (+6) dan antar game (+15); energi rendah menurunkan atribut fisik s/d 15%. Kelelahan atlet mengurangi energi awal.
 - **Pemanasan**: 8 poin pertama game 1 dipengaruhi atribut Warm-up. **Mental**: lebih menentukan saat skor ≥ 18.
-- Cedera/retired di tengah laga ditunda ke Fase 7 (bersama sistem cedera).
+- Cedera di tengah laga: lihat "Jadwal harian" di bawah (atlet mundur/retired, lalu walkover).
 
 ## Fase 3 — Entry, kualifikasi, seeding & drawing
 - **Jumlah unggulan** dihitung dari jumlah peserta main draw (langsung + wildcard + qualifier): draw 32 → 8, draw 48 → 8, draw 64 → 16.
@@ -48,7 +48,7 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Kuota negara**: Kejuaraan Dunia maks 2 per negara, s/d 4 bila semuanya top 8; Olimpiade maks 1, s/d 2 bila semuanya top 16.
 - **Top Committed**: snapshot ranking di awal musim (minggu 1). 2 Super 500 wajib dipilih acak per atlet/pasangan di awal musim.
 - **AI entry**: tiap minggu tiap peserta memilih turnamen ber-tier tertinggi yang sesuai rentang peringkatnya (Ruleset `ai.rankRange`; mis. S1000/S750 1–64, S500 1–100, S300 11–160, S100 21–260: pemain top 10 tidak turun di S300 & top 20 tidak di S100 — perilaku, bukan aturan BWF; manajer tetap boleh mendaftarkan siapa pun; tombol Saran memakai rentang yang sama), dengan peluang ikut per tier dikurangi kelelahan; istirahat bila kelelahan > 45. Turnamen wajib selalu dipilih. Nomor tunggal diproses dulu; turnamen pertama yang dipilih seorang atlet mengikat nomor gandanya (satu turnamen per minggu).
-- **Kelelahan**: +5 per laga, +0,6 per 1.000 km perjalanan, −12 per minggu. Hasil kalibrasi: atlet top 30 main ±16–19 turnamen per tahun.
+- **Kelelahan**: +5 per laga (× durasi laga / 47 menit, 0,5–2×; walkover 0), +0,6 per 1.000 km perjalanan, −12 per minggu. Hasil kalibrasi: atlet top 30 main ±16–19 turnamen per tahun.
 
 ## Fase 6 — Perkembangan, penuaan, pensiun, regenerasi
 - **Atribut disimpan sebagai pecahan** (perubahan per kuartal kecil tetap terakumulasi); UI membulatkan.
@@ -63,7 +63,7 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Hasil kurva** (1.000 atlet, rata-rata): 15 th 40 → 20 th 67 → puncak 29 th 71,5 → 32 th 70 → 35 th 64.
 
 ## Fase 7 — Mode karier
-- **Cedera**: peluang per laga per atlet = 0,2% + 3% × (kelelahan/100)². 15% cedera berat (6–20 minggu, PA turun 1–4), sisanya ringan (1–3 minggu). Atlet menyelesaikan turnamen yang sedang dijalani; absen mulai minggu berikutnya. Atlet cedera dikecualikan dari pelanggaran Top Committed.
+- **Cedera**: peluang per laga per atlet = 0,2% + 3% × (kelelahan/100)². 15% cedera berat (6–20 minggu, PA turun 1–4), sisanya ringan (1–3 minggu). Diundi sebelum tiap laga (lihat "Jadwal harian"): atlet mundur di tengah laga, walkover di sisa turnamen, absen mulai minggu berikutnya. Atlet cedera dikecualikan dari pelanggaran Top Committed.
 - **Target federasi**: gelar (tier S100 ke atas + Kejuaraan Dunia/Olimpiade/WTF, semua nomor) = gelar musim lalu (musim pertama: 1,5 × jumlah entri top 10); top 10 = pertahankan jumlah saat awal musim. Target beregu: lihat Fase 9.
 - **Rapor**: rata-rata pencapaian (maks 150% per target) → A ≥ 100%, B ≥ 80%, C ≥ 60%, D ≥ 40%, E; ≥ 3 pelanggaran turun satu nilai. Reputasi awal 50: A +10, B +5, C 0, D −5, E −10; tiap pelanggaran Top Committed −3.
 - **Perkiraan potensi** (bintang ½–5): galat tetap per atlet, simpangan menyusut dari ±15 (usia 15, belum bertanding) ke ±2 poin PA (usia & laga bertambah).
@@ -301,3 +301,11 @@ Setiap asumsi juga ditandai `// ASUMSI:` di kode. Semua nilai bisa dikoreksi lew
 - **Nominasi** 3 minggu sebelum World Tour Finals (akhir minggu), 4 per kategori; **pemenang** di akhir minggu WTF, selalu salah satu nominasi. Musim tanpa WTF: tanpa penghargaan.
 - ASUMSI skor = poin ranking senior yang diraih tahun itu + bonus gelar (OG/WC +20.000, WTF +10.000, S1000 +5.000, S750 +2.500); pemenang = skor tertinggi setelah ±5% acak. Murni prestise (tanpa efek morale/reputasi).
 - Tampil di Berita (nominasi sampai pemenang diumumkan, lalu pemenang sampai akhir musim; atlet negara sendiri ditebalkan), profil atlet/pasangan (penghargaan & nominasi), dan Dunia → Rekor (pemenang per tahun). Save lama: mulai musim berjalan bila minggu nominasi belum lewat.
+
+## Jadwal harian (2026-10-30, `src/engine/schedule.ts`)
+- **Jumlah hari** (`Tier.days`): World Tour 6 hari (Selasa–Minggu; Super 1000 2027: 11 hari), Grade 3 & junior kontinental 5, Kejuaraan Dunia 7, Olimpiade 9, Finals 5.
+- **Babak → hari**: QF, SF & F masing-masing satu hari di akhir; babak sebelumnya (dan matchday grup) mengisi hari sebelumnya. Hari lebih → babak dibagi dua hari (separuh bagan / separuh grup per hari, mis. R32 Selasa–Rabu); hari kurang → beberapa babak sehari (Q1 & Q2; Grade 3: R32 & R16).
+- **Order of play**: ±9 laga per lapangan sehari (1–8 lapangan); laga diselang-seling antar nomor; unggulan teratas & atlet tuan rumah di lapangan 1; dua laga sehari seorang atlet berjarak ≥ 1 gelombang (GCR 11.3: istirahat ≥ 60 menit). Tanpa jam (keputusan manajer).
+- **Beban antar laga**: tiap menit laga meninggalkan 0,25 energi yang belum pulih (laga 47 menit ≈ −12); tiap malam tersisa 40% (sifat Pulih cepat: 40%^1,5), laga kedua di hari yang sama 85%. Dikurangkan dari energi awal laga.
+- **Cedera per laga**: peluang = rumus cedera dengan kelelahan + 5 × 1,7 per laga turnamen ini (termasuk laga itu); kalibrasi: jumlah cedera & rata-rata kelelahan semusim ±sama dengan undian lama setelah turnamen. Atlet cedera mundur di reli acak 1–120 (laga yang lebih pendek selesai biasa), lalu walkover di semua sisa laganya (semua nomor). ±0,9% laga berakhir retired, ±0,6% walkover.
+- **Simulasi otomatis**: nomor dimainkan berurutan (MS…XD), jadi atlet dua nomor hanya terbebani laga nomor yang sudah disimulasikan; turnamen yang dimainkan manajer berjalan tepat urut hari. Beregu: satu babak = satu hari.

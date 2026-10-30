@@ -15,9 +15,10 @@ const PRIZE_SPLIT = {
 };
 const NO_PRIZE = { singles: [0, 0, 0, 0, 0, 0, 0, 0, 0], doubles: [0, 0, 0, 0, 0, 0, 0, 0, 0] };
 
+// `days` (ASUMSI, pola jadwal BWF): World Tour 6 hari (Selasa–Minggu), Grade 3 & junior kontinental 5, Kejuaraan Dunia 7, Olimpiade 9, Finals 5.
 export const TIERS_2026: Tier[] = [
   {
-    id: 'OG', name: 'Olimpiade', grade: 1,
+    id: 'OG', name: 'Olimpiade', grade: 1, days: 9,
     points: [14500, 12500, 10500, 8200, 6000, 3700, 1450, 750, 300],
     prizeUsd: 0, prizeSplit: NO_PRIZE,
     // Peserta dari ranking Olimpiade & kuota (lihat olympics.ts): tunggal 38, ganda 16 pasangan.
@@ -31,7 +32,7 @@ export const TIERS_2026: Tier[] = [
     qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
   },
   {
-    id: 'WC', name: 'Kejuaraan Dunia', grade: 1,
+    id: 'WC', name: 'Kejuaraan Dunia', grade: 1, days: 7,
     points: [14500, 12500, 10500, 8200, 6000, 3700, 1450, 750, 300],
     prizeUsd: 0, prizeSplit: NO_PRIZE,
     drawSize: draws(64, 48),
@@ -39,7 +40,7 @@ export const TIERS_2026: Tier[] = [
     qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
   },
   {
-    id: 'WTF', name: 'World Tour Finals', grade: 1,
+    id: 'WTF', name: 'World Tour Finals', grade: 1, days: 5,
     points: [14000, 12000, 10000, 7800, 5700, 3500, 1400, 720, 280],
     prizeUsd: 2500000, prizeSplit: PRIZE_SPLIT, // ASUMSI: pembagian hadiah WTF memakai pola umum
     drawSize: draws(8),
@@ -47,7 +48,7 @@ export const TIERS_2026: Tier[] = [
     qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
   },
   {
-    id: 'S1000', name: 'Super 1000', grade: 2,
+    id: 'S1000', name: 'Super 1000', grade: 2, days: 6,
     points: [12000, 10200, 8400, 6600, 4800, 3000, 1200, 600, 240],
     bonusPoints: [
       { minExtraPrizeUsd: 500000, points: [13500, 11500, 9500, 7400, 5400, 3300, 1350, 670, 270] },
@@ -57,44 +58,44 @@ export const TIERS_2026: Tier[] = [
     drawSize: draws(32), qualifyingPerSlot: 0, wildcards: 2, wildcardTop: 32, zeroPointsForR1WildcardLoss: true, noCountrySeparation: true, // World Tour 6.4.2 & 6.4.4 (Level 2)
   },
   {
-    id: 'S750', name: 'Super 750', grade: 2,
+    id: 'S750', name: 'Super 750', grade: 2, days: 6,
     points: [11000, 9350, 7700, 6050, 4320, 2660, 1060, 520, 210],
     prizeUsd: 950000, prizeSplit: PRIZE_SPLIT,
     drawSize: draws(32), qualifyingPerSlot: 0, wildcards: 2, wildcardTop: 32, zeroPointsForR1WildcardLoss: true, noCountrySeparation: true, // Level 3
   },
   {
-    id: 'S500', name: 'Super 500', grade: 2,
+    id: 'S500', name: 'Super 500', grade: 2, days: 6,
     points: [9200, 7800, 6420, 5040, 3600, 2220, 880, 430, 170],
     prizeUsd: 475000, prizeSplit: PRIZE_SPLIT,
     drawSize: draws(32), qualifyingPerSlot: 4, wildcards: 2, wildcardTop: 28, zeroPointsForR1WildcardLoss: true, noCountrySeparation: true, // Level 4
   },
   {
-    id: 'S300', name: 'Super 300', grade: 2,
+    id: 'S300', name: 'Super 300', grade: 2, days: 6,
     points: [7000, 5950, 4900, 3850, 2750, 1670, 660, 320, 130],
     prizeUsd: 250000, prizeSplit: PRIZE_SPLIT,
     drawSize: draws(32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: true, wildcardOnlyIfHostAbsent: true, noCountrySeparation: true, // GCR 7.11 (Level 5); World Tour 6.4.4
   },
   {
-    id: 'S100', name: 'Super 100', grade: 2,
+    id: 'S100', name: 'Super 100', grade: 2, days: 6,
     points: [5500, 4680, 3850, 3030, 2110, 1290, 510, 240, 100],
     prizeUsd: 110000, prizeSplit: PRIZE_SPLIT,
     drawSize: draws(48, 32), qualifierSlots: { MS: 8 }, qualifyingPerSlot: 4, // MS 40 langsung + 8 qualifier
     wildcards: 1, zeroPointsForR1WildcardLoss: true, wildcardOnlyIfHostAbsent: true, noCountrySeparation: true, // GCR 7.11 (Level 6); World Tour 6.4.4
   },
   {
-    id: 'IC', name: 'International Challenge', grade: 3,
+    id: 'IC', name: 'International Challenge', grade: 3, days: 5,
     points: [4000, 3400, 2800, 2200, 1520, 920, 360, 170, 70],
     prizeUsd: 20000, prizeSplit: PRIZE_SPLIT, // ASUMSI: nilai hadiah tipikal
     drawSize: draws(64, 32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: true, wildcardOnlyIfHostAbsent: true, // GCR 7.11
   },
   {
-    id: 'IS', name: 'International Series', grade: 3,
+    id: 'IS', name: 'International Series', grade: 3, days: 5,
     points: [2500, 2130, 1750, 1370, 920, 550, 210, 100, 40],
     prizeUsd: 8000, prizeSplit: PRIZE_SPLIT,
     drawSize: draws(32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: true, wildcardOnlyIfHostAbsent: true, // GCR 7.11
   },
   {
-    id: 'FS', name: 'Future Series', grade: 3,
+    id: 'FS', name: 'Future Series', grade: 3, days: 5,
     points: [1700, 1420, 1170, 920, 600, 350, 130, 60, 20],
     prizeUsd: 5000, prizeSplit: PRIZE_SPLIT,
     drawSize: draws(32), qualifyingPerSlot: 4, wildcards: 1, zeroPointsForR1WildcardLoss: true, wildcardOnlyIfHostAbsent: true, // GCR 7.11
@@ -104,28 +105,28 @@ export const TIERS_2026: Tier[] = [
   // Afrika & Oseania = International Challenge. Tanpa kualifikasi & wildcard; peserta hanya negara konfederasinya
   // (`confederation` di kalender). ASUMSI: maks 4 per negara per nomor; hadiah hanya Asia (US$550.000).
   {
-    id: 'CCA', name: 'Kejuaraan Asia', grade: 2,
+    id: 'CCA', name: 'Kejuaraan Asia', grade: 2, days: 6,
     points: [12000, 10200, 8400, 6600, 4800, 3000, 1200, 600, 240],
     prizeUsd: 550000, prizeSplit: PRIZE_SPLIT,
     drawSize: draws(32), countryQuota: { base: 4, max: 4, topRank: 0 },
     qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
   },
   {
-    id: 'CCE', name: 'Kejuaraan Eropa', grade: 2,
+    id: 'CCE', name: 'Kejuaraan Eropa', grade: 2, days: 6,
     points: [9200, 7800, 6420, 5040, 3600, 2220, 880, 430, 170],
     prizeUsd: 0, prizeSplit: NO_PRIZE,
     drawSize: draws(48, 32), countryQuota: { base: 4, max: 4, topRank: 0 },
     qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
   },
   {
-    id: 'CCP', name: 'Kejuaraan Pan Am', grade: 2,
+    id: 'CCP', name: 'Kejuaraan Pan Am', grade: 2, days: 6,
     points: [7000, 5950, 4900, 3850, 2750, 1670, 660, 320, 130],
     prizeUsd: 0, prizeSplit: NO_PRIZE,
     drawSize: draws(32), countryQuota: { base: 4, max: 4, topRank: 0 },
     qualifyingPerSlot: 0, wildcards: 0, zeroPointsForR1WildcardLoss: false,
   },
   {
-    id: 'CCI', name: 'Kejuaraan Kontinental (Afrika & Oseania)', grade: 2,
+    id: 'CCI', name: 'Kejuaraan Kontinental (Afrika & Oseania)', grade: 2, days: 6,
     points: [4000, 3400, 2800, 2200, 1520, 920, 360, 170, 70],
     prizeUsd: 0, prizeSplit: NO_PRIZE,
     drawSize: draws(32), countryQuota: { base: 4, max: 4, topRank: 0 },
@@ -134,7 +135,7 @@ export const TIERS_2026: Tier[] = [
   // Multi-event (Asian Games, SEA Games, Pan Am, European, African & Commonwealth Games): tanpa poin ranking BWF
   // & tanpa hadiah; peserta hanya negara anggota (`countries`). ASUMSI: 32 tunggal / 16 ganda, maks 2 per negara.
   {
-    id: 'MSG', name: 'Multi-event', grade: 1,
+    id: 'MSG', name: 'Multi-event', grade: 1, days: 6,
     points: [0, 0, 0, 0, 0, 0, 0, 0, 0],
     prizeUsd: 0, prizeSplit: NO_PRIZE,
     drawSize: draws(32, 16),
@@ -143,7 +144,7 @@ export const TIERS_2026: Tier[] = [
   },
   // ASUMSI: turnamen junior U19 — tanpa hadiah & tanpa poin senior; poin ranking junior disederhanakan.
   {
-    id: 'WJC', name: 'Kejuaraan Dunia Junior', grade: 2,
+    id: 'WJC', name: 'Kejuaraan Dunia Junior', grade: 2, days: 6,
     points: [10000, 8500, 7000, 5500, 4000, 2500, 1000, 500, 0],
     prizeUsd: 0, prizeSplit: NO_PRIZE,
     drawSize: { MS: 128, WS: 128, MD: 64, WD: 64, XD: 64 },
@@ -152,7 +153,7 @@ export const TIERS_2026: Tier[] = [
     junior: { quota: { singles: 4, doubles: 3 } },
   },
   {
-    id: 'JC', name: 'Kejuaraan Junior Kontinental', grade: 3,
+    id: 'JC', name: 'Kejuaraan Junior Kontinental', grade: 3, days: 5,
     points: [7000, 5950, 4900, 3850, 2800, 1750, 700, 350, 0],
     prizeUsd: 0, prizeSplit: NO_PRIZE,
     drawSize: { MS: 64, WS: 64, MD: 32, WD: 32, XD: 32 },
@@ -161,7 +162,7 @@ export const TIERS_2026: Tier[] = [
   },
   {
     // ASUMSI: kejuaraan junior kontinental dengan persaingan lebih ringan (Pan Am, Afrika, Oseania) → poin lebih kecil.
-    id: 'JC2', name: 'Kejuaraan Junior Kontinental (kelas 2)', grade: 3,
+    id: 'JC2', name: 'Kejuaraan Junior Kontinental (kelas 2)', grade: 3, days: 5,
     points: [4000, 3400, 2800, 2200, 1600, 1000, 400, 200, 0],
     prizeUsd: 0, prizeSplit: NO_PRIZE,
     drawSize: { MS: 64, WS: 64, MD: 32, WD: 32, XD: 32 },
@@ -172,7 +173,7 @@ export const TIERS_2026: Tier[] = [
   // ASUMSI: turnamen junior internasional (gaya BWF Junior International Grand Prix / Challenge / Series). Poin di bawah
   // kejuaraan kontinental; Challenge & Series sebagian besar diikuti atlet dari benua tuan rumah (`local`).
   {
-    id: 'JGP', name: 'Junior International Grand Prix', grade: 3,
+    id: 'JGP', name: 'Junior International Grand Prix', grade: 3, days: 5,
     points: [4500, 3825, 3150, 2475, 1800, 1125, 450, 225, 0],
     prizeUsd: 0, prizeSplit: NO_PRIZE,
     drawSize: { MS: 64, WS: 64, MD: 32, WD: 32, XD: 32 },
@@ -199,7 +200,7 @@ export const TIERS_2026: Tier[] = [
     // Kejuaraan U17 kontinental (Badminton Asia U17 Junior Championships, European U17 Championships): usia ≤ 16 di tahun itu
     // (Asia 2026: lahir 2010 atau sesudahnya). ASUMSI: tanpa poin ranking junior BWF (ranking junior hanya U19), kuota & bagan
     // seperti kejuaraan junior kontinental; nomor ganda hanya pasangan yang keduanya ≤ 16.
-    id: 'JU17', name: 'Kejuaraan U17 Kontinental', grade: 3,
+    id: 'JU17', name: 'Kejuaraan U17 Kontinental', grade: 3, days: 5,
     points: [0, 0, 0, 0, 0, 0, 0, 0, 0],
     prizeUsd: 0, prizeSplit: NO_PRIZE,
     drawSize: { MS: 64, WS: 64, MD: 32, WD: 32, XD: 32 },
@@ -210,7 +211,7 @@ export const TIERS_2026: Tier[] = [
     // Youth Olympic Games (Regulations for Badminton Competition Dakar 2026): tunggal saja, 32 peserta, usia ≤ 17,
     // 8 unggulan dari ranking junior; 8 grup × 4, juara grup ke perempat final. ASUMSI: satu atlet per negara per nomor
     // (kuota NOC), tanpa poin ranking; prioritas negara Afrika tidak dimodelkan.
-    id: 'YOG', name: 'Olimpiade Remaja', grade: 2,
+    id: 'YOG', name: 'Olimpiade Remaja', grade: 2, days: 6,
     points: [0, 0, 0, 0, 0, 0, 0, 0, 0],
     prizeUsd: 0, prizeSplit: NO_PRIZE,
     drawSize: { MS: 32, WS: 32, MD: 0, WD: 0, XD: 0 },
@@ -486,7 +487,8 @@ export const BWF_2026: Ruleset = {
   match: {
     pointsToWin: 21, cap: 30, gamesToWin: 2, intervalAt: 11,
     duelScale: 40, overallWeight: 0.6,
-    energy: { costPerRally: 1.3, staminaRelief: 0.8, intervalRecovery: 6, gameRecovery: 15, effect: 0.15, fatigueToStart: 0.4 },
+    energy: { costPerRally: 1.3, staminaRelief: 0.8, intervalRecovery: 6, gameRecovery: 15, effect: 0.15, fatigueToStart: 0.4,
+      tour: { perMinute: 0.25, night: 0.4, sameDay: 0.85 } }, // ASUMSI: laga 43 menit → −11 energi, sisa ±4 esok hari, ±9 di laga kedua hari itu
     warmup: { points: 8, maxPenalty: 6 },
     pressure: { fromScore: 18, weight: 0.5 },
     chemistryWeight: 0.15,

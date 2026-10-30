@@ -2,7 +2,10 @@ import { makeDraw, type DrawResult } from './draw';
 import { acceptEntries, qualifyingSections, type Candidate, type EntryList } from './entry';
 import { groupDraw, groupEliminatedRound, knockoutFromGroups, playGroup, type GroupStageResult } from './groups';
 import { each, fillQualifiers, playKnockout, qualRoundName, slotField, type KnockoutResult, type PlayFn } from './knockout';
-import { matchConfigFor, simulateMatch, type MatchResult, type SideInput } from './match';
+import { roundOrder } from './gate';
+import { emptyStats, matchConfigFor, simulateMatch, type MatchResult, type SideInput } from './match';
+import type { DayPlan } from './schedule';
+import { hasTrait, QUICK_RECOVERY } from './traits';
 import { normal, type Rng } from './rng';
 import type { Discipline, DrawSlot, DrawStep, EntrantId, Match, MatchConfig, Pair, Player, Ruleset, Tier, TournamentDef } from './types';
 import type { MatchRound } from './knockout';
@@ -102,7 +105,7 @@ export async function runEvent(opts: {
     const rec: EventRecord = { tournamentId: tournament.id, year: opts.year, discipline, entry, qualRounds: [], steps: drawn.steps, slots: [], rounds: [], groups: { groups, standings: [], steps: drawn.steps } };
     opts.onRecord?.(rec);
     await opts.onDraw?.({ tournamentId: tournament.id, discipline, entrants: all.map((e) => e.id), steps: drawn.steps, groups: gs.groups });
-    const standings = await each(parallel, groups, async (g, i) => (rec.groups!.standings[i] = await playGroup(g, opts.play, parallel)));
+    const standings = await each(parallel, groups, async (g, i) => (rec.groups!.standings[i] = await playGroup(g, (a, b, r, at) => opts.play(a, b, r, { ...at!, i, n: groups.length }), parallel)));
     const field = knockoutFromGroups(standings, gs.advance, rng);
     const slots = field.map((id, i) => ({ pos: i + 1, entrant: id ?? undefined, bye: !id }));
     rec.slots = slots;
@@ -179,7 +182,22 @@ export function nextDayForm(hot: HotForm, id: EntrantId, cfg: MatchConfig, rng: 
   return v + Math.min(winCap, (h?.wins ?? 0) * winBonus);
 }
 
-/** PlayFn berbasis mesin pertandingan; setiap laga dicatat ke `matches`. `hot`: kondisi terbawa antar laga (on fire). */
+/**
+ * Beban turnamen bersama semua nomor satu turnamen: laga tiap atlet (hari & sisa energi yang ditinggalkan), atlet yang cedera,
+ * dan peserta yang ditarik manajer dari satu nomor (`nomor:peserta`).
+ */
+export interface TourState { log: Map<string, { day: number; cost: number }[]>; out: Set<string>; withdrawn: Set<string> }
+export const newTour = (): TourState => ({ log: new Map(), out: new Set(), withdrawn: new Set() });
+/** Bawaan `MatchConfig.energy.tour` (save lama). */
+export const TOUR_LOAD = { perMinute: 0.25, night: 0.4, sameDay: 0.85 };
+
+/**
+ * PlayFn berbasis mesin pertandingan; setiap laga dicatat ke `matches`. `hot`: kondisi terbawa antar laga (on fire).
+ * Jadwal harian: `plan` menentukan hari laga; `tour` membawa beban antar hari (energi awal lebih rendah setelah laga panjang,
+ * apalagi laga kedua di hari yang sama) & atlet cedera (walkover di sisa laganya). `injury`: undian cedera sebelum laga.
+ * ponytail: simulasi otomatis memainkan nomor berurutan (MS…XD), jadi atlet dua nomor hanya terbebani laga nomor yang
+ * sudah disimulasikan (tepat untuk nomor kedua, kurang untuk yang pertama); turnamen yang dimainkan manajer tepat urut hari.
+ */
 export function simPlay(opts: {
   players: Map<string, Player>; pairs: Map<string, Pair>; cfg: MatchConfig; rng: Rng;
   tournamentId: string; year: number; discipline: Discipline; matches: Match[]; live?: LiveHook; hot?: HotForm;
@@ -187,13 +205,31 @@ export function simPlay(opts: {
   big?: boolean;
   /** Instant Review (Hawk-Eye) dipakai di semua laga turnamen ini. */
   review?: boolean;
+  plan?: DayPlan;
+  tour?: TourState;
+  /** Undian cedera atlet sebelum laga (`played` = laganya di turnamen ini sejauh ini); true = cedera (sudah dicatat). */
+  injury?: (p: Player, played: number) => boolean;
+  /** Laga siaran (Hawk-Eye hanya di laga siaran); kosong = semua laga. */
+  tv?: (sides: [EntrantId, EntrantId], round: MatchRound) => boolean;
 }): PlayFn {
-  const side = (id: EntrantId, big: boolean): SideInput => {
+  const cfg = matchConfigFor(opts.cfg, opts.year);
+  const load = cfg.energy.tour ?? TOUR_LOAD;
+  const idsOf = (id: EntrantId) => opts.pairs.get(id)?.playerIds ?? [id];
+  const log = (id: string) => opts.tour?.log.get(id) ?? [];
+  // Energi yang belum pulih pada hari `day`: laga hari-hari sebelumnya meluruh tiap malam (pulih cepat: lebih banyak).
+  const debt = (p: Player, day: number) => log(p.id).reduce((t, x) => t + (x.day < day
+    ? x.cost * (hasTrait(p, 'quickRecovery') ? load.night ** QUICK_RECOVERY : load.night) ** (day - x.day)
+    : x.day === day ? x.cost * load.sameDay : 0), 0);
+  const side = (id: EntrantId, big: boolean, day: number): SideInput => {
     const pair = opts.pairs.get(id);
-    const day = opts.hot && nextDayForm(opts.hot, id, opts.cfg, opts.rng);
-    const players = pair ? pair.playerIds.map((p) => opts.players.get(p)!) : [opts.players.get(id)!];
+    const form = opts.hot && nextDayForm(opts.hot, id, opts.cfg, opts.rng);
+    const players = idsOf(id).map((p) => opts.players.get(p)!);
     const age = players.reduce((t, p) => t + opts.year - p.birth.year, 0) / players.length;
-    return pair ? { players, chemistry: pair.chemistry, day, big, age } : { players, day, big, age };
+    const extra = opts.tour && {
+      load: players.reduce((t, p) => t + debt(p, day), 0) / players.length,
+      today: Math.max(...players.map((p) => log(p.id).filter((x) => x.day === day).length)),
+    };
+    return { players, ...(pair && { chemistry: pair.chemistry }), day: form, big, age, ...extra };
   };
   const record = (a: EntrantId, b: EntrantId, round: MatchRound, r: MatchResult) => {
     const won = opts.hot?.[r.winner === 0 ? a : b];
@@ -204,11 +240,32 @@ export function simPlay(opts: {
     });
     return r;
   };
-  return (a, b, round) => {
+  return (a, b, round, at) => {
+    const ids = [idsOf(a), idsOf(b)];
+    // Atlet cedera di turnamen ini: walkover di sisa laganya (semua nomor); peserta yang ditarik: walkover di nomor ini.
+    const gone = opts.tour ? [a, b].findIndex((id, k) => opts.tour!.withdrawn.has(`${opts.discipline}:${id}`) || ids[k].some((p) => opts.tour!.out.has(p))) : -1;
+    if (gone >= 0) return record(a, b, round, { winner: (1 - gone) as 0 | 1, scores: [], stats: emptyStats(), walkover: true });
+    // Tanpa jadwal (beregu): satu babak = satu hari, matchday grup berurutan.
+    const day = opts.plan?.day(opts.discipline, round, at) ?? (round === 'G' ? 50 + (at?.md ?? 0) : roundOrder(round));
     const big = !!opts.big || round === 'SF' || round === 'F';
-    const sides: [SideInput, SideInput] = [side(a, big), side(b, big)];
-    const live = opts.live?.({ sides, entrants: [a, b], round, tournamentId: opts.tournamentId, discipline: opts.discipline, review: opts.review });
-    if (live) return live.then((r) => record(a, b, round, r));
-    return record(a, b, round, simulateMatch(sides, matchConfigFor(opts.cfg, opts.year), opts.rng, undefined, opts.review));
+    const sides: [SideInput, SideInput] = [side(a, big, day), side(b, big, day)];
+    // Cedera: sisi yang cedera mundur di tengah laga (reli acak; laga yang lebih pendek selesai biasa), lalu walkover di sisa laganya.
+    const hurt: string[] = [];
+    ids.forEach((ps, k) => ps.forEach((p) => {
+      if (opts.injury?.(opts.players.get(p)!, log(p).length)) {
+        hurt.push(p);
+        sides[k].retireAt ??= 1 + Math.floor(opts.rng() * 120);
+      }
+    }));
+    const done = (r: MatchResult) => {
+      const cost = load.perMinute * r.stats.sec / 60;
+      if (opts.tour) for (const p of ids.flat()) opts.tour.log.set(p, [...log(p), { day, cost }]);
+      for (const p of hurt) opts.tour?.out.add(p);
+      return record(a, b, round, r);
+    };
+    const review = opts.review && (opts.tv?.([a, b], round) ?? true);
+    const live = opts.live?.({ sides, entrants: [a, b], round, tournamentId: opts.tournamentId, discipline: opts.discipline, review });
+    if (live) return live.then(done);
+    return done(simulateMatch(sides, cfg, opts.rng, undefined, review));
   };
 }

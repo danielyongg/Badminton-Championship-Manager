@@ -288,3 +288,17 @@ describe('Instant Review (Hawk-Eye)', () => {
     expect(asked).toBeGreaterThan(0);
   });
 });
+
+describe('jadwal harian: beban & cedera', () => {
+  it('retireAt: sisi itu mundur di tengah laga, skor game berjalan tercatat', () => {
+    const r = simulateMatch([{ ...side(player(flat(80))), retireAt: 30 }, side(player(flat(60)))], cfg, makeRng(4));
+    expect(r.retired).toBe(true);
+    expect(r.winner).toBe(1);
+    expect(r.scores.flat().reduce((s, x) => s + x, 0)).toBe(30);
+  });
+
+  it('load: energi awal berkurang', () => {
+    const st = createMatch([{ ...side(player(flat(70))), load: 12 }, side(player(flat(70)))], cfg, makeRng(1));
+    expect(st.sides[0].energy).toBeCloseTo(st.sides[1].energy - 12);
+  });
+});

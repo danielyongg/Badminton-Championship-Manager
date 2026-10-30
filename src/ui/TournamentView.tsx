@@ -2,7 +2,7 @@ import { hostCityId, liveTeamResults, weekOf } from '../engine/season';
 import { useState, type ReactNode } from 'react';
 import { DISCIPLINES, type Discipline } from '../engine/types';
 import { dataName, numLocale, t } from '../i18n';
-import { BracketView, DrawResultView, DrawStepsView, EntryView, GroupView, QualView, SeedsView, Who } from './EventViews';
+import { BracketView, endTag, DrawResultView, DrawStepsView, EntryView, GroupView, QualView, SeedsView, Who } from './EventViews';
 import { entrantLabel, eventName, useGame, TierBadge } from './game';
 import { LiveDraw } from './LiveDraw';
 import { formatName, TeamResults, winnerOf } from './Team';
@@ -109,7 +109,7 @@ export function TournamentView({ id, year: startYear, onOpenPlayer, onBack }: { 
                 <div key={round}>
                   <h4>{round}</h4>
                   <ul>{matches.filter((m) => m.round === round).map((m) => (
-                    <li key={m.id}>{label(m.sides[0])} {m.winner === 0 ? '✓' : ''} – {label(m.sides[1])} {m.winner === 1 ? '✓' : ''} · {m.scores.map((x) => x.join('-')).join(', ')}</li>
+                    <li key={m.id}>{label(m.sides[0])} {m.winner === 0 ? '✓' : ''} – {label(m.sides[1])} {m.winner === 1 ? '✓' : ''} · {m.scores.map((x) => x.join('-')).join(', ')}{endTag(m)}</li>
                   ))}</ul>
                 </div>
               ))}
@@ -233,7 +233,7 @@ function Winners({ id, year, who }: { id: string; year: number; who: WhoFns }) {
           <td><span className="chip">{d}</span></td>
           <td><b><Who id={winner} {...who} /></b></td>
           <td>{ru ? <Who id={ru} {...who} /> : '—'}</td>
-          <td className="num">{f && <MatchLink m={f} name={who.name}>{f.scores.map((g) => `${g[i]}-${g[1 - i]}`).join(', ')}</MatchLink>}</td>
+          <td className="num">{f && <MatchLink m={f} name={who.name}>{f.scores.map((g) => `${g[i]}-${g[1 - i]}`).join(', ')}{endTag(f)}</MatchLink>}</td>
         </tr>
       ))}</tbody>
     </table>

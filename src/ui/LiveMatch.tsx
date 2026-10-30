@@ -146,6 +146,12 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, review, 
                   <span className="bar"><span style={{ width: `${e}%`, background: e >= 70 ? 'var(--accent)' : e >= 40 ? 'var(--gold)' : 'var(--danger)' }} /></span>
                   <b>{e}</b> <small>{t(e >= 70 ? 'energyFresh' : e >= 40 ? 'energyTired' : 'energyLow')}</small>
                 </div>
+                {/* Jadwal harian: sisa lelah dari laga sebelumnya di turnamen ini & laga kedua hari ini. */}
+                {((sides[s].load ?? 0) >= 1 || !!sides[s].today) && (
+                  <small className="muted-text" title={t('tourLoadHint')}>
+                    {!!sides[s].today && <>⚡ {t('nthToday', { n: sides[s].today! + 1 })} · </>}{t('tourLoad', { n: Math.round(sides[s].load ?? 0) })}
+                  </small>
+                )}
                 {sides[s].players.map((p) => (
                   <div key={p.id} className="cond-player">
                     <span className="cond-name">{p.name}</span>
@@ -234,7 +240,7 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, review, 
         {/* Hasil & Lanjut tepat di bawah papan skor: langsung terjangkau di HP tanpa menggulir. */}
         {done && (
           <div className="livecontrols">
-            <b className="main">{names[m.winner!]} {t('wins')}!</b>
+            <b className="main">{names[m.winner!]} {t('wins')}!{m.retired !== undefined && <small className="muted-text"> 🚑 {t('retiredInjury', { name: names[m.retired] })}</small>}</b>
             <button className="primary main" onClick={() => onDone(matchResult(m))}>{t('continue')}</button>
             {onSkipRound && <div className="secondary"><button onClick={() => { onDone(matchResult(m)); onSkipRound(); }} title={t('simRound')}>{t('simRoundShort')}</button></div>}
           </div>
@@ -252,6 +258,7 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, review, 
                 {/* Hawk-Eye: bola sebenarnya (keputusan hakim garis dibalik bila salah); warna dari sudut pandang atlet sendiri. */}
                 {ev.line?.challenged && <small> · 🎥 {t('challengeBy', { name: names[ev.line.by] })}: <b className={(ev.line.by === mySide) === ev.line.wrong ? 'pos' : 'neg'}>
                   {t((ev.line.call === 'in') !== ev.line.wrong ? 'callIn' : 'callOut')}!</b> {t(ev.line.wrong ? 'challengeWon' : 'challengeLost')}</small>}
+                {ev.retired !== undefined && <small> · 🚑 {t('retiredInjury', { name: names[ev.retired] })}</small>}
                 {ev.interval ? ` · ${t('interval')}` : ''}{ev.gameOver ? ` · ${t('gameOver')}` : ''}</li>
             ))}
           </ol>

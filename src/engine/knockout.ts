@@ -1,12 +1,13 @@
 import { shuffle, type Rng } from './rng';
+import type { MatchAt } from './schedule';
 import type { DrawSlot, EntrantId, Match, Round } from './types';
 
 // Menjalankan bagan gugur. `play` memutuskan pemenang (mesin pertandingan / Live) → mesin ini tidak tahu soal atribut.
 
 export type MatchRound = Match['round'];
-export type PlayResult = { winner: 0 | 1; scores: [number, number][] };
-/** Bisa sinkron (Auto) atau Promise (Live: menunggu manajer menyelesaikan laga). */
-export type PlayFn = (a: EntrantId, b: EntrantId, round: MatchRound) => PlayResult | Promise<PlayResult>;
+export type PlayResult = { winner: 0 | 1; scores: [number, number][]; walkover?: boolean; retired?: boolean };
+/** Bisa sinkron (Auto) atau Promise (Live: menunggu manajer menyelesaikan laga). `at`: posisi laga di babaknya (jadwal harian). */
+export type PlayFn = (a: EntrantId, b: EntrantId, round: MatchRound, at?: MatchAt) => PlayResult | Promise<PlayResult>;
 
 /** Nama babak menurut jumlah peserta di babak itu: 2 → F, 4 → SF, 8 → QF, lainnya R16/R32/... */
 export const mainRoundName = (field: number, _index: number): MatchRound =>
@@ -36,7 +37,7 @@ export async function playKnockout(field: (EntrantId | null)[], play: PlayFn, na
       const a = cur[k], b = cur[k + 1], at = next.length;
       if (a && b) {
         const settle = (r: PlayResult) => { reached.set(r.winner === 0 ? b : a, name); next[at] = r.winner === 0 ? a : b; };
-        const r = play(a, b, name);
+        const r = play(a, b, name, { i: k / 2, n: cur.length / 2 });
         next.push(null);
         if (parallel) pending.push(Promise.resolve(r).then(settle)); else settle(await r);
       } else next.push(a ?? b); // bye / walkover: maju tanpa bertanding
