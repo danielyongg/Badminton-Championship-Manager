@@ -499,7 +499,7 @@ function KnockoutBracket({ r, name, tieBox }: { r: TeamResult; name: (c: string)
 }
 
 /** Pop-up satu pertandingan beregu: tiap partai (nomor, atlet, skor → detail laga). */
-function TieDetail({ r, tie, name, onClose }: { r: TeamResult; tie: TeamTie; name: (c: string) => string; onClose: () => void }) {
+export function TieDetail({ r, tie, name, onClose }: { r: TeamResult; tie: TeamTie; name: (c: string) => string; onClose: () => void }) {
   const { game } = useGame();
   const { state } = game;
   useEffect(() => {
