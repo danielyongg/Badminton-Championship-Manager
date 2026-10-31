@@ -4,7 +4,8 @@ import type { Candidate } from '../engine/entry';
 import type { Discipline, DrawStep } from '../engine/types';
 import { t } from '../i18n';
 import { RoundColumns, stepText } from './EventViews';
-import { Flag } from './Flag';
+import { Flag } from './Flag';import { PlayerName } from './nav';
+
 
 // Live drawing (gaya Football Manager): mangkuk pot di kiri, bagan / grup di kanan terisi langkah demi langkah.
 
@@ -54,9 +55,9 @@ export function LiveDraw({ title, qualTitle, show, name, mine, onClose, onSkipEv
   const next = steps[idx];
   const bowl = done ? [] : bowlAt(steps, idx);
   const left = done ? 0 : steps.slice(idx).filter((s) => phaseOf(s) === phaseOf(next)).length;
-  const who = (id?: string) => (id ? <span className={mine(id) ? 'mine' : undefined}><Flag id={id} />{name(id)}</span> : null);
+  const who = (id?: string) => (id ? <span className={mine(id) ? 'mine' : undefined}><Flag id={id} /><PlayerName id={id}>{name(id)}</PlayerName></span> : null);
   // Di slot bagan bendera sudah menunjukkan negara: kode "(INA)" dibuang agar nama muat.
-  const slotWho = (id?: string) => (id ? <span className={mine(id) ? 'mine' : undefined}><Flag id={id} />{name(id).replace(/ \([A-Z]{3}\)$/, '')}</span> : null);
+  const slotWho = (id?: string) => (id ? <span className={mine(id) ? 'mine' : undefined}><Flag id={id} /><PlayerName id={id}>{name(id).replace(/ \([A-Z]{3}\)$/, '')}</PlayerName></span> : null);
 
   // Bagan dibagi 4 seksi (kuarter) seperti bagan BWF; tiap posisi satu baris, posisi kosong disamarkan.
   const size = show.size ?? 0;
@@ -88,7 +89,7 @@ export function LiveDraw({ title, qualTitle, show, name, mine, onClose, onSkipEv
   const spotlight = last?.entrant && last.pos !== undefined && last.key !== 'step_swap' ? (
     <div className={`drawspot${mine(last.entrant) ? ' mine' : ''}`} key={idx}>
       {lastSlot?.seed || lastSlot?.tag ? <span className="seedtag big">{lastSlot.seed || lastSlot.tag}</span> : null}
-      <span className="nm"><Flag id={last.entrant} />{name(last.entrant)}</span>
+      <span className="nm"><Flag id={last.entrant} /><PlayerName id={last.entrant}>{name(last.entrant)}</PlayerName></span>
       <span className="to">→ {per < size ? `Q${quarterOf(last.pos)} · ` : ''}{last.pos}</span>
     </div>
   ) : null;

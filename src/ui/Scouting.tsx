@@ -4,7 +4,8 @@ import { autoPick, recruit, recruitSome, SCOUTING_DEADLINE_WEEK, scoutReport, si
 import { ATTRS, type Player } from '../engine/types';
 import { dataName, t, type TextKey } from '../i18n';
 import { saveGame, useGame } from './game';
-import { ScoutFocusSelect } from './Squad';
+import { ScoutFocusSelect } from './Squad';import { PlayerName } from './nav';
+
 
 /** Pencarian bakat junior: daftar ringkas kandidat (centang untuk memilih), panel laporan pemandu untuk kandidat yang diketuk. */
 export function ScoutingCard() {
@@ -94,7 +95,7 @@ function ScoutPanel({ s, p }: { s: Scouting; p: Player }) {
       <p>{s.gems?.includes(p.id) && <span className="tag gold-tag" title={t('scoutGemHint')}>⭐ {t('scoutGem')}</span>} {type && <span className="tag">{t(`scoutType_${type}` as TextKey)}</span>} <span className="chip">{d}</span></p>
       <h4>{t('scoutReportTitle')}</h4>
       <p>“{t('scoutReportText', { a: t(r.strong[0]), b: t(r.strong[1]), w: t(r.weak) })}”</p>
-      {twin && <p><span className="muted-text">{t('scoutLooksLike')}:</span> <b>{twin.name}</b></p>}
+      {twin && <p><span className="muted-text">{t('scoutLooksLike')}:</span> <b><PlayerName id={twin.id}>{twin.name}</PlayerName></b></p>}
       {!!s.notes?.[p.id]?.length && <p>{s.notes[p.id].map((n) => <span key={n} className="tag muted-tag" title={t(`traitHint_${n}` as TextKey)}>{t(`trait_${n}` as TextKey)}?</span>)}</p>}
       <div className="attrlist" role="list">
         {ATTRS.map((a) => (

@@ -7,6 +7,7 @@ import type { DrawStep, Match } from '../engine/types';
 import { t } from '../i18n';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
+import { useNav } from './nav';
 
 // Tampilan satu nomor turnamen (entry, kualifikasi, grup, undian, bagan). Dipakai Wizard (Lab) & halaman turnamen karier.
 
@@ -21,7 +22,9 @@ export interface ViewProps {
 type WhoProps = Pick<ViewProps, 'name' | 'mine' | 'onOpen' | 'eventTitle'>;
 
 /** Nama peserta: disorot bila milik negara sendiri, bisa diklik bila `onOpen` ada. */
-export function Who({ id, name, mine, onOpen, suffix = '' }: WhoProps & { id?: string | null; suffix?: string }) {
+export function Who({ id, name, mine, onOpen: own, suffix = '' }: WhoProps & { id?: string | null; suffix?: string }) {
+  const nav = useNav();
+  const onOpen = own ?? (id && nav.known?.(id) !== false ? nav.player : undefined); // tanpa `onOpen`: navigasi global layar karier
   if (!id) return <span className="muted">{t('bye')}</span>;
   const cls = mine?.(id) ? 'mine' : undefined;
   return onOpen

@@ -13,7 +13,8 @@ import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
 import { FitStatus, MoraleTag } from './Squad';
 import { EntryRow } from './Entries';
-import { absWeek, computeRanking, rankMap } from '../engine/ranking';
+import { absWeek, computeRanking, rankMap } from '../engine/ranking';import { EventName, PlayerName } from './nav';
+
 
 // Beregu: jadwal, line-up negara sendiri, dan hasil Thomas/Uber/Sudirman Cup + kejuaraan kontinental.
 
@@ -44,7 +45,7 @@ export function Team() {
       <section className="card">
         <h3>{t('teamSchedule')} {year}</h3>
         <ul>{ruleset.team.events.filter((e) => isHeld(e, year)).sort((a, b) => weekOf(a, year) - weekOf(b, year)).map((e) => (
-          <li key={e.id}>{t('week')} {weekOf(e, year)}: <b>{eventName(ruleset, e.id, year)}</b> ({(e.formats ?? teamFormatsIn(ruleset, year)).map((f) => formatName(f, e.id)).join(', ')}, {city(hostCityId(e, year))}){weekOf(e, year) < week ? ' ✓' : ''}</li>
+          <li key={e.id}>{t('week')} {weekOf(e, year)}: <b><EventName id={e.id} year={year}>{eventName(ruleset, e.id, year)}</EventName></b> ({(e.formats ?? teamFormatsIn(ruleset, year)).map((f) => formatName(f, e.id)).join(', ')}, {city(hostCityId(e, year))}){weekOf(e, year) < week ? ' ✓' : ''}</li>
         ))}</ul>
         <p className="hint">{t('teamHelp')}</p>
       </section>
@@ -57,7 +58,7 @@ export function Team() {
           <table>
             <tbody>{results.filter((r) => r.confederation).map((r) => (
               <tr key={r.eventId + r.format}>
-                <td>{eventName(ruleset, r.eventId, r.year)}</td><td>{formatName(r.format, r.eventId)}</td>
+                <td><EventName id={r.eventId} year={r.year}>{eventName(ruleset, r.eventId, r.year)}</EventName></td><td>{formatName(r.format, r.eventId)}</td>
                 <td><b><Flag id={winnerOf(r)} />{winnerOf(r)}</b></td><td>{r.teams.length} {t('teams')}</td>
               </tr>
             ))}</tbody>
@@ -540,7 +541,7 @@ export function TieDetail({ r, tie, name, onClose }: { r: TeamResult; tie: TeamT
                 </div>
                 {[top, 1 - top].map((k) => (
                   <div key={k} className={`rrow${m.winner === k ? ' strong' : ' muted-text'}`} style={{ gridTemplateColumns: `minmax(0, 1fr) repeat(${m.scores.length}, 2em)` }}>
-                    <span className="rname"><Flag id={country(m.sides[k])} />{who(m.sides[k])}</span>
+                    <span className="rname"><Flag id={country(m.sides[k])} /><PlayerName id={m.sides[k]}>{who(m.sides[k])}</PlayerName></span>
                     {m.scores.map((g, j) => <span key={j} className="num">{g[k]}</span>)}
                   </div>
                 ))}

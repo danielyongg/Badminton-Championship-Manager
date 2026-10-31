@@ -16,7 +16,8 @@ import { currentAbility, isJuniorAge, isPratama } from '../engine/generator';
 import { injuredFor } from '../engine/development';
 import { formatName, PickRow, SquadPicker } from './Team';
 import { Flag } from './Flag';
-import { plannableEvents, planWeek, type PlanCell } from '../engine/plan';
+import { plannableEvents, planWeek, type PlanCell } from '../engine/plan';import { EventName, PlayerName } from './nav';
+
 
 /** Kalender & entry: daftar jadwal turnamen musim ini + status entry; klik turnamen → halaman turnamen (form entry di bawahnya). */
 export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: number) => void }) {
@@ -177,7 +178,7 @@ function ClosedEntries({ ev }: { ev: TournamentDef }) {
               const st = statusOf(c.id);
               return (
                 <tr key={c.id} className={st === 'withdrawn' ? 'muted-text' : undefined}>
-                  <td><span className="chip">{sector}</span> {entrantLabel(state, c.id).name}
+                  <td><span className="chip">{sector}</span> <PlayerName id={c.id}>{entrantLabel(state, c.id).name}</PlayerName>
                     {/* Status di baris keterangan (bukan kolom sendiri) agar tidak bertabrakan dengan tombol Mundur di HP. */}
                     <div className="entry-meta">
                       <span className={`badge${st === 'main' ? ' good' : ''}`}>{t(st === 'main' ? 'statusDirect' : st === 'qual' ? 'qualifying' : st === 'reserve' ? 'reserves' : 'withdrawnTag')}</span>
@@ -285,7 +286,7 @@ function SeasonPlan() {
           ))}</tr></thead>
           <tbody>{rows.map((e) => (
             <tr key={e.id}>
-              <td><span className="chip">{e.d}</span> {entrantLabel(state, e.id).name}</td>
+              <td><span className="chip">{e.d}</span> <PlayerName id={e.id}>{entrantLabel(state, e.id).name}</PlayerName></td>
               {weeks.map((w) => {
                 const injured = e.playerIds.some((id) => (players.get(id)?.injury?.weeksLeft ?? 0) > w - week);
                 if (injured) return <td key={w} title={t('injury')}>🩹</td>;
@@ -338,10 +339,10 @@ function LastChampions() {
       <div className="champs-grid">
         {[...new Set(last.map((c) => c.tournamentId))].map((tid) => (
           <div key={tid}>
-            <b>{eventName(ruleset, tid, year)}</b>
+            <b><EventName id={tid} year={year}>{eventName(ruleset, tid, year)}</EventName></b>
             {last.filter((c) => c.tournamentId === tid).map((c) => {
               const w = entrantLabel(state, c.winner);
-              return <div key={c.discipline} className="drow rank"><span className="chip">{c.discipline}</span><span className="grow"><span><Flag id={w.country} />{w.name}</span></span></div>;
+              return <div key={c.discipline} className="drow rank"><span className="chip">{c.discipline}</span><span className="grow"><span><Flag id={w.country} /><PlayerName id={c.winner}>{w.name}</PlayerName></span></span></div>;
             })}
           </div>
         ))}
@@ -380,7 +381,7 @@ export function EntryRow({ e, checked, disabled, other, required, onToggle, targ
   return (
     <tr className={other ? 'muted-text' : undefined}>
       <td>
-        <span className="chip">{e.d}</span> {entrantLabel(state, e.id).name}
+        <span className="chip">{e.d}</span> <PlayerName id={e.id}>{entrantLabel(state, e.id).name}</PlayerName>
         {/* Tag jenis (percobaan / Development) di baris keterangan bersama status & wajib, tidak menumpuk di nama. */}
         <div className={`entry-meta${onTarget && checked ? ' has-target' : ''}`}>
           <FitStatus ps={ps} />

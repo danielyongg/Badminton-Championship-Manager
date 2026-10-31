@@ -2,7 +2,8 @@ import { useEffect, useState, type ReactNode } from 'react';
 import type { Match, PointType } from '../engine/types';
 import { MatchStatsView } from './MatchStats';
 import { t } from '../i18n';
-import { Flag } from './Flag';
+import { Flag } from './Flag';import { PlayerName } from './nav';
+
 
 const TYPES: PointType[] = ['smash', 'net', 'clear', 'drop', 'error', 'service'];
 
@@ -24,7 +25,7 @@ export function MatchDetail({ m, name, title, onClose }: {
         <table className="board scoreline">
           <tbody>{([0, 1] as const).map((s) => (
             <tr key={s} className={m.winner === s ? 'winner' : ''}>
-              <td><Flag id={m.sides[s]} />{name(m.sides[s])}</td>
+              <td><Flag id={m.sides[s]} /><PlayerName id={m.sides[s]}>{name(m.sides[s])}</PlayerName></td>
               {m.scores.map((g, i) => <td key={i} className={`num${g[s] > g[1 - s] ? '' : ' muted'}`}>{g[s]}</td>)}
             </tr>
           ))}</tbody>

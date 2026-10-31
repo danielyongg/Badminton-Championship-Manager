@@ -10,7 +10,8 @@ import { dataName, numLocale, t, type TextKey } from '../i18n';
 import { CAL_GROUPS, entrantLabel, eventName as eventNameOf, groupLabel, tierGroup, TierBadge } from './game';
 import { Flag } from './Flag';
 import { formatName, winnerOf } from './Team';
-import { NationsTable, Records } from './WorldRecords';
+import { NationsTable, Records } from './WorldRecords';import { PlayerName } from './nav';
+
 
 /** Lab: dunia simulasi sendiri dengan tombol maju minggu, menampilkan SeasonViews. */
 export function Ranking({ ruleset, world, seed }: { ruleset: Ruleset; world: World; seed: number }) {
@@ -169,7 +170,7 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
             <tbody>
               {rows.slice(page * PAGE, (page + 1) * PAGE).map((r) => (
                 <tr key={r.entrantId} onClick={() => setSelected(r.entrantId)} className={[shown === r.entrantId && 'sel', name(r.entrantId).country === state.managedCountryId && 'mine-row'].filter(Boolean).join(' ') || undefined} style={{ cursor: 'pointer' }}>
-                  <td className="num rankcell">{r.rank} <small>{move(r.entrantId, r.rank)}</small></td><td><span className="show-sm"><Flag id={name(r.entrantId).country} /></span>{name(r.entrantId).name}{olympic && <span className="show-sm"> {qualified(r.entrantId)}</span>}</td><td className="hide-sm"><Flag id={name(r.entrantId).country} />{name(r.entrantId).country}</td>
+                  <td className="num rankcell">{r.rank} <small>{move(r.entrantId, r.rank)}</small></td><td><span className="show-sm"><Flag id={name(r.entrantId).country} /></span><PlayerName id={r.entrantId}>{name(r.entrantId).name}</PlayerName>{olympic && <span className="show-sm"> {qualified(r.entrantId)}</span>}</td><td className="hide-sm"><Flag id={name(r.entrantId).country} />{name(r.entrantId).country}</td>
                   <td className="num">{r.points.toLocaleString(numLocale())}</td><td className="num hide-sm">{r.tournamentsPlayed}</td>
                   {olympic && <td className="hide-sm">{qualified(r.entrantId)}</td>}
                 </tr>

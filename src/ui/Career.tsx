@@ -30,6 +30,7 @@ import { currentAbility } from '../engine/generator';
 import { formatName, levelName, SquadModal, Team, TieLineupModal } from './Team';
 import { TournamentView } from './TournamentView';
 import { endTag } from './EventViews';
+import { EventName, NavContext } from './nav';
 import { MatchLink } from './MatchDetail';
 import { EntriesScreen, RoundScreen, rowKey, WeekScreen, type WeekAsk } from './WeekFlow';
 
@@ -165,6 +166,8 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   const open = (id: string) => { setProfileId(id); window.scrollTo(0, 0); };
   const [eventView, setEventView] = useState<{ id: string; year: number }>();
   const openEvent = (id: string, year: number) => { setProfileId(undefined); setEventView({ id, year }); window.scrollTo(0, 0); };
+  // Semua nama atlet & turnamen di layar karier bisa diklik (nav.tsx); id negara (beregu) tidak punya profil.
+  const nav = { player: open, event: openEvent, known: (id: string) => state.players.some((p) => p.id === id) || state.pairs.some((p) => p.id === id) };
   // Kembali dari halaman turnamen (tombol Kembali / setelah Submit entry): gulir ke baris turnamen itu (Kalender/Dashboard) & sorot sebentar.
   const backFromEvent = (id: string) => {
     setEventView(undefined);
@@ -211,6 +214,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   const showHub = hubOn && !hubAway && !profileId && !eventView;
 
   return (
+    <NavContext.Provider value={nav}>
     <main>
       <header className="controls shell">
         <span className="title"><b>{countryName}</b> <span className="date">{state.date.year} · {t('week')} {state.date.week}</span></span>
@@ -233,6 +237,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
           sides={live.req.sides}
           names={[entrantLabel(state, live.req.entrants[0]).name, entrantLabel(state, live.req.entrants[1]).name]}
           ids={[entrantLabel(state, live.req.entrants[0]).country, entrantLabel(state, live.req.entrants[1]).country]}
+          entrants={live.req.entrants}
           mySide={live.mySide}
           cfg={matchConfigFor(game.ruleset.match, state.date.year)}
           rng={game.rng}
@@ -288,6 +293,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
         : <Federation onChanged={() => { changed(); void persist(); }} onOpen={open} onOpenEvent={openEvent} />}
       </div>
     </main>
+    </NavContext.Provider>
   );
 }
 
@@ -522,7 +528,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
             {list.map((e) => (
               <div key={e.id} className="drow" data-ev={e.id}>
                 <TierBadge tierId={e.tierId} team={'team' in e ? e.team : undefined} />
-                <span className="grow"><b>{eventName(ruleset, e.id, year)}{juniorChip(e.id)}</b><small className="muted-text">{city(hostCityId(e, year))}</small></span>
+                <span className="grow"><b><EventName id={e.id} year={year}>{eventName(ruleset, e.id, year)}</EventName>{juniorChip(e.id)}</b><small className="muted-text">{city(hostCityId(e, year))}</small></span>
                 {managed && <EntryBadge id={e.id} onOpen={() => onOpenEvent(e.id, year)} />}
               </div>
             ))}
@@ -760,7 +766,7 @@ function NewsCard({ onOpen }: { onOpen: (id: string) => void }) {
       {m.scores.map((g) => `${g[m.winner]}-${g[1 - m.winner]}`).join(', ')}
     </MatchLink>
   );
-  const where = (m: Match) => <small className="muted-text">{eventName(ruleset, m.tournamentId, m.year)} · {m.discipline} {m.round} · {score(m)}</small>;
+  const where = (m: Match) => <small className="muted-text"><EventName id={m.tournamentId} year={m.year}>{eventName(ruleset, m.tournamentId, m.year)}</EventName> · {m.discipline} {m.round} · {score(m)}</small>;
   const lastYear = state.date.week > 1 ? state.date.year : state.date.year - 1;
   const record = (on: boolean) => on && <> <span className="badge gold">{t('newsRecord')}</span></>;
   // Tiap berita: badge jenis (lebar tetap, warna per jenis) + kalimat utama + baris keterangan.
@@ -768,18 +774,18 @@ function NewsCard({ onOpen }: { onOpen: (id: string) => void }) {
     switch (n.kind) {
       case 'upset': return [t('newsUpset'), <>{who(n.winner)} <span className="muted-text">({n.wr ? `#${n.wr}` : t('unranked')})</span> {t('beat')} {who(n.loser)} <span className="muted-text">(#{n.lr})</span></>, where(n.m)];
       case 'streak': return [t('newsStreakTag'), <>{who(n.id)} {t('newsStreak', { n: n.n })}</>,
-        <small className="muted-text">{eventName(ruleset, n.tournamentId, lastYear)}</small>];
+        <small className="muted-text"><EventName id={n.tournamentId} year={lastYear}>{eventName(ruleset, n.tournamentId, lastYear)}</EventName></small>];
       case 'smash': return [t('newsSmash'), <><b>{n.kmh} km/h</b> · {who(n.id)}{record(n.record)}</>, where(n.m)];
       case 'rally': return [t('newsRally'), <><b>{n.shots} {t('shotsUnit')}</b> · {who(n.m.sides[0])} vs {who(n.m.sides[1])}{record(n.record)}</>, where(n.m)];
       case 'fire': return [t('onFire'), <>{who(n.id)}</>, <small className="muted-text">{t('newsFire', { n: n.wins })}</small>];
-      case 'firstTitle': return [t('newsFirstTag'), <>{who(n.id)} {t('newsFirstTitle')}</>, <small className="muted-text">{eventName(ruleset, n.tournamentId, lastYear)} · {n.discipline}</small>];
-      case 'youngChamp': return [t('newsYoungTag'), <>{who(n.id)} {t('newsYoungChamp', { n: n.age })}</>, <small className="muted-text">{eventName(ruleset, n.tournamentId, lastYear)} · {n.discipline}</small>];
+      case 'firstTitle': return [t('newsFirstTag'), <>{who(n.id)} {t('newsFirstTitle')}</>, <small className="muted-text"><EventName id={n.tournamentId} year={lastYear}>{eventName(ruleset, n.tournamentId, lastYear)}</EventName> · {n.discipline}</small>];
+      case 'youngChamp': return [t('newsYoungTag'), <>{who(n.id)} {t('newsYoungChamp', { n: n.age })}</>, <small className="muted-text"><EventName id={n.tournamentId} year={lastYear}>{eventName(ruleset, n.tournamentId, lastYear)}</EventName> · {n.discipline}</small>];
       case 'seedOut': return [t('newsSeedTag'), <>{t('newsSeedOut', { round: n.m.round })}: {who(n.id)} {t('lostTo')} {who(n.opp)}</>, where(n.m)];
       case 'comeback': return [t('newsComebackTag'), <>{who(n.id)} {t('newsComeback')}</>, where(n.m)];
       case 'hosts': return [t('newsHostsTag'), <>{t('newsHosts', { year: n.year })}</>,
         <span className="host-list">{n.drawn.map((x) => {
           const c = game.world.cities.find((y) => y.id === x.cityId);
-          return <span key={x.id} className="drow"><span className="grow">{eventName(ruleset, x.id, n.year)}</span><b><Flag id={c?.countryId} />{dataName(c?.name)}</b></span>;
+          return <span key={x.id} className="drow"><span className="grow"><EventName id={x.id} year={n.year}>{eventName(ruleset, x.id, n.year)}</EventName></span><b><Flag id={c?.countryId} />{dataName(c?.name)}</b></span>;
         })}</span>];
       case 'awards': {
         const a = n.award;

@@ -11,6 +11,7 @@ import { entrantLabel, eventName } from './game';
 import { MatchLink } from './MatchDetail';
 import { MatchStatsView } from './MatchStats';
 import { MoraleTag } from './Squad';
+import { PlayerName } from './nav';
 
 const SPEEDS = { slow: 600, normal: 250, fast: 60 } as const;
 const POLICIES: ChallengePolicy[] = ['never', 'sure', 'ask'];
@@ -26,8 +27,10 @@ const saveChallengePolicy = (v: ChallengePolicy) => { try { localStorage.setItem
  * Lawan (AI) memakai strategi 'balanced' dan challenge hanya bila atletnya sangat yakin.
  * `review`: Instant Review (Hawk-Eye) — bola tipis yang merugikan atlet sendiri menjeda laga bila pengaturannya 'Tanya saya'.
  */
-export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, review, preview, onDone, onSkipRound }: {
+export function LiveMatch({ sides, names, ids, entrants, mySide, cfg, rng, title, review, preview, onDone, onSkipRound }: {
   sides: [SideInput, SideInput]; names: [string, string]; ids?: [string, string]; mySide: 0 | 1; cfg: MatchConfig; rng: Rng; title: string; review?: boolean;
+  /** Id peserta (atlet / pasangan): nama di papan skor bisa diklik ke profil (pop-up diperkecil dulu). */
+  entrants?: [string, string];
   /** Kartu pra-laga (H2H, ranking), tampil sampai reli pertama. */
   preview?: ReactNode;
   onDone: (r: MatchResult) => void; onSkipRound?: () => void;
@@ -122,7 +125,7 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, review, 
             {([0, 1] as const).map((s) => (
               <tr key={s} className={s === mySide ? 'mine' : ''}>
                 <td className="srv" title={m.server === s && !done ? t('serve') : undefined}>{m.server === s && !done ? '●' : ''}</td>
-                <td><Flag id={ids?.[s]} />{names[s]}{(sides[s].day ?? 0) >= cfg.dayForm.hotFrom && <> <span className="fire" title={t('onFireHint')} aria-label={t('onFire')}>🔥</span></>}</td>
+                <td><Flag id={ids?.[s]} />{entrants ? <PlayerName id={entrants[s]} before={hide}>{names[s]}</PlayerName> : names[s]}{(sides[s].day ?? 0) >= cfg.dayForm.hotFrom && <> <span className="fire" title={t('onFireHint')} aria-label={t('onFire')}>🔥</span></>}</td>
                 {m.games.map((g, i) => <td key={i} className="num muted">{g[s]}</td>)}
                 {!done && <td className="pt">{m.score[s]}</td>}
                 <td className="num"><b>{gamesWon(s)}</b></td>
@@ -154,7 +157,7 @@ export function LiveMatch({ sides, names, ids, mySide, cfg, rng, title, review, 
                 )}
                 {sides[s].players.map((p) => (
                   <div key={p.id} className="cond-player">
-                    <span className="cond-name">{p.name}</span>
+                    <PlayerName id={p.id} className="cond-name" before={hide}>{p.name}</PlayerName>
                     <MoraleTag value={p.form} />
                     <small className="muted-text" title={t('fatiguePreHint')}>{t('fatigue')} {Math.round(p.fatigue)}%</small>
                   </div>
