@@ -173,3 +173,11 @@ describe('morale, lingkungan elite, mentor & laporan kuartal', () => {
     expect(r.declining.map((p) => p.id)).toEqual(['c']);
   });
 });
+
+it('PA di atas 100 (mis. dari Editor) dijepit: pertumbuhan junior tetap wajar', () => {
+  const p: Player = { id: 'x', name: 'X', countryId: 'INA', gender: 'F', hand: 'R', birth: { year: 2010, week: 1 },
+    attrs: Object.fromEntries(ATTRS.map((a) => [a, 78])) as Player['attrs'], pa: 150, form: 0, fatigue: 0, attrHistory: [] };
+  developQuarter(p, cfg, { date: { year: 2026, week: 14 }, experience: new Map(), doublesPlayers: new Set() }, makeRng(1));
+  expect(p.pa).toBe(100);
+  expect(currentAbility(p.attrs)).toBeLessThanOrEqual(83);
+});

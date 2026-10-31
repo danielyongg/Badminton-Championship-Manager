@@ -147,6 +147,8 @@ export function gameFromBlob(meta: SaveMeta, blob: { state: SeasonState; ruleset
     const size = blob.ruleset.team?.squadSize?.[f];
     if (size?.min === 4 && size.max === 12) size.max = preset.team.squadSize[f].max;
   }
+  // Save sebelum jadwal harian: jumlah hari per tier dari preset (tanpa ini tiap babak satu hari → turnamen terlalu panjang).
+  for (const tier of blob.ruleset.tiers) tier.days ??= preset.tiers.find((x) => x.id === tier.id)?.days;
   if (!blob.state.juniorCalibrated) {
     // Save sebelum koreksi tradisi junior: atlet asli yang terkena diturunkan sebesar selisih level & PA versi lama − baru
     // (riwayat atribut ikut, agar grafik & ▲▼ tidak menampilkan penurunan palsu).

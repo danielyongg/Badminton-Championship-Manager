@@ -1,6 +1,7 @@
 import { entryClosed, hostCityId, weekOf } from '../engine/season';
 import { useEffect, useRef, useState } from 'react';
-import type { RoundMatch, RoundShow } from '../engine/gate';
+import { roundOrder, type RoundMatch, type RoundShow } from '../engine/gate';
+import type { MatchRound } from '../engine/knockout';
 import { DISCIPLINES, type Discipline, type TeamFormat } from '../engine/types';
 import { dataName, t, type TextKey } from '../i18n';
 import { Flag } from './Flag';
@@ -172,6 +173,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   const box = useRef<HTMLElement>(null);
   useEffect(() => { box.current?.querySelector('tr.current')?.scrollIntoView({ block: 'nearest' }); }, [show.current]);
   const roundName = show.round === 'G' ? t('roundG') : /^Q\d/.test(show.round) ? `${t('qualifying')} R${show.round.slice(1)}` : show.round;
+  const shortOf = (r: string) => r === 'G' ? t('roundG') : r; // strip hari: Q1, R64, … (sama lebar)
   const nameOf = (r: string) => r === 'G' ? t('roundG') : /^Q\d/.test(r) ? `${t('qualifying')} R${r.slice(1)}` : r;
   const title = daily
     ? `${eventName(ruleset, show.tournamentId, state.date.year)} · ${t('dayN', { n: show.day! + 1 })} (${weekday(show.day!, show.plan!.days)}) · ${[...new Set(show.matches.map((m) => m.round!))].map(nameOf).join(', ')}`
@@ -183,7 +185,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
           <nav className="controls subnav days" aria-label={t('schedule')}>
             {show.plan!.rounds.map((rs, k) => (
               <button key={k} aria-pressed={k === viewing} aria-current={k === show.day ? 'date' : undefined} disabled={k > show.day!} onClick={() => setView(k)}>
-                <b>{weekday(k, show.plan!.days)}</b> <small>{rs.map(nameOf).join(' · ')}</small>
+                <b>{weekday(k, show.plan!.days)}</b> <small>{[...rs].sort((a, b) => roundOrder(a as MatchRound) - roundOrder(b as MatchRound)).map(shortOf).join('·')}</small>
               </button>
             ))}
           </nav>
@@ -207,10 +209,10 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
             </span>
           </div>
         )}
-        {/* Atlet sendiri dengan dua laga hari ini: satu baris per atlet, tombol nomor untuk mundur (💡 = saran: nomor laga keduanya). */}
+        {/* Atlet sendiri dengan dua laga hari ini: satu baris per atlet, tombol nomor (lebar tetap, sejajar) untuk mundur. */}
         {doubleDuty.length > 0 && (
-          <section className="duty">
-            <p className="duty-head">⚡ {t('twoToday')} <small className="muted-text">{t('withdrawPick')}</small></p>
+          <section className="duty" title={t('withdrawTwoHint')}>
+            <div className="duty-head"><span>⚡ {t('dutyHead')}</span><small className="muted-text">{t('withdrawCol')}</small></div>
             <ul>
               {doubleDuty.map(([pid, ms]) => {
                 const keyOf = (m: RoundMatch) => `${m.key}:${m.sides.find(isMine)!}`;
@@ -219,10 +221,10 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
                   <li key={pid}>
                     <span className="duty-name">{pname(pid)}</span>
                     {done ? <small className="muted-text">✓ {t('withdrewFrom', { d: done.key })}</small> : (
-                      <span className="seg">{ms.map((m, i) => (
+                      <span className="seg">{ms.map((m) => (
                         <button key={m.key} title={t('withdrawFrom', { d: m.key })} aria-label={t('withdrawFrom', { d: m.key })}
                           onClick={() => { show.withdraw!(m.key, m.sides.find(isMine)!); setPulled([...pulled, keyOf(m)]); }}>
-                          {m.key}{i === ms.length - 1 && ' 💡'}
+                          {m.key}
                         </button>
                       ))}</span>
                     )}
@@ -230,7 +232,6 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
                 );
               })}
             </ul>
-            <p className="hint">{t('withdrawTwoHint')}</p>
           </section>
         )}
         <table className="roundlist">

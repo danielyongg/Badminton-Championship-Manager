@@ -25,11 +25,11 @@ export interface SectionProps {
 type Obj = Record<string | number, unknown>;
 type Cell = { o: object; k: string | number; ch: () => void; w?: number; disabled?: boolean };
 
-/** `round`: tampilkan bilangan bulat (atribut bisa berupa pecahan hasil perkembangan). */
-export function Num({ o, k, ch, w = 70, disabled, round }: Cell & { round?: boolean }) {
+/** `round`: tampilkan bilangan bulat (atribut bisa berupa pecahan hasil perkembangan). `min`/`max`: nilai dijepit. */
+export function Num({ o, k, ch, w = 70, disabled, round, min, max }: Cell & { round?: boolean; min?: number; max?: number }) {
   const v = (o as Obj)[k] as number;
-  return <input type="number" style={{ width: w || '100%' }} disabled={disabled} value={round ? Math.round(v) : v}
-    onChange={(e) => { const v = e.target.valueAsNumber; if (!Number.isNaN(v)) { (o as Obj)[k] = v; ch(); } }} />;
+  return <input type="number" style={{ width: w || '100%' }} disabled={disabled} value={round ? Math.round(v) : v} min={min} max={max}
+    onChange={(e) => { const v = e.target.valueAsNumber; if (!Number.isNaN(v)) { (o as Obj)[k] = Math.min(max ?? Infinity, Math.max(min ?? -Infinity, v)); ch(); } }} />;
 }
 export function Txt({ o, k, ch, w = 160, disabled }: Cell) {
   return <input style={{ width: w || '100%' }} disabled={disabled} value={(o as Obj)[k] as string} onChange={(e) => { (o as Obj)[k] = e.target.value; ch(); }} />;
@@ -184,13 +184,13 @@ function Players({ data, mode, date, ch, country: initial, canDelete, onDelete }
             <label>{t('hand')}<Sel o={p} k="hand" ch={ch} options={[['R', t('handR')], ['L', t('handL')]]} /></label>
             <label>{t('born')}<Num o={p.birth} k="year" ch={ch} w={0} /></label>
             <label title={t('birthWeekHint')}>{t('birthWeek')}<Num o={p.birth} k="week" ch={ch} w={0} /></label>
-            <label>{t('potential')} (PA)<Num o={p} k="pa" ch={ch} w={0} /></label>
+            <label>{t('potential')} (PA)<Num o={p} k="pa" ch={ch} w={0} min={1} max={100} /></label>
             <label>{t('trait')}<Sel o={p} k="trait" ch={ch} options={[['', '—'], ['late', t('traitLate')], ['stagnant', t('traitStagnant')]]} /></label>
             {[0, 1].map((i) => <label key={i} title={t('traitHint')}>{t('traits')} {i + 1}<TraitSel p={p} i={i} ch={ch} /></label>)}
           </div>
           <h4>{t('attributes')} · {t('ability')} <b className="ed-ab">{currentAbility(p.attrs)}</b></h4>
           <div className="ed-form attrs">
-            {ATTRS.map((a) => <label key={a}>{t(a)}<Num o={p.attrs} k={a} ch={ch} w={0} round /></label>)}
+            {ATTRS.map((a) => <label key={a}>{t(a)}<Num o={p.attrs} k={a} ch={ch} w={0} round min={1} max={100} /></label>)}
           </div>
           {/* Save berjalan: hanya atlet tanpa riwayat (belum pernah main) yang bisa dihapus. */}
           {(!locked || canDelete?.(p)) ? <p className="controls ed-actions"><button className="danger" onClick={() => remove(p)}>{t('delete')}</button></p>

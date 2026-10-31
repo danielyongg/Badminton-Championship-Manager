@@ -662,8 +662,9 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 .roundlist tr.current td { background: var(--gold-soft); }
 .roundlist .slot { display: grid; justify-items: center; gap: 2px; line-height: 1.2; }
 .roundlist .slot .court { font-weight: 700; color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: .7rem; }
-.subnav.days button { display: grid; line-height: 1.15; text-align: center; }
-.subnav.days button small { font-size: .68rem; opacity: .8; }
+.subnav.days { flex-wrap: nowrap; overflow-x: auto; gap: 4px; }
+.subnav.days button { flex: 1 0 4.2em; min-width: 4.2em; display: grid; line-height: 1.15; text-align: center; padding-left: 2px; padding-right: 2px; }
+.subnav.days button small { font-size: .68rem; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .subnav.days button[aria-current='date'] { outline: 2px solid var(--gold); outline-offset: -2px; }
 .roundlist .game { display: block; white-space: nowrap; }
 .roundlist .rowtoggle { font-size: .75rem; padding: 1px 8px; min-height: 0; white-space: nowrap; }
@@ -692,14 +693,15 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 /* Kontrol undian: grup tombol bersegmen (putar & kecepatan) sebaris, membungkus rapi di HP. */
 .drawctl { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
 .seg { display: inline-flex; }
-.duty { border: 1px solid var(--line); border-left: 3px solid var(--gold); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
-.duty-head { margin: 0 0 6px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.duty { border: 1px solid var(--line); border-left: 3px solid var(--gold); border-radius: 8px; padding: 6px 10px 8px; margin-bottom: 10px; }
+.duty-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 2px; font-weight: 600; font-size: .9rem; }
+.duty-head small { min-width: 7.2em; white-space: nowrap; text-align: center; font-weight: 400; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; }
 .duty ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
 .duty li { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; }
 .duty-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .duty .seg { flex: none; }
-.duty .seg button { min-width: 3.6em; }
-.duty .hint { margin: 6px 0 0; font-size: .75rem; }
+.duty .seg button { width: 3.6em; min-width: 0; padding-left: 0; padding-right: 0; }
+.duty li > small { flex: none; min-width: 7.2em; white-space: nowrap; text-align: center; }
 .seg button { border-radius: 0; margin-left: -1px; padding: 4px 10px; font-size: .85rem; min-height: 34px; white-space: nowrap; }
 .seg button:first-child { border-radius: 4px 0 0 4px !important; margin-left: 0; }
 .seg button:last-child { border-radius: 0 4px 4px 0 !important; }

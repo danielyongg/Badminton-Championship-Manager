@@ -33,6 +33,7 @@ export const experienceFactor = (cfg: DevelopmentConfig, weighted: number) =>
   Math.min(cfg.experience.max, cfg.experience.base + cfg.experience.perMatch * weighted);
 
 export function capToPa(p: Player) {
+  p.pa = clamp(p.pa, 1, 100); // PA di atas 100 (Editor / file lama) membuat pertumbuhan meledak
   for (const a of ATTRS) p.attrs[a] = clamp(p.attrs[a], 1, 100);
   for (let i = 0; i < 20 && meanAttrs(p) > p.pa; i++) {
     const movable = ATTRS.filter((a) => p.attrs[a] > 1);
@@ -44,6 +45,7 @@ export function capToPa(p: Player) {
 
 /** Satu kuartal (¼ tahun) perkembangan & penuaan untuk seorang atlet. */
 export function developQuarter(p: Player, cfg: DevelopmentConfig, ctx: QuarterContext, rng: Rng) {
+  p.pa = clamp(p.pa, 1, 100);
   const before = meanAttrs(p);
   const realAge = ageAt(p.birth, ctx.date);
   const age = realAge - (ctx.doublesPlayers.has(p.id) ? cfg.doublesPeakDelay : 0);
