@@ -479,7 +479,8 @@ export function FinalsResult({ r, stage }: { r: TeamResult; stage?: 'groups' | '
  */
 function KnockoutBracket({ r, name, tieBox }: { r: TeamResult; name: (c: string) => string; tieBox: (x: TeamTie, i: number) => ReactNode }) {
   const rounds = r.bracket!;
-  const cols = rounds.at(-1)!.length > 1 ? [...rounds, []] : rounds;
+  const cols = [...rounds]; // babak yang belum dimulai tetap tampil (posisi kosong) sampai final
+  while (cols.at(-1)!.length > 1) cols.push(Array(Math.ceil(cols.at(-1)!.length / 2)).fill(null));
   const slot = (c: string | null | undefined, r0: boolean) => c ? <div><Flag id={c} />{name(c)}</div> : <div className="muted">{r0 ? t('bye') : '—'}</div>;
   return (
     <div className="bracket">{cols.slice(0, -1).map((field, i) => (

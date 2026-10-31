@@ -364,14 +364,15 @@ nav.maintabs { gap: 2px; border-bottom: 1px solid var(--line); }
 
 /* Bagan */
 .bracket { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; }
-.round { display: flex; flex-direction: column; justify-content: space-around; gap: 6px; min-width: 210px; }
+.round { display: flex; flex-direction: column; justify-content: space-around; min-width: 220px; }
+.round > .match { margin: 3px 0; } /* margin, bukan gap: posisi tengah tiap babak tepat di antara dua laga sebelumnya */
 .round-col { display: flex; flex-direction: column; gap: 4px; }
 .round-col > .round { flex: 1; }
 .match { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; font-size: .8rem; }
 .match.mine { box-shadow: inset 3px 0 var(--accent); color: inherit; font-weight: inherit; }
-.match > div { color: var(--muted); }
+.match > div { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* satu baris per peserta: semua kotak sama tinggi */
 .match > div.win { color: var(--fg); font-weight: 700; }
-.match small { color: var(--muted); }
+.match small { display: block; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .match.clickable { cursor: pointer; }
 .match.clickable:hover { border-color: var(--accent); }
 .report.clickable { cursor: pointer; }

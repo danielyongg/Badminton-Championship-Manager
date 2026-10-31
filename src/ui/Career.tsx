@@ -179,7 +179,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
 
   const hubOn = !!managed && (!!weekAsk || !!playing);
   const hubTitle = playing ? eventName(game.ruleset, playing, state.date.year) : `${t('weekEvents')} · ${t('week')} ${state.date.week}`;
-  const hub = weekAsk ? <WeekScreen ask={weekAsk} onPick={(id) => { setWeekAsk(undefined); weekAsk.resolve(id); }} /> : playing && (
+  const hub = weekAsk ? <WeekScreen ask={weekAsk} onPick={(id) => { setWeekAsk(undefined); weekAsk.resolve(id); }} onOpenEvent={(id) => openEvent(id, state.date.year)} /> : playing && (
     <div>{/* bukan anak langsung <main>: sub-menu tidak ikut menempel di atas seperti menu tab */}
       <nav className="controls subnav">
         <button aria-pressed={hubTab === 'schedule'} onClick={() => setHubTab('schedule')}>{t('schedule')}</button>

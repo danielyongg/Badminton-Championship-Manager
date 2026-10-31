@@ -250,7 +250,9 @@ export function BracketView({ rec, matches, advance, ...who }: ViewProps & { adv
 export function RoundColumns({ rounds, matches, tag, pending, ...who }: WhoProps & {
   rounds: (string | null)[][]; matches: Match[]; tag?: (id?: string | null) => string; pending?: (pos: number) => string | undefined;
 }) {
-  const cols = rounds.at(-1)!.length > 1 ? [...rounds, []] : rounds; // babak yang belum dimulai: kolom tanpa pemenang
+  // Babak yang belum dimulai tetap tampil (posisi kosong "—") sampai final: jalur bagan terlihat penuh sejak awal.
+  const cols = [...rounds];
+  while (cols.at(-1)!.length > 1) cols.push(Array(Math.ceil(cols.at(-1)!.length / 2)).fill(null));
   // Kosong di babak pertama = bye (atau menunggu lolosan kualifikasi); di babak berikutnya = laga belum dimainkan.
   const side = (id: string | null, r: number, pos: number) =>
     id ? <Who id={id} {...who} suffix={tag?.(id)} />
@@ -267,7 +269,8 @@ export function RoundColumns({ rounds, matches, tag, pending, ...who }: WhoProps
               <div className={`match${a && who.mine?.(a) || b && who.mine?.(b) ? ' mine' : ''}`} key={k}>
                 <div className={w && w === a ? 'win' : ''}>{side(a, r, 2 * k)}</div>
                 <div className={w && w === b ? 'win' : ''}>{side(b, r, 2 * k + 1)}</div>
-                <small>{m && a && <MatchLink m={m} name={who.name} title={who.eventTitle}>{scoreText(m, a)}</MatchLink>}</small>
+                {/* Baris skor selalu ada (kosong bila belum dimainkan): semua kotak sama tinggi, laga babak berikutnya tepat di tengah. */}
+                <small>{m && a ? <MatchLink m={m} name={who.name} title={who.eventTitle}>{scoreText(m, a)}</MatchLink> : '\u00a0'}</small>
               </div>
             );
           })}

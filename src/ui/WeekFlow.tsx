@@ -20,12 +20,16 @@ export interface WeekAsk { week: number; events: { id: string; kind: 'individual
  * Daftar turnamen minggu ini: Mainkan satu per satu, atau lewati sisanya (disimulasikan otomatis).
  * Sebelum turnamen pertama dimulai, entry tiap turnamen individu masih bisa diisi & di-submit di sini.
  */
-export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string | null) => void }) {
+/** `onOpenEvent`: klik nama turnamen → halaman detail (peserta, undian, bagan). */
+export function WeekScreen({ ask, onPick, onOpenEvent }: { ask: WeekAsk; onPick: (id: string | null) => void; onOpenEvent?: (id: string) => void }) {
   const { game, changed } = useGame();
   const { state, ruleset, world } = game;
   const { year } = state.date;
   const [editing, setEditing] = useState<string>();
   const city = (id: string) => dataName(world.cities.find((c) => c.id === id)?.name);
+  const evLink = (id: string) => onOpenEvent
+    ? <a href="#" title={t('tournamentDetails')} onClick={(e) => { e.preventDefault(); onOpenEvent(id); }}><b>{eventName(ruleset, id, year)}</b></a>
+    : <b>{eventName(ruleset, id, year)}</b>;
   // Turnamen yang batas entrinya minggu ini: form entry lengkap (individu / junior / skuad beregu), kembali setelah submit.
   if (editing && ask.deadlines?.includes(editing)) return (
     <section className="card hub">
@@ -68,7 +72,7 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
           return (
             <li key={id}>
               <TierBadge tierId={tier?.id} team={kind === 'team' ? ev : undefined} />
-              <span className="grow"><b>{eventName(ruleset, id, year)}</b> <small className="muted-text">{city(hostCityId(ev, year))}</small><br />
+              <span className="grow">{evLink(id)} <small className="muted-text">{city(hostCityId(ev, year))}</small><br />
                 <small>{done ? <span className="badge good">✓ {t('played')}</span>
                   : kind === 'team' ? null : auto ? t('auto') : closed ? <span className="badge">🔒 {t('entryClosed')}</span> : submitted ? <span className="badge good">✓ {t('entrySubmitted')}</span>
                   : <span className="badge">{t('needEntry')}</span>}</small>
@@ -90,7 +94,7 @@ export function WeekScreen({ ask, onPick }: { ask: WeekAsk; onPick: (id: string 
           return (
             <li key={id}>
               <TierBadge tierId={'tierId' in ev ? ev.tierId : undefined} team={team} />
-              <span className="grow"><b>{eventName(ruleset, id, year)}</b> <small className="muted-text">{t('week')} {weekOf(ev, year)} · {city(hostCityId(ev, year))}</small><br />
+              <span className="grow">{evLink(id)} <small className="muted-text">{t('week')} {weekOf(ev, year)} · {city(hostCityId(ev, year))}</small><br />
                 <small>{submitted ? <span className="badge good">✓ {t('entrySubmitted')}</span> : <span className="badge">{t('needEntry')}</span>}</small>
               </span>
               {/* Sudah di-submit: masih bisa diubah sampai batas entry (tombol sekunder). */}
