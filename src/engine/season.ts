@@ -896,6 +896,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
       };
       return runEvent({ tournament: event, discipline: d, year, hostCountryId: city.countryId, candidates, wildcardIds: wildcards && (wildcards.get(d) ?? []), ruleset: rs, rng, play, onDraw: draw, onEntries: onEntries(d), parallel: gated, onRecord });
     });
+    await gate?.idle(); // layar hari terakhir (juara) ditutup dulu
     // Target babak atlet negara manajer: manual bila diatur, selain itu otomatis (saran realistis menurut perkiraan peserta).
     const manual = state.targets?.[`${year}:${event.id}`] ?? {};
     const released = releasedIds(state);
@@ -1322,6 +1323,7 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
         return draw?.({ tournamentId: ev.id, entrants: teams, steps, groups: finals.groups.groups, format }) ?? null;
       }, gated, liveStages(current),
       (steps, size) => draw?.({ tournamentId: ev.id, entrants: teams, steps, size, format, ko: true }) ?? null);
+    await gate?.idle(); // layar hari terakhir ditutup dulu
     liveTeamResults.set(state, (liveTeamResults.get(state) ?? []).filter((r) => r !== current));
     state.teamResults.push({
       eventId: ev.id, year, format, confederation: ev.confederation, ...(ev.countries && { games: true as const }), teams,

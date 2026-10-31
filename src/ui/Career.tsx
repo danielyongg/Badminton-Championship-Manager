@@ -32,7 +32,7 @@ import { TournamentView } from './TournamentView';
 import { endTag } from './EventViews';
 import { EventName, NavContext } from './nav';
 import { MatchLink } from './MatchDetail';
-import { EntriesScreen, RoundScreen, rowKey, WeekScreen, type WeekAsk } from './WeekFlow';
+import { BackToTop, EntriesScreen, RoundScreen, rowKey, WeekScreen, type WeekAsk } from './WeekFlow';
 
 type Tab = 'dashboard' | 'squad' | 'entries' | 'team' | 'world' | 'federation' | 'editor' | 'settings';
 
@@ -184,6 +184,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   const hubTitle = playing ? eventName(game.ruleset, playing, state.date.year) : `${t('weekEvents')} · ${t('week')} ${state.date.week}`;
   const hub = weekAsk ? <WeekScreen ask={weekAsk} onPick={(id) => { setWeekAsk(undefined); weekAsk.resolve(id); }} onOpenEvent={(id) => openEvent(id, state.date.year)} /> : playing && (
     <div>{/* bukan anak langsung <main>: sub-menu tidak ikut menempel di atas seperti menu tab */}
+      <BackToTop />
       <nav className="controls subnav">
         <button aria-pressed={hubTab === 'schedule'} onClick={() => setHubTab('schedule')}>{t('schedule')}</button>
         <button aria-pressed={hubTab === 'details'} onClick={() => setHubTab('details')}>{t('tournamentDetails')}</button>

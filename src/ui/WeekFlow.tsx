@@ -110,6 +110,20 @@ export function WeekScreen({ ask, onPick, onOpenEvent }: { ask: WeekAsk; onPick:
   );
 }
 
+/** Tombol melayang "kembali ke atas" setelah halaman digulir jauh (jadwal / bagan panjang). */
+export function BackToTop() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const on = () => setShow(window.scrollY > 600);
+    on();
+    window.addEventListener('scroll', on, { passive: true });
+    return () => window.removeEventListener('scroll', on);
+  }, []);
+  if (!show) return null;
+  const smooth = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  return <button className="totop" aria-label={t('backToTop')} title={t('backToTop')} onClick={() => window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' })}>↑</button>;
+}
+
 /** Kunci baris laga (untuk pilihan Live/Skip per laga). */
 export const rowKey = (m: RoundMatch) => `${m.key}:${m.sides.join('-')}`;
 

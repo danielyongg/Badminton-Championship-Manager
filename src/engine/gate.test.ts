@@ -183,7 +183,22 @@ describe('urutan babak', () => {
 
 it('jadwal harian: bagan selalu memajukan pemenang laga yang tercatat (juga gelombang kedua di hari yang sama, mis. Q2 setelah Q1)', async () => {
   const id = 'thailand-masters'; // Super 300 dengan kualifikasi: Q1 & Q2 di hari pertama (dua gelombang)
-  const state = await weekOf(5, () => ({ chooseEvent: choose([id]), round: () => Promise.resolve() }));
+  let early = 0;
+  const state = await weekOf(5, (st) => ({ chooseEvent: choose([id]), round: (r) => {
+    // Akhir hari (sebelum "Hari berikutnya"): pemenang laga babak gugur hari itu sudah tercatat di bagan.
+    if (r.phase === 'done') for (const m of r.matches.filter((x) => x.result && x.round !== 'G')) {
+      const rec = st.eventRecords.find((x) => x.tournamentId === id && x.year === 2026 && x.discipline === m.key)!;
+      for (const rounds of [rec.rounds, ...rec.qualRounds])
+        rounds.forEach((field, i) => {
+          const k = field.findIndex((x, j) => j % 2 === 0 && [x, field[j + 1]].includes(m.sides[0]) && [x, field[j + 1]].includes(m.sides[1]));
+          if (k < 0) return;
+          expect(rounds[i + 1]?.[k / 2]).toBe(m.sides[m.result!.winner]);
+          early++;
+        });
+    }
+    return Promise.resolve();
+  } }));
+  expect(early).toBeGreaterThan(50);
   const ms = state.matches.filter((m) => m.tournamentId === id && m.year === 2026);
   expect(ms.length).toBeGreaterThan(0);
   let checked = 0;

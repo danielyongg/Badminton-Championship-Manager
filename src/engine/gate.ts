@@ -40,6 +40,8 @@ export function roundGate(tournamentId: string, keys: readonly string[], hook?: 
   let waiting: Waiting[] = [];
   let busy = 0; // pop-up yang sedang terbuka (drawing, skuad): nomor lain bisa belum sampai di babak pertamanya
   let flushing = false;
+  let flushed: () => void = () => {};
+  let flushDone = Promise.resolve();
   let queue: Promise<unknown> = Promise.resolve();
   // ponytail: "semua nomor sudah berhenti" = tidak ada daftar baru sampai macrotask berikutnya (semua langkah lain microtask).
   const schedule = () => void setTimeout(flush, 0);
@@ -48,6 +50,7 @@ export function roundGate(tournamentId: string, keys: readonly string[], hook?: 
   async function flush() {
     if (flushing || busy || !waiting.length) return;
     flushing = true;
+    flushDone = new Promise((r) => { flushed = r; });
     // Unit terawal: hari (jadwal harian) atau babak. Satu hari bisa datang dalam beberapa gelombang (mis. Q1 lalu Q2).
     const unit = Math.min(...waiting.map((w) => w.unit));
     const now = waiting.filter((w) => w.unit === unit)
@@ -74,13 +77,19 @@ export function roundGate(tournamentId: string, keys: readonly string[], hook?: 
     const base = { tournamentId, round, ...(sched && { day, plan: sched.plan, past: past.slice(0, unit), withdraw: sched.withdraw }) };
     const off = matches.length - fresh.length;
     await hook?.({ ...base, phase: 'pending', matches });
+    // Babak gugur: hasil langsung diteruskan ke bagan (pemenang tampil di babak berikutnya begitu laga selesai). Laga grup
+    // menunggu akhir hari: klasemen final & undian babak gugur baru muncul setelah hari itu selesai.
+    const later = (w: Waiting) => w.round === 'G';
     for (const [i, w] of now.entries()) {
       await hook?.({ ...base, phase: 'playing', matches, current: off + i });
       fresh[i].result = await w.play();
+      if (!later(w)) w.resolve(fresh[i].result);
     }
+    await new Promise((r) => setTimeout(r, 0)); // bagan sudah memproses hasil terakhir sebelum layar akhir hari
     await hook?.({ ...base, phase: 'done', matches });
     flushing = false;
-    now.forEach((w, i) => w.resolve(fresh[i].result!)); // hasil gelombang ini (bukan daftar sehari: gelombang kedua bergeser)
+    flushed();
+    now.forEach((w, i) => later(w) && w.resolve(fresh[i].result!)); // hasil gelombang ini (bukan daftar sehari: gelombang kedua bergeser)
     schedule();
   }
 
@@ -94,6 +103,13 @@ export function roundGate(tournamentId: string, keys: readonly string[], hook?: 
         schedule();
       }),
     /** Pop-up satu per satu (drawing, skuad); gerbang tidak memulai babak selama pop-up terbuka. */
+    /**
+     * Menunggu layar hari terakhir ditutup: hasil babak gugur diteruskan seketika, jadi bagan bisa selesai sebelum manajer
+     * menekan "Selesai"; turnamen baru diproses (poin, juara) setelah gerbang benar-benar diam.
+     */
+    async idle() {
+      while (flushing || waiting.length) await (flushing ? flushDone : new Promise((r) => setTimeout(r, 0)));
+    },
     serial<T>(fn: () => T | Promise<T>): Promise<T> {
       busy++;
       const p = queue.then(fn);
