@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyCountryQuota } from './entry';
 import { groupDraw, groupEliminatedRound, knockoutFromGroups, playGroup, type Standing } from './groups';
 import { makeRng } from './rng';
+import type { DrawStep } from './types';
 
 const st = (id: string): Standing => ({ id, wins: 0, gameDiff: 0, pointDiff: 0 });
 
@@ -20,6 +21,28 @@ describe('fase grup', () => {
       for (const g of ['A', 'B', 'C', 'D'])
         expect(field.indexOf(`${g}1`) < 4).not.toBe(field.indexOf(`${g}2`) < 4);
     }
+  });
+
+  it('lolos 2 (ganda Olimpiade, Thomas/Uber): juara A & B tetap di ujung, juara C & D diundi di posisi unggulan 3–4', () => {
+    const groups = ['A', 'B', 'C', 'D'].map((g) => [st(`${g}1`), st(`${g}2`)]);
+    const seats = new Set<string>();
+    for (let s = 0; s < 30; s++) {
+      const steps: DrawStep[] = [];
+      const field = knockoutFromGroups(groups, 2, makeRng(s), steps);
+      expect([field[0], field[7]]).toEqual(['A1', 'B1']);
+      seats.add(`${field.indexOf('C1')}-${field.indexOf('D1')}`);
+      expect(steps.filter((x) => x.key === 'step_winner').length).toBe(4);
+      expect(steps.filter((x) => x.key === 'step_runnerUp').length).toBe(4);
+    }
+    expect(seats.size).toBe(2); // C & D bertukar posisi menurut undian
+  });
+
+  it('lolos 1 (tunggal Olimpiade, 12 grup → R16): posisi ditentukan tanpa undian, 4 bye untuk juara grup unggulan teratas', () => {
+    const groups = Array.from({ length: 12 }, (_, i) => [st(`G${i}`)]);
+    const fields = [1, 2, 3].map((s) => { const steps: DrawStep[] = []; const f = knockoutFromGroups(groups, 1, makeRng(s), steps); return { f, steps }; });
+    expect(fields[1].f).toEqual(fields[0].f);
+    expect(fields[0].steps.filter((x) => x.key === 'step_bye').length).toBe(4);
+    for (const top of ['G0', 'G1', 'G2', 'G3']) { const i = fields[0].f.indexOf(top); expect(fields[0].f[i ^ 1]).toBeNull(); }
   });
 
   it('klasemen: menang terbanyak; 2 seri → head-to-head', async () => {

@@ -854,6 +854,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     let drawn: () => void = () => {};
     const allDrawn = new Promise<void>((r) => { drawn = r; });
     const draw: DrawHook | undefined = gate && h.draw ? async (d) => {
+      if (d.ko) return gate.serial(async () => { await h.draw!(d); }); // undian babak gugur setelah fase grup: satu per nomor
       shows.push(d);
       if (shows.length === ds.length) {
         shows.sort((a, b) => DISCIPLINES.indexOf(a.discipline!) - DISCIPLINES.indexOf(b.discipline!));

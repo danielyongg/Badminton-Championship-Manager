@@ -114,9 +114,17 @@ export function knockoutFromGroups(standings: Standing[][], advance: number, rng
   const order = seedPositionGroups(N).flat();
   const top = (p: number) => p <= N / 2;
   const winnerPos: number[] = [];
+  // Posisi juara grup = posisi unggulan grupnya. Lolos 1 per grup (tunggal Olimpiade, Paris 2024 §3.4.2): posisi ditentukan,
+  // tanpa undian. Lolos ≥ 2 (ganda Olimpiade §3.4.4, Thomas/Uber Cup, Finals): juara grup 1–2 tetap di ujung bagan, juara
+  // grup lainnya diundi di antara posisi unggulan setingkat (3–4, 5–8, …).
+  const seat = standings.map((_, i) => order[i]);
+  if (advance > 1)
+    for (let lo = 2; lo < seat.length; lo *= 2) shuffle(rng, seat.slice(lo, Math.min(lo * 2, seat.length))).forEach((p, k) => (seat[lo + k] = p));
+  // Juara grup lebih banyak dari posisi unggulan (12–16 grup → R16): juara grup ke-(N+1−s) di sebelah juara grup ke-s, sehingga
+  // posisi kosong (bye) jatuh di sebelah juara grup unggulan teratas (Paris 2024 §3.4.2: grup B, O, F, K dihilangkan).
+  const beside = (i: number) => { const p = order[2 * order.length - 1 - i]; return p && (p % 2 ? p + 1 : p - 1); };
   standings.forEach((s, i) => {
-    // ASUMSI: bila juara grup lebih banyak dari posisi unggulan (16 grup → R16), sisanya diundi ke posisi bebas.
-    const pos = order[i] ?? shuffle(rng, field.map((_, k) => k + 1).filter((p) => !field[p - 1] && !order.includes(p)))[0];
+    const pos = seat[i] ?? beside(i) ?? shuffle(rng, field.map((_, k) => k + 1).filter((p) => !field[p - 1] && !order.includes(p)))[0];
     field[pos - 1] = s[0].id;
     winnerPos[i] = pos;
     steps?.push({ key: 'step_winner', vars: { g: String.fromCharCode(65 + i), e: s[0].id, pos }, pos, entrant: s[0].id });
@@ -129,10 +137,12 @@ export function knockoutFromGroups(standings: Standing[][], advance: number, rng
       field[pos - 1] = s[place].id;
       steps?.push({ key: 'step_runnerUp', vars: { g: String.fromCharCode(65 + i), n: place + 1, e: s[place].id, pos }, pos, entrant: s[place].id });
     });
+  // Posisi kosong (grup lebih sedikit dari bagan, mis. 12 grup → R16): bye bagi juara grup unggulan teratas.
+  if (steps) field.forEach((x, k) => { if (!x) steps.push({ key: 'step_bye', vars: { pos: k + 1 }, pos: k + 1 }); });
   return field;
 }
 
-/** Posisi tetap juara grup di bagan gugur (seperti `knockoutFromGroups`, tanpa undian): indeks grup per posisi, null = posisi diundi (runner-up). */
+/** Posisi juara grup di bagan gugur tanpa undian (`knockoutFromGroups`; lolos ≥ 2: juara grup 3+ nanti diundi di antara posisi ini). */
 export function winnerSlots(groups: number, advance: number): (number | null)[] {
   const N = nextPow2(groups * advance);
   const order = seedPositionGroups(N).flat();

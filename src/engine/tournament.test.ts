@@ -3,7 +3,7 @@ import { generateWorld } from './generator';
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
-import { nextDayForm, runEvent, simPlay, tournamentWildcards, type EventRecord, type HotForm } from './tournament';
+import { nextDayForm, runEvent, simPlay, tournamentWildcards, type DrawShow, type EventRecord, type HotForm } from './tournament';
 import type { Match } from './types';
 
 it('satu turnamen lengkap: S100 MS (draw 48 + kualifikasi) dan ganda', async () => {
@@ -92,7 +92,11 @@ it('WTF (format grup): catatan sementara sejak undian, klasemen terisi per grup,
     if (round === 'G') seen.push(rec!.groups!.standings.filter(Boolean).length); else expect(rec!.rounds.length).toBeGreaterThan(0);
     return sim(a, b, round);
   };
-  const run = await runEvent({ tournament: event, discipline: 'MS', year: 2026, hostCountryId: 'CHN', candidates, ruleset: rs, rng, play, onRecord: (r) => { rec = r; } });
+  const draws: DrawShow[] = [];
+  const run = await runEvent({ tournament: event, discipline: 'MS', year: 2026, hostCountryId: 'CHN', candidates, ruleset: rs, rng, play, onRecord: (r) => { rec = r; }, onDraw: (d) => { draws.push(d); return null; } });
+  // Undian grup lalu undian babak gugur (SF) setelah fase grup.
+  expect(draws.map((d) => !!d.ko)).toEqual([false, true]);
+  expect(draws[1].size).toBe(4);
   expect(seen[0]).toBe(0); // grup pertama dimainkan: belum ada klasemen final
   expect(seen.at(-1)).toBe(1); // grup terakhir: grup pertama sudah final
   expect(rec!.groups!.standings).toEqual(run.groups!.standings);

@@ -212,6 +212,7 @@ withdrawFrom: 'Withdraw from {d}', withdrewFrom: 'withdrew from {d}', withdrawTw
   runnerUpDrawn: 'Runner-up (drawn)', provisionalHint: 'Provisional draw: group winners’ positions are fixed (current group leaders shown); runners-up are drawn into the other half after the group stage.',
   step_winner: 'Group {g} winner: {e} → position {pos}', step_runnerUp: 'Group {g} #{n}: {e} → position {pos} (drawn into the other half)',
   draw_groupWinners: 'Group winners (fixed positions)', draw_runnersUp: 'Runners-up (drawn into the other half)',
+  drawnShort: 'drawn',
   gameSpeed: 'Speed',
   speed_slow: 'Slow',
   speed_normal: 'Normal',

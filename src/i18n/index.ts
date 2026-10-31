@@ -212,6 +212,7 @@ withdrawFrom: 'Mundur dari {d}', withdrewFrom: 'mundur dari {d}', withdrawTwoHin
   runnerUpDrawn: 'Runner-up (diundi)', provisionalHint: 'Bagan sementara: posisi juara grup sudah tetap (diisi pemuncak klasemen saat ini); runner-up diundi ke paruh lain setelah fase grup selesai.',
   step_winner: 'Juara Grup {g}: {e} → posisi {pos}', step_runnerUp: 'Peringkat {n} Grup {g}: {e} → posisi {pos} (diundi ke paruh lain)',
   draw_groupWinners: 'Juara grup (posisi tetap)', draw_runnersUp: 'Runner-up (diundi ke paruh lain)',
+  drawnShort: 'diundi',
   gameSpeed: 'Kecepatan',
   speed_slow: 'Lambat',
   speed_normal: 'Normal',

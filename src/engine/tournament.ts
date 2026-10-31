@@ -109,7 +109,10 @@ export async function runEvent(opts: {
     opts.onRecord?.(rec);
     await opts.onDraw?.({ tournamentId: tournament.id, discipline, entrants: all.map((e) => e.id), steps: drawn.steps, groups: gs.groups });
     const standings = await each(parallel, groups, async (g, i) => (rec.groups!.standings[i] = await playGroup(g, (a, b, r, at) => opts.play(a, b, r, { ...at!, i, n: groups.length }), parallel)));
-    const field = knockoutFromGroups(standings, gs.advance, rng);
+    // Undian / penempatan babak gugur setelah fase grup (live drawing).
+    const koSteps: DrawStep[] = [];
+    const field = knockoutFromGroups(standings, gs.advance, rng, koSteps);
+    await opts.onDraw?.({ tournamentId: tournament.id, discipline, entrants: all.map((e) => e.id), steps: koSteps, size: field.length, ko: true });
     const slots = field.map((id, i) => ({ pos: i + 1, entrant: id ?? undefined, bye: !id }));
     rec.slots = slots;
     const main = await playKnockout(field, opts.play, undefined, parallel, rec.rounds);

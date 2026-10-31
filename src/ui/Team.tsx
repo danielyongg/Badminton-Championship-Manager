@@ -505,9 +505,13 @@ function ProvisionalBracket({ r, advance, name }: { r: TeamResult; advance: numb
   const field = winnerSlots(r.groups!.length, advance);
   const cols: number[] = [];
   for (let n = field.length; n > 1; n /= 2) cols.push(n);
+  // Juara grup 1–2 tetap; juara grup lain diundi di antara posisi unggulan setingkat (3–4, 5–8, …).
+  const tier = (g: number) => { const lo = g < 2 ? g : 2 ** Math.floor(Math.log2(g)); return g < 2 ? [g] : Array.from({ length: Math.min(lo * 2, table.length) - lo }, (_, k) => lo + k); };
   const slot = (g: number | null | undefined, k: number) => g === null || g === undefined
     ? <div key={k} className="muted">{t('runnerUpDrawn')}</div>
-    : <div key={k}><small className="muted-text">1{String.fromCharCode(65 + g)}</small> <Flag id={table[g][0].id} />{name(table[g][0].id)}</div>;
+    : advance > 1 && g >= 2
+      ? <div key={k} className="muted">{tier(g).map((x) => `1${String.fromCharCode(65 + x)}`).join(' / ')} ({t('drawnShort')})</div>
+      : <div key={k}><small className="muted-text">1{String.fromCharCode(65 + g)}</small> <Flag id={table[g][0].id} />{name(table[g][0].id)}</div>;
   return (
     <>
       <div className="bracket provisional">{cols.map((n, i) => (
