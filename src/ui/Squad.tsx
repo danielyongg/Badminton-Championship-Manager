@@ -18,7 +18,8 @@ import { ownPairs, Pairs } from './Pairs';
 import { CommitmentChips, RankChart, RankingDetail } from './Ranking';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
-import { MatchStatsView, PlayerStatsView } from './MatchStats';
+import { MatchStatsView, PlayerStatsView } from './MatchStats';import { PlayerName } from './nav';
+
 
 
 /** Cedera: "Cedera berat: Robek otot betis · 14 mg · kembali minggu 33" (tahun ditulis bila melewati musim ini). */
@@ -721,7 +722,7 @@ function PairCard({ pair, rank, onOpen }: { pair: Pair; rank?: number; onOpen: (
   );
   return (
     <section className="card evinfo">
-      <h2>{a.name} / {b.name}</h2>
+      <h2><PlayerName id={a.id}>{a.name}</PlayerName> / <PlayerName id={b.id}>{b.name}</PlayerName></h2>
       <dl className="facts">
         {fact(t('country'), <><Flag id={a.countryId} />{a.countryId} · <span className="chip">{pair.discipline}</span></>)}
         {fact(t('bwfRank'), rank ? `#${rank}` : '—')}

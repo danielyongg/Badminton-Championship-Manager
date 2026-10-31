@@ -4,7 +4,8 @@ import type { Candidate } from '../engine/entry';
 import type { Discipline, DrawStep } from '../engine/types';
 import { t } from '../i18n';
 import { RoundColumns, stepText } from './EventViews';
-import { Flag } from './Flag';import { PlayerName } from './nav';
+import { Flag } from './Flag';
+import { PlayerName } from './nav';
 
 
 // Live drawing (gaya Football Manager): mangkuk pot di kiri, bagan / grup di kanan terisi langkah demi langkah.

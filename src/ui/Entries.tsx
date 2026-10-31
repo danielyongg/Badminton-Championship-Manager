@@ -16,7 +16,8 @@ import { currentAbility, isJuniorAge, isPratama } from '../engine/generator';
 import { injuredFor } from '../engine/development';
 import { formatName, PickRow, SquadPicker } from './Team';
 import { Flag } from './Flag';
-import { plannableEvents, planWeek, type PlanCell } from '../engine/plan';import { EventName, PlayerName } from './nav';
+import { plannableEvents, planWeek, type PlanCell } from '../engine/plan';
+import { EventName, PlayerName } from './nav';
 
 
 /** Kalender & entry: daftar jadwal turnamen musim ini + status entry; klik turnamen → halaman turnamen (form entry di bawahnya). */
@@ -390,7 +391,7 @@ export function EntryRow({ e, checked, disabled, other, required, onToggle, targ
           {required && <span className="required" title={t('required')}>⭐<span className="required-label"> {t('required')}</span></span>}
           {e.trial && <span className="tag">{t('trialPair')}</span>}
           {ps.some((x) => isPratama(x, state.date)) && <span className="tag muted-tag" title={t('pratamaHint')}>{t('pratama')}</span>}
-          {other && <span className="muted-text">→ {dataName(ruleset.calendar.find((x) => x.id === other)?.name)}</span>}
+          {other && <span className="muted-text">→ <EventName id={other} year={state.date.year}>{dataName(ruleset.calendar.find((x) => x.id === other)?.name)}</EventName></span>}
           {/* Target babak: chip ringkas (otomatis); ketuk untuk mengubah, ✎ = diatur manual. */}
           {onTarget && checked && (editing ? (
             <select className="target-select" autoFocus value={target ?? ''} title={t('targetHint')} onBlur={() => setEditing(false)}
@@ -735,7 +736,7 @@ export function ContingentStatus({ country, onOpenEvent }: { country: string; on
         return (
           <div key={e.id} className="drow">
             <TierBadge tierId={e.tierId} />
-            <span className="grow"><b>{(eventName(ruleset, e.id, year) ?? '').replace(/ Individual$/, '')}</b><small className="muted-text">{t('contingentDeadline', { w: lock })}</small></span>
+            <span className="grow"><b><EventName id={e.id} year={year}>{(eventName(ruleset, e.id, year) ?? '').replace(/ Individual$/, '')}</EventName></b><small className="muted-text">{t('contingentDeadline', { w: lock })}</small></span>
             <button className="badge-btn" title={t('contingentOpen')} onClick={() => onOpenEvent(e.id)}>{badge}</button>
           </div>
         );

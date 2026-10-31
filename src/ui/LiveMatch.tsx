@@ -11,7 +11,7 @@ import { entrantLabel, eventName } from './game';
 import { MatchLink } from './MatchDetail';
 import { MatchStatsView } from './MatchStats';
 import { MoraleTag } from './Squad';
-import { PlayerName } from './nav';
+import { EventName, NavContext, PlayerName, useNav } from './nav';
 
 const SPEEDS = { slow: 600, normal: 250, fast: 60 } as const;
 const POLICIES: ChallengePolicy[] = ['never', 'sure', 'ask'];
@@ -51,6 +51,9 @@ export function LiveMatch({ sides, names, ids, entrants, mySide, cfg, rng, title
   const [hawk, setHawk] = useState(false); // tayangan Hawk-Eye sedang berjalan
   const resume = useRef(false); // lanjut otomatis setelah keputusan challenge bila laga sedang berjalan
   const hide = () => { setRunning(false); setHidden(true); }; // laga dijeda selama pop-up disembunyikan
+  // Semua tautan nama di pop-up (papan skor, kondisi, kartu pra-laga, detail laga): pop-up diperkecil dulu, lalu navigasi.
+  const nav = useNav();
+  const navInModal = { ...nav, player: nav.player && ((id: string) => { hide(); nav.player!(id); }), event: nav.event && ((id: string, y: number) => { hide(); nav.event!(id, y); }) };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') hide(); };
@@ -116,6 +119,7 @@ export function LiveMatch({ sides, names, ids, entrants, mySide, cfg, rng, title
     );
 
   return (
+    <NavContext.Provider value={navInModal}>
     <div className="modal" role="dialog" aria-label={t('liveMatch')} onClick={(e) => e.target === e.currentTarget && hide()}>
       <div className="live card">
         <button className="close" title={t('hideLive')} aria-label={t('hideLive')} onClick={hide}>✕</button>
@@ -125,7 +129,7 @@ export function LiveMatch({ sides, names, ids, entrants, mySide, cfg, rng, title
             {([0, 1] as const).map((s) => (
               <tr key={s} className={s === mySide ? 'mine' : ''}>
                 <td className="srv" title={m.server === s && !done ? t('serve') : undefined}>{m.server === s && !done ? '●' : ''}</td>
-                <td><Flag id={ids?.[s]} />{entrants ? <PlayerName id={entrants[s]} before={hide}>{names[s]}</PlayerName> : names[s]}{(sides[s].day ?? 0) >= cfg.dayForm.hotFrom && <> <span className="fire" title={t('onFireHint')} aria-label={t('onFire')}>🔥</span></>}</td>
+                <td><Flag id={ids?.[s]} />{entrants ? <PlayerName id={entrants[s]}>{names[s]}</PlayerName> : names[s]}{(sides[s].day ?? 0) >= cfg.dayForm.hotFrom && <> <span className="fire" title={t('onFireHint')} aria-label={t('onFire')}>🔥</span></>}</td>
                 {m.games.map((g, i) => <td key={i} className="num muted">{g[s]}</td>)}
                 {!done && <td className="pt">{m.score[s]}</td>}
                 <td className="num"><b>{gamesWon(s)}</b></td>
@@ -157,7 +161,7 @@ export function LiveMatch({ sides, names, ids, entrants, mySide, cfg, rng, title
                 )}
                 {sides[s].players.map((p) => (
                   <div key={p.id} className="cond-player">
-                    <PlayerName id={p.id} className="cond-name" before={hide}>{p.name}</PlayerName>
+                    <PlayerName id={p.id} className="cond-name">{p.name}</PlayerName>
                     <MoraleTag value={p.form} />
                     <small className="muted-text" title={t('fatiguePreHint')}>{t('fatigue')} {Math.round(p.fatigue)}%</small>
                   </div>
@@ -269,6 +273,7 @@ export function LiveMatch({ sides, names, ids, entrants, mySide, cfg, rng, title
 
       </div>
     </div>
+    </NavContext.Provider>
   );
 }
 
@@ -291,7 +296,7 @@ export function PreMatch({ state, ruleset, req, mySide }: { state: SeasonState; 
       <div><dt>{t('h2h')}</dt><dd>{w + l ? <b>{mine ? `${w}–${l}` : `${l}–${w}`}</b> : <span className="muted-text">{t('neverMet')}</span>}</dd></div>
       {lastMeet && (
         <div className="wide"><dt>{t('lastMeeting')}</dt>
-          <dd>{eventName(ruleset, lastMeet.tournamentId, lastMeet.year)} {lastMeet.year} {lastMeet.round} · <b className={lastMeet.winner === i ? 'pos' : 'neg'}>{lastMeet.winner === i ? t('wins') : t('lost')}</b>{' '}
+          <dd><EventName id={lastMeet.tournamentId} year={lastMeet.year}>{eventName(ruleset, lastMeet.tournamentId, lastMeet.year)} {lastMeet.year}</EventName> {lastMeet.round} · <b className={lastMeet.winner === i ? 'pos' : 'neg'}>{lastMeet.winner === i ? t('wins') : t('lost')}</b>{' '}
             <MatchLink m={lastMeet} name={name} title={eventName(ruleset, lastMeet.tournamentId, lastMeet.year)}>{lastMeet.scores.map((g) => `${g[i]}-${g[1 - i]}`).join(', ')}</MatchLink>
           </dd>
         </div>

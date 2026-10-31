@@ -4,7 +4,8 @@ import { autoPick, recruit, recruitSome, SCOUTING_DEADLINE_WEEK, scoutReport, si
 import { ATTRS, type Player } from '../engine/types';
 import { dataName, t, type TextKey } from '../i18n';
 import { saveGame, useGame } from './game';
-import { ScoutFocusSelect } from './Squad';import { PlayerName } from './nav';
+import { ScoutFocusSelect } from './Squad';
+import { PlayerName } from './nav';
 
 
 /** Pencarian bakat junior: daftar ringkas kandidat (centang untuk memilih), panel laporan pemandu untuk kandidat yang diketuk. */

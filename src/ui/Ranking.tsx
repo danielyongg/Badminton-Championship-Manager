@@ -10,7 +10,8 @@ import { dataName, numLocale, t, type TextKey } from '../i18n';
 import { CAL_GROUPS, entrantLabel, eventName as eventNameOf, groupLabel, tierGroup, TierBadge } from './game';
 import { Flag } from './Flag';
 import { formatName, winnerOf } from './Team';
-import { NationsTable, Records } from './WorldRecords';import { PlayerName } from './nav';
+import { NationsTable, Records } from './WorldRecords';
+import { EventName, PlayerName } from './nav';
 
 
 /** Lab: dunia simulasi sendiri dengan tombol maju minggu, menampilkan SeasonViews. */
@@ -371,10 +372,10 @@ export function Calendar({ state, ruleset, world, short, onOpenEvent, year = sho
   const [group, setGroup] = useState<string>('all');
   const shown = rows.filter((r) => group === 'all' || r.group === group);
   const now = (week: number) => year === state.date.year && week === state.date.week;
-  const link = (r: (typeof rows)[number]) => (onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(r.id, year); }}>{r.name}</a> : r.name);
+  const link = (r: (typeof rows)[number]) => (onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(r.id, year); }}>{r.name}</a> : <EventName id={r.id} year={year}>{r.name}</EventName>);
   const who = (r: (typeof rows)[number], id?: string) => id && (r.team
     ? <><Flag id={id} />{id}</> // beregu: negara juara
-    : <><Flag id={entrantLabel(state, id).country} />{short(id)}</>);
+    : <><Flag id={entrantLabel(state, id).country} /><PlayerName id={id}>{short(id)}</PlayerName></>);
   return (
     <>
       <nav className="controls subnav">
@@ -437,7 +438,7 @@ export function CommitmentChips({ state, ruleset, entrantId }: { state: SeasonSt
   return (
     <span className="tc-chips">{commitmentStatus(state, ruleset, entrantId).map((c) => (
       <span key={c.id} className={`tc ${c.status}`} title={`${eventNameOf(ruleset, c.id) ?? c.id} · ${c.tierId} · ${t('week')} ${c.week} — ${t(`tc_${c.status}` as TextKey)}`}>
-        {c.status === 'done' ? '✓ ' : c.status === 'missed' ? '✗ ' : ''}{eventNameOf(ruleset, c.id) ?? c.id}{c.status === 'upcoming' && <small> · {t('weekShort')}{c.week}</small>}
+        {c.status === 'done' ? '✓ ' : c.status === 'missed' ? '✗ ' : ''}<EventName id={c.id} year={state.date.year}>{eventNameOf(ruleset, c.id) ?? c.id}</EventName>{c.status === 'upcoming' && <small> · {t('weekShort')}{c.week}</small>}
       </span>
     ))}</span>
   );
@@ -475,7 +476,7 @@ function EventDirectory({ state, ruleset, world, onOpenEvent }: { state: SeasonS
               <tr key={e.id}>
                 <td className="tiercell">{badge}</td>
                 <td>
-                  {onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, last ?? y ?? year); }}>{eventNameOf(ruleset, e.id, y ?? year)}</a> : eventNameOf(ruleset, e.id, y ?? year)}
+                  {onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, last ?? y ?? year); }}>{eventNameOf(ruleset, e.id, y ?? year)}</a> : <EventName id={e.id} year={last ?? y ?? year}>{eventNameOf(ruleset, e.id, y ?? year)}</EventName>}
                   <br /><small className="muted-text">{freq(e)}{host && <> · <Flag id={host.countryId} />{dataName(host.name)}</>}</small>
                 </td>
                 <td className="num">{y ? <>{y}<br /><small className="muted-text">{t('weekShort')}{weekOf(e, y)}</small></> : '—'}</td>

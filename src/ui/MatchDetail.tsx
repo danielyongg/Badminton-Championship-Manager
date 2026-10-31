@@ -2,7 +2,8 @@ import { useEffect, useState, type ReactNode } from 'react';
 import type { Match, PointType } from '../engine/types';
 import { MatchStatsView } from './MatchStats';
 import { t } from '../i18n';
-import { Flag } from './Flag';import { PlayerName } from './nav';
+import { Flag } from './Flag';
+import { PlayerName } from './nav';
 
 
 const TYPES: PointType[] = ['smash', 'net', 'clear', 'drop', 'error', 'service'];

@@ -13,7 +13,8 @@ import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
 import { FitStatus, MoraleTag } from './Squad';
 import { EntryRow } from './Entries';
-import { absWeek, computeRanking, rankMap } from '../engine/ranking';import { EventName, PlayerName } from './nav';
+import { absWeek, computeRanking, rankMap } from '../engine/ranking';
+import { EventName, PlayerName } from './nav';
 
 
 // Beregu: jadwal, line-up negara sendiri, dan hasil Thomas/Uber/Sudirman Cup + kejuaraan kontinental.

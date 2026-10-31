@@ -5,7 +5,8 @@ import { DISCIPLINES, type Discipline, type Ruleset, type TeamFormat, type World
 import { dataName, t, type TextKey } from '../i18n';
 import { CAL_GROUPS, entrantLabel, groupLabel, lookup, tierGroup } from './game';
 import { Flag } from './Flag';
-import { formatName, winnerOf } from './Team';
+import { formatName, winnerOf } from './Team';import { PlayerName } from './nav';
+
 
 // Klasemen negara (medali per musim) & Rekor + Hall of Fame (gaya BWF), dihitung dari riwayat save ini.
 
@@ -109,7 +110,7 @@ function NationDetail({ country, name, medals, state, onOpenPlayer }: { country:
           {head(t('topMedalists'))}
           <tbody>{people.map(({ id, n }) => {
             const label = entrantLabel(state, id).name;
-            return <tr key={id}>{row(onOpenPlayer ? <a href="#" onClick={(e) => { e.preventDefault(); onOpenPlayer(id); }}>{label}</a> : label, n)}</tr>;
+            return <tr key={id}>{row(onOpenPlayer ? <a href="#" onClick={(e) => { e.preventDefault(); onOpenPlayer(id); }}>{label}</a> : <PlayerName id={id}>{label}</PlayerName>, n)}</tr>;
           })}</tbody>
         </table>
       )}
@@ -152,7 +153,7 @@ export function Records({ state, ruleset, world, onOpenPlayer }: { state: Season
   const who = (id: string) => {
     const p = players.get(id);
     return <span className={p?.countryId === managed ? 'mine' : undefined}><Flag id={p?.countryId} />{onOpenPlayer
-      ? <a href="#" onClick={(e) => { e.preventDefault(); onOpenPlayer(id); }}>{p?.name ?? id}</a> : p?.name ?? id}</span>;
+      ? <a href="#" onClick={(e) => { e.preventDefault(); onOpenPlayer(id); }}>{p?.name ?? id}</a> : <PlayerName id={id}>{p?.name ?? id}</PlayerName>}</span>;
   };
   const top = (m: Map<string, number>, title: TextKey, unit?: TextKey) => {
     const list = [...m].sort((a, b) => b[1] - a[1]).slice(0, 5);
