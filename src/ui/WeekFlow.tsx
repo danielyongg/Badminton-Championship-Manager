@@ -261,9 +261,25 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
             )];
           })}</tbody>
         </table>
-        {done && final && viewing === show.day && show.matches.filter((m) => (tab === 'all' || m.key === tab) && (m.round ?? 'F') === 'F').map((m, i) => (
-          <p key={i}>🏆 {t('champion')}: <b>{label(m.sides[m.result!.winner]).name}</b></p>
-        ))}
+        {/* Juara tiap nomor (urut MS…XD; beregu: per format), juara negara sendiri disorot. */}
+        {done && final && viewing === show.day && (() => {
+          const finals = show.matches.filter((m) => (tab === 'all' || m.key === tab) && (m.round ?? 'F') === 'F' && m.result)
+            .sort((a, b) => keys.indexOf(a.key) - keys.indexOf(b.key));
+          return finals.length > 0 && (
+            <section className="champs">
+              <h4>🏆 {t('champion')}</h4>
+              <ul>{finals.map((m) => {
+                const id = m.sides[m.result!.winner], who = label(id);
+                return (
+                  <li key={m.key} className={isMine(id) ? 'mine' : undefined}>
+                    <span className="chip">{team ? formatName(m.key as TeamFormat, show.tournamentId) : m.key}</span>
+                    <span className="champ-name"><Flag id={who.country} /><b>{who.name}</b></span>
+                  </li>
+                );
+              })}</ul>
+            </section>
+          );
+        })()}
         <div className="controls roundbar">
           {playing
             ? <button onClick={onSkipRest}>{t(daily ? 'simDay' : 'simRound')}</button>

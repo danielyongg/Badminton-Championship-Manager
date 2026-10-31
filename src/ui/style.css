@@ -80,6 +80,14 @@ button[aria-pressed]:hover:not(:disabled) { border-color: transparent; color: va
 th.sortable { cursor: pointer; user-select: none; }
 th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .chip.sector { margin-right: 3px; }
+.champs { border: 1px solid var(--line); border-top: 3px solid var(--gold); border-radius: 8px; padding: 8px 12px; margin: 4px 0 12px; }
+.champs h4 { margin: 0 0 6px; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.champs ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
+.champs li { display: grid; grid-template-columns: minmax(3.2em, max-content) minmax(0, 1fr); align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.champs li:last-child { border-bottom: 0; }
+.champs li .chip { text-align: center; }
+.champs li.mine { background: var(--accent-soft); margin: 0 -12px; padding: 6px 12px; }
+.champ-name { overflow-wrap: anywhere; }
 .plan th { white-space: nowrap; }
 .plan-cell { position: relative; display: inline-block; font-size: .8rem; padding: 3px 6px; min-width: 7.5em; border: 1px solid transparent; border-radius: 4px; white-space: nowrap; cursor: pointer; }
 .plan-cell.locked { cursor: default; color: var(--muted); } /* entry sudah ditutup */
