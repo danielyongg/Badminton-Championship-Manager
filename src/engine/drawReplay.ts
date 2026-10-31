@@ -4,7 +4,8 @@ import type { DrawStep, EntrantId } from './types';
 
 export interface DrawBoard {
   /** Bagan gugur: posisi → isi (posisi dimulai dari 1). */
-  slots: Record<number, { entrant?: EntrantId; seed?: number; bye?: boolean; qualifier?: boolean }>;
+  /** `tag`: asal posisi di undian babak gugur beregu (1A = juara Grup A, 2B = runner-up Grup B). */
+  slots: Record<number, { entrant?: EntrantId; seed?: number; bye?: boolean; qualifier?: boolean; tag?: string }>;
   /** Format grup: huruf grup → anggota (urut pot). */
   groups: Record<string, EntrantId[]>;
 }
@@ -17,6 +18,7 @@ export function replayDraw(steps: DrawStep[], upTo = steps.length): DrawBoard {
     const v = s.vars;
     if (s.key === 'step_seed') Object.assign(at(s.pos!), { entrant: s.entrant, seed: Number(v.s) });
     else if (s.key === 'step_place') at(s.pos!).entrant = s.entrant;
+    else if (s.key === 'step_winner' || s.key === 'step_runnerUp') Object.assign(at(s.pos!), { entrant: s.entrant, tag: `${v.n ?? 1}${v.g}` });
     else if (s.key === 'step_bye') at(s.pos!).bye = true;
     else if (s.key === 'step_qualifier') at(s.pos!).qualifier = true;
     else if (s.key === 'step_swap') {

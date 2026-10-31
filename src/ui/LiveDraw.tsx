@@ -16,7 +16,7 @@ export interface DrawShowData { steps: DrawStep[]; size?: number; groups?: numbe
 function phaseLabel(phase: string) {
   if (phase.startsWith('seed')) { const [a, b] = SEED_POTS[Number(phase.slice(4))] ?? [0, 0]; return t('draw_potSeeds', { a, b }); }
   if (phase.startsWith('pot')) return t('draw_pot', { k: phase.slice(3) });
-  return t(({ step_bye: 'bye', step_qualifier: 'qualifying', step_place: 'draw_unseeded', step_swap: 'draw_separation', step_clash: 'draw_separation' } as const)[phase as 'step_bye'] ?? 'draw_start');
+  return t(({ step_bye: 'bye', step_qualifier: 'qualifying', step_place: 'draw_unseeded', step_swap: 'draw_separation', step_clash: 'draw_separation', step_winner: 'draw_groupWinners', step_runnerUp: 'draw_runnersUp' } as const)[phase as 'step_bye'] ?? 'draw_start');
 }
 
 /** `page`: tampil di halaman turnamen (bukan pop-up); putar ulang undian tetap pop-up. */
@@ -75,7 +75,7 @@ export function LiveDraw({ title, qualTitle, show, name, mine, onClose, onSkipEv
           return (
             <li key={p} className={`${touched.has(p) ? 'flash' : ''}${empty ? ' empty' : ''}${x.entrant && mine(x.entrant) ? ' minerow' : ''}`}>
               <span className="pos">{p}</span>
-              <span className="seedtag">{x.seed ? x.seed : x.qualifier ? 'Q' : ''}</span>
+              <span className="seedtag">{x.seed ? x.seed : x.tag ?? (x.qualifier ? 'Q' : '')}</span>
               <span className="nm">{x.bye ? <span className="muted">{t('bye')}</span> : x.qualifier ? <span className="muted">{t('qualifying')}</span> : empty ? '·' : slotWho(x.entrant)}</span>
             </li>
           );
@@ -87,7 +87,7 @@ export function LiveDraw({ title, qualTitle, show, name, mine, onClose, onSkipEv
   const lastSlot = last?.pos !== undefined ? board.slots[last.pos] : undefined;
   const spotlight = last?.entrant && last.pos !== undefined && last.key !== 'step_swap' ? (
     <div className={`drawspot${mine(last.entrant) ? ' mine' : ''}`} key={idx}>
-      {lastSlot?.seed ? <span className="seedtag big">{lastSlot.seed}</span> : null}
+      {lastSlot?.seed || lastSlot?.tag ? <span className="seedtag big">{lastSlot.seed || lastSlot.tag}</span> : null}
       <span className="nm"><Flag id={last.entrant} />{name(last.entrant)}</span>
       <span className="to">→ {per < size ? `Q${quarterOf(last.pos)} · ` : ''}{last.pos}</span>
     </div>

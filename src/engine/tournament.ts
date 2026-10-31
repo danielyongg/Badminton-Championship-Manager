@@ -7,7 +7,7 @@ import { emptyStats, matchConfigFor, simulateMatch, type MatchResult, type SideI
 import type { DayPlan } from './schedule';
 import { hasTrait, QUICK_RECOVERY } from './traits';
 import { normal, type Rng } from './rng';
-import type { Discipline, DrawSlot, DrawStep, EntrantId, Match, MatchConfig, Pair, Player, Ruleset, Tier, TournamentDef } from './types';
+import type { Discipline, DrawSlot, DrawStep, EntrantId, Match, MatchConfig, Pair, Player, Ruleset, TeamFormat, Tier, TournamentDef } from './types';
 import type { MatchRound } from './knockout';
 
 // Satu nomor (mis. MS) dalam satu turnamen: entry → kualifikasi → drawing → main draw.
@@ -33,6 +33,9 @@ export interface DrawShow {
   groups?: number;
   /** Bagan kualifikasi per nomor (ditampilkan sebelum undian babak utama); turnamen dimainkan: semua nomor di undian pertama. */
   quals?: { discipline: Discipline; sections: (Candidate | null)[][] }[];
+  /** Beregu: format (Thomas/Uber/…) & undian babak gugur setelah fase grup. */
+  format?: TeamFormat;
+  ko?: true;
 }
 /** Daftar entry semua nomor satu turnamen (ditampilkan sekaligus sebelum undian). */
 export interface EntriesShow { tournamentId: string; lists: { discipline: Discipline; entry: EntryList }[] }

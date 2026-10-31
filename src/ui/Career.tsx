@@ -76,7 +76,8 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   // Live drawing tiap nomor turnamen yang dimainkan ("Lewati drawing" = sisa nomor turnamen itu).
   const [drawAsk, setDrawAsk] = useState<{ d: DrawShow; resolve: () => void }>();
   const skipDraw = useRef(false);
-  const drawHook: DrawHook = (d) => (skipDraw.current ? null : new Promise<void>((resolve) => setDrawAsk({ d, resolve })));
+  // Undian babak gugur beregu (setelah fase grup) tetap tampil walau undian grup dilewati, kecuali sisa turnamen disimulasikan.
+  const drawHook: DrawHook = (d) => ((d.ko ? skipEvent.current : skipDraw.current) ? null : new Promise<void>((resolve) => setDrawAsk({ d, resolve })));
   // Daftar entry semua nomor sebelum undian ("Lewati drawing" = langsung ke jadwal).
   const [entriesAsk, setEntriesAsk] = useState<{ e: EntriesShow; resolve: () => void }>();
   const entriesHook: EntriesHook = (e) => (skipDraw.current ? null : new Promise<void>((resolve) => setEntriesAsk({ e, resolve })));
@@ -191,8 +192,8 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
           onSkipDraw={() => { skipDraw.current = true; setEntriesAsk(undefined); entriesAsk.resolve(); }} />
       )
       : drawAsk ? (
-        <LiveDraw page key={`${drawAsk.d.tournamentId}-${drawAsk.d.discipline}`} show={drawAsk.d}
-          title={`${eventName(game.ruleset, drawAsk.d.tournamentId, state.date.year)}${drawAsk.d.discipline ? ` · ${drawAsk.d.discipline}` : ''}`}
+        <LiveDraw page key={`${drawAsk.d.tournamentId}-${drawAsk.d.discipline ?? drawAsk.d.format}-${drawAsk.d.ko ? 'ko' : ''}`} show={drawAsk.d}
+          title={`${eventName(game.ruleset, drawAsk.d.tournamentId, state.date.year)}${drawAsk.d.discipline ? ` · ${drawAsk.d.discipline}` : ''}${drawAsk.d.format ? ` · ${formatName(drawAsk.d.format, drawAsk.d.tournamentId)}` : ''}${drawAsk.d.ko ? ` · ${t('knockout')}` : ''}`}
           qualTitle={eventName(game.ruleset, drawAsk.d.tournamentId, state.date.year)}
           name={(id) => (drawAsk.d.discipline ? `${entrantLabel(state, id).name} (${entrantLabel(state, id).country})` : nameOfCountry(id))}
           mine={(id) => (drawAsk.d.discipline ? entrantLabel(state, id).country === managed : id === managed)}

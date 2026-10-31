@@ -106,7 +106,8 @@ export async function playGroup(ids: EntrantId[], play: PlayFn, parallel = false
  * Penempatan lolosan grup ke bagan gugur. Juara grup i → posisi unggulan ke-i;
  * runner-up → paruh yang berlawanan dengan juara grupnya (WTF: juara grup A vs runner-up B di SF).
  */
-export function knockoutFromGroups(standings: Standing[][], advance: number, rng: Rng): (EntrantId | null)[] {
+/** `steps`: diisi langkah undian (juara grup → posisi tetap, peringkat berikutnya diundi ke paruh lain) untuk live drawing. */
+export function knockoutFromGroups(standings: Standing[][], advance: number, rng: Rng, steps?: DrawStep[]): (EntrantId | null)[] {
   const n = standings.length * advance;
   const N = nextPow2(n);
   const field: (EntrantId | null)[] = Array(N).fill(null);
@@ -118,12 +119,15 @@ export function knockoutFromGroups(standings: Standing[][], advance: number, rng
     const pos = order[i] ?? shuffle(rng, field.map((_, k) => k + 1).filter((p) => !field[p - 1] && !order.includes(p)))[0];
     field[pos - 1] = s[0].id;
     winnerPos[i] = pos;
+    steps?.push({ key: 'step_winner', vars: { g: String.fromCharCode(65 + i), e: s[0].id, pos }, pos, entrant: s[0].id });
   });
   for (let place = 1; place < advance; place++)
     standings.forEach((s, i) => {
       const free = field.map((x, k) => (x ? 0 : k + 1)).filter((p) => p && top(p) !== top(winnerPos[i]));
       const any = field.map((x, k) => (x ? 0 : k + 1)).filter(Boolean);
-      field[shuffle(rng, free.length ? free : any)[0] - 1] = s[place].id;
+      const pos = shuffle(rng, free.length ? free : any)[0];
+      field[pos - 1] = s[place].id;
+      steps?.push({ key: 'step_runnerUp', vars: { g: String.fromCharCode(65 + i), n: place + 1, e: s[place].id, pos }, pos, entrant: s[place].id });
     });
   return field;
 }

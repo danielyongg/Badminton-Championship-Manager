@@ -5,7 +5,7 @@ import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
 import { liveTeamResults, newSeason, playWeek, weekKey, type ChooseEvent, type WeekHooks } from './season';
-import type { LiveRequest } from './tournament';
+import type { DrawShow, LiveRequest } from './tournament';
 
 const rs = BWF_2026;
 const weekOf = async (week: number, hooks: (s: ReturnType<typeof newSeason>) => WeekHooks = () => ({}), seed = 3) => {
@@ -132,8 +132,10 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
     const lineups: string[] = [];
     const shows: RoundShow[] = [];
     const liveTies: number[] = []; // hasil sementara (halaman turnamen) saat tiap babak dimulai
+    const koDraws: DrawShow[] = [];
     const state = await weekOf(17, (s) => ({
       chooseEvent: choose(['thomas-uber-cup']),
+      draw: (d) => { if (d.ko) koDraws.push(d); return null; },
       team: { squad: () => null, lineup: (req) => { lineups.push(`${req.format}:${req.round}`); return Promise.resolve(req.suggested); } },
       round: (r) => {
         if (r.phase === 'done') shows.push(r);
@@ -159,6 +161,14 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
     expect(lineups.sort()).toEqual(inaTies.sort());
     for (const r of res) for (const t of r.ties) expect(Math.max(...t.score)).toBeGreaterThanOrEqual(3);
     expect(shows.map((s) => s.round)).toEqual(['G', 'G', 'G', 'QF', 'SF', 'F']); // grup: satu matchday (tie) per hari
+    // Undian babak gugur (live drawing) sekali per format: 4 juara grup di posisi tetap, 4 runner-up di paruh lain.
+    expect(koDraws.map((d) => d.format).sort()).toEqual(['thomas', 'uber']);
+    for (const d of koDraws) {
+      expect(d.size).toBe(8);
+      const win = d.steps.filter((x) => x.key === 'step_winner'), run = d.steps.filter((x) => x.key === 'step_runnerUp');
+      expect([win.length, run.length]).toEqual([4, 4]);
+      for (const r of run) expect(r.pos! <= 4).not.toBe(win.find((w) => w.vars.g === r.vars.g)!.pos! <= 4);
+    }
     expect(shows.flatMap((s) => s.matches).length).toBe(res.reduce((n, r) => n + r.ties.length, 0));
   });
 });

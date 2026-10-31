@@ -181,6 +181,8 @@ export async function runTeamEvent(
   teams: string[], groups: GroupStage | undefined, tie: PlayFn, rng: Rng, onDraw?: (steps: DrawStep[], groups: string[][]) => Promise<void> | null, parallel = false,
   /** Diisi selama turnamen berjalan: klasemen grup begitu fase grup selesai, bagan gugur sejak babak gugur dimulai. */
   live: { standings?: Standing[][]; rounds?: (string | null)[][] } = {},
+  /** Undian babak gugur setelah fase grup (live drawing). */
+  onKoDraw?: (steps: DrawStep[], size: number) => Promise<void> | null,
 ): Promise<TeamEventRun> {
   const standing = (id: string): Standing => ({ id, wins: 0, gameDiff: 0, pointDiff: 0 });
   if (groups && teams.length > groups.groups * groups.advance) {
@@ -189,7 +191,10 @@ export async function runTeamEvent(
     await onDraw?.(drawn.steps, ids);
     const standings = await each(parallel, ids, (g) => playGroup(g, tie, parallel));
     live.standings = standings;
-    const ko = await playKnockout(knockoutFromGroups(standings, groups.advance, rng), tie, undefined, parallel, live.rounds = []);
+    const koSteps: DrawStep[] = [];
+    const field = knockoutFromGroups(standings, groups.advance, rng, koSteps);
+    await onKoDraw?.(koSteps, field.length);
+    const ko = await playKnockout(field, tie, undefined, parallel, live.rounds = []);
     return { groups: ids, standings, steps: drawn.steps, ...ko };
   }
   // ponytail: unggulan sebagai "juara grup" berisi 1 tim → posisi unggulan & bye dari knockoutFromGroups.

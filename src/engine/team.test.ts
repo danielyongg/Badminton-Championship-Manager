@@ -191,7 +191,10 @@ describe('Thomas, Uber & Sudirman Cup', () => {
   it('live drawing: undian pot putaran final beregu ditampilkan & tersimpan untuk putar ulang', async () => {
     const state = newSeason(WORLD, BWF_2026, 9, undefined, 'INA');
     const team: DrawShow[] = [];
-    await until(state, BWF_2026, 19, 9, { draw: (d) => { if (!d.discipline) team.push(d); return null; } });
+    const ko: DrawShow[] = [];
+    await until(state, BWF_2026, 19, 9, { draw: (d) => { if (!d.discipline) (d.ko ? ko : team).push(d); return null; } });
+    // Undian babak gugur setelah fase grup: tiap kejuaraan bergrup, per format.
+    expect(ko.filter((d) => d.tournamentId === 'thomas-uber-cup').map((d) => d.format).sort()).toEqual(['thomas', 'uber']);
     // Kejuaraan kontinental (fase grup) ikut diundi; Asia 4 grup.
     expect(team.filter((d) => d.tournamentId === 'asia-team').map((d) => d.groups)).toEqual([4, 4]);
     const finalsDraws = team.filter((d) => d.tournamentId === 'thomas-uber-cup');

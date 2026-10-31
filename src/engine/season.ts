@@ -1318,8 +1318,9 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
     const run = await runTeamEvent(teams, ev.confederation || ev.countries ? ev.finals?.groups : finals.groups, gate ? gate.wrap(format, tie) : tie, rng,
       (steps, groups) => {
         Object.assign(current, { groups, drawSteps: steps });
-        return draw?.({ tournamentId: ev.id, entrants: teams, steps, groups: finals.groups.groups }) ?? null;
-      }, gated, liveStages(current));
+        return draw?.({ tournamentId: ev.id, entrants: teams, steps, groups: finals.groups.groups, format }) ?? null;
+      }, gated, liveStages(current),
+      (steps, size) => draw?.({ tournamentId: ev.id, entrants: teams, steps, size, format, ko: true }) ?? null);
     liveTeamResults.set(state, (liveTeamResults.get(state) ?? []).filter((r) => r !== current));
     state.teamResults.push({
       eventId: ev.id, year, format, confederation: ev.confederation, ...(ev.countries && { games: true as const }), teams,
