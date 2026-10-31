@@ -42,6 +42,16 @@ describe('jadwal harian', () => {
     for (const r of p.rounds) expect(r.length).toBeGreaterThan(0);
   });
 
+  it('order of play acak (seed): unggulan tidak selalu main duluan, urutan stabil, jeda dua laga sehari tetap', () => {
+    const list = Array.from({ length: 20 }, (_, i) => ({ key: i % 2 ? 'MD' : 'XD', players: i === 0 || i === 3 ? ['dup', `p${i}`] : [`p${i}`, `q${i}`], prio: i === 0 ? 9 : 0 }));
+    const plain = orderOfPlay(list, 4), a = orderOfPlay(list, 4, 123), b = orderOfPlay(list, 4, 123);
+    expect(a).toEqual(b);
+    expect(a).not.toEqual(plain);
+    const firstWave = (o: typeof a) => o.map((x, i) => [x, i] as const).filter(([x]) => x.order === 1).map(([, i]) => i);
+    expect([3, 7, 11, 99].some((seed) => !firstWave(orderOfPlay(list, 4, seed)).includes(0))).toBe(true);
+    for (const seed of [1, 2, 3]) { const o = orderOfPlay(list, 4, seed); expect(Math.abs(o[0].order - o[3].order)).toBeGreaterThanOrEqual(2); }
+  });
+
   it('order of play: dua laga sehari seorang atlet berjarak ≥ 1 gelombang; unggulan di lapangan 1', () => {
     const list = [
       { key: 'MD', players: ['a', 'b'], prio: 0 }, { key: 'MD', players: ['c', 'd'], prio: 0 },

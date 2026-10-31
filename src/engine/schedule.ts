@@ -1,4 +1,5 @@
 import { roundRobin } from './groups';
+import { makeRng, shuffle } from './rng';
 import type { MatchRound } from './knockout';
 import type { Discipline, Tier } from './types';
 
@@ -74,15 +75,18 @@ export const courtsFor = (matches: number) => Math.min(8, Math.max(1, Math.ceil(
 
 /**
  * Order of play satu hari. Masukan sudah urut babak lalu urutan bagan; laga diselang-seling antar nomor (`key`) lalu dibagi
- * ke lapangan per gelombang (±1 jam). Di tiap gelombang laga ber-`prio` tertinggi (unggulan, tuan rumah) di lapangan 1.
+ * ke lapangan per gelombang (±1 jam). `seed`: urutan laga diacak (seperti order of play asli, unggulan tidak selalu main
+ * duluan) dengan acak tersendiri yang tidak menggeser hasil laga. Di tiap gelombang laga ber-`prio` tertinggi (unggulan,
+ * tuan rumah) di lapangan 1.
  * Atlet dengan dua laga sehari diberi jeda ≥ 1 gelombang (GCR 11.3: istirahat ≥ 60 menit); bila tidak bisa, laganya digeser ke belakang.
  * Hasil sejajar masukan: lapangan (1…) & urutan di lapangan itu (1…).
  */
-export function orderOfPlay(list: { key: string; players: string[]; prio: number }[], courts = courtsFor(list.length)): { court: number; order: number }[] {
+export function orderOfPlay(list: { key: string; players: string[]; prio: number }[], courts = courtsFor(list.length), seed?: number): { court: number; order: number }[] {
   const byKey = new Map<string, number[]>();
   list.forEach((m, i) => { const q = byKey.get(m.key); if (q) q.push(i); else byKey.set(m.key, [i]); });
-  const seq: number[] = [];
+  let seq: number[] = [];
   for (let k = 0; seq.length < list.length; k++) for (const q of byKey.values()) if (k < q.length) seq.push(q[k]);
+  if (seed !== undefined) seq = shuffle(makeRng(seed), seq);
   // Jeda dua laga sehari: tiap laga ditaruh di gelombang paling awal yang tidak bentrok dengan laga lain atletnya.
   const wave: number[] = [];
   const load: number[] = [];

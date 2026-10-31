@@ -699,7 +699,14 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 .drawctl { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
 .seg { display: inline-flex; }
 .duty { border: 1px solid var(--line); border-left: 3px solid var(--gold); border-radius: 8px; padding: 6px 10px 8px; margin-bottom: 10px; }
-.duty-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 2px; font-weight: 600; font-size: .9rem; }
+.duty-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-weight: 600; font-size: .9rem; cursor: pointer; list-style: none; min-height: 28px; align-items: center; }
+.duty-head::-webkit-details-marker { display: none; }
+.duty-head > span::before { content: '▸'; display: inline-block; width: 1em; color: var(--muted); transition: transform .15s; }
+.duty[open] .duty-head > span::before { transform: rotate(90deg); }
+.duty:not([open]) .duty-head small { display: none; }
+.duty[open] .duty-head { margin-bottom: 2px; }
+.duty-count { display: inline-block; min-width: 1.5em; padding: 0 6px; border-radius: 999px; background: var(--gold-soft); color: var(--fg); font-size: .75rem; text-align: center; }
+@media (prefers-reduced-motion: reduce) { .duty-head > span::before { transition: none; } }
 .duty-head small { min-width: 7.2em; white-space: nowrap; text-align: center; font-weight: 400; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; }
 .duty ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
 .duty li { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; }

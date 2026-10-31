@@ -217,8 +217,9 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
         )}
         {/* Atlet sendiri dengan dua laga hari ini: satu baris per atlet, tombol nomor (lebar tetap, sejajar) untuk mundur. */}
         {doubleDuty.length > 0 && (
-          <section className="duty" title={t('withdrawTwoHint')}>
-            <div className="duty-head"><span>⚡ {t('dutyHead')}</span><small className="muted-text">{t('withdrawCol')}</small></div>
+          // Dilipat secara bawaan: judul + jumlah atlet; dibuka untuk memilih nomor yang ditinggalkan.
+          <details className="duty" title={t('withdrawTwoHint')}>
+            <summary className="duty-head"><span>⚡ {t('dutyHead')} <span className="duty-count">{doubleDuty.length}</span></span><small className="muted-text">{t('withdrawCol')}</small></summary>
             <ul>
               {doubleDuty.map(([pid, ms]) => {
                 const keyOf = (m: RoundMatch) => `${m.key}:${m.sides.find(isMine)!}`;
@@ -238,7 +239,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
                 );
               })}
             </ul>
-          </section>
+          </details>
         )}
         <table className="roundlist">
           <colgroup><col className="side" /><col className="vs" /><col className="side" /><col className="score" /></colgroup>

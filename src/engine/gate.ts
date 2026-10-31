@@ -61,7 +61,9 @@ export function roundGate(tournamentId: string, keys: readonly string[], hook?: 
       const prev = (past[unit] ??= []);
       const top = new Map<number, number>(); // lapangan → urutan terakhir (gelombang sebelumnya hari ini)
       for (const m of prev) top.set(m.court!, Math.max(top.get(m.court!) ?? 0, m.order!));
-      const oop = orderOfPlay(now.map((w) => ({ key: w.key, players: w.sides.flatMap((id) => sched.who(w.key, id)), prio: sched.prio(w.key, w.sides) })));
+      // Urutan acak per turnamen & hari (stabil, tidak memakai acak hasil laga).
+      const seed = [...`${tournamentId}:${unit}:${prev.length}`].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+      const oop = orderOfPlay(now.map((w) => ({ key: w.key, players: w.sides.flatMap((id) => sched.who(w.key, id)), prio: sched.prio(w.key, w.sides) })), undefined, seed);
       fresh.forEach((m, i) => Object.assign(m, { court: oop[i].court, order: oop[i].order + (top.get(oop[i].court) ?? 0) }));
       const seq = fresh.map((_, i) => i).sort((a, b) => fresh[a].order! - fresh[b].order! || fresh[a].court! - fresh[b].court!);
       now.splice(0, now.length, ...seq.map((i) => now[i]));
