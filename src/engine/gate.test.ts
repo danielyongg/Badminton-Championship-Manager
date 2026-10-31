@@ -180,3 +180,25 @@ describe('urutan babak', () => {
     expect(order.map(roundOrder).every(Number.isFinite)).toBe(true);
   });
 });
+
+it('jadwal harian: bagan selalu memajukan pemenang laga yang tercatat (juga gelombang kedua di hari yang sama, mis. Q2 setelah Q1)', async () => {
+  const id = 'thailand-masters'; // Super 300 dengan kualifikasi: Q1 & Q2 di hari pertama (dua gelombang)
+  const state = await weekOf(5, () => ({ chooseEvent: choose([id]), round: () => Promise.resolve() }));
+  const ms = state.matches.filter((m) => m.tournamentId === id && m.year === 2026);
+  expect(ms.length).toBeGreaterThan(0);
+  let checked = 0;
+  for (const rec of state.eventRecords.filter((r) => r.tournamentId === id && r.year === 2026))
+    for (const rounds of [rec.rounds, ...rec.qualRounds])
+      rounds.forEach((field, r) => {
+        const next = rounds[r + 1];
+        if (!next) return;
+        for (let k = 0; k < field.length / 2; k++) {
+          const a = field[2 * k], b = field[2 * k + 1];
+          if (!a || !b) continue;
+          const m = ms.find((x) => x.discipline === rec.discipline && x.sides.includes(a) && x.sides.includes(b));
+          expect(next[k], `${rec.discipline} ${a} vs ${b}`).toBe(m!.sides[m!.winner]);
+          checked++;
+        }
+      });
+  expect(checked).toBeGreaterThan(50);
+});

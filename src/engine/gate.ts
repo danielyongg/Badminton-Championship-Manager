@@ -80,7 +80,7 @@ export function roundGate(tournamentId: string, keys: readonly string[], hook?: 
     }
     await hook?.({ ...base, phase: 'done', matches });
     flushing = false;
-    now.forEach((w, i) => w.resolve(matches[i].result!));
+    now.forEach((w, i) => w.resolve(fresh[i].result!)); // hasil gelombang ini (bukan daftar sehari: gelombang kedua bergeser)
     schedule();
   }
 
