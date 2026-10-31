@@ -208,6 +208,7 @@ export const en: Record<TextKey, string> = {
   nthToday: 'match {n} today', tourLoad: 'energy −{n} from earlier matches', tourLoadHint: 'Tiredness from earlier matches in this tournament: longer matches cost more; part of it recovers each night, very little between two matches on the same day.', retiredInjury: '{name} retired (injury)',
   twoToday: 'plays 2 events today', withdrawFrom: 'Withdraw from {d}', withdrewFrom: 'withdrew from {d}', withdrawTwoHint: 'The second match starts with less energy. Withdrawing = walkover for the rest of that event. 💡 assistant’s suggestion.', tvMatch: 'Televised match (Hawk-Eye if the tournament uses Instant Review)',
   withdrawPick: 'tap an event to withdraw',
+  courtShort: 'C{n}',
   gameSpeed: 'Speed',
   speed_slow: 'Slow',
   speed_normal: 'Normal',

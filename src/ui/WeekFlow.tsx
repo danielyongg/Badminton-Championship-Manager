@@ -154,7 +154,8 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   const tab = daily
     ? (picked && picked !== 'all' && keys.includes(picked) ? current?.key ?? picked : 'all')
     : current?.key ?? (picked && keys.includes(picked) ? picked : keys.find((k) => mineKeys.has(k)) ?? keys[0]);
-  const shown = (daily ? [...rows].sort((a, b) => (a.court ?? 0) - (b.court ?? 0) || (a.order ?? 0) - (b.order ?? 0)) : rows)
+  // Jadwal harian: urut main (gelombang demi gelombang, lalu lapangan) — sorotan laga berjalan turun dari atas ke bawah.
+  const shown = (daily ? [...rows].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.court ?? 0) - (b.court ?? 0)) : rows)
     .filter((m) => tab === 'all' || m.key === tab);
   const multiRound = new Set(rows.map((m) => m.round)).size > 1;
   // Atlet sendiri dengan dua laga belum dimainkan hari ini (dua nomor): boleh mundur dari salah satunya (saran: nomor laga keduanya).
@@ -234,7 +235,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
         )}
         <table className="roundlist">
           <colgroup><col className="side" /><col className="vs" /><col className="side" /><col className="score" /></colgroup>
-          <tbody>{shown.flatMap((m, i) => {
+          <tbody>{shown.flatMap((m) => {
             const sides = m.sides.map(label);
             const mine = m.sides.some(isMine);
             const w = m.result?.winner;
@@ -244,13 +245,16 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
               : [...m.result.scores.map(([x, y], i) => <span key={i} className="game">{x}-{y}</span>), endTag(m.result)]; // satu game per baris
             const k = rowKey(m);
             const rec = score && !team ? recordOf(m) : undefined;
-            // Jadwal harian: judul lapangan setiap pergantian lapangan; kolom tengah = nomor (& babak bila sehari lebih dari satu babak).
-            const court = daily && m.court !== shown[i - 1]?.court
-              ? [<tr key={`c${m.court}`} className="court-row"><th colSpan={4}>{t('courtN', { n: m.court! })}</th></tr>] : [];
-            return [...court, (
+            return [(
               <tr key={k} className={[mine && 'mine-row', m === current && 'current'].filter(Boolean).join(' ') || undefined}>
                 <td className={w === 0 ? 'win' : undefined}><Flag id={sides[0].country} />{sides[0].name}{seedTag(m.key, m.sides[0])}</td>
-                <td className="muted-text">{daily ? <small>{tab === 'all' ? m.key : ''}{multiRound ? ` ${m.round}` : ''}{tab !== 'all' && !multiRound ? 'vs' : ''}{m.tv && <span title={t('tvMatch')}> 📺</span>}</small> : 'vs'}</td>
+                {/* Jadwal harian: kolom tengah = lapangan, lalu nomor (& babak bila sehari lebih dari satu babak) & 📺 laga siaran. */}
+                <td className="muted-text">{daily ? (
+                  <small className="slot">
+                    <span className="court" title={t('courtN', { n: m.court! })}>{t('courtShort', { n: m.court! })}</span>
+                    {tab === 'all' ? m.key : ''}{multiRound ? ` ${m.round}` : ''}{m.tv && <span title={t('tvMatch')}> 📺</span>}
+                  </small>
+                ) : 'vs'}</td>
                 <td className={w === 1 ? 'win' : undefined}><Flag id={sides[1].country} />{sides[1].name}{seedTag(m.key, m.sides[1])}</td>
                 <td className="num">{rec ? <MatchLink m={rec} name={(x) => label(x).name} title={eventName(ruleset, show.tournamentId, state.date.year)}>{score}</MatchLink> : score || (m === current ? '…'
                   : mine && !done && <button className="rowtoggle" title={t('rowToggleHint')} aria-label={t(skipped.has(k) ? 'rowSkip' : 'rowLive')} onClick={() => toggle(k)}>

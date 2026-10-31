@@ -653,14 +653,15 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
   .weeklist li > button:first-of-type { margin-left: auto; }
 }
 .roundlist { width: 100%; margin-bottom: 10px; table-layout: fixed; }
-.roundlist col.side { width: 40%; } .roundlist col.vs { width: 2.5em; } .roundlist col.score { width: 20%; }
+.roundlist col.side { width: 40%; } .roundlist col.vs { width: 3em; } .roundlist col.score { width: 20%; }
 .roundlist td { overflow: hidden; text-overflow: ellipsis; }
 .roundlist tr.mine-row td { background: var(--accent-soft); }
 .roundlist td.win { font-weight: 700; }
 @media (max-width: 600px) { .roundlist td { white-space: normal; overflow-wrap: anywhere; } /* nama panjang tetap utuh terlihat, tidak terpotong "…" */ .roundlist col.side { width: auto; } .roundlist col.score { width: 6em; } }
 .roundbar { position: sticky; bottom: 0; z-index: 2; background: var(--surface); padding: 10px 0; border-top: 1px solid var(--line); }
 .roundlist tr.current td { background: var(--gold-soft); }
-.roundlist tr.court-row th { text-align: left; font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding-top: 10px; }
+.roundlist .slot { display: grid; justify-items: center; gap: 2px; line-height: 1.2; }
+.roundlist .slot .court { font-weight: 700; color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: .7rem; }
 .subnav.days button { display: grid; line-height: 1.15; text-align: center; }
 .subnav.days button small { font-size: .68rem; opacity: .8; }
 .subnav.days button[aria-current='date'] { outline: 2px solid var(--gold); outline-offset: -2px; }

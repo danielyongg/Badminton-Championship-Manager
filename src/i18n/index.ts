@@ -208,6 +208,7 @@ const id = {
   nthToday: 'laga ke-{n} hari ini', tourLoad: 'energi −{n} dari laga sebelumnya', tourLoadHint: 'Lelah dari laga-laga sebelumnya di turnamen ini: makin panjang laganya makin besar; sebagian pulih tiap malam, sedikit saja di antara dua laga di hari yang sama.', retiredInjury: '{name} mundur (cedera)',
   twoToday: 'main 2 nomor hari ini', withdrawFrom: 'Mundur dari {d}', withdrewFrom: 'mundur dari {d}', withdrawTwoHint: 'Laga kedua dimulai dengan energi lebih rendah. Mundur = walkover di sisa laga nomor itu. 💡 saran asisten.', tvMatch: 'Laga siaran (Hawk-Eye bila turnamen memakai Instant Review)',
   withdrawPick: 'ketuk nomor untuk mundur',
+  courtShort: 'L{n}',
   gameSpeed: 'Kecepatan',
   speed_slow: 'Lambat',
   speed_normal: 'Normal',
