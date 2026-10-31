@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyCountryQuota } from './entry';
-import { groupDraw, groupEliminatedRound, knockoutFromGroups, playGroup, type Standing } from './groups';
+import { groupDraw, groupEliminatedRound, knockoutFromGroups, koHasLot, playGroup, provisionalField, type Standing } from './groups';
 import { makeRng } from './rng';
 import type { DrawStep } from './types';
 
@@ -43,6 +43,16 @@ describe('fase grup', () => {
     expect(fields[1].f).toEqual(fields[0].f);
     expect(fields[0].steps.filter((x) => x.key === 'step_bye').length).toBe(4);
     for (const top of ['G0', 'G1', 'G2', 'G3']) { const i = fields[0].f.indexOf(top); expect(fields[0].f[i ^ 1]).toBeNull(); }
+  });
+
+  it('bagan sementara: Finals pasti (1A–2B, 2A–1B); 4 grup × 2: juara C/D & runner-up diundi; 12 grup × 1: 4 bye', () => {
+    expect(provisionalField(2, 2)).toEqual([{ g: 0, place: 1 }, { g: 1, place: 2 }, { g: 0, place: 2 }, { g: 1, place: 1 }]);
+    const qf = provisionalField(4, 2);
+    expect([qf[0], qf[7]]).toEqual([{ g: 0, place: 1 }, { g: 1, place: 1 }]);
+    expect(qf.filter((x) => typeof x === 'object' && 'drawn' in x).length).toBe(2);
+    expect(qf.filter((x) => x === 'runnerUp').length).toBe(4);
+    expect(provisionalField(12, 1).filter((x) => x === 'bye').length).toBe(4);
+    expect([koHasLot(2, 2), koHasLot(4, 2), koHasLot(12, 1)]).toEqual([false, true, false]);
   });
 
   it('klasemen: menang terbanyak; 2 seri → head-to-head', async () => {

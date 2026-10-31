@@ -94,9 +94,8 @@ it('WTF (format grup): catatan sementara sejak undian, klasemen terisi per grup,
   };
   const draws: DrawShow[] = [];
   const run = await runEvent({ tournament: event, discipline: 'MS', year: 2026, hostCountryId: 'CHN', candidates, ruleset: rs, rng, play, onRecord: (r) => { rec = r; }, onDraw: (d) => { draws.push(d); return null; } });
-  // Undian grup lalu undian babak gugur (SF) setelah fase grup.
-  expect(draws.map((d) => !!d.ko)).toEqual([false, true]);
-  expect(draws[1].size).toBe(4);
+  // Undian grup saja: pasangan SF Finals sudah pasti (juara A vs runner-up B), tanpa live drawing babak gugur.
+  expect(draws.map((d) => !!d.ko)).toEqual([false]);
   expect(seen[0]).toBe(0); // grup pertama dimainkan: belum ada klasemen final
   expect(seen.at(-1)).toBe(1); // grup terakhir: grup pertama sudah final
   expect(rec!.groups!.standings).toEqual(run.groups!.standings);

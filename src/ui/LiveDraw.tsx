@@ -11,7 +11,7 @@ import { Flag } from './Flag';
 const SPEEDS = { slow: 1500, normal: 700, fast: 200 } as const;
 const SEED_POTS = [[1, 2], [3, 4], [5, 8], [9, 16], [17, 32]];
 
-export interface DrawShowData { steps: DrawStep[]; size?: number; groups?: number; quals?: { discipline: Discipline; sections: (Candidate | null)[][] }[] }
+export interface DrawShowData { steps: DrawStep[]; size?: number; groups?: number; quals?: { discipline: Discipline; sections: (Candidate | null)[][] }[]; ko?: true }
 
 function phaseLabel(phase: string) {
   if (phase.startsWith('seed')) { const [a, b] = SEED_POTS[Number(phase.slice(4))] ?? [0, 0]; return t('draw_potSeeds', { a, b }); }
@@ -167,7 +167,7 @@ export function LiveDraw({ title, qualTitle, show, name, mine, onClose, onSkipEv
           )}
         </div>
         <div className="controls roundbar">
-          <button className="primary" onClick={onClose}>{replay ? t('draw_closeReplay') : t('draw_close')}</button>
+          <button className="primary" onClick={onClose}>{replay ? t('draw_closeReplay') : t(show.ko ? 'draw_closeKo' : 'draw_close')}</button>
           {onSkipEvent && <button onClick={() => { onSkipEvent(); onClose(); }}>{t('draw_skipEvent')}</button>}
         </div>
       </>, box,

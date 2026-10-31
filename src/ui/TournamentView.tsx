@@ -134,7 +134,8 @@ export function TournamentView({ id, year: startYear, onOpenPlayer, onBack }: { 
                   </details>
                 </>
               )}
-              {section === 'bracket' && <BracketView rec={rec} matches={matches} {...who} />}
+              {section === 'bracket' && <BracketView rec={rec} matches={matches} {...who}
+                advance={def && 'tierId' in def ? ruleset.tiers.find((x) => x.id === def.tierId)?.groupStage?.[d as Discipline]?.advance : undefined} />}
             </>
           )}
         </>

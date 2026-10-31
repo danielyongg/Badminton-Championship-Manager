@@ -1,4 +1,4 @@
-import { groupDraw, knockoutFromGroups, playGroup, type Standing } from './groups';
+import { groupDraw, knockoutFromGroups, koHasLot, playGroup, type Standing } from './groups';
 import { each, playKnockout, type MatchRound, type PlayFn, type PlayResult } from './knockout';
 import type { Rng } from './rng';
 import { isDoubles, type Discipline, type DrawStep, type EntrantId, type GroupStage, type TeamFormat } from './types';
@@ -193,7 +193,7 @@ export async function runTeamEvent(
     live.standings = standings;
     const koSteps: DrawStep[] = [];
     const field = knockoutFromGroups(standings, groups.advance, rng, koSteps);
-    await onKoDraw?.(koSteps, field.length);
+    if (koHasLot(ids.length, groups.advance)) await onKoDraw?.(koSteps, field.length);
     const ko = await playKnockout(field, tie, undefined, parallel, live.rounds = []);
     return { groups: ids, standings, steps: drawn.steps, ...ko };
   }

@@ -4,7 +4,8 @@ import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { AD_HOC, adHocEntrants, adHocId, autoLineup, autoSquad, lineupError, rankOrder, squadError, squadPool, type Lineup, type TeamEntrant } from '../engine/team';
 import { isDoubles, isJuniorFormat, type Discipline, type TeamFormat } from '../engine/types';
 import { mainRoundName } from '../engine/knockout';
-import { roundRobin, winnerSlots } from '../engine/groups';
+import { roundRobin } from '../engine/groups';
+import { ProvisionalBracket } from './EventViews';
 import { pairAbility } from '../engine/match';
 import { dataName, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, useGame } from './game';
@@ -464,7 +465,8 @@ export function FinalsResult({ r, stage }: { r: TeamResult; stage?: 'groups' | '
           <div className="bracket">{(ko.some((x) => x.round === 'R16') ? ['R16', 'QF', 'SF', 'F'] : ['QF', 'SF', 'F']).map((round) => (
             <div key={round} className="round">{ko.filter((x) => x.round === round).map(tieBox)}</div>
           ))}</div>
-        ) : r.groups ? <ProvisionalBracket r={r} advance={advance} name={name} />
+        ) : r.groups ? <ProvisionalBracket groups={r.groups.length} advance={advance}
+          who={(g, place) => { const id = standingsOf(r)[g][place - 1]?.id; return id && <><Flag id={id} />{name(id)}</>; }} />
         : <p className="hint">{t('knockoutPending')}</p>}
       </>}
     </section>
@@ -493,37 +495,6 @@ function KnockoutBracket({ r, name, tieBox }: { r: TeamResult; name: (c: string)
         </div>
       </div>
     ))}</div>
-  );
-}
-
-/**
- * Bagan sementara selama fase grup: posisi juara grup sudah tetap (diisi pemuncak klasemen saat ini), posisi runner-up
- * baru diundi setelah fase grup selesai.
- */
-function ProvisionalBracket({ r, advance, name }: { r: TeamResult; advance: number; name: (c: string) => string }) {
-  const table = standingsOf(r);
-  const field = winnerSlots(r.groups!.length, advance);
-  const cols: number[] = [];
-  for (let n = field.length; n > 1; n /= 2) cols.push(n);
-  // Juara grup 1–2 tetap; juara grup lain diundi di antara posisi unggulan setingkat (3–4, 5–8, …).
-  const tier = (g: number) => { const lo = g < 2 ? g : 2 ** Math.floor(Math.log2(g)); return g < 2 ? [g] : Array.from({ length: Math.min(lo * 2, table.length) - lo }, (_, k) => lo + k); };
-  const slot = (g: number | null | undefined, k: number) => g === null || g === undefined
-    ? <div key={k} className="muted">{t('runnerUpDrawn')}</div>
-    : advance > 1 && g >= 2
-      ? <div key={k} className="muted">{tier(g).map((x) => `1${String.fromCharCode(65 + x)}`).join(' / ')} ({t('drawnShort')})</div>
-      : <div key={k}><small className="muted-text">1{String.fromCharCode(65 + g)}</small> <Flag id={table[g][0].id} />{name(table[g][0].id)}</div>;
-  return (
-    <>
-      <div className="bracket provisional">{cols.map((n, i) => (
-        <div key={n} className="round-col">
-          <small className="muted-text">{mainRoundName(n, i)}</small>
-          <div className="round">{Array.from({ length: n / 2 }, (_, k) => (
-            <div key={k} className="match">{i === 0 ? [slot(field[2 * k], 0), slot(field[2 * k + 1], 1)] : [<div key={0} className="muted">—</div>, <div key={1} className="muted">—</div>]}</div>
-          ))}</div>
-        </div>
-      ))}</div>
-      <p className="hint">{t('provisionalHint')}</p>
-    </>
   );
 }
 

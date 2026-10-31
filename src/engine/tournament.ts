@@ -1,6 +1,6 @@
 import { makeDraw, type DrawResult } from './draw';
 import { acceptEntries, qualifyingSections, type Candidate, type EntryList } from './entry';
-import { groupDraw, groupEliminatedRound, knockoutFromGroups, playGroup, type GroupStageResult } from './groups';
+import { groupDraw, groupEliminatedRound, knockoutFromGroups, koHasLot, playGroup, type GroupStageResult } from './groups';
 import { each, fillQualifiers, playKnockout, qualRoundName, slotField, type KnockoutResult, type PlayFn } from './knockout';
 import { roundOrder } from './gate';
 import { emptyStats, matchConfigFor, simulateMatch, type MatchResult, type SideInput } from './match';
@@ -112,7 +112,7 @@ export async function runEvent(opts: {
     // Undian / penempatan babak gugur setelah fase grup (live drawing).
     const koSteps: DrawStep[] = [];
     const field = knockoutFromGroups(standings, gs.advance, rng, koSteps);
-    await opts.onDraw?.({ tournamentId: tournament.id, discipline, entrants: all.map((e) => e.id), steps: koSteps, size: field.length, ko: true });
+    if (koHasLot(groups.length, gs.advance)) await opts.onDraw?.({ tournamentId: tournament.id, discipline, entrants: all.map((e) => e.id), steps: koSteps, size: field.length, ko: true });
     const slots = field.map((id, i) => ({ pos: i + 1, entrant: id ?? undefined, bye: !id }));
     rec.slots = slots;
     const main = await playKnockout(field, opts.play, undefined, parallel, rec.rounds);

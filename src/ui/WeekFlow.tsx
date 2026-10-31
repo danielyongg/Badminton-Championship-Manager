@@ -253,7 +253,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
                 <td className="muted-text">{daily ? (
                   <small className="slot">
                     <span className="court" title={t('courtN', { n: m.court! })}>{t('courtShort', { n: m.court! })}</span>
-                    {tab === 'all' ? m.key : ''}{multiRound ? ` ${m.round}` : ''}{m.tv && <span title={t('tvMatch')}> 📺</span>}
+                    <span>{tab === 'all' ? m.key : ''}{multiRound ? ` ${m.round}` : ''}{m.tv && <span className="tv" title={t('tvMatch')}>📺</span>}</span>
                   </small>
                 ) : 'vs'}</td>
                 <td className={w === 1 ? 'win' : undefined}><Flag id={sides[1].country} />{sides[1].name}{seedTag(m.key, m.sides[1])}</td>

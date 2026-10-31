@@ -155,7 +155,7 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .pre-grid .pos { color: var(--accent-strong); }
 .pre-grid .neg { color: var(--danger); }
 .live-tips { display: grid; gap: 4px; margin-bottom: 8px; }
-.review { border: 2px solid var(--gold); margin-bottom: 8px; }
+.review { border: 1px solid var(--line); border-left: 3px solid var(--gold); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
 .review p { margin: 0 0 6px; }
 .review .secondary { display: flex; gap: 8px; flex-wrap: wrap; }
 .review .hawk { font-weight: 700; animation: hawk 0.5s ease-in-out infinite alternate; }
@@ -229,6 +229,7 @@ button.wide { width: 100%; text-align: left; }
 .groupgames li.md { display: block; padding: 8px 0 2px; border-bottom: 0; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .groupgames li.upcoming { color: var(--muted); }
 .bracket.provisional .match > div { font-size: .85rem; }
+.ko-tag { display: inline-block; min-width: 1.9em; margin-right: 4px; font-size: .7rem; font-weight: 700; color: var(--muted); }
 .groupgames li > span:not(.score) { grid-column: 1; overflow-wrap: anywhere; }
 .groupgames .win { font-weight: 600; }
 .groupgames li.clickable { cursor: pointer; }
@@ -656,17 +657,18 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
   .weeklist li > button:first-of-type { margin-left: auto; }
 }
 .roundlist { width: 100%; margin-bottom: 10px; table-layout: fixed; }
-.roundlist col.side { width: 40%; } .roundlist col.vs { width: 3em; } .roundlist col.score { width: 20%; }
+.roundlist col.side { width: auto; } .roundlist col.vs { width: 3.2em; } .roundlist col.score { width: 7em; }
 .roundlist td { overflow: hidden; text-overflow: ellipsis; }
 .roundlist tr.mine-row td { background: var(--accent-soft); }
 .roundlist td.win { font-weight: 700; }
-@media (max-width: 600px) { .roundlist td { white-space: normal; overflow-wrap: anywhere; } /* nama panjang tetap utuh terlihat, tidak terpotong "…" */ .roundlist col.side { width: auto; } .roundlist col.score { width: 6em; } }
+@media (max-width: 600px) { .roundlist td { white-space: normal; overflow-wrap: break-word; } /* nama panjang terlipat per kata, dipotong hanya bila satu kata tak muat */ .roundlist col.vs { width: 2.8em; } .roundlist col.score { width: 4.4em; } }
 .roundbar { position: sticky; bottom: 0; z-index: 2; background: var(--surface); padding: 10px 0; border-top: 1px solid var(--line); }
 .roundlist tr.current td { background: var(--gold-soft); }
-.roundlist .slot { display: grid; justify-items: center; gap: 2px; line-height: 1.2; }
+.roundlist .slot { display: grid; justify-items: center; gap: 2px; line-height: 1.2; white-space: nowrap; }
+.roundlist .slot .tv { font-size: .65rem; margin-left: 1px; }
 .roundlist .slot .court { font-weight: 700; color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: .7rem; }
 .subnav.days { flex-wrap: nowrap; overflow-x: auto; gap: 4px; }
-.subnav.days button { flex: 1 0 4.2em; min-width: 4.2em; display: grid; line-height: 1.15; text-align: center; padding-left: 2px; padding-right: 2px; }
+.subnav.days button { flex: 1 0 4.2em; min-width: 4.2em; max-width: 6.5em; display: grid; line-height: 1.15; text-align: center; padding-left: 2px; padding-right: 2px; }
 .subnav.days button small { font-size: .68rem; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .subnav.days button[aria-current='date'] { outline: 2px solid var(--gold); outline-offset: -2px; }
 .roundlist .game { display: block; white-space: nowrap; }
@@ -718,7 +720,7 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 .roundbar > :not(button) { flex: 1 1 100%; }
 @media (max-width: 700px) { .roundbar > button { flex: 1 1 140px; min-height: 44px; font-size: 14px; padding: 4px 8px; } }
 /* Desktop: halaman turnamen yang dimainkan tidak membentang selebar layar (kolom laga & tombol tetap berdekatan). */
-.hub { max-width: 980px; }
+.hub { max-width: 900px; }
 /* Info turnamen: fakta ringkas dalam grid (2 kolom di HP). */
 .evinfo h2 { margin: 4px 0 8px; font-size: 1.3rem; text-transform: none; letter-spacing: 0; color: var(--fg); }
 .facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 16px; margin: 0; }

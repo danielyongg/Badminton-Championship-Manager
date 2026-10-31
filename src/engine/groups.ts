@@ -142,14 +142,34 @@ export function knockoutFromGroups(standings: Standing[][], advance: number, rng
   return field;
 }
 
-/** Posisi juara grup di bagan gugur tanpa undian (`knockoutFromGroups`; lolos ≥ 2: juara grup 3+ nanti diundi di antara posisi ini). */
-export function winnerSlots(groups: number, advance: number): (number | null)[] {
+/** Undian babak gugur benar-benar acak (perlu live drawing)? Lolos 1 = posisi ditentukan; 2 grup × 2 (Finals) = pasangan pasti. */
+export const koHasLot = (groups: number, advance: number) => advance > 1 && groups > 2;
+
+/** Isi posisi bagan gugur sebelum fase grup selesai: peringkat `place` grup `g` (pasti), juara grup yang posisinya diundi (`drawn`), runner-up diundi, atau bye. */
+export type KoSlot = { g: number; place: number } | { drawn: number[] } | 'runnerUp' | 'bye';
+
+/** Bagan sementara selama fase grup, mengikuti aturan `knockoutFromGroups` tanpa bagian acaknya. */
+export function provisionalField(groups: number, advance: number): KoSlot[] {
   const N = nextPow2(groups * advance);
   const order = seedPositionGroups(N).flat();
-  const field: (number | null)[] = Array(N).fill(null);
-  for (let i = 0; i < groups && order[i] !== undefined; i++) field[order[i] - 1] = i;
+  const field: KoSlot[] = Array(N).fill(advance > 1 ? 'runnerUp' : 'bye');
+  const beside = (i: number) => { const p = order[2 * order.length - 1 - i]; return p && (p % 2 ? p + 1 : p - 1); };
+  for (let i = 0; i < groups; i++) {
+    const pos = order[i] ?? beside(i);
+    if (!pos) continue;
+    const lo = 2 ** Math.floor(Math.log2(i));
+    field[pos - 1] = advance > 1 && i >= 2 ? { drawn: Array.from({ length: Math.min(lo * 2, groups) - lo }, (_, k) => lo + k) } : { g: i, place: 1 };
+  }
+  // Finals (2 grup × 2): runner-up pasti di slot kosong paruh lawan juara grupnya.
+  if (!koHasLot(groups, advance) && advance === 2)
+    for (let g = 0; g < groups; g++) {
+      const top = field.findIndex((x) => typeof x === 'object' && 'g' in x && x.g === g) < N / 2;
+      const free = field.findIndex((x, k) => x === 'runnerUp' && (k < N / 2) !== top);
+      if (free >= 0) field[free] = { g, place: 2 };
+    }
   return field;
 }
+
 
 /** Babak yang "dicapai" peserta yang tersingkir di grup: peringkat advance+1 → satu babak sebelum babak gugur pertama, lainnya dua babak sebelum. */
 export function groupEliminatedRound(koSize: number, place: number, advance: number): MatchRound {

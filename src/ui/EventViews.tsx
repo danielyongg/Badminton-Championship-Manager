@@ -1,4 +1,7 @@
+import type { ReactNode } from 'react';
 import type { Candidate } from '../engine/entry';
+import { provisionalField } from '../engine/groups';
+import { mainRoundName } from '../engine/knockout';
 import type { EventRecord } from '../engine/tournament';
 import type { DrawStep, Match } from '../engine/types';
 import { t } from '../i18n';
@@ -80,22 +83,57 @@ export function QualView({ rec, matches, ...who }: ViewProps) {
 }
 
 /** Klasemen grup + hasil laganya. Grup yang belum selesai: klasemen sementara dihitung dari laga yang sudah dimainkan. */
+/** Klasemen grup ke-`i`: final dari mesin bila grup selesai, selain itu sementara dari laga yang sudah dimainkan. */
+function groupRows(rec: EventRecord, matches: Match[], i: number) {
+  const ids = rec.groups!.groups[i];
+  const games = matches.filter((m) => m.round === 'G' && ids.includes(m.sides[0]) && ids.includes(m.sides[1]));
+  // ponytail: urutan sementara tanpa head-to-head; klasemen final (dengan tiebreak) dari mesin begitu grup selesai.
+  const rows = rec.groups!.standings[i] ?? ids.map((id) => {
+    const r = { id, wins: 0, gameDiff: 0, pointDiff: 0 };
+    for (const m of games.filter((x) => x.sides.includes(id))) {
+      const s = m.sides.indexOf(id);
+      if (m.winner === s) r.wins++;
+      for (const g of m.scores) { r.gameDiff += g[s] > g[1 - s] ? 1 : -1; r.pointDiff += g[s] - g[1 - s]; }
+    }
+    return r;
+  }).sort((a, b) => b.wins - a.wins || b.gameDiff - a.gameDiff || b.pointDiff - a.pointDiff);
+  return { games, rows };
+}
+
+/**
+ * Bagan gugur sementara selama fase grup (individu & beregu): posisi yang sudah pasti diisi peringkat grup saat ini,
+ * posisi yang masih diundi ditandai. `who(g, place)` = peserta di peringkat `place` grup `g` saat ini.
+ */
+export function ProvisionalBracket({ groups, advance, who }: { groups: number; advance: number; who: (g: number, place: number) => ReactNode }) {
+  const field = provisionalField(groups, advance);
+  const cols: number[] = [];
+  for (let n = field.length; n > 1; n /= 2) cols.push(n);
+  const letter = (g: number) => String.fromCharCode(65 + g);
+  const slot = (x: (typeof field)[number], k: number) => x === 'bye' ? <div key={k} className="muted">{t('bye')}</div>
+    : x === 'runnerUp' ? <div key={k} className="muted">{t('runnerUpDrawn')}</div>
+    : 'drawn' in x ? <div key={k} className="muted">{x.drawn.map((g) => `1${letter(g)}`).join(' / ')} ({t('drawnShort')})</div>
+    : <div key={k}><small className="ko-tag">{x.place}{letter(x.g)}</small>{who(x.g, x.place)}</div>;
+  return (
+    <>
+      <div className="bracket provisional">{cols.map((n, i) => (
+        <div key={n} className="round-col">
+          <small className="muted-text">{mainRoundName(n, i)}</small>
+          <div className="round">{Array.from({ length: n / 2 }, (_, k) => (
+            <div key={k} className="match">{i === 0 ? [slot(field[2 * k], 0), slot(field[2 * k + 1], 1)] : [<div key={0} className="muted">—</div>, <div key={1} className="muted">—</div>]}</div>
+          ))}</div>
+        </div>
+      ))}</div>
+      <p className="hint">{t(advance > 1 && groups > 2 ? 'provisionalHint' : 'provisionalFixedHint')}</p>
+    </>
+  );
+}
+
 export function GroupView({ rec, matches, ...who }: ViewProps) {
-  const { groups, standings } = rec.groups!;
+  const { groups } = rec.groups!;
   return (
     <div className="groups">
-      {groups.map((ids, i) => {
-        const games = matches.filter((m) => m.round === 'G' && ids.includes(m.sides[0]) && ids.includes(m.sides[1]));
-        // ponytail: urutan sementara tanpa head-to-head; klasemen final (dengan tiebreak) dari mesin begitu grup selesai.
-        const rows = standings[i] ?? ids.map((id) => {
-          const r = { id, wins: 0, gameDiff: 0, pointDiff: 0 };
-          for (const m of games.filter((x) => x.sides.includes(id))) {
-            const s = m.sides.indexOf(id);
-            if (m.winner === s) r.wins++;
-            for (const g of m.scores) { r.gameDiff += g[s] > g[1 - s] ? 1 : -1; r.pointDiff += g[s] - g[1 - s]; }
-          }
-          return r;
-        }).sort((a, b) => b.wins - a.wins || b.gameDiff - a.gameDiff || b.pointDiff - a.pointDiff);
+      {groups.map((_, i) => {
+        const { games, rows } = groupRows(rec, matches, i);
         return (
           <section key={i} className="card group">
             <table>
@@ -169,7 +207,8 @@ export function DrawStepsView({ rec, name, count }: ViewProps & { count?: number
 const winnerOf = (rounds: (string | null)[][]) => (rounds.at(-1)?.length === 1 ? rounds.at(-1)![0] : null);
 
 /** Bagan utama; kualifikasi (bila ada) ditampilkan di atasnya. Posisi qualifier yang belum terisi bertuliskan "Kualifikasi". */
-export function BracketView({ rec, matches, ...who }: ViewProps) {
+/** `advance`: jumlah lolos per grup (aturan tier) untuk bagan sementara selama fase grup. */
+export function BracketView({ rec, matches, advance, ...who }: ViewProps & { advance?: number }) {
   const tag = (id?: string | null) => {
     const s = rec.slots.find((x) => x.entrant === id);
     return s?.seed ? ` [${s.seed}]` : s?.qualifier ? ' [Q]' : s?.wildcard ? ' [WC]' : '';
@@ -184,7 +223,9 @@ export function BracketView({ rec, matches, ...who }: ViewProps) {
         <h4>{t('groupStage')}</h4>
         <GroupView rec={rec} matches={matches} {...who} />
         <h4>{t('knockout')}</h4>
-        {rec.rounds.length ? <RoundColumns rounds={rec.rounds} matches={ko} {...who} /> : <p className="muted">{t('knockoutPending')}</p>}
+        {rec.rounds.length ? <RoundColumns rounds={rec.rounds} matches={ko} {...who} />
+          : <ProvisionalBracket groups={rec.groups.groups.length} advance={advance ?? 1}
+            who={(g, place) => <Who id={groupRows(rec, matches, g).rows[place - 1]?.id} {...who} />} />}
       </>
     );
   }
