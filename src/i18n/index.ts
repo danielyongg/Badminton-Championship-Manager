@@ -209,6 +209,7 @@ const id = {
 withdrawFrom: 'Mundur dari {d}', withdrewFrom: 'mundur dari {d}', withdrawTwoHint: 'Laga kedua dimulai dengan energi lebih rendah. Mundur = walkover di sisa laga nomor itu.', tvMatch: 'Laga siaran (Hawk-Eye bila turnamen memakai Instant Review)',
   courtShort: 'L{n}',
   dutyHead: 'Main 2 nomor hari ini', withdrawCol: 'Mundur dari',
+  runnerUpDrawn: 'Runner-up (diundi)', provisionalHint: 'Bagan sementara: posisi juara grup sudah tetap (diisi pemuncak klasemen saat ini); runner-up diundi ke paruh lain setelah fase grup selesai.',
   gameSpeed: 'Kecepatan',
   speed_slow: 'Lambat',
   speed_normal: 'Normal',

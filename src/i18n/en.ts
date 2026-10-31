@@ -209,6 +209,7 @@ export const en: Record<TextKey, string> = {
 withdrawFrom: 'Withdraw from {d}', withdrewFrom: 'withdrew from {d}', withdrawTwoHint: 'The second match starts with less energy. Withdrawing = walkover for the rest of that event.', tvMatch: 'Televised match (Hawk-Eye if the tournament uses Instant Review)',
   courtShort: 'C{n}',
   dutyHead: 'Playing 2 events today', withdrawCol: 'Withdraw from',
+  runnerUpDrawn: 'Runner-up (drawn)', provisionalHint: 'Provisional draw: group winners’ positions are fixed (current group leaders shown); runners-up are drawn into the other half after the group stage.',
   gameSpeed: 'Speed',
   speed_slow: 'Slow',
   speed_normal: 'Normal',

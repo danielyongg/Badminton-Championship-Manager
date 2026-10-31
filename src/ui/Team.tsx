@@ -4,6 +4,7 @@ import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { AD_HOC, adHocEntrants, adHocId, autoLineup, autoSquad, lineupError, rankOrder, squadError, squadPool, type Lineup, type TeamEntrant } from '../engine/team';
 import { isDoubles, isJuniorFormat, type Discipline, type TeamFormat } from '../engine/types';
 import { mainRoundName } from '../engine/knockout';
+import { roundRobin, winnerSlots } from '../engine/groups';
 import { pairAbility } from '../engine/match';
 import { dataName, t, type TextKey } from '../i18n';
 import { entrantLabel, eventName, lookup, saveGame, useGame } from './game';
@@ -430,16 +431,28 @@ export function FinalsResult({ r, stage }: { r: TeamResult; stage?: 'groups' | '
               </tr>
             ))}</tbody>
           </table>
-          {r.ties.some((x) => x.round === 'G' && r.groups![gi].includes(x.sides[0])) && <ul className="groupgames">{r.ties.filter((x) => x.round === 'G' && r.groups![gi].includes(x.sides[0])).map((x, i) => {
-            const w = x.score[0] >= x.score[1] ? 0 : 1;
-            return (
-              <li key={i} role="button" tabIndex={0} title={t('matchDetail')} className={`clickable${managed && x.sides.includes(managed) ? ' mine' : ''}`}
-                onClick={() => setOpen(x)} onKeyDown={(e) => e.key === 'Enter' && setOpen(x)}>
-                <span className="win"><Flag id={x.sides[w]} />{name(x.sides[w])}</span><span><Flag id={x.sides[1 - w]} />{name(x.sides[1 - w])}</span>
-                <span className="score"><a>{x.score[w]}-{x.score[1 - w]}</a></span>
-              </li>
-            );
-          })}</ul>}
+          {/* Semua pertandingan grup per hari (urutan round-robin yang dimainkan mesin): sudah selesai → skor, belum → "vs". */}
+          <ul className="groupgames">{roundRobin(r.groups![gi].length).flatMap((day, d) => [
+            <li key={`d${d}`} className="md">{t('dayN', { n: d + 1 })}</li>,
+            ...day.map(([i, j]) => {
+              const g = r.groups![gi], x = r.ties.find((y) => y.round === 'G' && y.sides.includes(g[i]) && y.sides.includes(g[j]));
+              const mine = managed && (g[i] === managed || g[j] === managed) ? ' mine' : '';
+              if (!x) return (
+                <li key={`${d}-${i}`} className={`upcoming${mine}`}>
+                  <span><Flag id={g[i]} />{name(g[i])}</span><span><Flag id={g[j]} />{name(g[j])}</span>
+                  <span className="score muted-text">vs</span>
+                </li>
+              );
+              const w = x.score[0] >= x.score[1] ? 0 : 1;
+              return (
+                <li key={`${d}-${i}`} role="button" tabIndex={0} title={t('matchDetail')} className={`clickable${mine}`}
+                  onClick={() => setOpen(x)} onKeyDown={(e) => e.key === 'Enter' && setOpen(x)}>
+                  <span className="win"><Flag id={x.sides[w]} />{name(x.sides[w])}</span><span><Flag id={x.sides[1 - w]} />{name(x.sides[1 - w])}</span>
+                  <span className="score"><a>{x.score[w]}-{x.score[1 - w]}</a></span>
+                </li>
+              );
+            }),
+          ])}</ul>
           </section>
         ))}</div>
       )}
@@ -451,7 +464,8 @@ export function FinalsResult({ r, stage }: { r: TeamResult; stage?: 'groups' | '
           <div className="bracket">{(ko.some((x) => x.round === 'R16') ? ['R16', 'QF', 'SF', 'F'] : ['QF', 'SF', 'F']).map((round) => (
             <div key={round} className="round">{ko.filter((x) => x.round === round).map(tieBox)}</div>
           ))}</div>
-        ) : <p className="hint">{t('knockoutPending')}</p>}
+        ) : r.groups ? <ProvisionalBracket r={r} advance={advance} name={name} />
+        : <p className="hint">{t('knockoutPending')}</p>}
       </>}
     </section>
   );
@@ -479,6 +493,33 @@ function KnockoutBracket({ r, name, tieBox }: { r: TeamResult; name: (c: string)
         </div>
       </div>
     ))}</div>
+  );
+}
+
+/**
+ * Bagan sementara selama fase grup: posisi juara grup sudah tetap (diisi pemuncak klasemen saat ini), posisi runner-up
+ * baru diundi setelah fase grup selesai.
+ */
+function ProvisionalBracket({ r, advance, name }: { r: TeamResult; advance: number; name: (c: string) => string }) {
+  const table = standingsOf(r);
+  const field = winnerSlots(r.groups!.length, advance);
+  const cols: number[] = [];
+  for (let n = field.length; n > 1; n /= 2) cols.push(n);
+  const slot = (g: number | null | undefined, k: number) => g === null || g === undefined
+    ? <div key={k} className="muted">{t('runnerUpDrawn')}</div>
+    : <div key={k}><small className="muted-text">1{String.fromCharCode(65 + g)}</small> <Flag id={table[g][0].id} />{name(table[g][0].id)}</div>;
+  return (
+    <>
+      <div className="bracket provisional">{cols.map((n, i) => (
+        <div key={n} className="round-col">
+          <small className="muted-text">{mainRoundName(n, i)}</small>
+          <div className="round">{Array.from({ length: n / 2 }, (_, k) => (
+            <div key={k} className="match">{i === 0 ? [slot(field[2 * k], 0), slot(field[2 * k + 1], 1)] : [<div key={0} className="muted">—</div>, <div key={1} className="muted">—</div>]}</div>
+          ))}</div>
+        </div>
+      ))}</div>
+      <p className="hint">{t('provisionalHint')}</p>
+    </>
   );
 }
 

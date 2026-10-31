@@ -128,6 +128,15 @@ export function knockoutFromGroups(standings: Standing[][], advance: number, rng
   return field;
 }
 
+/** Posisi tetap juara grup di bagan gugur (seperti `knockoutFromGroups`, tanpa undian): indeks grup per posisi, null = posisi diundi (runner-up). */
+export function winnerSlots(groups: number, advance: number): (number | null)[] {
+  const N = nextPow2(groups * advance);
+  const order = seedPositionGroups(N).flat();
+  const field: (number | null)[] = Array(N).fill(null);
+  for (let i = 0; i < groups && order[i] !== undefined; i++) field[order[i] - 1] = i;
+  return field;
+}
+
 /** Babak yang "dicapai" peserta yang tersingkir di grup: peringkat advance+1 → satu babak sebelum babak gugur pertama, lainnya dua babak sebelum. */
 export function groupEliminatedRound(koSize: number, place: number, advance: number): MatchRound {
   const first = ROUNDS.indexOf(mainRoundName(koSize, 0) as Round);

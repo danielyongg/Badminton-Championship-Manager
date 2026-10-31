@@ -226,6 +226,9 @@ button.wide { width: 100%; text-align: left; }
 /* Satu laga = pemenang (tebal) di atas, kalah di bawah, skor di kanan. */
 .groupgames li { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .groupgames li:last-child { border-bottom: 0; }
+.groupgames li.md { display: block; padding: 8px 0 2px; border-bottom: 0; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.groupgames li.upcoming { color: var(--muted); }
+.bracket.provisional .match > div { font-size: .85rem; }
 .groupgames li > span:not(.score) { grid-column: 1; overflow-wrap: anywhere; }
 .groupgames .win { font-weight: 600; }
 .groupgames li.clickable { cursor: pointer; }
