@@ -216,6 +216,7 @@ withdrawFrom: 'Mundur dari {d}', withdrewFrom: 'mundur dari {d}', withdrawTwoHin
   provisionalFixedHint: 'Bagan sementara: posisi babak gugur sudah ditentukan aturan (tanpa undian), diisi peringkat grup saat ini.',
   draw_closeKo: 'Tutup & lanjut',
   backToTop: 'Kembali ke atas',
+  injuredOut: 'Cedera, tidak bisa dipasang',
   gameSpeed: 'Kecepatan',
   speed_slow: 'Lambat',
   speed_normal: 'Normal',

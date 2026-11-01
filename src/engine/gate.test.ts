@@ -217,3 +217,25 @@ it('jadwal harian: bagan selalu memajukan pemenang laga yang tercatat (juga gelo
       });
   expect(checked).toBeGreaterThan(50);
 });
+
+it.each([3, 8])('beregu: atlet yang cedera di tengah turnamen tidak bisa dipasang di line-up berikutnya (seed %i)', async (seed) => {
+  let hurt: string | undefined;
+  let checked = 0;
+  await weekOf(17, (s) => ({
+    chooseEvent: choose(['thomas-uber-cup']),
+    team: { squad: () => null, lineup: (req) => {
+      if (!hurt) { // cedera setelah line-up pertama (seperti cedera di pertandingan sebelumnya)
+        hurt = req.squad[0];
+        s.players.find((p) => p.id === hurt)!.injury = { weeksLeft: 3, level: 'minor', type: 'blister' };
+      } else if (req.injured?.includes(hurt)) {
+        expect(req.squad).not.toContain(hurt);
+        expect(Object.values(req.pool).flat().some((e) => e.playerIds.includes(hurt!))).toBe(false);
+        const members = (id: string) => s.pairs.find((p) => p.id === id)?.playerIds ?? (id.startsWith('adhoc:') ? id.slice(6).split('+') : [id]);
+        expect(req.suggested.some((id) => !!id && members(id).includes(hurt!))).toBe(false);
+        checked++;
+      }
+      return Promise.resolve(req.suggested);
+    } },
+  }), seed);
+  expect(checked).toBeGreaterThan(0);
+}, 120000);

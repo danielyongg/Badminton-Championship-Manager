@@ -340,8 +340,10 @@ export function SquadModal({ title, eventId, format, pool, suggested, onDone }: 
 }
 
 /** Pop-up sebelum tiap pertandingan beregu: pilih line-up dari skuad. */
-export function TieLineupModal({ title, eventId, format, round, opponent, pool, squad, suggested, onDone, onAuto }: {
+export function TieLineupModal({ title, eventId, format, round, opponent, pool, squad, suggested, injured = [], onDone, onAuto }: {
   title: string; eventId?: string; format: TeamFormat; round: string; opponent: string; pool: Record<string, TeamEntrant[]>; squad: string[]; suggested: Lineup;
+  /** Anggota skuad yang cedera (tidak bisa dipasang). */
+  injured?: string[];
   onDone: (l: Lineup) => void; onAuto: () => void;
 }) {
   const { game } = useGame();
@@ -355,6 +357,7 @@ export function TieLineupModal({ title, eventId, format, round, opponent, pool, 
     <WaitingModal label={t('lineup')} title={heading}>
         <h3>{heading}</h3>
         <p className="hint">{t('tieLineupShort')} <span className="info" title={t('tieLineupHint')}>ⓘ</span></p>
+        {injured.length > 0 && <p className="hint warn-text">🚑 {t('injuredOut')}: {injured.map((id) => lookup(game.state).players.get(id)?.name ?? id).join(', ')}</p>}
         <LineupPicker format={format} order={order} pool={pool} squad={squad} value={lineup} onChange={setLineup} />
         <div className="controls roundbar">
           <button className="primary" disabled={!!err} onClick={() => onDone(lineup)}>{t('confirmLineup')}</button>

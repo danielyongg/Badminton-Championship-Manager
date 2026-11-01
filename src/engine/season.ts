@@ -132,7 +132,8 @@ export interface SeasonState {
 /** Keputusan beregu manajer. Kembalikan Promise untuk menunggu pilihan di UI, atau null untuk otomatis. */
 export interface TeamHook {
   squad: (req: { eventId: string; format: TeamFormat; pool: Record<string, TeamEntrant[]>; suggested: string[] }) => Promise<string[]> | null;
-  lineup: (req: { eventId: string; format: TeamFormat; round: MatchRound; opponent: string; pool: Record<string, TeamEntrant[]>; squad: string[]; suggested: Lineup }) => Promise<Lineup> | null;
+  /** `injured`: anggota skuad yang cedera (tidak ada di `pool` & `squad`, hanya untuk keterangan). */
+  lineup: (req: { eventId: string; format: TeamFormat; round: MatchRound; opponent: string; pool: Record<string, TeamEntrant[]>; squad: string[]; suggested: Lineup; injured?: string[] }) => Promise<Lineup> | null;
 }
 
 /** `matchIds`: laga per partai berurutan (partai walkover tidak punya laga). Save lama: tidak ada. */
@@ -1299,18 +1300,20 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
     const strength = lineupStrength(state, rs, format);
     const ranked = (l: Lineup) => rankOrder(l, order, strength);
     const lineupOf = async (c: string, opponent: string, round: MatchRound): Promise<Lineup> => {
-      const pool = pools.get(c)!;
+      // Atlet yang cedera (juga di pertandingan sebelumnya turnamen ini) tidak bisa dipasang: tanpa ini ia otomatis walkover.
+      const hurt = (id: string) => !!players.get(id)?.injury;
+      const pool = Object.fromEntries(Object.entries(pools.get(c)!).map(([d, es]) => [d, es.filter((e) => !e.playerIds.some(hurt))]));
       const real = (l: Lineup) => l.map((id, i) => (id?.startsWith(AD_HOC) ? adHocPair(c, order[i], id) : id)); // ganda dadakan → pasangan
       const auto = ranked(autoLineup(order, pool, max));
       if (c !== state.managedCountryId) return real(auto);
       // Line-up manajer boleh memakai ganda dadakan (adhoc:a+b) dari atlet skuad.
-      const squad = new Set(squads[c]);
+      const squad = new Set(squads[c].filter((id) => !hurt(id)));
       const ok = (l: Lineup | undefined) => {
         if (!l) return undefined;
         const byId = new Map([...Object.values(pool).flat(), ...adHocEntrants(l, order, squad, (id) => players.get(id)?.gender)].map((e) => [e.id, e]));
         return lineupError(l, order, byId, max) ? undefined : l;
       };
-      const asked = team?.lineup({ eventId: ev.id, format, round, opponent, pool, squad: squads[c], suggested: ranked(ok(state.teamLineups[format]) ?? auto) });
+      const asked = team?.lineup({ eventId: ev.id, format, round, opponent, pool, squad: [...squad], suggested: ranked(ok(state.teamLineups[format]) ?? auto), injured: squads[c].filter(hurt) });
       const picked = ok(asked ? await asked : state.teamLineups[format]);
       const chosen = picked && ranked(picked);
       if (chosen && asked) state.teamLineups[format] = chosen; // jadi saran untuk pertandingan berikutnya

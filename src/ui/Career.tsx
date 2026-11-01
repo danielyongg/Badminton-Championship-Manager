@@ -51,7 +51,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
   const autoRest = useRef(new Set<string>()); // format beregu (Thomas/Uber terpisah) yang line-up-nya otomatis sampai turnamen selesai
   type TeamAsk = { eventId: string; format: TeamFormat; pool: Record<string, TeamEntrant[]> } & (
     | { kind: 'squad'; suggested: string[]; resolve: (v: string[]) => void }
-    | { kind: 'lineup'; round: MatchRound; opponent: string; squad: string[]; suggested: Lineup; resolve: (v: Lineup) => void });
+    | { kind: 'lineup'; round: MatchRound; opponent: string; squad: string[]; suggested: Lineup; injured?: string[]; resolve: (v: Lineup) => void });
   const [teamAsk, setTeamAsk] = useState<TeamAsk>();
 
   // Hook di bawah hanya dipakai untuk turnamen yang dipilih manajer di layar "Turnamen minggu ini".
@@ -255,7 +255,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
       )}
       {teamAsk?.kind === 'lineup' && (
         <TieLineupModal key={`${teamAsk.eventId}-${teamAsk.format}-${teamAsk.round}-${teamAsk.opponent}`} title={teamTitle(teamAsk.eventId)} eventId={teamAsk.eventId}
-          format={teamAsk.format} round={teamAsk.round} opponent={teamAsk.opponent} pool={teamAsk.pool} squad={teamAsk.squad} suggested={teamAsk.suggested}
+          format={teamAsk.format} round={teamAsk.round} opponent={teamAsk.opponent} pool={teamAsk.pool} squad={teamAsk.squad} suggested={teamAsk.suggested} injured={teamAsk.injured}
           onDone={(v) => { setTeamAsk(undefined); teamAsk.resolve(v); }} onAuto={() => { autoRest.current.add(teamAsk.format); }} />
       )}
       <nav className="controls maintabs">

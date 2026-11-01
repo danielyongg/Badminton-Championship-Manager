@@ -1023,3 +1023,5 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 .who-cell { display: inline-flex; align-items: flex-start; max-width: 100%; }
 .who-cell > .flag { flex: none; margin-top: .35em; }
 .who-cell > span { min-width: 0; overflow-wrap: break-word; }
+
+.warn-text { color: var(--danger); }

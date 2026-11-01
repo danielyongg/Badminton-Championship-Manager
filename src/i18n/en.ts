@@ -216,6 +216,7 @@ withdrawFrom: 'Withdraw from {d}', withdrewFrom: 'withdrew from {d}', withdrawTw
   provisionalFixedHint: 'Provisional draw: knockout positions are fixed by the rules (no draw), filled with the current group standings.',
   draw_closeKo: 'Close & continue',
   backToTop: 'Back to top',
+  injuredOut: 'Injured, unavailable',
   gameSpeed: 'Speed',
   speed_slow: 'Slow',
   speed_normal: 'Normal',
