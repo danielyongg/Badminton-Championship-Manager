@@ -2,7 +2,8 @@ import { groupDraw, knockoutFromGroups, koHasLot, playGroup, type Standing } fro
 import { each, playKnockout, type MatchRound, type PlayFn, type PlayResult } from './knockout';
 import type { Rng } from './rng';
 import { isDoubles, type Discipline, type DrawStep, type EntrantId, type GroupStage, type TeamFormat } from './types';
-import { t } from '../i18n';
+import { t } from '../i18n';import type { MatchAt } from './schedule';
+
 
 // Beregu (Thomas/Uber/Sudirman): line-up, satu pertandingan beregu (5 partai), dan format grup + gugur.
 // Tidak tahu soal atribut: partai dimainkan lewat PlayFn per nomor (mesin pertandingan / Live).
@@ -142,6 +143,7 @@ export function playOrder(format: TeamFormat, order: Discipline[], lineups: [Lin
 export async function playTie(
   lineups: [Lineup, Lineup], order: Discipline[], round: MatchRound, play: (d: Discipline) => PlayFn, allMatches: boolean,
   seq = order.map((_, i) => i), // urutan main (indeks slot), lihat `playOrder`
+  at?: MatchAt, // posisi pertandingan (hari partai-partainya untuk kelelahan)
 ): Promise<PlayResult> {
   const wins = [0, 0];
   const scores: [number, number][] = [];
@@ -155,7 +157,7 @@ export async function playTie(
       scores.push(w === 0 ? [2, 0] : [0, 2]);
       continue;
     }
-    const r = await play(order[i])(a, b, round);
+    const r = await play(order[i])(a, b, round, at);
     wins[r.winner]++;
     // Walkover / mundur cedera: dihitung 2–0 game untuk pemenang.
     const games = r.scores.filter(([x, y]) => x > y).length;
@@ -189,7 +191,7 @@ export async function runTeamEvent(
     const drawn = groupDraw(teams.map((id, i) => ({ id, countryId: id, rank: i + 1 })), groups, rng);
     const ids = drawn.groups.map((g) => g.map((e) => e.id));
     await onDraw?.(drawn.steps, ids);
-    const standings = await each(parallel, ids, (g) => playGroup(g, tie, parallel));
+    const standings = await each(parallel, ids, (g, i) => playGroup(g, (a, b, r, at) => tie(a, b, r, { ...at!, i, n: ids.length }), parallel));
     live.standings = standings;
     const koSteps: DrawStep[] = [];
     const field = knockoutFromGroups(standings, groups.advance, rng, koSteps);

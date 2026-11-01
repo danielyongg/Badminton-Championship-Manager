@@ -142,6 +142,8 @@ export interface TeamEventDef {
   weeks?: TournamentDef['weeks'];
   /** Ukuran putaran final event ini (bawaan `team.finals`). */
   finals?: { teams: number; groups: GroupStage };
+  /** Jumlah hari pertandingan (schedule.ts `teamDayPlan`); kosong = satu hari per matchday / babak. */
+  days?: number;
   /** Beregu multi-event: semua negara anggota ini langsung bertanding; tidak dihitung final / juara bertahan / kualifikasi. */
   countries?: string[];
   skipYears?: number[];

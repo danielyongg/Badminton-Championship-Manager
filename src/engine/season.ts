@@ -17,8 +17,8 @@ import { each, type MatchRound, type PlayFn } from './knockout';
 import { juniorEntries, juniorTeamEntrants } from './junior';
 import { AD_HOC, adHocEntrants, autoLineup, rankOrder, autoSquad, lineupError, playOrder, playTie, runTeamEvent, squadError, squadPool, type Lineup, type TeamEntrant } from './team';
 import { newTour, runEvent, simPlay, tournamentWildcards, toRecord, type HotForm, type DrawHook, type DrawShow, type EntriesHook, type EntriesShow, type EventRecord, type LiveHook } from './tournament';
-import { roundGate, type RoundHook } from './gate';
-import { dayPlan } from './schedule';
+import { roundGate, type GateSchedule, type RoundHook } from './gate';
+import { dayPlan, teamDayPlan } from './schedule';
 import { makeScouting, recruit, SCOUTING_DEADLINE_WEEK, withdrawCandidates, type Scouting, type ScoutFocus } from './scouting';
 import { upgradeTo2027 } from './presets/bwf2027';
 import {
@@ -1234,7 +1234,17 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
   const firstMatch = state.matches.length;
   const finals = ev.finals ?? rs.team.finals;
   const formats = ev.formats ?? teamFormatsIn(rs, year);
-  const gate = gated ? roundGate(ev.id, formats, h.round) : undefined;
+  // Jadwal harian: rencana hari diisi begitu peserta tiap format diketahui (sebelum undian); lapangan utama = unggulan & tuan rumah.
+  const seeds = new Map<string, string[]>(); // format → tim urut unggulan
+  const sched: GateSchedule = {
+    plan: teamDayPlan(undefined, 2, formats, ev.days),
+    who: (key, id) => [`${key}:${id}`],
+    prio: (key, sides) => sides.reduce((t, id) => { const i = seeds.get(key)?.indexOf(id) ?? -1; return t + (i >= 0 && i < 4 ? 4 - i : 0) + (id === city.countryId ? 3 : 0); }, 0),
+    tv: (key, sides, round) => ['QF', 'SF', 'F'].includes(round) || sides.some((id) => id === city.countryId || ((seeds.get(key)?.indexOf(id) ?? 9) < 2)),
+    withdraw: () => {},
+    perCourt: 2, // satu tie (5 partai) memakan beberapa jam: ±2 tie per lapangan sehari
+  };
+  const gate = gated ? roundGate(ev.id, formats, h.round, sched) : undefined;
   const draw: DrawHook | undefined = gate && h.draw ? (d) => gate.serial(async () => { await h.draw!(d); }) : h.draw;
   const conf = new Map(world.countries.map((c) => [c.id, c.confederation as string]));
   /**
@@ -1268,6 +1278,9 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
         state.teamResults.push({ eventId: ev.id, year, format, confederation: ev.confederation, teams, reached: { [teams[0]]: 'W' }, ties: [], squads: {} });
       return;
     }
+    seeds.set(format, teams);
+    const most = Math.max(...[...seeds.values()].map((x) => x.length));
+    sched.plan = teamDayPlan(ev.confederation || ev.countries ? ev.finals?.groups : finals.groups, most, formats, ev.days);
     const byCountry = new Map(all.map((t) => [t.countryId, t]));
     const size = rs.team.squadSize[format];
     const valid = (s: string[] | undefined, pool: Record<string, TeamEntrant[]>) => s && !squadError(s, order, pool, max, size) ? s : undefined;
@@ -1337,7 +1350,7 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
     const plays = new Map<Discipline, PlayFn>();
     const tour = newTour(), injury = injuryRoll(state, rs, rng); // beregu: satu babak = satu hari (tanpa `plan`)
     const playOf = (d: Discipline) => plays.get(d) ?? plays.set(d, simPlay({
-      players, pairs, cfg: rs.match, rng, tournamentId: ev.id, year, discipline: d, matches: state.matches, live, hot: hotFormOf(state), tour, injury,
+      players, pairs, cfg: rs.match, rng, tournamentId: ev.id, year, discipline: d, matches: state.matches, live, hot: hotFormOf(state), tour, injury, plan: sched.plan,
     })).get(d)!;
     const ties: TeamTie[] = [];
     const current: TeamResult = {
@@ -1345,11 +1358,11 @@ async function playTeamEvent(state: SeasonState, rs: Ruleset, world: World, rng:
     };
     const lives = liveTeamResults.get(state) ?? [];
     liveTeamResults.set(state, [...lives.filter((r) => !(r.eventId === ev.id && r.year === year && r.format === format)), current]);
-    const tie: PlayFn = async (a, b, round) => {
+    const tie: PlayFn = async (a, b, round, at) => {
       const lineups: [Lineup, Lineup] = [await lineupOf(a, b, round), await lineupOf(b, a, round)];
       const from = state.matches.length;
       const seq = playOrder(format, order, lineups, (id) => pairs.get(id)?.playerIds ?? [id], rng);
-      const r = await playTie(lineups, order, round, playOf, round === 'G', seq);
+      const r = await playTie(lineups, order, round, playOf, round === 'G', seq, at);
       const won = r.scores.filter(([x, y]) => x > y).length;
       ties.push({ round, sides: [a, b], score: [won, r.scores.length - won], matchIds: state.matches.slice(from).map((m) => m.id) });
       return r;

@@ -612,9 +612,9 @@ export const BWF_2026: Ruleset = {
         hosts: { 2026: 'gaborone' }, rotation: ['cairo', 'lagos', 'johannesburg', 'rose-hill'] },
       { id: 'oceania-team', finals: { teams: 4, groups: { groups: 1, perGroup: 4, advance: 2 } }, name: 'Oceania Team Championships', nameMixed: 'Oceania Mixed Team Championships', cityId: 'auckland', week: 7, confederation: 'BO',
         hosts: { 2026: 'auckland' }, rotation: ['sydney', 'auckland'] },
-      { id: 'thomas-uber-cup', name: 'Thomas & Uber Cup', cityId: 'horsens', week: 18, formats: ['thomas', 'uber'], everyYears: { interval: 2, offset: 0 }, weeks: { 2026: 17, 2028: 16 },
+      { id: 'thomas-uber-cup', days: 9 /* ASUMSI dari Chengdu 2024: grup 5 hari, QF 2 hari, SF, final (Sudirman 2025: 8 hari) */, name: 'Thomas & Uber Cup', cityId: 'horsens', week: 18, formats: ['thomas', 'uber'], everyYears: { interval: 2, offset: 0 }, weeks: { 2026: 17, 2028: 16 },
         hosts: { 2026: 'horsens' }, rotation: ['bangkok', 'jakarta', 'kuala-lumpur'] },
-      { id: 'sudirman-cup', name: 'Sudirman Cup', cityId: 'xiamen', week: 18, formats: ['sudirman'], everyYears: { interval: 2, offset: 1 }, weeks: { 2027: 16 },
+      { id: 'sudirman-cup', days: 8, name: 'Sudirman Cup', cityId: 'xiamen', week: 18, formats: ['sudirman'], everyYears: { interval: 2, offset: 1 }, weeks: { 2027: 16 },
         hosts: { 2025: 'xiamen', 2027: 'beijing' }, rotation: ['kuala-lumpur', 'vantaa', 'glasgow'] },
       // Kejuaraan Dunia Beregu Campuran Junior (U19), setiap tahun seminggu sebelum Kejuaraan Dunia Junior. ASUMSI: tuan rumah.
       // ASUMSI: 32 tim (8 grup × 4, 2 teratas ke babak 16 besar); kenyataannya ±38 tim dengan grup bervariasi.

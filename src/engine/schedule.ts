@@ -1,7 +1,7 @@
 import { roundRobin } from './groups';
 import { makeRng, shuffle } from './rng';
 import type { MatchRound } from './knockout';
-import type { Discipline, Tier } from './types';
+import type { Discipline, GroupStage, Tier } from './types';
 
 // Jadwal harian turnamen: babak (dan matchday grup) → hari pertandingan, lalu order of play per lapangan.
 // Fungsi murni: dipakai gerbang (turnamen yang dimainkan manajer) & simulasi otomatis (kelelahan antar hari).
@@ -41,12 +41,28 @@ export interface DayPlan {
  * ponytail: tanpa `tier.days` = tiap unit satu hari (tanpa dibagi / digabung).
  */
 export function dayPlan(tier: Tier, ds: readonly Discipline[]): DayPlan {
-  const late = LATE.filter((r) => ds.some((d) => mainField(tier, d) >= { QF: 8, SF: 4, F: 2 }[r]));
-  const units = new Map(ds.map((d) => [d, earlyUnits(tier, d)]));
+  return buildPlan(new Map(ds.map((d) => [d, earlyUnits(tier, d)])), Math.max(0, ...ds.map((d) => mainField(tier, d))), tier.days);
+}
+
+/**
+ * Kejuaraan beregu (kunci = format, mis. Thomas & Uber bersamaan): matchday grup lalu babak gugur, aturan sama dengan `dayPlan`.
+ * Tanpa grup (sedikit tim): langsung bagan gugur berisi semua tim. `days` kosong = satu hari per unit.
+ */
+export function teamDayPlan(groups: GroupStage | undefined, teams: number, keys: readonly string[], days?: number): DayPlan {
+  const grouped = !!groups && teams > groups.groups * groups.advance;
+  const field = grouped ? pow2(groups!.groups * groups!.advance) : pow2(teams);
+  const units: string[] = grouped ? roundRobin(Math.ceil(teams / groups!.groups)).map((_, k) => `G${k + 1}`) : [];
+  for (let f = field; f > 8; f /= 2) units.push(`R${f}`);
+  return buildPlan(new Map(keys.map((k) => [k, units])), field, days);
+}
+
+/** Tata letak hari dari unit awal tiap kunci & ukuran bagan gugur terbesar (lihat `dayPlan`). */
+function buildPlan(units: Map<string, string[]>, field: number, wanted?: number): DayPlan {
+  const late = LATE.filter((r) => field >= { QF: 8, SF: 4, F: 2 }[r]);
   const longest = Math.max(0, ...[...units.values()].map((u) => u.length));
-  const days = Math.max(tier.days ?? late.length + longest, late.length + 1);
+  const days = Math.max(wanted ?? late.length + longest, late.length + 1);
   const early = days - late.length;
-  const at = new Map<string, Map<string, [number, number]>>(); // nomor → unit → [hari mulai, lama]
+  const at = new Map<string, Map<string, [number, number]>>(); // kunci → unit → [hari mulai, lama]
   for (const [d, us] of units) {
     const m = new Map<string, [number, number]>();
     if (us.length > early) us.forEach((u, j) => m.set(u, [Math.floor((j * early) / us.length), 1]));
@@ -61,7 +77,7 @@ export function dayPlan(tier: Tier, ds: readonly Discipline[]): DayPlan {
   const day = (d: string, round: MatchRound, pos?: MatchAt) => {
     const li = (late as readonly string[]).indexOf(round);
     if (li >= 0) return early + li;
-    const u = at.get(d)?.get(round === 'G' ? `G${(pos?.md ?? 0) + 1}` : round);
+    const u = (at.get(d) ?? [...at.values()][0])?.get(round === 'G' ? `G${(pos?.md ?? 0) + 1}` : round);
     if (!u) return 0;
     return u[0] + (u[1] > 1 && pos && pos.i * 2 >= pos.n ? 1 : 0);
   };

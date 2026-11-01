@@ -146,7 +146,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   const label = (id: string) => team
     ? { name: dataName(world.countries.find((c) => c.id === id)?.name) ?? id, country: id }
     : entrantLabel(state, id);
-  const keys = [...new Set(show.matches.map((m) => m.key))].sort((a, b) => DISCIPLINES.indexOf(a as Discipline) - DISCIPLINES.indexOf(b as Discipline)); // beregu: tidak ada di DISCIPLINES, urutan tetap
+  const keys = [...new Set(show.matches.map((m) => m.key))].sort((a, b) => DISCIPLINES.indexOf(a as Discipline) - DISCIPLINES.indexOf(b as Discipline) || a.localeCompare(b)); // beregu: urut nama format
   // Nomor unggulan di turnamen ini (dari hasil undian nomor itu); beregu tanpa unggulan.
   const seedOf = (key: string, id: string) => state.eventRecords
     .find((r) => r.tournamentId === show.tournamentId && r.year === state.date.year && r.discipline === key)?.slots.find((x) => x.entrant === id)?.seed;
@@ -183,10 +183,12 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   const shown = (daily ? [...rows].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.court ?? 0) - (b.court ?? 0)) : rows)
     .filter((m) => tab === 'all' || m.key === tab);
   const multiRound = new Set(rows.map((m) => m.round)).size > 1;
+  // Beregu di kolom sempit: singkatan format (Thomas Cup → TC, Men's team → MT).
+  const abbr = (k: string) => formatName(k as TeamFormat, show.tournamentId).split(/\s+/).map((w) => w[0]).join('').toUpperCase().slice(0, 3);
   // Atlet sendiri dengan dua laga belum dimainkan hari ini (dua nomor): boleh mundur dari salah satunya (saran: nomor laga keduanya).
   const [pulled, setPulled] = useState<string[]>([]);
   const twice = new Map<string, RoundMatch[]>();
-  if (daily && show.phase === 'pending' && show.withdraw && viewing === show.day)
+  if (daily && !team && show.phase === 'pending' && show.withdraw && viewing === show.day)
     for (const m of [...show.matches].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)))
       for (const id of m.sides.filter(isMine)) if (!m.result)
         for (const pid of state.pairs.find((x) => x.id === id)?.playerIds ?? [id]) twice.set(pid, [...(twice.get(pid) ?? []), m]);
@@ -280,7 +282,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
                 <td className="muted-text">{daily ? (
                   <small className="slot">
                     <span className="court" title={t('courtN', { n: m.court! })}>{t('courtShort', { n: m.court! })}</span>
-                    <span>{tab === 'all' ? m.key : ''}{multiRound ? ` ${m.round}` : ''}{m.tv && <span className="tv" title={t('tvMatch')}>📺</span>}</span>
+                    <span>{tab === 'all' ? (team ? abbr(m.key) : m.key) : ''}{multiRound ? ` ${m.round}` : ''}{m.tv && <span className="tv" title={t('tvMatch')}>📺</span>}</span>
                   </small>
                 ) : 'vs'}</td>
                 <td className={w === 1 ? 'win' : undefined}><span className="who-cell"><Flag id={sides[1].country} /><span><PlayerName id={m.sides[1]}>{sides[1].name}</PlayerName>{seedTag(m.key, m.sides[1])}</span></span></td>

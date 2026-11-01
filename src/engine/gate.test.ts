@@ -160,7 +160,10 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
     const inaTies = res.flatMap((r) => r.ties.filter((t) => t.sides.includes('INA')).map((t) => `${r.format}:${t.round}`));
     expect(lineups.sort()).toEqual(inaTies.sort());
     for (const r of res) for (const t of r.ties) expect(Math.max(...t.score)).toBeGreaterThanOrEqual(3);
-    expect(shows.map((s) => s.round)).toEqual(['G', 'G', 'G', 'QF', 'SF', 'F']); // grup: satu matchday (tie) per hari
+    // Jadwal harian (9 hari, Chengdu 2024): grup 6 hari (tiap matchday dua hari, separuh grup per hari), QF, SF, final.
+    const lastOfDay = new Map(shows.map((x) => [x.day, x]));
+    expect([...lastOfDay.values()].map((x) => x.round)).toEqual(['G', 'G', 'G', 'G', 'G', 'G', 'QF', 'SF', 'F']);
+    expect([...lastOfDay.keys()]).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
     // Undian babak gugur (live drawing) sekali per format: 4 juara grup di posisi tetap, 4 runner-up di paruh lain.
     expect(koDraws.map((d) => d.format).sort()).toEqual(['thomas', 'uber']);
     for (const d of koDraws) {
@@ -169,7 +172,7 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
       expect([win.length, run.length]).toEqual([4, 4]);
       for (const r of run) expect(r.pos! <= 4).not.toBe(win.find((w) => w.vars.g === r.vars.g)!.pos! <= 4);
     }
-    expect(shows.flatMap((s) => s.matches).length).toBe(res.reduce((n, r) => n + r.ties.length, 0));
+    expect([...lastOfDay.values()].flatMap((x) => x.matches).length).toBe(res.reduce((n, r) => n + r.ties.length, 0));
   });
 });
 
