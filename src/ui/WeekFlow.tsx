@@ -275,7 +275,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
             const tie = score && team ? tieOf(m) : undefined;
             return [(
               <tr key={k} className={[mine && 'mine-row', m === current && 'current'].filter(Boolean).join(' ') || undefined}>
-                <td className={w === 0 ? 'win' : undefined}><Flag id={sides[0].country} /><PlayerName id={m.sides[0]}>{sides[0].name}</PlayerName>{seedTag(m.key, m.sides[0])}</td>
+                <td className={w === 0 ? 'win' : undefined}><span className="who-cell"><Flag id={sides[0].country} /><span><PlayerName id={m.sides[0]}>{sides[0].name}</PlayerName>{seedTag(m.key, m.sides[0])}</span></span></td>
                 {/* Jadwal harian: kolom tengah = lapangan, lalu nomor (& babak bila sehari lebih dari satu babak) & 📺 laga siaran. */}
                 <td className="muted-text">{daily ? (
                   <small className="slot">
@@ -283,7 +283,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
                     <span>{tab === 'all' ? m.key : ''}{multiRound ? ` ${m.round}` : ''}{m.tv && <span className="tv" title={t('tvMatch')}>📺</span>}</span>
                   </small>
                 ) : 'vs'}</td>
-                <td className={w === 1 ? 'win' : undefined}><Flag id={sides[1].country} /><PlayerName id={m.sides[1]}>{sides[1].name}</PlayerName>{seedTag(m.key, m.sides[1])}</td>
+                <td className={w === 1 ? 'win' : undefined}><span className="who-cell"><Flag id={sides[1].country} /><span><PlayerName id={m.sides[1]}>{sides[1].name}</PlayerName>{seedTag(m.key, m.sides[1])}</span></span></td>
                 <td className="num">{rec ? <MatchLink m={rec} name={(x) => label(x).name} title={eventName(ruleset, show.tournamentId, state.date.year)}>{score}</MatchLink>
                   : tie ? <a href="#" title={t('matchDetail')} onClick={(e) => { e.preventDefault(); setOpenTie({ key: m.key, tie }); }}>{score}</a>
                   : score || (m === current ? '…'

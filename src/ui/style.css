@@ -1018,3 +1018,8 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 .totop { position: fixed; right: 8px; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); z-index: 30; width: 40px; height: 40px; opacity: .92; min-height: 0; padding: 0;
   border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font-size: 1.25rem; font-weight: 700; box-shadow: 0 4px 14px rgb(0 0 0 / .18); }
 .totop:hover { border-color: var(--accent); color: var(--accent-strong); }
+
+/* Bendera + nama di jadwal: bendera tetap di kiri baris pertama, nama (juga satu kata yang panjang) terlipat di sebelahnya. */
+.who-cell { display: inline-flex; align-items: flex-start; max-width: 100%; }
+.who-cell > .flag { flex: none; margin-top: .35em; }
+.who-cell > span { min-width: 0; overflow-wrap: break-word; }
