@@ -597,10 +597,10 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
   .live .controls button, .live .controls select { min-height: 32px; font-size: 14px; padding: 2px 10px; }
   .live .controls select { padding-right: 28px; }
   /* Target sentuh nyaman di HP (≥ 32–40 px). */
-  .roundlist button.rowtoggle { min-height: 32px; padding: 4px 10px; font-size: .8rem; }
+  .roundlist button.rowtoggle { min-height: 32px; padding: 4px 6px; font-size: .8rem; max-width: 100%; }
   .plan-cell { padding: 10px 6px; }
   /* Area sentuh lebih tinggi tanpa menggeser teks: padding diimbangi margin negatif (nama tetap sejajar dengan chip/badge). */
-  td a[href], .drow a[href] { display: inline-block; padding: 6px 0; margin: -6px 0; }
+  td a[href], .drow a[href] { padding: 6px 0; } /* inline: area sentuh lebih tinggi tanpa memisahkan nama dari benderanya saat terlipat */
   .pname { display: block; padding: 4px 0; } /* pasangan di HP: satu nama per baris, "/" menempel di nama pertama */
   .pname a[href] { display: inline; padding: 0; } /* "/" mengikuti kata terakhir, tidak turun sendiri */
   /* Menu tab yang bisa digeser: tepi kanan memudar sebagai petunjuk masih ada tab lain. */
