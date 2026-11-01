@@ -262,7 +262,8 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
             </ul>
           </details>
         )}
-        <table className="roundlist">
+        {/* Huruf sangat besar (pengaturan teks iOS): tabel bisa digeser, tidak terpotong. */}
+        <div className="scroll"><table className="roundlist">
           <colgroup><col className="side" /><col className="vs" /><col className="side" /><col className="score" /></colgroup>
           <tbody>{shown.flatMap((m) => {
             const sides = m.sides.map(label);
@@ -282,7 +283,8 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
                 <td className="muted-text">{daily ? (
                   <small className="slot">
                     <span className="court" title={t('courtN', { n: m.court! })}>{t('courtShort', { n: m.court! })}</span>
-                    <span>{tab === 'all' ? (team ? abbr(m.key) : m.key) : ''}{multiRound ? ` ${m.round}` : ''}{m.tv && <span className="tv" title={t('tvMatch')}>📺</span>}</span>
+                    {(tab === 'all' || m.tv) && <span>{tab === 'all' ? (team ? abbr(m.key) : m.key) : ''}{m.tv && <span className="tv" title={t('tvMatch')}>📺</span>}</span>}
+                    {multiRound && <span>{m.round}</span>}
                   </small>
                 ) : 'vs'}</td>
                 <td className={w === 1 ? 'win' : undefined}><span className="who-cell"><Flag id={sides[1].country} /><span><PlayerName id={m.sides[1]}>{sides[1].name}</PlayerName>{seedTag(m.key, m.sides[1])}</span></span></td>
@@ -296,7 +298,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
               </tr>
             )];
           })}</tbody>
-        </table>
+        </table></div>
         {/* Juara tiap nomor (urut MS…XD; beregu: per format), juara negara sendiri disorot. */}
         {done && final && viewing === show.day && (() => {
           const finals = show.matches.filter((m) => (tab === 'all' || m.key === tab) && (m.round ?? 'F') === 'F' && m.result)

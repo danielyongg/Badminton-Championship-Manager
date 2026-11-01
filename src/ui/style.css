@@ -589,7 +589,7 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
   .pairtable th { white-space: nowrap; }
   .scroll table tr.sel td:first-child { background: color-mix(in srgb, var(--accent-soft) 100%, var(--surface)); }
   /* Line-up: dua pilihan atlet ganda boleh turun baris. */
-  .lineup, .group table { display: table; } /* klasemen grup selebar kartu (bukan blok gulir) */
+  .lineup, .group table, table.roundlist { display: table; } /* klasemen grup & jadwal harian selebar kartu (bukan blok gulir); jadwal: wadah .scroll bila huruf sangat besar */
   .modal table:not(.board) { display: table; }
   /* Pop-up (Live Match, live drawing): kontrol ringkas. */
   .live { padding: 10px; }
@@ -663,7 +663,14 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 .roundlist td { overflow: hidden; text-overflow: ellipsis; }
 .roundlist tr.mine-row td { background: var(--accent-soft); }
 .roundlist td.win { font-weight: 700; }
-@media (max-width: 600px) { .roundlist td { white-space: normal; overflow-wrap: break-word; } /* nama panjang terlipat per kata, dipotong hanya bila satu kata tak muat */ .roundlist col.vs { width: 2.8em; } .roundlist col.score { width: 4.4em; } }
+@media (max-width: 600px) {
+  /* HP: lebar kolom mengikuti isi (huruf besar iOS tidak mendorong skor keluar kartu): skor & kolom tengah selebar isinya,
+     nama terlipat per kata (dipotong hanya bila satu kata tak muat), padding sel lebih tipis. */
+  .roundlist { table-layout: auto; }
+  .roundlist td { white-space: normal; overflow-wrap: break-word; padding: 4px; }
+  .roundlist col.side, .roundlist col.vs, .roundlist col.score { width: auto; }
+  .roundlist td.num, .roundlist td:nth-child(2) { width: 1%; white-space: nowrap; }
+}
 .roundbar { position: sticky; bottom: 0; z-index: 2; background: var(--surface); padding: 10px 0; border-top: 1px solid var(--line); }
 .roundlist tr.current td { background: var(--gold-soft); }
 .roundlist .slot { display: grid; justify-items: center; gap: 2px; line-height: 1.2; white-space: nowrap; }
@@ -1022,6 +1029,6 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 /* Bendera + nama di jadwal: bendera tetap di kiri baris pertama, nama (juga satu kata yang panjang) terlipat di sebelahnya. */
 .who-cell { display: inline-flex; align-items: flex-start; max-width: 100%; }
 .who-cell > .flag { flex: none; margin-top: .35em; }
-.who-cell > span { min-width: 0; overflow-wrap: break-word; }
+.who-cell > span { overflow-wrap: break-word; } /* lebar minimum = kata terpanjang: tabel melebar (bisa digeser) alih-alih memotong nama */
 
 .warn-text { color: var(--danger); }
