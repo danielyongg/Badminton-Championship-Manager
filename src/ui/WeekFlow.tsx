@@ -263,7 +263,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
           </details>
         )}
         {/* Huruf sangat besar (pengaturan teks iOS): tabel bisa digeser, tidak terpotong. */}
-        <div className="scroll"><table className="roundlist">
+        <div className="round-scroll"><table className="roundlist">
           <colgroup><col className="side" /><col className="vs" /><col className="side" /><col className="score" /></colgroup>
           <tbody>{shown.flatMap((m) => {
             const sides = m.sides.map(label);

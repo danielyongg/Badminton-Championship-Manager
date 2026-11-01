@@ -181,6 +181,7 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 /* Semua sub-tab (selain menu tab utama), tingkat berapa pun: ukuran sama. */
 nav.controls:not(.maintabs) button[aria-pressed] { font-size: .85rem; padding: 2px 10px; }
 .scroll { overflow-x: auto; }
+.round-scroll { overflow-x: auto; } /* jadwal harian: bisa digeser bila huruf sangat besar, tanpa kolom menempel ala .scroll */
 
 /* Tabel */
 table { border-collapse: collapse; width: 100%; font-size: .9rem; }
@@ -667,7 +668,7 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
   /* HP: lebar kolom mengikuti isi (huruf besar iOS tidak mendorong skor keluar kartu): skor & kolom tengah selebar isinya,
      nama terlipat per kata (dipotong hanya bila satu kata tak muat), padding sel lebih tipis. */
   .roundlist { table-layout: auto; }
-  .roundlist td { white-space: normal; overflow-wrap: break-word; padding: 4px; }
+  .roundlist td { white-space: normal; overflow-wrap: break-word; padding: 4px 3px; }
   .roundlist col.side, .roundlist col.vs, .roundlist col.score { width: auto; }
   .roundlist td.num, .roundlist td:nth-child(2) { width: 1%; white-space: nowrap; }
 }
