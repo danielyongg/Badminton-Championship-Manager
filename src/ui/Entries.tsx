@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
-import { aiEventChoice, entrantsFor, entryClosed, entryDeadline, hostCityId, openTo, type SeasonState, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey, withdrawEntry, WITHDRAW_FREE_WEEKS } from '../engine/season';
+import { aiEventChoice, entrantsFor, entryClosed, entryDeadline, hostCityId, openTo, spanBusy, type SeasonState, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey, withdrawEntry, WITHDRAW_FREE_WEEKS } from '../engine/season';
 import { acceptEntries, applyCountryQuota } from '../engine/entry';
 import { makeRng } from '../engine/rng';
 import { EntryLists } from './EventViews';
@@ -63,7 +63,8 @@ export function Entries({ onOpenEvent }: { onOpenEvent?: (id: string, year: numb
           const team = teamIds.has(e.id);
           return (
             <tr key={e.id} data-ev={e.id} className={past ? 'muted-text' : undefined}>
-              <td className="num">{weekOf(e, year)}</td>
+              {/* Turnamen dua minggu (Super 1000 2027+): rentang minggu. */}
+              <td className="num">{weekOf(e, year)}{'tierId' in e && (ruleset.tiers.find((x) => x.id === e.tierId)?.spanWeeks ?? 1) > 1 && `–${weekOf(e, year) + 1}`}</td>
               <td><a href="#" onClick={(x) => { x.preventDefault(); onOpenEvent?.(e.id, year); }}>{team ? eventName(ruleset, e.id, year) : dataName(e.name)}</a></td>
               <td><TierBadge tierId={'tierId' in e ? e.tierId : ''} team={team ? e : undefined} /></td>
               <td className="hide-sm">{city(hostCityId(e, year))}</td>
@@ -355,9 +356,10 @@ function LastChampions() {
 type EntryEntrant = { id: string; d: Discipline; playerIds: string[]; trial?: boolean; rank?: number };
 
 /** Atlet → turnamen lain minggu ini tempat ia sudah didaftarkan (keputusan entrant mana pun, tunggal/pasangan, yang memuatnya). */
-function boundElsewhere(state: SeasonState, decisions: Record<string, string>, eventId: string) {
+/** Atlet → turnamen lain tempat ia terikat minggu ini: pilihan entry minggu itu, atau masih bermain di Super 1000 dua minggu (minggu `w`). */
+function boundElsewhere(state: SeasonState, rs: Ruleset, decisions: Record<string, string>, eventId: string, w: number) {
   const { pairs } = lookup(state);
-  const out = new Map<string, string>();
+  const out = spanBusy(state, rs, state.date.year, w);
   for (const [id, v] of Object.entries(decisions))
     if (v && v !== 'rest' && v !== eventId) (pairs.get(id)?.playerIds ?? [id]).forEach((x) => out.set(x, v));
   return out;
@@ -460,7 +462,7 @@ export function JuniorEntryTable({ ev, onSubmit, onBack }: { ev: TournamentDef; 
   const playingKey = playing.map((e) => e.id).join();
   const autoTargets = useMemo(() => suggestJuniorTargets(state, ruleset, game.world, ev.id, playing), [version, ev.id, playingKey]);
   const chosen = (d: Discipline) => rows.filter((e) => e.d === d && decisions[e.id] === ev.id).length;
-  const bound = boundElsewhere(state, decisions, ev.id);
+  const bound = boundElsewhere(state, ruleset, decisions, ev.id, w);
   // Saran (tanpa unsur acak, seperti AI turnamen junior): per nomor, atlet/pasangan yang bisa main & tidak lelah diurutkan
   // ranking junior lalu kemampuan → kuota teratas main, sisanya istirahat. Sisa kuota ganda tetap diisi pasangan otomatis.
   const suggest = () => {
@@ -552,7 +554,7 @@ export function EntryTable({ week: w, eventId, onSubmit, onBack }: { week: numbe
     .map((e) => ({ ...e, d, rank: ranks.get(d)!.get(e.id) }))
     .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9)));
   // Turnamen lain minggu ini tempat atlet sudah didaftarkan (keputusan entrant mana pun yang memuat atlet itu).
-  const boundTo = boundElsewhere(state, decisions, eventId);
+  const boundTo = boundElsewhere(state, ruleset, decisions, eventId, w);
   const elsewhere = (e: (typeof rows)[number]) => e.playerIds.map((id) => boundTo.get(id)).find(Boolean);
   // Cedera yang sembuh sebelum minggu turnamen tetap bisa didaftarkan.
   const injured = (e: (typeof rows)[number]) => e.playerIds.some((id) => injuredFor(players.get(id)!, w - state.date.week));

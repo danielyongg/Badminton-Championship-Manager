@@ -2,7 +2,7 @@ import { EARLY_LOSS, isEarly, isHeldBack, updateReadiness } from './promotion';
 import { bumpForm, CAREER_HIGH_BONUS, CLOSE_LOSS_EXP, CLOSE_LOSS_GAP, COMEBACK_CHANCE, COMEBACK_MENTAL, eliteCounts, isCloseLoss, mentorsOf, FIRST_TITLE_BONUS, FIRST_TOP10_WIN_BONUS, HOME_BONUS, hitTarget, PAIR_STREAK_BONUS, PAIR_STREAK_FROM, REST_RECOVERY, SELECT_BONUS, SNUB_PENALTY, snubbed, TARGET_HIT, TARGET_MISS, BREAKTHROUGH_AGE } from './boosts';
 import { chemistryMult, ensureTraits, FRAGILE_DOWN, hasTrait, HOME_HERO_BONUS, injuryMult, LEADER_PARTNER, LEADER_SQUAD, QUICK_RECOVERY, TRAVELER_FATIGUE } from './traits';
 import { makeChallenges, seasonGoals, seasonReport, suggestJuniorTargets, suggestTargets } from './career';
-import { contingentOf, inContingent, lockContingents } from './contingent';
+import { contingentOf, inContingent, lockContingents, lockWeek } from './contingent';
 import { olympicField } from './olympics';
 import { updateAwards, type AwardYear } from './awards';
 import { INDEPENDENT_QUIT, INDEPENDENT_TOP, isCrossNation, pairIndependents, releaseAthletes } from './independents';
@@ -20,6 +20,7 @@ import { newTour, runEvent, simPlay, tournamentWildcards, toRecord, type HotForm
 import { roundGate, type RoundHook } from './gate';
 import { dayPlan } from './schedule';
 import { makeScouting, recruit, SCOUTING_DEADLINE_WEEK, withdrawCandidates, type Scouting, type ScoutFocus } from './scouting';
+import { upgradeTo2027 } from './presets/bwf2027';
 import {
   DISCIPLINES, isDoubles, isJuniorFormat, ROUNDS, type Career, type City, type Confederation, type Discipline, type DrawStep, type EntrantId, type GameDate, type Match, type Pair,
   type Player, type RankingEntry, type Round, type Ruleset, type Tier, type TeamEventDef, type TeamFormat, type TierId, type TournamentDef, type World,
@@ -395,6 +396,9 @@ const tierOf = (rs: Ruleset, e: TournamentDef) => rs.tiers.find((t) => t.id === 
  */
 export function startYear(state: SeasonState, rs: Ruleset, rng: Rng, world?: World) {
   const { year } = state.date;
+  // Save BWF 2026 memasuki 2027+: format baru berlaku mulai musim ini; daftar entry musim ini yang terbit dengan aturan lama
+  // (batas entry di akhir musim lalu) diterbitkan ulang dengan aturan baru (pilihan manajer tetap dipakai).
+  if (year >= 2027) for (const id of upgradeTo2027(rs)) if (state.entryLists) delete state.entryLists[`${year}:${id}`];
   // Tuan rumah musim depan diundi di awal musim (diumumkan di berita); musim ini juga bila belum (save lama).
   if (year > rs.startYear) drawHosts(rs, year, rng, world);
   const drawn = drawHosts(rs, year + 1, rng, world);
@@ -472,6 +476,9 @@ export const WITHDRAW_FREE_WEEKS = 1, LATE_WITHDRAW_PENALTY = 1;
 
 /** Minggu batas entry (entry terakhir bisa diubah di minggu ini; awal Januari: minggu 1). Tanpa batas → undefined. */
 export function entryDeadline(rs: Ruleset, id: string, year: number): number | undefined {
+  // Multi-event (nomor perorangan & beregunya): entry & skuad terkunci bersama kontingen.
+  const games = rs.calendar.find((e) => e.contingent && (e.id === id || `${e.id}-team` === id));
+  if (games) return Math.max(1, lockWeek(rs, games, year) - 1); // terkunci mulai minggu kunci kontingen (sama dengan Dashboard)
   const ev = rs.calendar.find((e) => e.id === id);
   if (ev) { const lead = ENTRY_LEAD[ev.tierId]; return lead === undefined ? undefined : Math.max(1, weekOf(ev, year) - lead); }
   const team = rs.team.events.find((e) => e.id === id);
@@ -484,7 +491,8 @@ export function entryDeadline(rs: Ruleset, id: string, year: number): number | u
 export const entryClosed = (state: SeasonState, rs: Ruleset, id: string) => {
   const d = entryDeadline(rs, id, state.date.year);
   if (d === undefined || state.date.week <= d) return false;
-  return rs.calendar.some((e) => e.id === id) ? !!state.entryLists?.[`${state.date.year}:${id}`] : true;
+  // Individu: tertutup saat daftar entry terbit; multi-event (tanpa daftar entry) & beregu: begitu batas lewat.
+  return rs.calendar.some((e) => e.id === id && !e.contingent) ? !!state.entryLists?.[`${state.date.year}:${id}`] : true;
 };
 
 /** Mundur dari daftar entry yang sudah terbit; mundur terlambat tanpa cedera (bukan atlet wajib) → reputasi −1. Hasil: kena penalti. */
@@ -504,6 +512,23 @@ export function withdrawEntry(state: SeasonState, rs: Ruleset, eventId: string, 
 }
 
 /**
+ * Atlet yang di minggu `w` masih bermain di turnamen yang menempati beberapa minggu (`Tier.spanWeeks`, Super 1000 2027+)
+ * dari minggu sebelumnya: dari daftar entry yang sudah terbit & pilihan entry manajer. Atlet → id turnamen itu.
+ */
+export function spanBusy(state: SeasonState, rs: Ruleset, year: number, w: number): Map<string, string> {
+  const out = new Map<string, string>();
+  const pairs = new Map(state.pairs.map((p) => [p.id, p]));
+  const ids = (id: string) => pairs.get(id)?.playerIds ?? [id];
+  for (const e of rs.calendar) {
+    const start = weekOf(e, year), span = tierOf(rs, e).spanWeeks ?? 1;
+    if (!isHeld(e, year) || start >= w || start + span <= w) continue;
+    for (const c of Object.values(state.entryLists?.[`${year}:${e.id}`] ?? {}).flat()) ids(c!.id).forEach((p) => out.set(p, e.id));
+    for (const [id, v] of Object.entries(state.manualEntries[weekKey({ year, week: start })] ?? {})) if (v === e.id) ids(id).forEach((p) => out.set(p, e.id));
+  }
+  return out;
+}
+
+/**
  * Terbitkan daftar entry turnamen yang batas entrinya sudah tiba (minggu ini atau terlewat, mis. save lama), per minggu
  * turnamen: junior dulu, lalu senior; atlet yang sudah terdaftar di turnamen lain minggu itu tidak didaftarkan lagi.
  */
@@ -511,7 +536,7 @@ function publishEntries(state: SeasonState, rs: Ruleset, world: World, rng: Rng,
   const { year, week } = state.date;
   const lists = (state.entryLists ??= {});
   const due = rs.calendar.filter((e) => isHeld(e, year) && (onlyThisWeek ? weekOf(e, year) === week : weekOf(e, year) >= week) && !lists[`${year}:${e.id}`]
-    && (entryDeadline(rs, e.id, year) ?? Infinity) <= week);
+    && !e.contingent && (entryDeadline(rs, e.id, year) ?? Infinity) <= week); // multi-event: peserta dari kontingen saat turnamen
   if (!due.length) return;
   const pairs = new Map(state.pairs.map((p) => [p.id, p]));
   const ranks = new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.results, d, absWeek(state.date), rs))]));
@@ -521,10 +546,13 @@ function publishEntries(state: SeasonState, rs: Ruleset, world: World, rng: Rng,
   };
   for (const w of new Set(due.map((e) => weekOf(e, year)))) {
     const evs = due.filter((e) => weekOf(e, year) === w).sort((a, b) => tierOf(rs, b).points[0] - tierOf(rs, a).points[0]);
-    const manual = state.manualEntries[weekKey({ year, week: w })] ?? {};
-    // Atlet di daftar entry lain minggu itu (sudah terbit) tidak didaftarkan lagi.
-    const busy = new Set(rs.calendar.filter((e) => weekOf(e, year) === w).flatMap((e) => Object.values(lists[`${year}:${e.id}`] ?? {}).flat()
-      .flatMap((c) => pairs.get(c!.id)?.playerIds ?? [c!.id])));
+    // Atlet di daftar entry lain minggu itu (sudah terbit), atau masih bermain di Super 1000 dua minggu, tidak didaftarkan lagi
+    // (juga bila dipilih manajer).
+    const spanning = spanBusy(state, rs, year, w);
+    const manual = Object.fromEntries(Object.entries(state.manualEntries[weekKey({ year, week: w })] ?? {})
+      .filter(([id]) => !(pairs.get(id)?.playerIds ?? [id]).some((p) => spanning.has(p))));
+    const busy = new Set([...spanning.keys(), ...rs.calendar.filter((e) => weekOf(e, year) === w).flatMap((e) => Object.values(lists[`${year}:${e.id}`] ?? {}).flat()
+      .flatMap((c) => pairs.get(c!.id)?.playerIds ?? [c!.id]))]);
     const junior = juniorEntries(state, evs.filter((e) => tierOf(rs, e).junior), rs, world, juniorRanks, manual, rng, busy, w - week);
     state.pairs.push(...junior.created);
     store(junior.entries);
@@ -771,8 +799,14 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
   const cutoff = absWeek(state.date) - rs.ranking.entryCutoffWeeks;
   const ranks = new Map(DISCIPLINES.map((d) => [d, rankMap(computeRanking(state.results, d, cutoff, rs))]));
 
+  // Minggu kedua Super 1000 (2027+): atlet yang bermain di babak minggu kedua (R16 ke atas) masih bertanding, tidak pulih.
+  // ponytail: batas minggu = R16 (11 hari: grup/R32 di minggu pertama); yang tersingkir lebih awal pulih seperti biasa.
+  const pairOf = new Map(state.pairs.map((p) => [p.id, p]));
+  const spanEvents = new Set(rs.calendar.filter((e) => (tierOf(rs, e).spanWeeks ?? 1) > 1 && weekOf(e, state.date.year) === state.date.week - 1).map((e) => e.id));
+  const stillPlaying = new Set(state.matches.filter((m) => m.year === state.date.year && spanEvents.has(m.tournamentId) && ['R16', 'QF', 'SF', 'F'].includes(m.round))
+    .flatMap((m) => m.sides.flatMap((x) => pairOf.get(x)?.playerIds ?? [x])));
   for (const p of state.players) {
-    p.fatigue = Math.max(0, p.fatigue - rs.fatigue.recoveryPerWeek * (hasTrait(p, 'quickRecovery') ? QUICK_RECOVERY : 1));
+    if (!stillPlaying.has(p.id)) p.fatigue = Math.max(0, p.fatigue - rs.fatigue.recoveryPerWeek * (hasTrait(p, 'quickRecovery') ? QUICK_RECOVERY : 1));
     if (p.injury && --p.injury.weeksLeft <= 0) {
       // Kembali lebih kuat: sembuh dari cedera berat kadang menaikkan mental.
       if (p.injury.level === 'severe' && rng() < COMEBACK_CHANCE) { p.attrs.mental += COMEBACK_MENTAL; capToPa(p); }

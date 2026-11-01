@@ -3,7 +3,8 @@ import { contingentOf, lockContingents, lockWeek, setContingent } from './contin
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
-import { newSeason, playWeek } from './season';
+import { newSeason, playWeek } from './season';import { entryClosed, isHeld, type SeasonState } from './season';
+
 
 describe('kontingen multi-event', () => {
   const ag = BWF_2026.calendar.find((e) => e.id === 'asian-games')!;
@@ -41,4 +42,15 @@ describe('kontingen multi-event', () => {
     expect(matches.length).toBeGreaterThan(0);
     for (const m of matches) for (const side of m.sides) for (const id of pids.get(side)!) expect(contingentOf(state, ag.id, country.get(id)!)).toContain(id);
   });
+});
+
+it('entry multi-event (perorangan & beregu) terkunci bersama kontingen', () => {
+  const rs = BWF_2026;
+  const games = rs.calendar.find((e) => e.contingent && e.countries && isHeld(e, 2026))!;
+  const lock = lockWeek(rs, games, 2026);
+  const at = (week: number) => ({ date: { year: 2026, week }, entryLists: {} }) as unknown as SeasonState;
+  for (const id of [games.id, ...rs.team.events.filter((e) => e.id === `${games.id}-team`).map((e) => e.id)]) {
+    expect(entryClosed(at(lock - 1), rs, id), id).toBe(false);
+    expect(entryClosed(at(lock), rs, id), id).toBe(true);
+  }
 });

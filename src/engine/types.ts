@@ -57,6 +57,8 @@ export interface Tier {
   junior?: { quota: { singles: number; doubles: number }; play?: number; local?: boolean; maxAge?: number };
   /** Jumlah hari pertandingan (lihat schedule.ts `dayPlan`); kosong = satu hari per babak. */
   days?: number;
+  /** Minggu kalender yang ditempati (Super 1000 mulai 2027: 2 — peserta tidak bisa ikut turnamen minggu berikutnya). */
+  spanWeeks?: number;
 }
 
 export interface TournamentDef {

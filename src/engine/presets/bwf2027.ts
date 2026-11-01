@@ -8,7 +8,7 @@ import { BWF_2026, CALENDAR_2026, OFFICIAL_WEEKS, TIERS_2026 } from './bwf2026';
 const TIER_CHANGES: Record<string, Partial<Tier>> = {
   // ASUMSI: tunggal Super 1000 = 48 pemain, 16 grup × 3, juara grup ke R16.
   S1000: {
-    days: 11, // mulai 2027: 11 hari, dua akhir pekan
+    days: 11, spanWeeks: 2, // mulai 2027: 11 hari, dua akhir pekan (menempati 2 minggu kalender)
     drawSize: { MS: 48, WS: 48, MD: 32, WD: 32, XD: 32 },
     groupStage: { MS: { groups: 16, perGroup: 3, advance: 1 }, WS: { groups: 16, perGroup: 3, advance: 1 } },
   },
@@ -52,3 +52,25 @@ export const BWF_2027: Ruleset = {
   tiers,
   calendar,
 };
+
+/**
+ * Save berpreset BWF 2026 yang memasuki musim 2027 atau sesudahnya: format BWF 2027+ (Super 1000 11 hari dengan grup tunggal,
+ * Kejuaraan Dunia bergrup, tier turnamen yang naik/turun, kota baru) berlaku mulai musim itu. Ruleset diubah di tempat.
+ * Hasil: id turnamen yang aturannya berubah (daftar entry yang sudah terbit dengan aturan lama perlu diterbitkan ulang).
+ */
+export function upgradeTo2027(rs: Ruleset): string[] {
+  // Preset bawaan tidak pernah diubah (game memakai salinannya); tier & turnamen diganti objek baru, bukan diubah di tempat,
+  // agar ruleset lain yang berbagi objek dengan preset tidak ikut berubah.
+  if (rs.id !== BWF_2026.id || rs === BWF_2026) return [];
+  const tierChanged = new Set(Object.keys(TIER_CHANGES));
+  rs.tiers = rs.tiers.map((t) => (TIER_CHANGES[t.id] ? { ...t, ...structuredClone(TIER_CHANGES[t.id]) } : t));
+  const changed = new Set<string>();
+  rs.calendar = rs.calendar.map((e) => {
+    const tierId = TIER_OF_EVENT_2027[e.id] ?? e.tierId;
+    const cityId = e.id === 'us-open' ? 'los-angeles' : e.id === 'china-open' ? 'chengdu' : e.cityId;
+    if (tierId !== e.tierId || tierChanged.has(tierId)) changed.add(e.id);
+    return tierId === e.tierId && cityId === e.cityId ? e : { ...e, tierId, cityId, ...(tierId !== e.tierId && { prizeUsd: prizeOf(tierId) }) };
+  });
+  Object.assign(rs, { id: BWF_2027.id, name: BWF_2027.name });
+  return [...changed];
+}
