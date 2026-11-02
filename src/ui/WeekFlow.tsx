@@ -183,8 +183,6 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   const shown = (daily ? [...rows].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.court ?? 0) - (b.court ?? 0)) : rows)
     .filter((m) => tab === 'all' || m.key === tab);
   const multiRound = new Set(rows.map((m) => m.round)).size > 1;
-  // Beregu di kolom sempit: singkatan format (Thomas Cup → TC, Men's team → MT).
-  const abbr = (k: string) => formatName(k as TeamFormat, show.tournamentId).split(/\s+/).map((w) => w[0]).join('').toUpperCase().slice(0, 3);
   // Atlet sendiri dengan dua laga belum dimainkan hari ini (dua nomor): boleh mundur dari salah satunya (saran: nomor laga keduanya).
   const [pulled, setPulled] = useState<string[]>([]);
   const twice = new Map<string, RoundMatch[]>();
@@ -197,7 +195,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   const done = show.phase === 'done';
   const final = show.round === 'F';
   const box = useRef<HTMLElement>(null);
-  useEffect(() => { box.current?.querySelector('tr.current')?.scrollIntoView({ block: 'nearest' }); }, [show.current]);
+  useEffect(() => { box.current?.querySelector('.mcard.current')?.scrollIntoView({ block: 'nearest' }); }, [show.current]);
   const roundName = show.round === 'G' ? t('roundG') : /^Q\d/.test(show.round) ? `${t('qualifying')} R${show.round.slice(1)}` : show.round;
   const shortOf = (r: string) => r === 'G' ? t('roundG') : r; // strip hari: Q1, R64, … (sama lebar)
   const nameOf = (r: string) => r === 'G' ? t('roundG') : /^Q\d/.test(r) ? `${t('qualifying')} R${r.slice(1)}` : r;
@@ -209,7 +207,8 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
         {openTie && <TieDetail r={teamRes(openTie.key)!} tie={openTie.tie} name={(c) => label(c).name} onClose={() => setOpenTie(undefined)} />}
         <h3>{title}</h3>
         {daily && (
-          <nav className="controls subnav days" aria-label={t('schedule')}>
+          <nav className="controls subnav days" aria-label={t('schedule')}
+            style={{ gridTemplateColumns: `repeat(${show.plan!.rounds.length <= 7 ? show.plan!.rounds.length : Math.ceil(show.plan!.rounds.length / 2)}, minmax(0, 1fr))` }}>
             {show.plan!.rounds.map((rs, k) => (
               <button key={k} aria-pressed={k === viewing} aria-current={k === show.day ? 'date' : undefined} disabled={k > show.day!} onClick={() => setView(k)}>
                 <b>{weekday(k, show.plan!.days)}</b> <small>{[...rs].sort((a, b) => roundOrder(a as MatchRound) - roundOrder(b as MatchRound)).map(shortOf).join('·')}</small>
@@ -219,11 +218,11 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
         )}
         {/* Individu: nomor selalu terlihat, juga saat babak hanya berisi satu nomor (mis. R64 hanya MS). */}
         {(keys.length > 1 || !team) && (
-          <nav className="controls subnav">
+          <nav className="controls subnav discs" style={{ gridTemplateColumns: `repeat(${keys.length + (daily ? 1 : 0)}, minmax(0, 1fr))` }}>
             {daily && <button aria-pressed={tab === 'all'} onClick={() => setTab('all')}>{t('allDisc')}</button>}
             {keys.map((k) => (
               <button key={k} aria-pressed={k === tab} disabled={playing && k !== tab && tab !== 'all'} onClick={() => setTab(k)}>
-                {team ? formatName(k as TeamFormat, show.tournamentId) : k}{mineKeys.has(k) && <span className="mine"> ●</span>}
+                {team ? formatName(k as TeamFormat, show.tournamentId) : k}{mineKeys.has(k) && <span className="mine">{'\u00a0'}●</span>}
               </button>
             ))}
           </nav>
@@ -262,43 +261,56 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
             </ul>
           </details>
         )}
-        {/* Huruf sangat besar (pengaturan teks iOS): tabel bisa digeser, tidak terpotong. */}
-        <div className="round-scroll"><table className="roundlist">
-          <colgroup><col className="side" /><col className="vs" /><col className="side" /><col className="score" /></colgroup>
-          <tbody>{shown.flatMap((m) => {
-            const sides = m.sides.map(label);
-            const mine = m.sides.some(isMine);
-            const w = m.result?.winner;
-            // Beregu: jumlah partai dimenangkan; individu: skor per game.
-            const score = !m.result ? '' : team
-              ? `${m.result.scores.filter(([x, y]) => x > y).length}–${m.result.scores.filter(([x, y]) => x < y).length}`
-              : [...m.result.scores.map(([x, y], i) => <span key={i} className="game">{x}-{y}</span>), endTag(m.result)]; // satu game per baris
-            const k = rowKey(m);
-            const rec = score && !team ? recordOf(m) : undefined;
-            const tie = score && team ? tieOf(m) : undefined;
-            return [(
-              <tr key={k} className={[mine && 'mine-row', m === current && 'current'].filter(Boolean).join(' ') || undefined}>
-                <td className={w === 0 ? 'win' : undefined}><span className="who-cell"><Flag id={sides[0].country} /><span><PlayerName id={m.sides[0]}>{sides[0].name}</PlayerName>{seedTag(m.key, m.sides[0])}</span></span></td>
-                {/* Jadwal harian: kolom tengah = lapangan, lalu nomor (& babak bila sehari lebih dari satu babak) & 📺 laga siaran. */}
-                <td className="muted-text">{daily ? (
-                  <small className="slot">
-                    <span className="court" title={t('courtN', { n: m.court! })}>{t('courtShort', { n: m.court! })}</span>
-                    {(tab === 'all' || m.tv) && <span>{tab === 'all' ? (team ? abbr(m.key) : m.key) : ''}{m.tv && <span className="tv" title={t('tvMatch')}>📺</span>}</span>}
-                    {multiRound && <span>{m.round}</span>}
-                  </small>
-                ) : 'vs'}</td>
-                <td className={w === 1 ? 'win' : undefined}><span className="who-cell"><Flag id={sides[1].country} /><span><PlayerName id={m.sides[1]}>{sides[1].name}</PlayerName>{seedTag(m.key, m.sides[1])}</span></span></td>
-                <td className="num">{rec ? <MatchLink m={rec} name={(x) => label(x).name} title={eventName(ruleset, show.tournamentId, state.date.year)}>{score}</MatchLink>
-                  : tie ? <a href="#" title={t('matchDetail')} onClick={(e) => { e.preventDefault(); setOpenTie({ key: m.key, tie }); }}>{score}</a>
-                  : score || (m === current ? '…'
-                  : mine && !done && <button className="rowtoggle" title={t('rowToggleHint')} aria-label={t(skipped.has(k) ? 'rowSkip' : 'rowLive')} onClick={() => toggle(k)}>
-                    {/* HP: ikon saja agar muat di kolom skor; teks di layar lebar. */}
-                    {skipped.has(k) ? '⏭' : '▶'}<span className="hide-sm"> {t(skipped.has(k) ? 'rowSkip' : 'rowLive')}</span>
-                  </button>)}</td>
-              </tr>
-            )];
-          })}</tbody>
-        </table></div>
+        {/*
+          Kartu laga gaya papan skor: baris info (lapangan · nomor · babak · 📺, tombol Live/Lewati di kanan), lalu dua baris
+          peserta selebar sama dengan skor per game sejajar di kanan. Tidak ada kolom yang perlu digeser, di HP sekalipun.
+        */}
+        <ol className="matchlist">{shown.map((m) => {
+          const sides = m.sides.map(label);
+          const mine = m.sides.some(isMine);
+          const w = m.result?.winner;
+          // Beregu: partai dimenangkan tiap tim (satu kolom); individu: poin per game.
+          const cols: [number, number][] = !m.result ? [] : team
+            ? [[m.result.scores.filter(([x, y]) => x > y).length, m.result.scores.filter(([x, y]) => x < y).length]]
+            : m.result.scores;
+          const k = rowKey(m);
+          const rec = m.result && !team ? recordOf(m) : undefined;
+          const tie = m.result && team ? tieOf(m) : undefined;
+          const scoreGrid = cols.length > 0 && <span className={`m-score${team ? ' team' : ''}`}>{[0, 1].flatMap((i) => cols.map(([x, y], g) => {
+            const v = i === 0 ? x : y, o = i === 0 ? y : x;
+            return <span key={`${i}-${g}`} className={v > o ? 'g-win' : undefined} style={{ gridRow: i + 1, gridColumn: g + 1 }}>{v}</span>;
+          }))}</span>;
+          const end = m.result ? endTag(m.result).trim() : '';
+          return (
+            <li key={k} className={['mcard', mine && 'mine', m === current && 'current'].filter(Boolean).join(' ')}>
+              <div className="m-meta">
+                {daily && <span className="court" title={t('courtN', { n: m.court! })}>{t('courtShort', { n: m.court! })}</span>}
+                <span className="m-key">{team ? formatName(m.key as TeamFormat, show.tournamentId) : m.key}</span>
+                {(multiRound || !daily) && <span>{nameOf(m.round ?? show.round)}</span>}
+                {m.tv && <span className="tv" title={t('tvMatch')}>📺</span>}
+                <span className="m-status">
+                  {end ? <span className="badge">{end}</span>
+                    : m === current ? <span className="badge live-badge">● {t('rowLive')}</span>
+                    : mine && !done && !m.result && (
+                      <button className="rowtoggle" aria-pressed={!skipped.has(k)} title={t('rowToggleHint')} onClick={() => toggle(k)}>
+                        {skipped.has(k) ? `⏭ ${t('rowSkip')}` : `▶ ${t('rowLive')}`}
+                      </button>
+                    )}
+                </span>
+              </div>
+              <div className="m-body">
+                {sides.map((x, i) => (
+                  <div key={i} className={`m-side${w === i ? ' win' : w !== undefined ? ' lose' : ''}`} style={{ gridRow: i + 1 }}>
+                    <Flag id={x.country} /><span><PlayerName id={m.sides[i]}>{x.name}</PlayerName>{seedTag(m.key, m.sides[i])}</span>
+                  </div>
+                ))}
+                {rec ? <MatchLink m={rec} name={(x) => label(x).name} title={eventName(ruleset, show.tournamentId, state.date.year)}>{scoreGrid}</MatchLink>
+                  : tie ? <a href="#" title={t('matchDetail')} onClick={(e) => { e.preventDefault(); setOpenTie({ key: m.key, tie }); }}>{scoreGrid}</a>
+                  : scoreGrid}
+              </div>
+            </li>
+          );
+        })}</ol>
         {/* Juara tiap nomor (urut MS…XD; beregu: per format), juara negara sendiri disorot. */}
         {done && final && viewing === show.day && (() => {
           const finals = show.matches.filter((m) => (tab === 'all' || m.key === tab) && (m.round ?? 'F') === 'F' && m.result)
@@ -318,7 +330,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
             </section>
           );
         })()}
-        <div className="controls roundbar">
+        <div className="controls roundbar daybar">
           {playing
             ? <button onClick={onSkipRest}>{t(daily ? 'simDay' : 'simRound')}</button>
             : <button className="primary" onClick={onNext}>{!done ? t(daily ? 'playDay' : 'playRound') : final ? t('doneEvent') : t(daily ? 'nextDay' : 'nextRound')}</button>}
