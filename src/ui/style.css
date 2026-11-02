@@ -705,6 +705,7 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 /* Live semua / Lewati semua: dua tombol sama lebar. */
 .drawctl .seg { display: grid; grid-template-columns: 1fr 1fr; }
 .drawctl .seg button { min-width: 7.5em; }
+.roundbar { position: sticky; bottom: 0; z-index: 2; background: var(--surface); padding: 10px 0; border-top: 1px solid var(--line); } /* tetap terlihat saat menggulir */
 /* Tombol bawah jadwal: sama lebar & tinggi. */
 .roundbar.daybar { display: grid; grid-template-columns: repeat(2, minmax(0, 16em)); }
 .roundbar.daybar > button { width: 100%; min-height: 44px; }
