@@ -4,6 +4,7 @@ import { dissolvePair, peakRange, potentialStars, promoteJunior, recallPlayer, r
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { experienceFactor } from '../engine/development';
 import { visibleTraits } from '../engine/traits';
+import { playerReport } from '../engine/report';
 import { EARLY_GAP, promotionLine, readyLines } from '../engine/promotion';
 import { SCOUT_FOCI, scoutVerdict, styleOf, suggestedSector, type ScoutFocus } from '../engine/scouting';
 import { emptyStats, moraleTier, pairAbility } from '../engine/match';
@@ -495,6 +496,33 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
         </section>
       </div>{careerCard}</>}
       {tab === 'summary' && !pair && <>
+        {p.countryId === state.career?.countryId && p.retired === undefined && (() => {
+          // Peringkat senior terbaik (tunggal / pasangan aktif) & posisinya ±12 minggu lalu.
+          const now = absWeek(state.date);
+          const best = [...(playsSingles ? [{ d: singles, e: id }] : []), ...activePairs.map((x) => ({ d: x.discipline as Discipline, e: x.id }))]
+            .map((x) => ({ ...x, rank: rankOf(x.d, x.e) })).filter((x) => x.rank).sort((a, b) => a.rank! - b.rank!)[0];
+          const before = best && rankFromSnapshots(state, best.e, best.d, ruleset).filter((s) => s.absWeek <= now - 12).at(-1)?.rank;
+          const r = playerReport({ p, date: state.date, results: mine.map(won), best: best && { d: best.d, rank: best.rank!, before },
+            stars: potentialStars(p, state.date, counts.get(p.id) ?? 0), junior: isPratama(p, state.date), line: promotionLine(p, readyLines(state, ruleset)) });
+          const signed = (n: number) => (n ? `${n > 0 ? '+' : ''}${n}` : '±0');
+          const vClass = { keep: 'good', promote: 'good', recall: 'good', release: 'danger', stayOut: '' }[r.verdict];
+          return (
+            <section className="card">
+              <h3>{t('analystReport')}</h3>
+              <dl className="facts">
+                {fact(t('rep_growth'), <>{t('rep_growthText', { ca: r.ca, d: r.season === undefined ? '—' : signed(r.season) })}{arrow(p.caDelta)}
+                  <small className="muted-text" style={{ display: 'block' }}>{t(`rep_trend_${r.trend}`)} · <span className="stars">{starText(potentialStars(p, state.date, counts.get(p.id) ?? 0))}</span></small></>)}
+                {fact(t('rep_form'), r.recent.n ? <>{t('rep_formText', { w: r.recent.wins, l: r.recent.n - r.recent.wins, n: r.recent.n })}
+                  {' '}<span className={r.form === 'good' ? 'up' : r.form === 'poor' ? 'down' : 'muted-text'}>({t(`rep_form_${r.form!}`)})</span>
+                  <small className="muted-text" style={{ display: 'block' }}>{r.best ? <>{r.best.d} #{r.best.rank}{r.best.before && <> · {t('rep_rankFrom', { r: r.best.before })}</>}</> : t('rep_unranked')}</small></>
+                  : t('rep_noMatches'))}
+                {fact(t('suggestedSector'), <><SuggestedSector p={p} /><small className="muted-text" style={{ display: 'block' }}>{t('suggestedHint', { s: r.sector.single, d: r.sector.double })}</small></>)}
+                {fact(t('rep_verdict'), <><span className={`badge ${vClass}`}>{t(`verdict_${r.verdict}`)}</span>
+                  <small className="muted-text" style={{ display: 'block' }}>{t(`rep_reason_${r.reason}` as TextKey)}</small></>)}
+              </dl>
+            </section>
+          );
+        })()}
         <div className="split">
           <section className="card">
             <h3>{t('seasonStats')} {year}</h3>

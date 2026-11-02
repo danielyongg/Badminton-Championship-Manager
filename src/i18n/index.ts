@@ -487,6 +487,13 @@ withdrawFrom: 'Mundur dari {d}', withdrewFrom: 'mundur dari {d}', withdrawTwoHin
   v_pairCountry: 'atlet beda negara (hanya boleh bila keduanya di luar pelatnas).',
   v_pairGender: 'gender tidak cocok untuk {d}.',
   v_pairBusy: '{name} sudah punya pasangan {d}.',
+  analystReport: 'Laporan analis', rep_growth: 'Perkembangan', rep_growthText: '{ca} ({d} musim ini)', rep_trend_up: 'masih naik di kuartal terakhir', rep_trend_flat: 'stagnan di kuartal terakhir', rep_trend_down: 'menurun di kuartal terakhir',
+  rep_form: 'Performa terakhir', rep_formText: '{w}–{l} ({n} laga terakhir)', rep_form_good: 'meyakinkan', rep_form_mixed: 'naik-turun', rep_form_poor: 'kurang meyakinkan', rep_noMatches: 'Belum ada laga.',
+  rep_rankFrom: 'dari #{r} 3 bulan lalu', rep_unranked: 'Belum berperingkat senior.', rep_verdict: 'Rekomendasi',
+  verdict_keep: 'Pertahankan', verdict_release: 'Lepas', verdict_promote: 'Promosikan', verdict_recall: 'Panggil kembali', verdict_stayOut: 'Tidak perlu dipanggil',
+  rep_reason_core: 'Andalan tim: 50 besar dunia.', rep_reason_developing: 'Masih muda & berkembang; beri jam terbang.', rep_reason_depth: 'Pelapis: tetap berguna untuk kedalaman skuad.',
+  rep_reason_declining: 'Usia 30+, kemampuan menurun & di luar 50 besar.', rep_reason_lowPotential: 'Potensi terbatas & peringkat rendah; slot lebih baik untuk talenta lain.', rep_reason_ready: 'Sudah siap bersaing di level senior.',
+  rep_reason_strong: 'Masih kompetitif (100 besar dunia atau kemampuan di atas standar pelatnas).', rep_reason_old: 'Usia sudah di atas 29.', rep_reason_weak: 'Kemampuan belum cukup untuk pelatnas.',
 };
 export type TextKey = keyof typeof id;
 

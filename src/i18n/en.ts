@@ -487,6 +487,13 @@ withdrawFrom: 'Withdraw from {d}', withdrewFrom: 'withdrew from {d}', withdrawTw
   v_pairCountry: 'players from different countries (only allowed when both are independent).',
   v_pairGender: 'gender does not match {d}.',
   v_pairBusy: '{name} already has a {d} partner.',
+  analystReport: 'Analyst report', rep_growth: 'Development', rep_growthText: '{ca} ({d} this season)', rep_trend_up: 'still rising last quarter', rep_trend_flat: 'flat last quarter', rep_trend_down: 'declining last quarter',
+  rep_form: 'Recent form', rep_formText: '{w}–{l} (last {n} matches)', rep_form_good: 'convincing', rep_form_mixed: 'up and down', rep_form_poor: 'unconvincing', rep_noMatches: 'No matches yet.',
+  rep_rankFrom: 'from #{r} 3 months ago', rep_unranked: 'No senior ranking yet.', rep_verdict: 'Recommendation',
+  verdict_keep: 'Keep', verdict_release: 'Release', verdict_promote: 'Promote', verdict_recall: 'Recall', verdict_stayOut: 'No need to recall',
+  rep_reason_core: 'Key player: world top 50.', rep_reason_developing: 'Young and developing; give match time.', rep_reason_depth: 'Back-up: still useful for squad depth.',
+  rep_reason_declining: 'Aged 30+, ability declining and outside the top 50.', rep_reason_lowPotential: 'Limited potential and low ranking; the slot is better used on other talent.', rep_reason_ready: 'Ready to compete at senior level.',
+  rep_reason_strong: 'Still competitive (world top 100 or ability above the national-squad standard).', rep_reason_old: 'Already over 29.', rep_reason_weak: 'Ability not yet good enough for the national squad.',
 };
 
 // Nama data bawaan (negara, kota, event) yang berbahasa Indonesia → Inggris. Dicocokkan per teks persis,
