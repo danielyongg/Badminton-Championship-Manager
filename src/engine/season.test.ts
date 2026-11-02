@@ -5,7 +5,7 @@ import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
 import { presetPack, PRESETS } from './pack';
 import { makeRng } from './rng';
-import { aiEventChoice, bestRanks, drawHosts, entrantsFor, prActive, protectRanking, entryDeadline, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, weekOf, withdrawEntry, wtfQualifiers } from './season';
+import { aiEventChoice, bestRanks, clearSpanClashes, spreadHosts, drawHosts, entrantsFor, prActive, protectRanking, entryDeadline, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, weekOf, withdrawEntry, wtfQualifiers } from './season';
 import { ATTRS, DISCIPLINES } from './types';
 
 describe('satu musim penuh (BWF 2026)', () => {
@@ -270,8 +270,10 @@ it('kalender musim baru: tahun resmi tetap, tahun berikutnya bergeser ±1 minggu
   scheduleYear(other, 2029, makeRng(2));
   const weeks = (r: typeof rs) => r.calendar.map((e) => weekOf(e, 2029)).join();
   expect(weeks(rs)).not.toBe(weeks(other)); // beda save, beda kalender
-  for (const e of rs.calendar) expect(Math.abs(weekOf(e, 2029) - e.week)).toBeLessThanOrEqual(1);
-  const big = rs.calendar.filter((e) => ['S1000', 'S750', 'S500'].includes(e.tierId)).map((e) => weekOf(e, 2029));
+  // Super 500+ boleh mencari minggu bebas sampai ±4 (Super 1000 memakai 2 minggu).
+  const isBig = (e: (typeof rs.calendar)[number]) => ['S1000', 'S750', 'S500'].includes(e.tierId);
+  for (const e of rs.calendar) expect(Math.abs(weekOf(e, 2029) - e.week), e.id).toBeLessThanOrEqual(isBig(e) ? 4 : 1);
+  const big = rs.calendar.filter(isBig).flatMap((e) => (e.tierId === 'S1000' ? [weekOf(e, 2029), weekOf(e, 2029) + 1] : [weekOf(e, 2029)]));
   expect(new Set(big).size).toBe(big.length);
   const wc = weekOf(ev('world-championships'), 2029);
   expect(big).not.toContain(wc);
@@ -460,4 +462,34 @@ it('pensiun: peringkat atlet = terbaik di semua nomor, spesialis ganda memakai p
   const ranks = bestRanks(state, rs, now);
   expect(ranks.get(a)).toBe(1);
   expect(ranks.get(b)).toBe(1);
+});
+
+it('kalender 2027+: tidak ada World Tour lain di minggu kedua Super 1000 (11 hari, 2 minggu)', () => {
+  const rs = structuredClone(BWF_2027);
+  const rng = makeRng(11);
+  for (let y = 2027; y <= 2040; y++) {
+    drawHosts(rs, y, rng, WORLD);
+    drawHosts(rs, y + 1, rng, WORLD);
+    scheduleYear(rs, y, rng, WORLD);
+    if (y < 2029) continue; // 2027–2028: jadwal resmi BWF (tidak digeser)
+    const wt = rs.calendar.filter((e) => isHeld(e, y) && rs.race.tiers.includes(e.tierId));
+    for (const s of wt.filter((e) => e.tierId === 'S1000'))
+      for (const o of wt.filter((e) => e !== s)) expect(weekOf(o, y), `${y} ${s.id}/${o.id}`).not.toBe(weekOf(s, y) + 1);
+  }
+}, 60000);
+
+it('save lama: turnamen yang belum dimulai di minggu kedua Super 1000 digeser (Super 500+ & World Tour kecil)', () => {
+  const rs = structuredClone(BWF_2027);
+  const rng = makeRng(3);
+  for (let y = 2027; y <= 2031; y++) { drawHosts(rs, y, rng, WORLD); drawHosts(rs, y + 1, rng, WORLD); scheduleYear(rs, y, rng, WORLD); }
+  const ev = (id: string) => rs.calendar.find((e) => e.id === id)!;
+  const mo = weekOf(ev('malaysia-open'), 2031);
+  ev('india-open').weeks![2031] = mo + 1; // seperti save lama: S750 di minggu kedua Malaysia Open
+  ev('thailand-masters').weeks![2031] = mo + 1;
+  const movable = (e: (typeof rs.calendar)[number]) => weekOf(e, 2031) > 1;
+  clearSpanClashes(rs, 2031, movable, 2);
+  spreadHosts(rs, 2031, makeRng(2031), WORLD, movable, 2);
+  const wt = rs.calendar.filter((e) => isHeld(e, 2031) && rs.race.tiers.includes(e.tierId));
+  for (const s of wt.filter((e) => e.tierId === 'S1000'))
+    for (const o of wt.filter((e) => e !== s && weekOf(e, 2031) > 1)) expect(weekOf(o, 2031), `${s.id}/${o.id}`).not.toBe(weekOf(s, 2031) + 1);
 });

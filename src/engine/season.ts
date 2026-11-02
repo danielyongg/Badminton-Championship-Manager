@@ -68,7 +68,7 @@ export interface SeasonState {
   protectedRanks?: ProtectedRank[];
   /** Hasil undian tuan rumah terakhir (tahun yang diundi, diumumkan di berita awal musim). */
   hostDraw?: { year: number; drawn: { id: string; cityId: string }[] };
-  hostsSpread?: true | 2 | 3; // 2 = juga tier yang sama tidak sepekan, 3 = World Tour sebelum Finals
+  hostsSpread?: true | 2 | 3 | 4; // 2 = juga tier yang sama tidak sepekan, 3 = World Tour sebelum Finals, 4 = minggu kedua Super 1000 bebas
   /** Top Committed Players musim ini: entrantId → id turnamen wajib. */
   commitments: Record<EntrantId, string[]>;
   commitmentsYear?: number;
@@ -202,6 +202,10 @@ export const openTo = (e: { countries?: string[]; confederation?: Confederation 
 
 /** Minggu event di tahun tertentu: jadwal per tahun (`weeks`) atau minggu bawaan. */
 export const weekOf = (e: Pick<TournamentDef, 'week' | 'weeks'>, year: number) => e.weeks?.[year] ?? e.week;
+/** Lama turnamen di kalender (minggu): Super 1000 2027+ = 2. */
+const spanOf = (rs: Ruleset, e: TournamentDef) => rs.tiers.find((t) => t.id === e.tierId)?.spanWeeks ?? 1;
+/** Dua rentang minggu [a, a+sa) dan [b, b+sb) beririsan. */
+const overlaps = (a: number, sa: number, b: number, sb: number) => a < b + sb && b < a + sa;
 
 /** Event besar & tetap (patokan kalender): tidak digeser oleh `scheduleYear`. */
 const ANCHOR_TIERS = new Set(['OG', 'WC', 'WTF']);
@@ -243,8 +247,8 @@ export function spreadHosts(rs: Ruleset, year: number, rng: Rng, world: World, m
   const held = rs.calendar.filter((e) => isHeld(e, year));
   const moving = shuffle(rng, held.filter((e) => movable(e) && smallTier(e) && !e.countries && !e.confederation));
   const wt = (tier?: string) => !!tier && rs.race.tiers.includes(tier);
-  const placed: { city: string; country?: string; week: number; junior: boolean; tier?: string }[] = [
-    ...held.filter((e) => !moving.includes(e)).map((e) => ({ city: hostCityId(e, year), country: cityCountry.get(hostCityId(e, year)), week: weekOf(e, year), junior: juniorTier.has(e.tierId), tier: e.tierId })),
+  const placed: { city: string; country?: string; week: number; span?: number; junior: boolean; tier?: string }[] = [
+    ...held.filter((e) => !moving.includes(e)).map((e) => ({ city: hostCityId(e, year), country: cityCountry.get(hostCityId(e, year)), week: weekOf(e, year), span: spanOf(rs, e), junior: juniorTier.has(e.tierId), tier: e.tierId })),
     ...rs.team.events.filter((e) => isHeld(e, year)).map((e) => ({ city: hostCityId(e, year), country: cityCountry.get(hostCityId(e, year)), week: weekOf(e, year), junior: !!e.formats?.some(isJuniorFormat) })),
   ];
   const wtf = finalsWeek(rs, year);
@@ -260,7 +264,8 @@ export function spreadHosts(rs: Ruleset, year: number, rng: Rng, world: World, m
       if (junior && others.some((p) => p.junior && p.week === w)) continue;
       const clash = others.reduce((s, p) => s + (p.country === country ? Math.max(0, HOST_GAP - Math.abs(p.week - w)) : 0), 0);
       // World Tour tidak sepekan dengan World Tour lain; kota yang sama sebisa mungkin berjarak ≥ CITY_GAP minggu.
-      const wtClash = wt(e.tierId) ? others.filter((p) => wt(p.tier) && p.week === w).length : 0;
+      // Termasuk minggu kedua Super 1000 (spanWeeks).
+      const wtClash = wt(e.tierId) ? others.filter((p) => wt(p.tier) && overlaps(w, spanOf(rs, e), p.week, p.span ?? 1)).length : 0;
       const sameTier = others.filter((p) => p.tier === e.tierId && p.week === w).length;
       const near = others.reduce((s, p) => s + (p.city === city ? Math.max(0, CITY_GAP - Math.abs(p.week - w)) : 0), 0);
       // Kota yang sama < HOST_GAP minggu: lebih berat dari bentrok tier (jarak minimal sekota wajib, docs/ASUMSI.md).
@@ -271,7 +276,28 @@ export function spreadHosts(rs: Ruleset, year: number, rng: Rng, world: World, m
     (e.weeks ??= {})[year] = best;
     const entry = mine.get(e);
     if (entry) entry.week = best;
-    else { const p = { city, country, week: best, junior, tier: e.tierId }; mine.set(e, p); placed.push(p); }
+    else { const p = { city, country, week: best, span: spanOf(rs, e), junior, tier: e.tierId }; mine.set(e, p); placed.push(p); }
+  }
+}
+
+/**
+ * Save lama: Super 500/750/1000 yang beririsan dengan Super 500+ lain (mis. di minggu kedua Super 1000) digeser ke minggu
+ * terdekat (+1, −1, +2, … ±4) yang bebas, sebelum Finals & tidak sepekan Olimpiade/Kejuaraan Dunia/final beregu.
+ */
+export function clearSpanClashes(rs: Ruleset, year: number, movable: (e: TournamentDef) => boolean, fromWeek = 1) {
+  const held = rs.calendar.filter((e) => isHeld(e, year));
+  const big = held.filter((e) => BIG_TIERS.has(e.tierId));
+  const wtf = finalsWeek(rs, year);
+  const blocked = new Set([
+    ...held.filter((e) => ANCHOR_TIERS.has(e.tierId) && e.tierId !== 'WTF').map((e) => weekOf(e, year)),
+    ...rs.team.events.filter((e) => isHeld(e, year) && !e.confederation && e.formats?.every((f) => !isJuniorFormat(f))).map((e) => weekOf(e, year)),
+  ]);
+  const clash = (e: TournamentDef, w: number) => big.some((o) => o !== e && overlaps(w, spanOf(rs, e), weekOf(o, year), spanOf(rs, o)));
+  for (const e of big.filter((x) => movable(x) && clash(x, weekOf(x, year)))) {
+    const w0 = weekOf(e, year);
+    const w = [1, -1, 2, -2, 3, -3, 4, -4].map((d) => w0 + d)
+      .find((x) => x >= fromWeek && x + spanOf(rs, e) - 1 < wtf && !blocked.has(x) && !clash(e, x));
+    if (w !== undefined) (e.weeks ??= {})[year] = w;
   }
 }
 
@@ -284,12 +310,14 @@ function scheduleShift(rs: Ruleset, year: number, rng: Rng, world?: World) {
     ...rs.team.events.filter((e) => isHeld(e, year) && !e.confederation && e.formats?.every((f) => !isJuniorFormat(f))).map((e) => weekOf(e, year)),
   ]);
   const wtf = Math.min(...held.filter((e) => e.tierId === 'WTF').map((e) => weekOf(e, year)), 53);
-  const big = new Set(held.filter((e) => BIG_TIERS.has(e.tierId) && e.weeks?.[year] !== undefined).map((e) => e.weeks![year]));
+  // Minggu yang terpakai Super 500+ (Super 1000 2027+: dua minggu).
+  const weeksOf = (e: TournamentDef, w: number) => Array.from({ length: spanOf(rs, e) }, (_, i) => w + i);
+  const big = new Set(held.filter((e) => BIG_TIERS.has(e.tierId) && e.weeks?.[year] !== undefined).flatMap((e) => weeksOf(e, e.weeks![year])));
   for (const e of shuffle(rng, held.filter((x) => x.weeks?.[year] === undefined && !ANCHOR_TIERS.has(x.tierId) && !junior.has(x.tierId) && !x.countries && !x.confederation))) {
     const isBig = BIG_TIERS.has(e.tierId);
     // Super 500+: bila −1/0/+1 penuh, cari minggu bebas terdekat (±2, ±3, …).
     const options = [...shuffle(rng, [-1, 0, 0, 1]), ...(isBig ? [-2, 2, -3, 3, -4, 4] : [])].map((d) => e.week + d)
-      .filter((w) => w >= 1 && w < wtf && (!isBig || (!big.has(w) && !blocked.has(w))));
+      .filter((w) => w >= 1 && w + spanOf(rs, e) - 1 < wtf && (!isBig || weeksOf(e, w).every((x) => !big.has(x) && !blocked.has(x))));
     // Super 500+ sebisa mungkin tidak dalam HOST_GAP minggu dari event lain di negara yang sama (mis. tuan rumah beregu hasil undian).
     const country = cityCountry.get(hostCityId(e, year));
     const near = (w: number) => !world ? 0 : [...held, ...rs.team.events.filter((x) => isHeld(x, year))]
@@ -297,7 +325,7 @@ function scheduleShift(rs: Ruleset, year: number, rng: Rng, world?: World) {
     if (isBig) options.sort((a, b) => near(a) - near(b));
     const w = options[0] ?? e.week;
     (e.weeks ??= {})[year] = w;
-    if (isBig) big.add(w);
+    if (isBig) weeksOf(e, w).forEach((x) => big.add(x));
   }
 }
 
@@ -371,7 +399,7 @@ export function newSeason(
   const state: SeasonState = {
     date, players: [...structuredClone(roster?.players ?? []), ...w.players], pairs: [...structuredClone(roster?.pairs ?? []), ...w.pairs],
     results: [], juniorResults: [], matches: [], champions: [], commitments: {}, violations: [],
-    juniorPromotion: true, juniorCalibrated: true, traitsRolled: true, hostsSpread: 3, entriesSubmittedKinds: true, experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
+    juniorPromotion: true, juniorCalibrated: true, traitsRolled: true, hostsSpread: 4, entriesSubmittedKinds: true, experience: {}, manualEntries: {}, rankSnapshots: [], teamResults: [], teamLineups: {}, teamSquads: {}, eventRecords: [], earnings: {}, managedCountryId: null,
     career: { countryId, goals: [], reports: [], reputation: 50 },
   };
   if (roster?.players.length) {
