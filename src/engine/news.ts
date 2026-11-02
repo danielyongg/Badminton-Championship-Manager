@@ -4,6 +4,7 @@ import { weekOf, type SeasonState } from './season';
 import type { AwardYear } from './awards';
 import { BREAKTHROUGH_AGE, SURGE_MIN } from './boosts';
 import { SCOUTING_DEADLINE_WEEK } from './scouting';
+import { seedsOf } from './tournament';
 import type { Discipline, EntrantId, Match, Ruleset } from './types';
 
 // Berita mingguan Dashboard: judul singkat dari laga minggu lalu (tanpa data baru di save).
@@ -102,7 +103,7 @@ export function weeklyNews(state: SeasonState, rs: Ruleset): NewsItem[] {
   for (const r of state.eventRecords) {
     const e = defs.get(r.tournamentId);
     if (!e || r.year !== last.year || weekOf(e, r.year) !== last.week) continue;
-    const top = r.slots.find((x) => x.seed === 1)?.entrant;
+    const top = [...seedsOf(r, rs)].find(([, s]) => s === 1)?.[0];
     const lost = top && thisWeek.find((m) => m.tournamentId === r.tournamentId && m.discipline === r.discipline && m.sides.includes(top)
       && m.sides[m.winner] !== top && EARLY.has(m.round));
     if (lost) items.push({ kind: 'seedOut', m: lost, id: top, opp: lost.sides[lost.winner] });

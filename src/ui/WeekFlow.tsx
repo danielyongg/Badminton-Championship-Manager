@@ -7,7 +7,7 @@ import { dataName, t, type TextKey } from '../i18n';
 import { Flag } from './Flag';
 import { EntryPanel, EntryTable, JuniorEntryTable } from './Entries';
 import { endTag, EntryLists } from './EventViews';
-import type { EntriesShow } from '../engine/tournament';
+import { seedsOf, type EntriesShow } from '../engine/tournament';
 import { entrantLabel, eventName, saveGame, useGame, TierBadge } from './game';
 import { formatName, TieDetail } from './Team';
 import { MatchLink } from './MatchDetail';
@@ -148,8 +148,10 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
     : entrantLabel(state, id);
   const keys = [...new Set(show.matches.map((m) => m.key))].sort((a, b) => DISCIPLINES.indexOf(a as Discipline) - DISCIPLINES.indexOf(b as Discipline) || a.localeCompare(b)); // beregu: urut nama format
   // Nomor unggulan di turnamen ini (dari hasil undian nomor itu); beregu tanpa unggulan.
-  const seedOf = (key: string, id: string) => state.eventRecords
-    .find((r) => r.tournamentId === show.tournamentId && r.year === state.date.year && r.discipline === key)?.slots.find((x) => x.entrant === id)?.seed;
+  const seedOf = (key: string, id: string) => {
+    const r = state.eventRecords.find((x) => x.tournamentId === show.tournamentId && x.year === state.date.year && x.discipline === key);
+    return r && seedsOf(r, ruleset).get(id);
+  };
   const seedTag = (key: string, id: string) => { const n = seedOf(key, id); return n ? <> <small className="seed">[{n}]</small></> : null; }; // spasi di luar: unggulan boleh turun baris
   // Laga individu yang sudah selesai → catatan laga (detail & statistik lewat klik skor).
   const recordOf = (m: RoundMatch) => state.matches.find((x) => x.tournamentId === show.tournamentId && x.year === state.date.year

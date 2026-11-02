@@ -1,4 +1,4 @@
-import { makeDraw, type DrawResult } from './draw';
+import { makeDraw, seedCount, type DrawResult } from './draw';
 import { acceptEntries, qualifyingSections, type Candidate, type EntryList } from './entry';
 import { groupDraw, groupEliminatedRound, knockoutFromGroups, koHasLot, playGroup, type GroupStageResult } from './groups';
 import { each, fillQualifiers, playKnockout, qualRoundName, slotField, type KnockoutResult, type PlayFn } from './knockout';
@@ -155,6 +155,16 @@ export interface EventRecord {
   slots: DrawSlot[]; // posisi bagan utama setelah qualifier diisi (unggulan, bye, WC, Q)
   rounds: (EntrantId | null)[][]; // bagan utama: rounds[0] = posisi awal, terakhir = [juara]
   groups?: GroupStageResult;
+}
+
+/**
+ * Unggulan satu nomor (id → nomor unggulan). Format grup tidak punya slot unggulan di bagan: urutan undian pot
+ * (ranking, sama seperti `groupDraw`) sebanyak aturan seeding. Juga berlaku untuk catatan save lama.
+ */
+export function seedsOf(rec: EventRecord, rs: Ruleset): Map<EntrantId, number> {
+  if (!rec.groups) return new Map(rec.slots.filter((s) => s.seed && s.entrant).map((s) => [s.entrant!, s.seed!]));
+  const all = [...rec.entry.main, ...rec.entry.wildcards].sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
+  return new Map(all.slice(0, seedCount(all.length, rs)).map((e, i) => [e.id, i + 1]));
 }
 
 export const toRecord = (tournamentId: string, year: number, discipline: Discipline, run: EventRun): EventRecord => ({

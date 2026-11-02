@@ -16,7 +16,7 @@ import type { Standing } from './groups';
 import { each, type MatchRound, type PlayFn } from './knockout';
 import { juniorEntries, juniorTeamEntrants } from './junior';
 import { AD_HOC, adHocEntrants, autoLineup, rankOrder, autoSquad, lineupError, playOrder, playTie, runTeamEvent, squadError, squadPool, type Lineup, type TeamEntrant } from './team';
-import { newTour, runEvent, simPlay, tournamentWildcards, toRecord, type HotForm, type DrawHook, type DrawShow, type EntriesHook, type EntriesShow, type EventRecord, type LiveHook } from './tournament';
+import { newTour, runEvent, seedsOf, simPlay, tournamentWildcards, toRecord, type HotForm, type DrawHook, type DrawShow, type EntriesHook, type EntriesShow, type EventRecord, type LiveHook } from './tournament';
 import { roundGate, type GateSchedule, type RoundHook } from './gate';
 import { dayPlan, teamDayPlan } from './schedule';
 import { makeScouting, recruit, SCOUTING_DEADLINE_WEEK, withdrawCandidates, type Scouting, type ScoutFocus } from './scouting';
@@ -907,7 +907,7 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     const ds = DISCIPLINES.filter((d) => tier.drawSize[d] > 0 && entries.get(event.id)!.get(d)!.length >= 2);
     const plan = dayPlan(tier, ds);
     // Lapangan utama: laga unggulan teratas & atlet tuan rumah (unggulan dari catatan undian nomor itu).
-    const seedOf = (d: string, id: string) => state.eventRecords.find((r) => r.tournamentId === event.id && r.year === year && r.discipline === d)?.slots.find((x) => x.entrant === id)?.seed;
+    const seedOf = (d: string, id: string) => { const r = state.eventRecords.find((x) => x.tournamentId === event.id && x.year === year && x.discipline === d); return r && seedsOf(r, rs).get(id); };
     const isHome = (id: string) => (pairs.get(id)?.playerIds ?? [id]).some((x) => players.get(x)?.countryId === city.countryId);
     const prio = (d: string, sides: [string, string]) => sides.reduce((t, id) => {
       const seed = seedOf(d, id);
@@ -1160,13 +1160,14 @@ export interface TeamStrength { countryId: string; strength: number; lineup: Lin
  * Negara yang bisa menurunkan tim lengkap untuk format ini, terkuat dulu.
  * Kekuatan = jumlah poin ranking line-up otomatis (mirip ranking beregu BWF). Atlet cedera tidak tersedia.
  */
-export function teamStrengths(state: SeasonState, rs: Ruleset, format: TeamFormat): TeamStrength[] {
+/** `ahead`: minggu sampai turnamen (pendaftaran skuad lebih awal): atlet yang sudah pulih saat itu tetap bisa dipilih. */
+export function teamStrengths(state: SeasonState, rs: Ruleset, format: TeamFormat, ahead = 0): TeamStrength[] {
   const order = rs.team.order[format];
   // Format junior (Suhandinata): atlet U19 & ranking junior; ganda boleh ganda dadakan junior.
   const junior = isJuniorFormat(format);
   const points = rankingPoints(state, rs, junior ? state.juniorResults ?? [] : state.results);
   // Atlet cedera & yang keluar pelatnas tidak bisa dipilih untuk tim nasional.
-  const injured = new Set(state.players.filter((p) => p.injury || p.released !== undefined).map((p) => p.id));
+  const injured = new Set(state.players.filter((p) => injuredFor(p, ahead) || p.released !== undefined).map((p) => p.id));
   const ca = new Map(state.players.map((p) => [p.id, currentAbility(p.attrs)]));
   const pools = new Map<string, Record<string, TeamEntrant[]>>();
   for (const d of new Set(order)) {

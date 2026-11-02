@@ -669,8 +669,12 @@ function TeamSquads({ eventId, formats, onSubmit, onBack }: { eventId: string; f
   const max = ruleset.team.maxMatchesPerPlayer;
   const contingent = contingentOf(state, eventId, country); // multi-event: hanya atlet kontingen
   const games = ruleset.calendar.find((e) => e.contingent && `${e.id}-team` === eventId);
+  // Cedera dinilai pada minggu turnamen (seperti entry individu): atlet yang sudah pulih saat itu tetap bisa didaftarkan.
+  const ev = ruleset.team.events.find((e) => e.id === eventId) ?? games;
+  const ahead = ev ? Math.max(0, weekOf(ev, state.date.year) - state.date.week) : 0;
+  const outInjured = state.players.filter((p) => p.countryId === country && p.retired === undefined && p.released === undefined && injuredFor(p, ahead));
   const pools = formats.map((f) => {
-    const all = teamStrengths(state, ruleset, f);
+    const all = teamStrengths(state, ruleset, f, ahead);
     const rank = all.findIndex((x) => x.countryId === country);
     const pool = all[rank]?.pool;
     return { f, rank, total: all.length, pool: pool && contingent ? squadPool(pool, contingent) : pool };
@@ -683,6 +687,8 @@ function TeamSquads({ eventId, formats, onSubmit, onBack }: { eventId: string; f
   return (
     <>
       <p className="hint">{t('squadHint')}</p>
+      {/* Atlet yang masih cedera saat turnamen tidak muncul di daftar pilihan: disebut di sini agar tidak terlihat "hilang". */}
+      {outInjured.length > 0 && <p className="hint warn-text">🚑 {t('injuredOut')}: {outInjured.map((p) => p.name).join(', ')}</p>}
       {games && <p className="hint">{t('contingentRule', { m: games.contingent!.M, f: games.contingent!.F, w: lockWeek(ruleset, games, state.date.year) })}</p>}
       {pools.map(({ f, rank, total, pool }, i) => (
         <section key={f} className="card">

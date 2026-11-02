@@ -3,9 +3,10 @@ import { BWF_2026 } from './presets/bwf2026';
 import { BWF_2027 } from './presets/bwf2027';
 import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
+import { seedsOf, type EventRecord } from './tournament';
 import { presetPack, PRESETS } from './pack';
 import { makeRng } from './rng';
-import { aiEventChoice, bestRanks, clearSpanClashes, spreadHosts, drawHosts, entrantsFor, prActive, protectRanking, entryDeadline, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, weekOf, withdrawEntry, wtfQualifiers } from './season';
+import { aiEventChoice, bestRanks, clearSpanClashes, teamStrengths, spreadHosts, drawHosts, entrantsFor, prActive, protectRanking, entryDeadline, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, weekOf, withdrawEntry, wtfQualifiers } from './season';
 import { ATTRS, DISCIPLINES } from './types';
 
 describe('satu musim penuh (BWF 2026)', () => {
@@ -492,4 +493,24 @@ it('save lama: turnamen yang belum dimulai di minggu kedua Super 1000 digeser (S
   const wt = rs.calendar.filter((e) => isHeld(e, 2031) && rs.race.tiers.includes(e.tierId));
   for (const s of wt.filter((e) => e.tierId === 'S1000'))
     for (const o of wt.filter((e) => e !== s && weekOf(e, 2031) > 1)) expect(weekOf(o, 2031), `${s.id}/${o.id}`).not.toBe(weekOf(s, 2031) + 1);
+});
+
+it('unggulan format grup (tanpa slot unggulan): urutan ranking peserta, sebanyak aturan seeding', () => {
+  const entry = { main: [{ id: 'b', rank: 2 }, { id: 'a', rank: 1 }, ...Array.from({ length: 46 }, (_, i) => ({ id: `x${i}`, rank: 10 + i }))], wildcards: [], qualifying: [], reserves: [], qualifierSlots: 0 };
+  const rec = { tournamentId: 't', year: 2027, discipline: 'MS', entry, qualRounds: [], steps: [], slots: [], rounds: [], groups: { groups: [], standings: [], steps: [] } } as unknown as EventRecord;
+  const seeds = seedsOf(rec, BWF_2027);
+  expect(seeds.get('a')).toBe(1);
+  expect(seeds.get('b')).toBe(2);
+  expect(seeds.size).toBe(8); // 48 peserta → 8 unggulan
+});
+
+it('skuad beregu didaftarkan lebih awal: atlet yang pulih sebelum turnamen tetap bisa dipilih', () => {
+  const rs = structuredClone(BWF_2027);
+  const state = newSeason(WORLD, rs, 3, { year: 2027, week: 1 });
+  const ina = teamStrengths(state, rs, 'sudirman').find((x) => x.countryId === 'INA')!;
+  const id = ina.pool.WS[0].playerIds[0];
+  state.players.find((p) => p.id === id)!.injury = { weeksLeft: 2, level: 'minor', type: 'x' };
+  const has = (ahead: number) => teamStrengths(state, rs, 'sudirman', ahead).find((x) => x.countryId === 'INA')!.pool.WS.some((e) => e.id === id);
+  expect(has(0)).toBe(false);
+  expect(has(2)).toBe(true);
 });
