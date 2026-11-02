@@ -4,8 +4,8 @@ import type { Discipline, EntrantId, Ruleset } from './types';
 
 /**
  * BWF Player of the Year Awards: pemain terbaik tunggal putra & putri, pasangan terbaik tiap nomor ganda, dan Eddy Choong
- * Rising Star (≤ 21 tahun, nomor mana pun). Nominasi AWARD_LEAD minggu sebelum World Tour Finals, pemenang (salah satu
- * nominasi) di akhir minggu WTF. ASUMSI: skor = poin ranking senior musim itu + bonus gelar besar; ±5% acak saat memilih pemenang.
+ * Rising Star (≤ 21 tahun, nomor mana pun, sekali seumur karier). Nominasi AWARD_LEAD minggu sebelum World Tour Finals, pemenang (salah satu
+ * nominasi) di akhir minggu WTF. ASUMSI: skor = poin ranking senior musim itu (bestOf terbaik) + bonus gelar besar; ±5% acak saat memilih pemenang.
  */
 export const AWARD_CATS = ['MS', 'WS', 'MD', 'WD', 'XD', 'rising'] as const;
 export type AwardCat = typeof AWARD_CATS[number];
@@ -24,10 +24,12 @@ export function wtfWeek(rs: Ruleset, year: number) {
   return e && weekOf(e, year);
 }
 
-/** Skor musim per entrant di satu nomor: poin ranking senior yang diraih tahun itu + bonus gelar besar. */
+/** Skor musim per entrant di satu nomor: poin ranking senior tahun itu (hanya `bestOf` turnamen terbaik, seperti ranking,
+ *  agar yang rajin ikut turnamen kecil tidak mengalahkan yang juara di turnamen besar) + bonus gelar besar. */
 export function seasonScores(state: SeasonState, rs: Ruleset, year: number, d: Discipline) {
-  const out = new Map<EntrantId, number>();
-  for (const r of state.results) if (r.year === year && r.discipline === d) out.set(r.entrantId, (out.get(r.entrantId) ?? 0) + r.points);
+  const pts = new Map<EntrantId, number[]>();
+  for (const r of state.results) if (r.year === year && r.discipline === d) pts.set(r.entrantId, [...(pts.get(r.entrantId) ?? []), r.points]);
+  const out = new Map([...pts].map(([id, p]) => [id, p.sort((a, b) => b - a).slice(0, rs.ranking.bestOf).reduce((s, x) => s + x, 0)]));
   const tier = new Map(rs.calendar.map((e) => [e.id, e.tierId]));
   for (const c of state.champions) {
     const bonus = TITLE_BONUS[tier.get(c.tournamentId) ?? ''];
@@ -42,7 +44,10 @@ function scores(state: SeasonState, rs: Ruleset, year: number): Record<AwardCat,
   const birth = new Map(state.players.map((p) => [p.id, p.birth.year]));
   const members = new Map(state.pairs.map((p) => [p.id, p.playerIds as string[]]));
   const young = (id: EntrantId) => (members.get(id) ?? [id]).every((x) => year - (birth.get(x) ?? 0) <= RISING_MAX_AGE);
-  const rising = new Map(DISC.flatMap((d) => [...byD[d]].filter(([id]) => young(id))));
+  // Rising Star sekali seumur karier: atlet yang pernah menang (di nomor mana pun) tidak dinominasikan lagi.
+  const pastWinners = new Set((state.awards ?? []).flatMap((a) => a.year < year && a.winners ? members.get(a.winners.rising) ?? [a.winners.rising] : []));
+  const fresh = (id: EntrantId) => !(members.get(id) ?? [id]).some((x) => pastWinners.has(x));
+  const rising = new Map(DISC.flatMap((d) => [...byD[d]].filter(([id]) => young(id) && fresh(id))));
   return { ...byD, rising };
 }
 

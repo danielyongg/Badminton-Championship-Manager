@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { AWARD_CATS, AWARD_LEAD, AWARD_NOMINEES, awardsOf, RISING_MAX_AGE, seasonScores, wtfWeek } from './awards';
+import { AWARD_CATS, AWARD_LEAD, AWARD_NOMINEES, awardsOf, RISING_MAX_AGE, seasonScores, updateAwards, wtfWeek } from './awards';
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
@@ -25,4 +25,12 @@ it('BWF Player of the Year: nominasi 3 minggu sebelum WTF, pemenang salah satu n
   for (const c of AWARD_CATS) expect(a.nominees[c]).toContain(a.winners![c]);
   expect(awardsOf(state, [a.winners!.MS]).some((x) => x.won && x.cat === 'MS' && x.year === 2026)).toBe(true);
   expect(state.awards!.filter((x) => x.year === 2026)).toHaveLength(1);
+  // Rising Star sekali seumur karier: pemenang tahun lalu (anggap = nominasi teratas tahun ini) tidak dinominasikan lagi.
+  const prev = a.nominees.rising[0];
+  state.awards = [{ year: 2025, nominees: a.nominees, winners: { ...a.winners!, rising: prev } }];
+  state.date.week = w - AWARD_LEAD;
+  updateAwards(state, rs, rng);
+  const again = state.awards.find((x) => x.year === 2026)!.nominees.rising;
+  const members = (id: string) => state.pairs.find((x) => x.id === id)?.playerIds ?? [id];
+  for (const id of again) expect(members(id).some((p) => members(prev).includes(p))).toBe(false);
 }, 180000);
