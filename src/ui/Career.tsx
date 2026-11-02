@@ -4,7 +4,7 @@ import { matchConfigFor, simulateMatch, type MatchResult } from '../engine/match
 import type { DrawHook, DrawShow, EntriesHook, EntriesShow, LiveHook, LiveRequest } from '../engine/tournament';
 import { CHALLENGE_DEADLINE_WEEK, CHALLENGE_PENALTY, CHALLENGE_REWARD, challengeProgress, goalProgress, goalWeight, targetReport } from '../engine/career';
 import { ageAt, isJuniorAge } from '../engine/generator';
-import { entrantsFor, forgetPlayer, hasHistory, hostCityId, isHeld, openTo, teamFormatsIn, weekOf, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
+import { entrantsFor, forgetPlayer, squadIds, hasHistory, hostCityId, isHeld, openTo, teamFormatsIn, weekOf, switchCountry, type ChooseEvent, type SeasonState, type TeamHook } from '../engine/season';
 import type { RoundHook, RoundShow } from '../engine/gate';
 import type { Lineup, TeamEntrant } from '../engine/team';
 import type { MatchRound } from '../engine/knockout';
@@ -108,7 +108,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
     const m = show.matches[show.current!];
     currentRow.current = rowKey(m);
     setRoundAsk({ show: snap, resolve: () => {} });
-    const mine = m.sides.some((id) => id === managed || entrantLabel(state, id).country === managed);
+    const mine = m.sides.some((id) => id === managed || squadIds(state).has(id));
     return skipRound.current || (mine && !skipRows.current.has(currentRow.current)) ? null : new Promise<void>((r) => setTimeout(r, 100));
   };
   const nameOfCountry = (id: string) => dataName(world.countries.find((c) => c.id === id)?.name) ?? id;
@@ -116,7 +116,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
 
   // Tiap laga atlet negara sendiri di turnamen yang dimainkan tampil Live; sisanya langsung disimulasikan.
   const hook: LiveHook = (req) => {
-    const mine = req.entrants.map((id) => entrantLabel(state, id).country === managed);
+    const sq = squadIds(state), mine = req.entrants.map((id) => sq.has(id));
     if (!mine[0] && !mine[1]) return null;
     mine.forEach((x, i) => { if (x) req.sides[i].challenge = challengePolicy(); }); // juga saat laga disimulasikan
     if (skipRound.current || skipRows.current.has(currentRow.current)) return null;
@@ -200,7 +200,7 @@ export function CareerShell({ onQuit, onLang }: { onQuit: () => void; onLang: ()
           title={`${eventName(game.ruleset, drawAsk.d.tournamentId, state.date.year)}${drawAsk.d.discipline ? ` · ${drawAsk.d.discipline}` : ''}${drawAsk.d.format ? ` · ${formatName(drawAsk.d.format, drawAsk.d.tournamentId)}` : ''}${drawAsk.d.ko ? ` · ${t('knockout')}` : ''}`}
           qualTitle={eventName(game.ruleset, drawAsk.d.tournamentId, state.date.year)}
           name={(id) => (drawAsk.d.discipline ? `${entrantLabel(state, id).name} (${entrantLabel(state, id).country})` : nameOfCountry(id))}
-          mine={(id) => (drawAsk.d.discipline ? entrantLabel(state, id).country === managed : id === managed)}
+          mine={(id) => (drawAsk.d.discipline ? squadIds(state).has(id) : id === managed)}
           onClose={() => { setDrawAsk(undefined); drawAsk.resolve(); }}
           onSkipEvent={() => { skipDraw.current = true; }} />
       )
@@ -425,6 +425,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
     const junior = c ? !!tier?.junior : !!team?.formats?.some(isJuniorFormat);
     return junior && tierGroup(tier, team) !== 'junior' ? <> <span className="chip junior-chip">{t('juniorShort')}</span></> : null;
   };
+  const squad = squadIds(state);
   const top10 = useMemo(() => {
     const now = absWeek(state.date);
     const prev = state.rankSnapshots.filter((x) => x.discipline === rankD && x.absWeek <= now - 4).at(-1);
@@ -545,7 +546,7 @@ function Dashboard({ onOpen, onOpenEvent, onFullRanking }: { onOpen: (id: string
           {DISCIPLINES.map((d) => <button key={d} aria-pressed={d === rankD} onClick={() => setRankD(d)}>{d}</button>)}
         </nav>
         {top10.length === 0 ? <p className="hint">—</p> : top10.map((r) => {
-          const mine = entrantLabel(state, r.id).country === managed;
+          const mine = squad.has(r.id);
           return (
             <div key={r.id} className={`drow rank${mine ? ' mine-row' : ''}`}>
               <span className="badge">{r.rank}</span>
@@ -769,6 +770,7 @@ function NewsCard({ onOpen }: { onOpen: (id: string) => void }) {
   );
   const where = (m: Match) => <small className="muted-text"><EventName id={m.tournamentId} year={m.year}>{eventName(ruleset, m.tournamentId, m.year)}</EventName> · {m.discipline} {m.round} · {score(m)}</small>;
   const lastYear = state.date.week > 1 ? state.date.year : state.date.year - 1;
+  const squad = squadIds(state);
   const record = (on: boolean) => on && <> <span className="badge gold">{t('newsRecord')}</span></>;
   // Tiap berita: badge jenis (lebar tetap, warna per jenis) + kalimat utama + baris keterangan.
   const row = (n: NewsItem): [string, ReactNode, ReactNode] => {
@@ -790,7 +792,7 @@ function NewsCard({ onOpen }: { onOpen: (id: string) => void }) {
         })}</span>];
       case 'awards': {
         const a = n.award;
-        const mine = (id: string) => entrantLabel(state, id).country.split('/').includes(state.career?.countryId ?? '');
+        const mine = (id: string) => squad.has(id);
         const person = (id: string) => <span key={id} className={mine(id) ? 'mine-award' : undefined}>{who(id)}</span>;
         return [t('newsAwardsTag'), <>{t(a.winners ? 'newsAwardWinners' : 'newsAwardNominees', { year: a.year })}</>,
           <span className="award-list">{AWARD_CATS.map((c) => (

@@ -1,4 +1,4 @@
-import { hostCityId, liveTeamResults, weekOf } from '../engine/season';
+import { hostCityId, liveTeamResults, squadIds, weekOf } from '../engine/season';
 import { useState, type ReactNode } from 'react';
 import { DISCIPLINES, type Discipline } from '../engine/types';
 import { dataName, numLocale, t } from '../i18n';
@@ -37,9 +37,10 @@ export function TournamentView({ id, year: startYear, onOpenPlayer, onBack }: { 
   const [page, setPage] = useState<'event' | 'participants' | 'winners'>('event');
 
   const label = (x: string) => { const l = entrantLabel(state, x); return `${l.name} (${l.country})`; };
+  const squad = squadIds(state);
   const who = {
     name: label,
-    mine: (x: string) => !!managed && entrantLabel(state, x).country === managed,
+    mine: (x: string) => !!managed && (x === managed || squad.has(x)), // pelatnas; beregu: negara manajer
     onOpen: onOpenPlayer, // ganda → profil pasangan
     eventTitle: eventName(ruleset, id, year),
   };

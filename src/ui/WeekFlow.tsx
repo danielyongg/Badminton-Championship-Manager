@@ -1,4 +1,4 @@
-import { entryClosed, hostCityId, liveTeamResults, weekOf, type TeamTie } from '../engine/season';
+import { entryClosed, hostCityId, liveTeamResults, squadIds, weekOf, type TeamTie } from '../engine/season';
 import { useEffect, useRef, useState } from 'react';
 import { roundOrder, type RoundMatch, type RoundShow } from '../engine/gate';
 import type { MatchRound } from '../engine/knockout';
@@ -163,7 +163,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   const [view, setView] = useState(show.day); // hari yang dibuka di strip (hari lalu = hasil)
   const viewing = view ?? show.day;
   const rows = !daily || viewing === show.day ? show.matches : show.past?.[viewing!] ?? [];
-  const isMine = (id: string) => label(id).country === managed;
+  const squad = squadIds(state), isMine = (id: string) => (team ? label(id).country === managed : squad.has(id));
   const mineKeys = new Set(show.matches.filter((m) => m.sides.some(isMine)).map((m) => m.key));
   const [picked, pick] = useState(lastTab);
   const setTab = (k: string) => { pick(k); onTab(k); };
@@ -336,14 +336,14 @@ export function EntriesScreen({ show, onDraw, onSkipDraw }: { show: EntriesShow;
   const [d, setD] = useState(show.lists[0]?.discipline);
   const list = show.lists.find((x) => x.discipline === d);
   const label = (id: string) => { const l = entrantLabel(state, id); return `${l.name} (${l.country})`; };
-  const mine = (id: string) => entrantLabel(state, id).country === managed;
+  const squad = squadIds(state), mine = (id: string) => squad.has(id);
   return (
     <section className="card hub">
       <h3>{eventName(ruleset, show.tournamentId, state.date.year)} · {t('entryList')}</h3>
       <nav className="controls subnav">
         {show.lists.map((x) => (
           <button key={x.discipline} aria-pressed={x.discipline === d} onClick={() => setD(x.discipline)}>
-            {x.discipline}{[...x.entry.main, ...x.entry.wildcards, ...x.entry.qualifying].some((c) => c.countryId === managed) && <span className="mine"> ●</span>}
+            {x.discipline}{[...x.entry.main, ...x.entry.wildcards, ...x.entry.qualifying].some((c) => squad.has(c.id)) && <span className="mine"> ●</span>}
           </button>
         ))}
       </nav>

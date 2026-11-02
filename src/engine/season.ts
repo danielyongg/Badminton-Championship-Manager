@@ -310,6 +310,13 @@ export const releasedIds = (state: Pick<SeasonState, 'players'>) => new Set(stat
 export const isManaged = (state: Pick<SeasonState, 'managedCountryId'>, released: Set<string>, e: { countryId: string; playerIds: string[] }) =>
   !!state.managedCountryId && e.countryId === state.managedCountryId && !e.playerIds.some((id) => released.has(id));
 
+/** Id atlet & pasangan pelatnas manajer (negara manajer, tidak keluar pelatnas): yang disorot di layar. Atlet senegara di luar pelatnas tidak. */
+export function squadIds(state: Pick<SeasonState, 'managedCountryId' | 'players' | 'pairs'>) {
+  const ids = new Set(state.players.filter((p) => !!state.managedCountryId && p.countryId === state.managedCountryId && p.released === undefined).map((p) => p.id));
+  for (const p of state.pairs) if (p.playerIds.every((x) => ids.has(x))) ids.add(p.id);
+  return ids;
+}
+
 /** Semua peserta potensial suatu nomor: atlet (tunggal) atau pasangan aktif (ganda). */
 export function entrantsFor(state: SeasonState, d: Discipline): Entrant[] {
   const country = new Map(state.players.map((p) => [p.id, p.countryId]));

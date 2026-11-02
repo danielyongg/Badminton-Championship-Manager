@@ -3,7 +3,7 @@ import { absWeek, activeEntries, computeRace, computeRanking, expiringPoints } f
 import { nextOlympics, olympicField, olympicRanking } from '../engine/olympics';
 import { presetPack } from '../engine/pack';
 import { makeRng } from '../engine/rng';
-import { hostCityId, isHeld, weekOf, newSeason, playWeek, rankFromSnapshots, type SeasonState } from '../engine/season';
+import { hostCityId, isHeld, squadIds, weekOf, newSeason, playWeek, rankFromSnapshots, type SeasonState } from '../engine/season';
 import { ageAt, currentAbility } from '../engine/generator';
 import { ATTRS, DISCIPLINES, type Discipline, type Player, type RankingEntry, type Ruleset, type World } from '../engine/types';
 import { dataName, numLocale, t, type TextKey } from '../i18n';
@@ -97,7 +97,8 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
   }, [version, discipline, mode, at, ruleset, olympic]);
   // Layar lebar: panel kanan tidak pernah kosong — sebelum ada yang diklik tampil atlet terbaik negara sendiri (atau #1).
   const wide = window.matchMedia('(min-width: 900px)').matches;
-  const shown = selected ?? (wide ? (rows.find((r) => name(r.entrantId).country === state.managedCountryId) ?? rows[0])?.entrantId : undefined);
+  const squad = squadIds(state);
+  const shown = selected ?? (wide ? (rows.find((r) => squad.has(r.entrantId)) ?? rows[0])?.entrantId : undefined);
   // Perubahan peringkat dibanding ranking minggu sebelumnya (world & junior): ▲ naik, ▼ turun, BARU = baru masuk ranking.
   const prevRank = useMemo(() => {
     if (mode !== 'world' && mode !== 'junior') return undefined;
@@ -170,7 +171,7 @@ export function SeasonViews({ state, ruleset, world, version, onOpenPlayer, onOp
             <thead><tr><th className="num" title={prevRank ? t('rankMoveHint') : undefined}>#</th><th>{t('name')}</th><th className="hide-sm">{t('country')}</th><th className="num">{t('points')}</th><th className="num hide-sm">{t('tournaments')}</th>{olympic && <th className="hide-sm">{t('olympicQualified')}</th>}</tr></thead>
             <tbody>
               {rows.slice(page * PAGE, (page + 1) * PAGE).map((r) => (
-                <tr key={r.entrantId} onClick={() => setSelected(r.entrantId)} className={[shown === r.entrantId && 'sel', name(r.entrantId).country === state.managedCountryId && 'mine-row'].filter(Boolean).join(' ') || undefined} style={{ cursor: 'pointer' }}>
+                <tr key={r.entrantId} onClick={() => setSelected(r.entrantId)} className={[shown === r.entrantId && 'sel', squad.has(r.entrantId) && 'mine-row'].filter(Boolean).join(' ') || undefined} style={{ cursor: 'pointer' }}>
                   <td className="num rankcell">{r.rank} <small>{move(r.entrantId, r.rank)}</small></td><td><span className="show-sm"><Flag id={name(r.entrantId).country} /></span><PlayerName id={r.entrantId}>{name(r.entrantId).name}</PlayerName>{olympic && <span className="show-sm"> {qualified(r.entrantId)}</span>}</td><td className="hide-sm"><Flag id={name(r.entrantId).country} />{name(r.entrantId).country}</td>
                   <td className="num">{r.points.toLocaleString(numLocale())}</td><td className="num hide-sm">{r.tournamentsPlayed}</td>
                   {olympic && <td className="hide-sm">{qualified(r.entrantId)}</td>}
