@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { Candidate } from '../engine/entry';
 import { provisionalField } from '../engine/groups';
 import { mainRoundName } from '../engine/knockout';
@@ -217,16 +217,20 @@ export function BracketView({ rec, matches, advance, ...who }: ViewProps & { adv
     return s?.seed ? ` [${s.seed}]` : s?.qualifier ? ' [Q]' : s?.wildcard ? ' [WC]' : '';
   };
   const champ = winnerOf(rec.rounds);
+  // Format grup: sub-tab Fase grup / Babak gugur (bawaan: babak gugur begitu bagannya ada), tidak perlu menggulir jauh.
+  const [stage, setStage] = useState<'groups' | 'knockout'>();
   if (rec.groups) {
-    // Format grup: klasemen & laga grup, lalu bagan gugur (laga grup disaring agar ulangan di babak gugur tidak tertukar skornya).
-    const ko = matches.filter((m) => m.round !== 'G');
+    const shown = stage ?? (rec.rounds.length ? 'knockout' : 'groups');
+    const ko = matches.filter((m) => m.round !== 'G'); // laga grup disaring agar ulangan di babak gugur tidak tertukar skornya
     return (
       <>
         {champ && <p><b>{t('champion')}:</b> <Who id={champ} {...who} /></p>}
-        <h4>{t('groupStage')}</h4>
-        <GroupView rec={rec} matches={matches} {...who} />
-        <h4>{t('knockout')}</h4>
-        {rec.rounds.length ? <RoundColumns rounds={rec.rounds} matches={ko} {...who} />
+        <nav className="controls subnav">
+          <button aria-pressed={shown === 'groups'} onClick={() => setStage('groups')}>{t('groupStage')}</button>
+          <button aria-pressed={shown === 'knockout'} onClick={() => setStage('knockout')}>{t('knockout')}</button>
+        </nav>
+        {shown === 'groups' ? <GroupView rec={rec} matches={matches} {...who} />
+          : rec.rounds.length ? <RoundColumns rounds={rec.rounds} matches={ko} {...who} />
           : <ProvisionalBracket groups={rec.groups.groups.length} advance={advance ?? 1}
             who={(g, place) => <Who id={groupRows(rec, matches, g).rows[place - 1]?.id} {...who} />} />}
       </>

@@ -667,22 +667,22 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
   .weeklist li > button:first-of-type { margin-left: auto; }
 }
 /* Jadwal turnamen (individu & beregu): kartu laga gaya papan skor, tanpa gulir horizontal di lebar berapa pun. */
-.matchlist { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
-.mcard { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px 8px; background: var(--surface); min-width: 0; }
+.matchlist { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 4px; }
+.mcard { border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px 4px; font-size: .875rem; background: var(--surface); min-width: 0; }
 .mcard.mine { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
 .mcard.current { background: var(--gold-soft); border-color: var(--gold); }
 /* Baris info: lapangan · nomor · babak · 📺 di kiri, status / tombol Live-Lewati di kanan (tinggi tetap, sejajar di semua kartu). */
-.m-meta { display: flex; align-items: center; gap: 6px; min-height: 30px; font-size: .75rem; color: var(--muted); font-weight: 600; letter-spacing: .03em; }
+.m-meta { display: flex; align-items: center; gap: 6px; min-height: 24px; font-size: .7rem; color: var(--muted); font-weight: 600; letter-spacing: .03em; }
 .m-meta .court { color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; font-weight: 700; background: var(--surface); }
 .m-meta .m-key { color: var(--accent-strong); font-weight: 700; }
 .m-meta .tv { font-size: .8rem; }
 .m-status { margin-left: auto; display: flex; align-items: center; }
-.m-status .rowtoggle { width: 6.6em; min-height: 28px; padding: 2px 6px; font-size: .75rem; white-space: nowrap; border-radius: 999px; }
+.m-status .rowtoggle { width: 6.4em; min-height: 24px; padding: 0 6px; font-size: .72rem; white-space: nowrap; border-radius: 999px; }
 .m-status .rowtoggle[aria-pressed=true] { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); }
 .live-badge { background: var(--gold-soft); color: var(--fg); }
 /* Dua baris peserta selebar sama; skor per game (kolom angka sama lebar) sejajar dengan baris pesertanya. */
-.m-body { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 10px; row-gap: 2px; margin-top: 2px; }
-.m-side { grid-column: 1; display: flex; align-items: flex-start; gap: 4px; min-width: 0; line-height: 1.3; padding: 2px 0; }
+.m-body { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 8px; row-gap: 0; }
+.m-side { grid-column: 1; display: flex; align-items: flex-start; gap: 4px; min-width: 0; line-height: 1.25; padding: 1px 0; }
 .m-side > .flag { flex: none; margin-top: .25em; }
 .m-side > span { min-width: 0; overflow-wrap: anywhere; } /* nama sangat panjang terlipat, tidak pernah terpotong */
 .m-side.win { font-weight: 700; }
@@ -690,9 +690,9 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 .m-body > a, .m-body > .m-score { grid-column: 2; grid-row: 1 / span 2; display: grid; grid-template-rows: subgrid; text-decoration: none; color: inherit; }
 .m-body > a > .m-score { grid-row: 1 / span 2; display: grid; grid-template-rows: subgrid; }
 /* Game ke-1 selalu di kolom yang sama di semua kartu (3 kolom; beregu: 1 kolom jumlah partai). */
-.m-score { grid-template-columns: repeat(3, 2.1em); grid-auto-columns: 2.1em; align-items: start; text-align: center; font-variant-numeric: tabular-nums; }
-.m-score.team { grid-template-columns: 2.1em; font-size: 1.05rem; }
-.m-score > span { padding: 2px 0; line-height: 1.3; color: var(--muted); }
+.m-score { grid-template-columns: repeat(3, 2em); grid-auto-columns: 2em; align-items: start; text-align: center; font-variant-numeric: tabular-nums; }
+.m-score.team { grid-template-columns: 2em; }
+.m-score > span { padding: 1px 0; line-height: 1.25; color: var(--muted); }
 .m-score > span.g-win { color: var(--fg); font-weight: 700; }
 .m-body > a:hover .m-score > span { text-decoration: underline; }
 .subnav.days button { min-width: 0; display: grid; line-height: 1.15; text-align: center; padding-left: 2px; padding-right: 2px; }
