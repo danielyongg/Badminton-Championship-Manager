@@ -676,6 +676,7 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
   .roundlist td { white-space: normal; overflow-wrap: break-word; padding: 4px 3px; }
   .roundlist col.side, .roundlist col.vs, .roundlist col.score { width: auto; }
   .roundlist td.num, .roundlist td:nth-child(2) { width: 1%; white-space: nowrap; }
+  .roundlist td:nth-child(1), .roundlist td:nth-child(3) { width: 50%; } /* dua kolom nama sama lebar: kolom lapangan (C1 · 📺) selalu sejajar di tengah */
 }
 .roundbar { position: sticky; bottom: 0; z-index: 2; background: var(--surface); padding: 10px 0; border-top: 1px solid var(--line); }
 .roundlist tr.current td { background: var(--gold-soft); }
