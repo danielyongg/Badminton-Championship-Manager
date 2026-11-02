@@ -197,7 +197,8 @@ export function LineupPicker({ format, order, pool, squad, value, onChange }: {
     const rank = ranks.get(d)?.get(e.id);
     // Pasangan: nama belakang saja agar muat di HP ("Alfian / Fikri").
     const name = pair ? e.playerIds.map((id) => players.get(id)!.name.split(' ').at(-1)).join(' / ') : entrantLabel(state, e.id).name;
-    return `${name}${rank ? ` · #${rank}` : ''} · ${Math.round(ability)}${warn(e.playerIds)}`;
+    // Angka di depan: di HP yang terpotong ujung nama, bukan ranking/kemampuan.
+    return `${rank ? `#${rank} · ` : ''}${Math.round(ability)} · ${name}${warn(e.playerIds)}`;
   };
   // Ganda dadakan: dua atlet skuad; pasangan terdaftar dipakai bila kombinasinya ada.
   const pick = (d: Discipline, i: number, k: 0 | 1) => {
@@ -214,7 +215,7 @@ export function LineupPicker({ format, order, pool, squad, value, onChange }: {
       <select value={cur[k] ?? ''} onChange={(e) => choose(e.target.value)}>
         <option value="">—</option>
         {squad.filter((id) => players.get(id)?.gender === SLOT_GENDERS[d][k]).map((id) => (
-          <option key={id} value={id}>{players.get(id)!.name} · {currentAbility(players.get(id)!.attrs)}{warn([id])}</option>
+          <option key={id} value={id}>{currentAbility(players.get(id)!.attrs)} · {players.get(id)!.name}{warn([id])}</option>
         ))}
       </select>
     );
@@ -302,14 +303,14 @@ function DefaultTeamEditor({ format, strengths, country }: { format: TeamFormat;
 }
 
 /** Pop-up yang menunggu keputusan manajer: ✕ menyembunyikannya ke bilah bawah (turnamen menunggu) agar tab lain bisa dibuka. */
-function WaitingModal({ label, title, children }: { label: string; title: string; children: ReactNode }) {
+function WaitingModal({ label, title, children, narrow }: { label: string; title: string; children: ReactNode; narrow?: boolean }) {
   const [hidden, setHidden] = useState(false);
   if (hidden) return (
     <div className="livebar card">🏸 <b>{title}</b><button className="primary" onClick={() => setHidden(false)}>{t('reopen')}</button></div>
   );
   return (
     <div className="modal" role="dialog" aria-label={label}>
-      <div className="live card">
+      <div className={`live card${narrow ? ' narrow' : ''}`}>
         <button className="close" aria-label={t('close')} title={t('hideWaiting')} onClick={() => setHidden(true)}>✕</button>
         {children}
       </div>
@@ -354,9 +355,10 @@ export function TieLineupModal({ title, eventId, format, round, opponent, pool, 
   const name = dataName(game.world.countries.find((c) => c.id === opponent)?.name) ?? opponent;
   const heading = `${title} · ${formatName(format, eventId)} ${round === 'G' ? t('group') : round} — vs ${name}`;
   return (
-    <WaitingModal label={t('lineup')} title={heading}>
+    <WaitingModal label={t('lineup')} title={heading} narrow>
         <h3>{heading}</h3>
-        <p className="hint">{t('tieLineupShort')} <span className="info" title={t('tieLineupHint')}>ⓘ</span></p>
+        {/* Aturan lengkap bisa diketuk (tooltip tidak terbaca di HP). */}
+        <details className="hint rules"><summary>{t('tieLineupShort')} <span className="muted-text">ⓘ {t('fullRules')}</span></summary><p>{t('tieLineupHint')}</p></details>
         {injured.length > 0 && <p className="hint warn-text">🚑 {t('injuredOut')}: {injured.map((id) => lookup(game.state).players.get(id)?.name ?? id).join(', ')}</p>}
         <LineupPicker format={format} order={order} pool={pool} squad={squad} value={lineup} onChange={setLineup} />
         <div className="controls roundbar">

@@ -334,7 +334,7 @@ withdrawFrom: 'Mundur dari {d}', withdrewFrom: 'mundur dari {d}', withdrawTwoHin
   teams: 'tim',
   lineup: 'Line-up',
   matchNo: 'Partai',
-  tieLineupShort: 'Pilih pemain tiap partai (maks. 2 partai per atlet).',
+  tieLineupShort: 'Pilih pemain tiap partai (maks. 2 partai per atlet).', fullRules: 'Aturan lengkap',
   adHocOption: 'Ganda dadakan…',
   teamStrengthRank: 'Peringkat kekuatan tim',
   teamNotEligible: 'Skuad belum cukup untuk menurunkan tim lengkap (tunggal & pasangan ganda).',

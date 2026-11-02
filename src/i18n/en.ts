@@ -334,7 +334,7 @@ withdrawFrom: 'Withdraw from {d}', withdrewFrom: 'withdrew from {d}', withdrawTw
   teams: 'teams',
   lineup: 'Line-up',
   matchNo: 'Match',
-  tieLineupShort: 'Pick a player for each match (max 2 matches per player).',
+  tieLineupShort: 'Pick a player for each match (max 2 matches per player).', fullRules: 'Full rules',
   adHocOption: 'Ad-hoc pair…',
   teamStrengthRank: 'Team strength rank',
   teamNotEligible: 'Not enough players for a full team (singles players & doubles pairs).',
