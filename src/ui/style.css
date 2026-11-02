@@ -133,7 +133,7 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .livecontrols .secondary { grid-column: 1 / -1; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; }
 .livecontrols .secondary button { width: 100%; padding: 6px 4px; font-size: .8rem; line-height: 1.2; }
 @media (min-width: 600px) { .livecontrols { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 599px) { .livecontrols label:nth-of-type(3) { grid-column: 1 / -1; } } /* HP: strategi & instruksi sebaris, kecepatan di bawahnya */
+@media (max-width: 599px) { .livecontrols label:nth-of-type(3):last-of-type { grid-column: 1 / -1; } } /* HP: 2 kolom; tanpa pilihan challenge, kecepatan selebar baris */
 /* Live Match: papan skor selebar kartu, panel kondisi dua sisi, kartu pra-laga berupa petak, saran ringkas. */
 .live-board { width: 100%; margin-top: 20px; } /* tidak tertimpa tombol ✕ */
 .live-board td:nth-child(2) { width: 100%; min-width: 0; }
@@ -368,7 +368,7 @@ nav.maintabs { gap: 2px; border-bottom: 1px solid var(--line); }
 
 /* Bagan */
 .bracket { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; }
-.round { display: flex; flex-direction: column; justify-content: space-around; min-width: 220px; }
+.round { display: flex; flex-direction: column; justify-content: space-around; min-width: 240px; }
 .round > .match { margin: 3px 0; } /* margin, bukan gap: posisi tengah tiap babak tepat di antara dua laga sebelumnya */
 .round-col { display: flex; flex-direction: column; gap: 4px; }
 .round-col > .round { flex: 1; }
@@ -663,7 +663,7 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 }
 .roundlist { width: 100%; margin-bottom: 10px; table-layout: fixed; }
 .roundlist col.side { width: auto; } .roundlist col.vs { width: 3.2em; } .roundlist col.score { width: 7em; }
-.roundlist td { overflow: hidden; text-overflow: ellipsis; }
+.roundlist td { white-space: normal; overflow-wrap: break-word; } /* nama pasangan panjang terlipat per kata, tidak terpotong */
 .roundlist tr.mine-row td { background: var(--accent-soft); }
 .roundlist td.win { font-weight: 700; }
 @media (max-width: 600px) {
@@ -1028,6 +1028,9 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 .totop { position: fixed; right: 8px; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); z-index: 30; width: 40px; height: 40px; opacity: .92; min-height: 0; padding: 0;
   border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font-size: 1.3rem; font-weight: 700; box-shadow: 0 4px 14px rgb(0 0 0 / .18); }
 .totop:hover { border-color: var(--accent); color: var(--accent-strong); }
+/* Live Match / skuad yang diperkecil (.livebar) menempel di bawah: isi halaman diberi ruang agar tombol terakhir tidak tertutup, ↑ naik di atasnya. */
+body:has(.livebar) { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
+body:has(.livebar) .totop { bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
 
 /* Bendera + nama di jadwal: bendera tetap di kiri baris pertama, nama (juga satu kata yang panjang) terlipat di sebelahnya. */
 .who-cell { display: inline-flex; align-items: flex-start; max-width: 100%; }
