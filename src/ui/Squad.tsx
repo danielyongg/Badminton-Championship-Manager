@@ -5,7 +5,7 @@ import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { experienceFactor } from '../engine/development';
 import { visibleTraits } from '../engine/traits';
 import { EARLY_GAP, promotionLine, readyLines } from '../engine/promotion';
-import { SCOUT_FOCI, scoutVerdict, styleOf, type ScoutFocus } from '../engine/scouting';
+import { SCOUT_FOCI, scoutVerdict, styleOf, suggestedSector, type ScoutFocus } from '../engine/scouting';
 import { emptyStats, moraleTier, pairAbility } from '../engine/match';
 import { addOriented, careerStats, statTotals, v2 } from '../engine/careerStats';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
@@ -123,6 +123,8 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
   // Junior: kolom status pelatnas (pratama/utama) + tombol promosi.
   const juniorCols = juniors;
   if (juniorCols) COLS.splice(2, 0, { key: 'level', label: 'squadLevel', value: (p) => (isPratama(p, state.date) ? 0 : 1) });
+  // Junior: saran sektor dari atribut, di samping sektor yang sedang dijalani.
+  if (juniorCols) COLS.splice(COLS.findIndex((c) => c.key === 'sector') + 1, 0, { key: 'suggested', label: 'suggestedShort', value: (p) => suggestedSector(p).sector });
   // Sub-tab MS/WS: sektor & gender sudah jelas dari tab-nya (seperti tab ganda), kedua kolom hanya di "Semua".
   if (singlesView) for (const k of ['sector', 'gender']) COLS.splice(COLS.findIndex((c) => c.key === k), 1);
   const [sort, setSort] = useState({ key: 'ability', desc: true });
@@ -175,6 +177,7 @@ export function Squad({ onOpen }: { onOpen: (id: string) => void }) {
                 const partner = pair && lookup(state).players.get(pair.playerIds.find((x) => x !== p.id)!)?.name;
                 return <span key={d} className="chip sector" title={partner}>{d}</span>;
               })}</td>}
+              {juniorCols && <td><SuggestedSector p={p} /></td>}
               <td className="num">{ageAt(p.birth, state.date)}</td>
               <td className="num">{currentAbility(p.attrs)}<span className={p.caDelta! > 0 ? 'up' : 'down'}>{arrow(p.caDelta)}</span></td>
               <td className="stars">{starText(starsOf(p))}</td>
@@ -214,6 +217,15 @@ export function RankCell({ ranks }: { ranks: { d: string; r?: number }[] }) {
 
 type DoublesD = 'MD' | 'WD' | 'XD';
 const doublesOf = (p: Player): DoublesD[] => [p.gender === 'M' ? 'MD' : 'WD', 'XD'];
+
+/** Saran sektor (Single / Pairs / keduanya) dari atribut; alasannya di tooltip. */
+function SuggestedSector({ p }: { p: Player }) {
+  const s = suggestedSector(p);
+  return <span className="nowrap" title={t('suggestedHint', { s: s.single, d: s.double })}>
+    {s.sector.includes('S') && <span className="chip sector">{t('sector_singles')}</span>}
+    {s.sector.includes('D') && <span className="chip sector">{t('sector_pairs')}</span>}
+  </span>;
+}
 
 /** Atur sektor satu atlet: Single (ikut tunggal) & Pairs (boleh dipasangkan di form bentuk pasangan). Minimal satu tercentang. */
 function SectorPicker({ p, onChange }: { p: Player; onChange: () => void }) {
@@ -436,6 +448,8 @@ export function Profile({ id, onBack, onOpen, onOpenEvent }: { id: string; onBac
             const n = (x: number) => (x >= 500 ? '500+' : x);
             return fact(t('peakFact'), <>{t('peakText', { age: p.focus === 'D' ? 26 : 25, m: n(m) })}{a !== b && <> <small className="muted-text">({t('peakSpan', { a, b: n(b) })})</small></>}</>);
           })()}
+          {isPratama(p, state.date) && p.released === undefined && p.retired === undefined && p.countryId === state.career?.countryId
+            && fact(t('suggestedSector'), <><SuggestedSector p={p} /><small className="muted-text" style={{ display: 'block' }}>{t('suggestedHint', { s: suggestedSector(p).single, d: suggestedSector(p).double })}</small></>)}
           {isPratama(p, state.date) && p.readySince !== undefined && fact(t('promotion'), <span className="tag up-tag">⬆ {t('readyPromo')}</span>)}
           {p.scouted && (() => {
             // Asal-usul pencarian bakat: perkiraan ★ saat direkrut dibandingkan dengan ★ sekarang.

@@ -55,7 +55,7 @@ export const en: Record<TextKey, string> = {
   section: 'Section',
   champion: 'Champion',
   pageEvent: 'Tournament', winnersOf: 'Winners {y}', winnersHistory: 'Winners history', winnersTab: 'Winners', pastWinners: 'Past winners', dashArrange: 'Arrange cards', dashArrangeHint: 'Order applies on phone and laptop (laptop still fills the shortest column). Saved on this device.', dashArrangeReset: 'Restore default order', done: 'Done', runnerUp: 'Runner-up', finalScore: 'Final score', noChampions: 'No winners recorded yet.',
-  all: 'All', sector_singles: 'Singles', sector_pairs: 'Pairs',
+  all: 'All', sector_singles: 'Singles', sector_pairs: 'Pairs', suggestedSector: 'Suggested sector', suggestedShort: 'Suggested', suggestedHint: 'From attributes: singles (speed & stamina) {s} · doubles (net, serve, smash) {d}',
   bye: 'Bye',
   tabRanking: 'Ranking',
   playWeek: 'Play 1 week',

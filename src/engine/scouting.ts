@@ -80,6 +80,15 @@ export function focusScore(p: Player, f: ScoutFocus, date: GameDate) {
   }
 }
 
+/** Saran sektor: rata-rata atribut tunggal (speed, stamina) vs ganda (net, serve, smash), sama seperti fokus scouting.
+ *  Selisih < SECTOR_MARGIN → keduanya ('SD'). ASUMSI. */
+export const SECTOR_MARGIN = 3;
+export function suggestedSector(p: Player) {
+  const a = p.attrs, single = (a.speed + a.stamina) / 2, double = (a.net + a.serve + a.smash) / 3;
+  const sector: 'S' | 'D' | 'SD' = single - double >= SECTOR_MARGIN ? 'S' : double - single >= SECTOR_MARGIN ? 'D' : 'SD';
+  return { sector, single: Math.round(single), double: Math.round(double) };
+}
+
 /** Kandidat minimal per gender (selain 2× kursi). */
 export const MIN_CANDIDATES = 5;
 
@@ -219,10 +228,9 @@ export function scoutReport(p: Player): { strong: [Attr, Attr]; weak: Attr } {
   return { strong: [s[0], s[1]], weak: s[s.length - 1] };
 }
 
-/** Saran nomor: ganda bila tipe/fokus ganda atau rata-rata net+serve+smash jauh di atas speed+stamina. */
+/** Saran nomor: ganda bila tipe/fokus ganda atau saran sektor = ganda (lihat `suggestedSector`). */
 export function suggestedEvent(p: Player, type?: ScoutType): Discipline {
-  const a = p.attrs;
-  const doubles = type === 'doubles' || p.focus === 'D' || (a.net + a.serve + a.smash) / 3 > (a.speed + a.stamina) / 2 + 2;
+  const doubles = type === 'doubles' || p.focus === 'D' || suggestedSector(p).sector === 'D';
   return doubles ? (p.gender === 'M' ? 'MD' : 'WD') : p.gender === 'M' ? 'MS' : 'WS';
 }
 

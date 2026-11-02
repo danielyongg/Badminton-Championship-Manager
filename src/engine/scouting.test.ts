@@ -3,7 +3,7 @@ import { potentialStars } from './career';
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
 import { makeRng } from './rng';
-import { autoPick, focusScore, gemLine, makeScouting, SCOUT_TYPES, scoutVerdict, scoutReport, similarPool, similarTo, suggestedEvent, recruit, recruitSome, starRangeAt, styleOf, withdrawCandidates, type Scouting } from './scouting';
+import { autoPick, focusScore, gemLine, makeScouting, SCOUT_TYPES, scoutVerdict, scoutReport, similarPool, similarTo, suggestedEvent, suggestedSector, recruit, recruitSome, starRangeAt, styleOf, withdrawCandidates, type Scouting } from './scouting';
 import { currentAbility } from './generator';
 import { traitHints } from './traits';
 import { ATTRS, type Player } from './types';
@@ -210,4 +210,11 @@ describe('waktu merekrut', () => {
     expect(scoutVerdict(state.players[0], range[0] - 0.5)).toBe('below');
     expect(scoutVerdict({ ...state.players[0], scouted: undefined }, 3)).toBeUndefined();
   });
+});
+
+it('saran sektor: speed & stamina → Single, net/serve/smash → Pairs, seimbang → keduanya', () => {
+  const p = (o: Partial<Player['attrs']>) => ({ attrs: { ...Object.fromEntries(ATTRS.map((a) => [a, 50])), ...o } }) as Player;
+  expect(suggestedSector(p({ speed: 70, stamina: 66 })).sector).toBe('S');
+  expect(suggestedSector(p({ net: 65, serve: 60, smash: 62 })).sector).toBe('D');
+  expect(suggestedSector(p({ speed: 52, net: 51 })).sector).toBe('SD');
 });

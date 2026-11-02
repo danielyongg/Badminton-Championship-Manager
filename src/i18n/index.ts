@@ -55,7 +55,7 @@ const id = {
   section: 'Seksi',
   champion: 'Juara',
   pageEvent: 'Turnamen', winnersOf: 'Juara {y}', winnersHistory: 'Riwayat juara', winnersTab: 'Juara', pastWinners: 'Juara sebelumnya', dashArrange: 'Atur urutan kartu', dashArrangeHint: 'Urutan dipakai di HP dan laptop (laptop tetap mengisi kolom yang paling pendek). Disimpan di perangkat ini.', dashArrangeReset: 'Kembalikan urutan bawaan', done: 'Selesai', runnerUp: 'Runner-up', finalScore: 'Skor final', noChampions: 'Belum ada juara tercatat.',
-  all: 'Semua', sector_singles: 'Single', sector_pairs: 'Pairs',
+  all: 'Semua', sector_singles: 'Single', sector_pairs: 'Pairs', suggestedSector: 'Saran sektor', suggestedShort: 'Saran', suggestedHint: 'Dari atribut: tunggal (speed & stamina) {s} · ganda (net, serve, smash) {d}',
   bye: 'Bye',
   tabRanking: 'Ranking',
   playWeek: 'Main 1 minggu',
