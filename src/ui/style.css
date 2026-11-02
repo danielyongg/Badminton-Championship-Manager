@@ -396,7 +396,7 @@ td.strong { font-weight: 700; }
 /* Modal & Live Match */
 .modal { position: fixed; inset: 0; background: #000a; backdrop-filter: blur(2px); display: flex; align-items: flex-start; justify-content: center; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); overflow-y: auto; z-index: 10; }
 .modal { text-align: left; font-weight: normal; white-space: normal; } /* bisa dirender di dalam sel tabel */
-.live h3 { padding-right: 40px; }
+.live h3 { padding-right: 40px; min-height: 36px; } /* setinggi tombol ✕: skor/isi di bawahnya tidak tertutup tombol */
 .live { background: var(--surface); width: min(860px, 100%); position: relative; }
 .live .close { position: absolute; top: 8px; right: 8px; }
 .livebar { position: fixed; bottom: calc(12px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--surface); z-index: 10; display: flex; gap: 12px; align-items: center; box-shadow: 0 2px 12px #0006; }
