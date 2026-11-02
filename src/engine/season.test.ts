@@ -3,14 +3,14 @@ import { BWF_2026 } from './presets/bwf2026';
 import { BWF_2027 } from './presets/bwf2027';
 import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
-import { seedsOf, type EventRecord } from './tournament';
 import { presetPack, PRESETS } from './pack';
 import { makeRng } from './rng';
 import { aiEventChoice, bestRanks, clearSpanClashes, teamStrengths, spreadHosts, drawHosts, entrantsFor, prActive, protectRanking, entryDeadline, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, weekOf, withdrawEntry, wtfQualifiers } from './season';
+import { seedsOf, type EventRecord } from './tournament';
 import { ATTRS, DISCIPLINES } from './types';
 
 describe('satu musim penuh (BWF 2026)', () => {
-  const rs = BWF_2026;
+  const rs = structuredClone(BWF_2026); // salinan: undian tuan rumah & jadwal tidak tertulis ke preset (tes lain memakainya)
   const state = newSeason(WORLD, rs, 1);
   const startRanking = computeRanking(state.results, 'MS', absWeek(state.date), rs);
   // Catatan turnamen lama (> 2 musim) harus terhapus di akhir musim.
@@ -171,7 +171,7 @@ describe('satu musim penuh (BWF 2026)', () => {
 });
 
 it('BWF 2027: tunggal Super 1000 memakai fase grup 16 × 3 → R16', async () => {
-  const rs = BWF_2027;
+  const rs = structuredClone(BWF_2027);
   const state = newSeason(WORLD, rs, 3, { year: 2027, week: 1 });
   const rng = makeRng(4);
   while (state.date.week <= 3) await playWeek(state, rs, WORLD, rng); // Malaysia Open minggu 3 (kalender resmi 2027)
@@ -183,7 +183,7 @@ it('BWF 2027: tunggal Super 1000 memakai fase grup 16 × 3 → R16', async () =>
 });
 
 describe('beberapa musim (perkembangan, pensiun, regenerasi)', () => {
-  const rs = BWF_2026;
+  const rs = structuredClone(BWF_2026);
   const state = newSeason(WORLD, rs, 7);
   const active = (c?: string) => state.players.filter((p) => p.retired === undefined && (!c || p.countryId === c)).length;
   const u19 = () => state.players.filter((p) => p.retired === undefined && state.date.year - p.birth.year <= 18).length;
@@ -225,7 +225,7 @@ describe('beberapa musim (perkembangan, pensiun, regenerasi)', () => {
 
 describe('pembentukan pasangan AI', () => {
   it('id pasangan tetap unik bila dibentuk lagi di tahun yang sama (akhir musim)', () => {
-    const pack = presetPack(PRESETS[0]);
+    const pack = presetPack(structuredClone(PRESETS[0]));
     const state = newSeason(pack.world, pack.ruleset, 1, undefined, 'INA', pack);
     const ai = state.pairs.filter((p) => /2026-\d+$/.test(p.id));
     expect(ai.length).toBeGreaterThan(0);
@@ -239,7 +239,8 @@ describe('pembentukan pasangan AI', () => {
 describe('prioritas tier entry otomatis', () => {
   it('atlet dengan prioritas S1000/S750/S500 tidak pernah ke S300/S100 dan selalu ikut bila tier itu ada', async () => {
     // Tanpa istirahat karena lelah & tanpa cedera (cedera parah bisa membuat atlet pensiun).
-    const rs = { ...BWF_2026, ai: { ...BWF_2026.ai, restAbove: 999 }, injury: { ...BWF_2026.injury, base: 0, fatigueFactor: 0 } };
+    const base = structuredClone(BWF_2026);
+    const rs = { ...base, ai: { ...base.ai, restAbove: 999 }, injury: { ...base.injury, base: 0, fatigueFactor: 0 } };
     const state = newSeason(WORLD, rs, 5, undefined, 'INA');
     const ms = state.players.filter((p) => p.countryId === 'INA' && p.gender === 'M' && p.focus !== 'D')
       .sort((a, b) => ATTRS.reduce((s, k) => s + b.attrs[k] - a.attrs[k], 0))[0]; // terkuat: pasti lolos cut-off S1000
@@ -381,7 +382,7 @@ it('AI: dua turnamen grade 3 yang cocok di minggu yang sama (IC & FS) sama-sama 
 
 describe('batas entry (aturan BWF)', () => {
   it('batas entry per tier; daftar terbit di minggu batas; mundur dini tanpa penalti, mundur terlambat −1 reputasi; yang mundur tidak bertanding', async () => {
-    const rs = BWF_2026;
+    const rs = structuredClone(BWF_2026);
     const tier = (id: string) => rs.calendar.find((e) => e.id === id)!.tierId;
     const ev = rs.calendar.find((e) => e.tierId === 'S1000' && weekOf(e, 2026) >= 10)!;
     const W = weekOf(ev, 2026);
@@ -415,7 +416,7 @@ describe('batas entry (aturan BWF)', () => {
   }, 300000);
 
   it('cedera saat batas entry: tetap didaftarkan bila sembuh sebelum minggu turnamen', async () => {
-    const rs = BWF_2026;
+    const rs = structuredClone(BWF_2026);
     const ev = rs.calendar.find((e) => e.tierId === 'S1000' && weekOf(e, 2026) >= 10)!;
     const W = weekOf(ev, 2026), d = entryDeadline(rs, ev.id, 2026)!;
     const state = newSeason(WORLD, rs, 5, undefined, 'INA');
