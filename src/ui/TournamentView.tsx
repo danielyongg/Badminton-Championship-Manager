@@ -58,7 +58,7 @@ export function TournamentView({ id, year: startYear, onOpenPlayer, onBack }: { 
   return (
     <section>
       <div className="controls">
-        {onBack && <button onClick={onBack}>{t('back')}</button>}
+        {onBack && <button onClick={onBack}>← {t('back')}</button>}
         {years.length > 1 && <label>{t('year')}
           <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
             {years.map((y) => <option key={y} value={y}>{y}</option>)}

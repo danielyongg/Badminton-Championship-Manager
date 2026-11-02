@@ -313,7 +313,7 @@ export function PackManager({ onBack }: { onBack: () => void }) {
         <Editor data={editing} mode="pack" date={{ year: editing.ruleset.startYear, week: 1 }} onChange={persist}
           toolbar={<>
             <button onClick={() => downloadPack(editing)}>{t('export')}</button>
-            <button onClick={() => { void writePack(editing); setEditing(undefined); }}>{t('back')}</button>
+            <button onClick={() => { void writePack(editing); setEditing(undefined); }}>← {t('back')}</button>
           </>} />
       </main>
     );
@@ -345,7 +345,7 @@ export function PackManager({ onBack }: { onBack: () => void }) {
         </label>
         {msg && <p>{msg}</p>}
       </section>
-      <button onClick={onBack}>{t('back')}</button>
+      <button onClick={onBack}>← {t('back')}</button>
     </main>
   );
 }

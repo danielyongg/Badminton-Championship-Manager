@@ -275,9 +275,9 @@ function SeasonPlan() {
     <>
       <p className="hint">{t('seasonPlanHint')}</p>
       {pages > 1 && <div className="controls" style={{ alignItems: 'center' }}>
-        <button className="mini" style={{ fontSize: '1.2rem' }} disabled={pg === 0} onClick={() => setPage(pg - 1)}>‹</button>
+        <button className="mini" style={{ fontSize: '1.1rem' }} disabled={pg === 0} onClick={() => setPage(pg - 1)}>‹</button>
         <span>{t('weekShort')}{weeks[0]}–{t('weekShort')}{weeks[weeks.length - 1]} ({pg + 1}/{pages})</span>
-        <button className="mini" style={{ fontSize: '1.2rem' }} disabled={pg === pages - 1} onClick={() => setPage(pg + 1)}>›</button>
+        <button className="mini" style={{ fontSize: '1.1rem' }} disabled={pg === pages - 1} onClick={() => setPage(pg + 1)}>›</button>
       </div>}
       <div className="scroll">
         <table className="plan">

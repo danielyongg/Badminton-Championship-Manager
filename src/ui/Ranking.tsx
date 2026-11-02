@@ -477,7 +477,7 @@ function EventDirectory({ state, ruleset, world, onOpenEvent }: { state: SeasonS
                 <td className="tiercell">{badge}</td>
                 <td>
                   {onOpenEvent ? <a href="#" onClick={(ev) => { ev.preventDefault(); onOpenEvent(e.id, last ?? y ?? year); }}>{eventNameOf(ruleset, e.id, y ?? year)}</a> : <EventName id={e.id} year={last ?? y ?? year}>{eventNameOf(ruleset, e.id, y ?? year)}</EventName>}
-                  <br /><small className="muted-text">{freq(e)}{host && <> · <Flag id={host.countryId} />{dataName(host.name)}</>}</small>
+                  <br /><small className="muted-text">{freq(e)}{host && <> · <span className="nowrap"><Flag id={host.countryId} />{dataName(host.name)}</span></>}</small>
                 </td>
                 <td className="num">{y ? <>{y}<br /><small className="muted-text">{t('weekShort')}{weekOf(e, y)}</small></> : '—'}</td>
               </tr>
