@@ -161,6 +161,13 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
     .find((r) => r.eventId === show.tournamentId && r.year === state.date.year && r.format === key);
   const tieOf = (m: RoundMatch) => teamRes(m.key)?.ties.find((x) => x.round === (m.round ?? show.round) && x.sides[0] === m.sides[0] && x.sides[1] === m.sides[1]);
   const [openTie, setOpenTie] = useState<{ key: string; tie: TeamTie }>();
+  // Laga fase grup: huruf grup (A, B, …) dari hasil undian nomor itu.
+  const groupOf = (m: RoundMatch) => {
+    const gs = team ? teamRes(m.key)?.groups
+      : state.eventRecords.find((x) => x.tournamentId === show.tournamentId && x.year === state.date.year && x.discipline === m.key)?.groups?.groups;
+    const i = gs?.findIndex((g) => g.includes(m.sides[0])) ?? -1;
+    return i < 0 ? undefined : String.fromCharCode(65 + i);
+  };
   const daily = show.day !== undefined;
   const [view, setView] = useState(show.day); // hari yang dibuka di strip (hari lalu = hasil)
   const viewing = view ?? show.day;
@@ -288,6 +295,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
               <div className="m-meta">
                 {daily && <span className="court" title={t('courtN', { n: m.court! })}>{t('courtShort', { n: m.court! })}</span>}
                 <span className="m-key">{team ? formatName(m.key as TeamFormat, show.tournamentId) : m.key}</span>
+                {(m.round ?? show.round) === 'G' && groupOf(m) && <span>{t('group')} {groupOf(m)}</span>}
                 {(multiRound || !daily) && <span>{nameOf(m.round ?? show.round)}</span>}
                 {m.tv && <span className="tv" title={t('tvMatch')}>📺</span>}
                 <span className="m-status">
