@@ -273,6 +273,16 @@ button.wide { width: 100%; text-align: left; }
 /* Top Committed: chip status tiap turnamen wajib. */
 .tc-chips { display: flex; flex-wrap: wrap; gap: 3px; }
 .tc { font-size: .8rem; padding: 1px 6px; border-radius: 3px; white-space: nowrap; background: var(--line); }
+.tc small { font-size: .68rem; } /* minggu (M30): skala font, bukan ukuran bawaan small */
+.winners td { white-space: normal; overflow-wrap: anywhere; } /* nama pasangan juara terlipat, tidak terpotong */
+.winners small.m-only { display: none; margin-top: 2px; }
+@media (max-width: 700px) { .winners small.m-only { display: block; } .winners { display: table; } } /* sama dengan batas .m-hide */
+/* Riwayat juara di HP: per tahun, satu baris per nomor (tabel tahun × nomor terlalu lebar). */
+.winhist { margin: 0; }
+@media (max-width: 700px) { dl.winhist.m-only { display: block; } }
+.winhist dt { font-weight: 700; margin-top: 8px; }
+.winhist dd { margin: 2px 0 0; display: flex; gap: 6px; align-items: baseline; overflow-wrap: anywhere; }
+td small { font-size: .72rem; } /* keterangan kecil di sel tabel: skala font (bukan 11,7 px bawaan) */
 .tc.done { background: var(--accent-soft); color: var(--accent-strong); }
 .tc.missed { background: var(--danger-soft); color: var(--danger); font-weight: 700; }
 .tc.excused { color: var(--muted); text-decoration: line-through; }
@@ -297,6 +307,10 @@ button.wide { width: 100%; text-align: left; }
 .drow .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 /* Kalender & juara: tabel di desktop, daftar per minggu di HP (juara di bawah nama turnamen). */
 .cal-list { display: none; }
+.cal-table table { width: 100%; }
+.cal-table .cal-sub { display: block; font-size: .72rem; }
+.cal-wins { display: flex; flex-wrap: wrap; gap: 2px 14px; } /* juara semua nomor dalam satu sel, terlipat */
+.cal-wins > span { white-space: nowrap; }
 @media (max-width: 700px) { .cal-table { display: none; } .cal-list { display: block; } }
 .cal-list .calwk { flex: none; width: var(--tierw); display: flex; flex-direction: column; align-items: stretch; gap: 1px; }
 .cal-list .calwk small { font-size: .68rem; font-weight: 700; color: var(--muted); text-align: center; }
@@ -383,7 +397,7 @@ nav.maintabs { gap: 2px; border-bottom: 1px solid var(--line); }
 .match.mine { box-shadow: inset 3px 0 var(--accent); color: inherit; font-weight: inherit; }
 .match > div { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* satu baris per peserta: semua kotak sama tinggi */
 .match > div.win { color: var(--fg); font-weight: 700; }
-.match small { display: block; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.match small { display: block; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .68rem; }
 .match.clickable { cursor: pointer; }
 .match.clickable:hover { border-color: var(--accent); }
 .report.clickable { cursor: pointer; }
@@ -654,6 +668,8 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
   .squadlist { max-height: none; } /* tanpa gulir bersarang di HP */
   /* Sub-tab (turnamen: Turnamen/Juara, nomor, Entry/Kualifikasi/Drawing/Bagan, Skuad Senior/Junior…): satu baris ringkas, geser bila perlu. */
   nav.controls:not(.maintabs) { flex-wrap: nowrap; overflow-x: auto; gap: 0; margin-bottom: 8px; scrollbar-width: none; }
+  /* Sub-tab halaman (Dunia, profil, filter grade): terlipat ke baris berikutnya, tidak perlu digeser. Halaman ranking (1–100, …) tetap sebaris. */
+  nav.controls:not(.maintabs):not(.pages) { flex-wrap: wrap; overflow-x: visible; row-gap: 2px; }
   nav.controls:not(.maintabs) button { flex: none; min-height: 34px; font-size: .875rem; padding: 2px 10px; }
   nav.controls:not(.maintabs) > .count { flex: none; padding-left: 6px; }
   .recent td:nth-child(2), .recent td:nth-child(4) { white-space: normal; } /* laga terakhir: turnamen & lawan turun baris, skor tetap terlihat */
@@ -956,8 +972,8 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 .h2h-head { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; }
 .h2h-head .side { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .h2h-head .side:last-child { justify-content: flex-end; text-align: right; }
-.h2h-score { font-size: 2.2rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; white-space: nowrap; }
-.h2h-score small { margin: 0 6px; opacity: .5; }
+.h2h-score { font-size: 2.1875rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; white-space: nowrap; }
+.h2h-score small { margin: 0 6px; opacity: .5; font-size: 1.6rem; } /* skala font: 35 / 25,6 px */
 .h2h-score.ahead { color: var(--accent-strong); }
 .h2h-score.behind { color: var(--danger); }
 .h2h-sub { text-align: center; margin: 8px 0 0; }

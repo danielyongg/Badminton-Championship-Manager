@@ -383,16 +383,16 @@ export function Calendar({ state, ruleset, world, short, onOpenEvent, year = sho
         {['all', ...groups].map((g) => <button key={g} aria-pressed={group === g} onClick={() => setGroup(g)}>{groupLabel(g)}</button>)}
         <span className="count">{t(shown.length === 1 ? 'countTournament' : 'countTournaments', { n: shown.length })}</span>
       </nav>
-      {/* Desktop: tabel lebar dengan kolom juara per nomor. */}
-      <div className="scroll cal-table">
+      {/* Desktop: kota & hadiah di bawah nama turnamen, semua juara dalam satu kolom (terlipat) — selebar kartu, tanpa geser. */}
+      <div className="cal-table">
         <table>
-          <thead><tr><th className="num">{t('week')}</th><th>{t('tournament')}</th><th>{t('tier')}</th><th>{t('city')}</th><th className="num">{t('prize')}</th>{DISCIPLINES.map((d) => <th key={d}>{d}</th>)}</tr></thead>
+          <thead><tr><th className="num">{t('week')}</th><th>{t('tournament')}</th><th>{t('tier')}</th><th>{t('champion')}</th></tr></thead>
           <tbody>{shown.map((r) => (
             <tr key={r.id} className={now(r.week) ? 'sel' : ''}>
-              <td className="num">{r.week}</td><td>{link(r)}</td><td>{r.badge}</td><td>{r.place}</td><td className="num">{r.prize}</td>
-              {r.team
-                ? <td colSpan={DISCIPLINES.length}>{r.champs.map((c) => c.id && <span key={c.key} style={{ marginRight: 12, whiteSpace: 'nowrap' }}><small className="muted-text">{c.label}</small> {who(r, c.id)}</span>)}</td>
-                : r.champs.map((c) => <td key={c.key}>{who(r, c.id)}</td>)}
+              <td className="num">{r.week}</td>
+              <td>{link(r)}<small className="muted-text cal-sub">{r.place}{r.prize !== '—' && ` · ${r.prize}`}</small></td>
+              <td>{r.badge}</td>
+              <td><span className="cal-wins">{r.champs.filter((c) => c.id).map((c) => <span key={c.key}><span className="chip">{c.label}</span> {who(r, c.id)}</span>)}</span></td>
             </tr>
           ))}</tbody>
         </table>

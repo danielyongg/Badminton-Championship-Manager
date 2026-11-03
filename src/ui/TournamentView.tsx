@@ -203,17 +203,19 @@ function Winners({ id, year, who }: { id: string; year: number; who: WhoFns }) {
   const country = (c: string) => dataName(game.world.countries.find((x) => x.id === c)?.name) ?? c;
   const team = state.teamResults.filter((r) => r.eventId === id && r.year === year);
   if (team.length) return (
-    <table style={{ maxWidth: 720 }}>
-      <thead><tr><th></th><th>{t('champion')}</th><th>{t('runnerUp')}</th><th>{t('finalScore')}</th></tr></thead>
+    <table className="winners" style={{ maxWidth: 720 }}>
+      <thead><tr><th></th><th>{t('champion')}</th><th className="m-hide">{t('runnerUp')}</th><th className="m-hide">{t('finalScore')}</th></tr></thead>
       <tbody>{team.map((r) => {
         const w = winnerOf(r), f = r.ties.find((x) => x.round === 'F');
         const k = f ? f.sides.indexOf(w ?? '') : -1, ru = f && k >= 0 ? f.sides[1 - k] : undefined;
+        const score = f && k >= 0 ? `${f.score[k]}–${f.score[1 - k]}` : '';
         return (
           <tr key={r.format} className={w && who.mine?.(w) ? 'sel' : ''}>
             <td><span className="chip">{formatName(r.format, r.eventId)}</span></td>
-            <td><b><Flag id={w} />{w ? country(w) : '—'}</b></td>
-            <td>{ru ? <><Flag id={ru} />{country(ru)}</> : '—'}</td>
-            <td className="num">{f && k >= 0 ? `${f.score[k]}–${f.score[1 - k]}` : ''}</td>
+            {/* HP: runner-up & skor di bawah nama juara (kolomnya disembunyikan), tidak perlu digeser. */}
+            <td><b><Flag id={w} />{w ? country(w) : '—'}</b>{ru && <small className="m-only muted-text">vs <Flag id={ru} />{country(ru)}{score && ` · ${score}`}</small>}</td>
+            <td className="m-hide">{ru ? <><Flag id={ru} />{country(ru)}</> : '—'}</td>
+            <td className="num m-hide">{score}</td>
           </tr>
         );
       })}</tbody>
@@ -228,16 +230,20 @@ function Winners({ id, year, who }: { id: string; year: number; who: WhoFns }) {
   });
   if (!rows.length) return <p>{t('noChampions')}</p>;
   return (
-    <table style={{ maxWidth: 900 }}>
-      <thead><tr><th></th><th>{t('champion')}</th><th>{t('runnerUp')}</th><th>{t('finalScore')}</th></tr></thead>
-      <tbody>{rows.map(({ d, winner, ru, f, i }) => (
-        <tr key={d} className={who.mine?.(winner) ? 'sel' : ''}>
-          <td><span className="chip">{d}</span></td>
-          <td><b><Who id={winner} {...who} /></b></td>
-          <td>{ru ? <Who id={ru} {...who} /> : '—'}</td>
-          <td className="num">{f && <MatchLink m={f} name={who.name}>{f.scores.map((g) => `${g[i]}-${g[1 - i]}`).join(', ')}{endTag(f)}</MatchLink>}</td>
-        </tr>
-      ))}</tbody>
+    <table className="winners" style={{ maxWidth: 900 }}>
+      <thead><tr><th></th><th>{t('champion')}</th><th className="m-hide">{t('runnerUp')}</th><th className="m-hide">{t('finalScore')}</th></tr></thead>
+      <tbody>{rows.map(({ d, winner, ru, f, i }) => {
+        const score = f && <MatchLink m={f} name={who.name}>{f.scores.map((g) => `${g[i]}-${g[1 - i]}`).join(', ')}{endTag(f)}</MatchLink>;
+        return (
+          <tr key={d} className={who.mine?.(winner) ? 'sel' : ''}>
+            <td><span className="chip">{d}</span></td>
+            {/* HP: runner-up & skor di bawah nama juara (kolomnya disembunyikan), tidak perlu digeser. */}
+            <td><b><Who id={winner} {...who} /></b>{ru && <small className="m-only muted-text">vs <Who id={ru} {...who} />{f && <> · {score}</>}</small>}</td>
+            <td className="m-hide">{ru ? <Who id={ru} {...who} /> : '—'}</td>
+            <td className="num m-hide">{score}</td>
+          </tr>
+        );
+      })}</tbody>
     </table>
   );
 }
@@ -269,14 +275,22 @@ function WinnersHistory({ id, skip, who }: { id: string; skip: number; who: WhoF
   const years = [...new Set(champs.map((c) => c.year))].sort((a, b) => b - a);
   const ds = DISCIPLINES.filter((d) => champs.some((c) => c.discipline === d));
   return (
-    <div className="scroll"><table>
-      <thead><tr><th>{t('year')}</th>{ds.map((d) => <th key={d}>{d}</th>)}</tr></thead>
-      <tbody>{years.map((y) => (
-        <tr key={y}><td>{y}</td>{ds.map((d) => {
-          const c = champs.find((x) => x.year === y && x.discipline === d);
-          return <td key={d}>{c ? <Who id={c.winner} {...who} /> : '—'}</td>;
-        })}</tr>
-      ))}</tbody>
-    </table></div>
+    <>
+      <div className="scroll m-hide"><table>
+        <thead><tr><th>{t('year')}</th>{ds.map((d) => <th key={d}>{d}</th>)}</tr></thead>
+        <tbody>{years.map((y) => (
+          <tr key={y}><td>{y}</td>{ds.map((d) => {
+            const c = champs.find((x) => x.year === y && x.discipline === d);
+            return <td key={d}>{c ? <Who id={c.winner} {...who} /> : '—'}</td>;
+          })}</tr>
+        ))}</tbody>
+      </table></div>
+      {/* HP: per tahun, satu baris per nomor — tidak perlu digeser. */}
+      <dl className="winhist m-only">{years.map((y) => [
+        <dt key={y}>{y}</dt>,
+        ...ds.map((d) => { const c = champs.find((x) => x.year === y && x.discipline === d);
+          return <dd key={`${y}${d}`}><span className="chip">{d}</span>{c ? <Who id={c.winner} {...who} /> : '—'}</dd>; }),
+      ])}</dl>
+    </>
   );
 }
