@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import type { Candidate } from '../engine/entry';
-import { provisionalField } from '../engine/groups';
+import { provisionalField, roundRobin } from '../engine/groups';
 import { mainRoundName } from '../engine/knockout';
 import type { EventRecord } from '../engine/tournament';
 import type { DrawStep, Match } from '../engine/types';
@@ -136,7 +136,7 @@ export function GroupView({ rec, matches, ...who }: ViewProps) {
   return (
     <div className="groups">
       {groups.map((_, i) => {
-        const { games, rows } = groupRows(rec, matches, i);
+        const { games, rows } = groupRows(rec, matches, i), ids = groups[i];
         return (
           <section key={i} className="card group">
             <table>
@@ -145,12 +145,17 @@ export function GroupView({ rec, matches, ...who }: ViewProps) {
                 <tr key={r.id} className={who.mine?.(r.id) ? 'sel' : undefined}><td><span className="muted-text">{k + 1}.</span> <Who id={r.id} {...who} /></td><td className="num">{r.wins}</td><td className="num">{r.gameDiff}</td><td className="num">{r.pointDiff}</td></tr>
               ))}</tbody>
             </table>
-            {games.length > 0 && (
-              <ul className="groupgames">{games.map((m) => {
+            {/* Semua laga grup per hari (urutan round-robin mesin): selesai → skor, belum → "vs" (sama dengan grup beregu). */}
+            <ul className="groupgames">{roundRobin(ids.length).flatMap((day, d) => [
+              <li key={`d${d}`} className="md">{t('dayN', { n: d + 1 })}</li>,
+              ...day.map(([a, b]) => {
+                const m = games.find((x) => x.sides.includes(ids[a]) && x.sides.includes(ids[b]));
+                const mine = who.mine?.(ids[a]) || who.mine?.(ids[b]) ? ' mine' : '';
+                if (!m) return <li key={`${d}-${a}`} className={`upcoming${mine}`}><span className="sides"><span><Who id={ids[a]} {...who} /></span><span><Who id={ids[b]} {...who} /></span></span><span className="score">vs</span></li>;
                 const [w, l] = m.winner === 0 ? m.sides : [m.sides[1], m.sides[0]];
-                return <li key={m.id}><span className="win"><Who id={w} {...who} /></span><span><Who id={l} {...who} /></span><span className="score"><MatchLink m={m} name={who.name} title={who.eventTitle}>{scoreText(m, w).replace(/, /g, '\n')}</MatchLink></span></li>;
-              })}</ul>
-            )}
+                return <li key={m.id} className={mine || undefined}><span className="sides"><span className="win"><Who id={w} {...who} /></span><span><Who id={l} {...who} /></span></span><span className="score"><MatchLink m={m} name={who.name} title={who.eventTitle}>{scoreText(m, w).replace(/, /g, '\n')}</MatchLink></span></li>;
+              }),
+            ])}</ul>
           </section>
         );
       })}

@@ -447,7 +447,7 @@ export function FinalsResult({ r, stage }: { r: TeamResult; stage?: 'groups' | '
               const mine = managed && (g[i] === managed || g[j] === managed) ? ' mine' : '';
               if (!x) return (
                 <li key={`${d}-${i}`} className={`upcoming${mine}`}>
-                  <span><Flag id={g[i]} />{name(g[i])}</span><span><Flag id={g[j]} />{name(g[j])}</span>
+                  <span className="sides"><span><Flag id={g[i]} />{name(g[i])}</span><span><Flag id={g[j]} />{name(g[j])}</span></span>
                   <span className="score muted-text">vs</span>
                 </li>
               );
@@ -455,7 +455,7 @@ export function FinalsResult({ r, stage }: { r: TeamResult; stage?: 'groups' | '
               return (
                 <li key={`${d}-${i}`} role="button" tabIndex={0} title={t('matchDetail')} className={`clickable${mine}`}
                   onClick={() => setOpen(x)} onKeyDown={(e) => e.key === 'Enter' && setOpen(x)}>
-                  <span className="win"><Flag id={x.sides[w]} />{name(x.sides[w])}</span><span><Flag id={x.sides[1 - w]} />{name(x.sides[1 - w])}</span>
+                  <span className="sides"><span className="win"><Flag id={x.sides[w]} />{name(x.sides[w])}</span><span><Flag id={x.sides[1 - w]} />{name(x.sides[1 - w])}</span></span>
                   <span className="score"><a>{x.score[w]}-{x.score[1 - w]}</a></span>
                 </li>
               );
