@@ -539,7 +539,7 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 .bowl h4 { margin: 0 0 4px; }
 .bowl ul { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; padding: 0; list-style: none; max-height: 96px; overflow-y: auto; }
 .bowl li { padding: 1px 8px; border: 1px solid var(--line); border-radius: 12px; font-size: .8rem; background: var(--surface-2, var(--bg)); white-space: nowrap; }
-.bowl li.next { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.bowl li.next { border-color: var(--gold); background: var(--gold-soft); } /* berikutnya diundi: emas, sama dengan sorotan undian */
 /* Sorotan langkah terakhir: nama besar + seksi/posisi tujuan. */
 .drawspot { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; padding: 8px 12px; margin: 4px 0; border-radius: 8px;
   background: var(--gold-soft); border-left: 4px solid var(--gold, #c9a227); animation: spotin .35s ease-out; }
@@ -561,7 +561,7 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 .drawslots li { display: grid; grid-template-columns: 2.2em 1.8em minmax(0, 1fr); align-items: center; gap: 4px; padding: 2px 4px; font-size: .8rem; border-radius: 4px; }
 .drawslots li:nth-child(2n) { border-bottom: 1px dashed var(--line); border-radius: 0; } /* garis tiap 2 posisi = pasangan laga babak pertama */
 .drawslots li.empty { opacity: .45; }
-.drawslots li.minerow { box-shadow: inset 3px 0 0 var(--accent); }
+/* Atlet sendiri: nama hijau (.mine) saja — garis kiri di baris bersudut membulat tampak seperti kurung. */
 .drawslots .pos { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
 .drawslots .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .seedtag:not(:empty) { display: inline-block; min-width: 1.6em; padding: 0 4px; border-radius: 4px; background: var(--gold-soft); color: var(--text); font-size: .72rem; font-weight: 800; text-align: center; }
@@ -677,8 +677,9 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 .m-meta .m-key { color: var(--accent-strong); font-weight: 700; }
 .m-meta .tv { font-size: .8rem; }
 .m-status { margin-left: auto; display: flex; align-items: center; }
-.m-status .rowtoggle { width: 6.4em; min-height: 24px; padding: 0 6px; font-size: .72rem; white-space: nowrap; border-radius: 999px; }
-.m-status .rowtoggle[aria-pressed=true] { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); }
+.m-status .rowtoggle { min-width: 4.8em; min-height: 20px; padding: 0 7px; font-size: .68rem; font-weight: 600; line-height: 1.4; white-space: nowrap; border-radius: 999px; box-shadow: none; } /* tanpa garis bawah gaya tab */
+.m-status .rowtoggle[aria-pressed] { border: 1px solid var(--line); border-radius: 999px; }
+.m-status .rowtoggle[aria-pressed=true] { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); box-shadow: none; }
 .live-badge { background: var(--gold-soft); color: var(--fg); }
 /* Dua baris peserta selebar sama; skor per game (kolom angka sama lebar) sejajar dengan baris pesertanya. */
 .m-body { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 8px; row-gap: 0; }
@@ -703,8 +704,14 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 .hub nav.controls.subnav.discs { display: grid; gap: 2px; } /* tab nomor / format sama lebar dalam satu baris */
 .hub nav.controls.subnav.discs button { min-width: 0; padding-left: 2px; padding-right: 2px; white-space: normal; line-height: 1.15; overflow-wrap: anywhere; } /* beregu: "Beregu putri" boleh dua baris, tidak terpotong */
 /* Live semua / Lewati semua: dua tombol sama lebar. */
-.drawctl .seg { display: grid; grid-template-columns: 1fr 1fr; }
-.drawctl .seg button { min-width: 7.5em; }
+.drawctl .seg { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; } /* tombol satu kelompok sama lebar */
+.drawctl .seg button { min-width: 0; }
+@media (max-width: 600px) {
+  /* HP: tiap kelompok (putar / kecepatan; Live-Lewati semua) satu baris selebar kartu, tidak bertumpuk. */
+  div.drawctl { display: grid; gap: 6px; } /* div.: menang atas aturan .drawctl di bawah */
+  .drawctl .seg { display: grid; width: 100%; }
+  .drawctl .seg button { padding-left: 4px; padding-right: 4px; white-space: normal; line-height: 1.15; }
+}
 .roundbar { position: sticky; bottom: 0; z-index: 2; background: var(--surface); padding: 10px 0; border-top: 1px solid var(--line); } /* tetap terlihat saat menggulir */
 /* Tombol bawah jadwal: sama lebar & tinggi. */
 .roundbar.daybar { display: grid; grid-template-columns: repeat(2, minmax(0, 16em)); }
@@ -1041,7 +1048,7 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 
 /* Baris turnamen yang baru dibuka/di-submit: sorot sebentar saat kembali ke Kalender/Dashboard. */
 .flash { animation: flash 1.5s ease-out; }
-@keyframes flash { from { background: var(--accent-soft); } to { background: transparent; } }
+@keyframes flash { from { background: var(--gold-soft); } to { background: transparent; } } /* kilat emas, sama dengan sorotan undian */
 
 /* Dashboard: tombol Atur urutan kecil di kanan atas; panel urutan dengan tombol naik/turun. */
 .dash-arrange-btn { justify-content: center; margin-top: 16px; } /* di bawah semua kartu: jarang dipakai */

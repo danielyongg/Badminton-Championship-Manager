@@ -176,10 +176,10 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
   const setAll = (skip: boolean) => { for (const k of mineRows) if (skip) skipped.add(k); else skipped.delete(k); render((x) => x + 1); };
   const playing = show.phase === 'playing';
   const current = playing ? show.matches[show.current!] : undefined;
-  // Saat dimainkan, tab mengikuti laga yang sedang giliran; selain itu tab terakhir / nomor pertama berisi atlet sendiri.
-  // Jadwal harian: bawaan "Semua" (urut lapangan); tab nomor tetap mengikuti laga yang sedang giliran.
+  // Jadwal harian: tab pilihan manajer tetap (juga saat hari dimainkan); bawaan "Semua" (urut lapangan).
+  // Per babak: tab mengikuti laga yang sedang giliran; selain itu tab terakhir / nomor pertama berisi atlet sendiri.
   const tab = daily
-    ? (picked && picked !== 'all' && keys.includes(picked) ? current?.key ?? picked : 'all')
+    ? (picked && keys.includes(picked) ? picked : 'all')
     : current?.key ?? (picked && keys.includes(picked) ? picked : keys.find((k) => mineKeys.has(k)) ?? keys[0]);
   // Jadwal harian: urut main (gelombang demi gelombang, lalu lapangan) — sorotan laga berjalan turun dari atas ke bawah.
   const shown = (daily ? [...rows].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.court ?? 0) - (b.court ?? 0)) : rows)
@@ -223,7 +223,7 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
           <nav className="controls subnav discs" style={{ gridTemplateColumns: `repeat(${keys.length + (daily ? 1 : 0)}, minmax(0, 1fr))` }}>
             {daily && <button aria-pressed={tab === 'all'} onClick={() => setTab('all')}>{t('allDisc')}</button>}
             {keys.map((k) => (
-              <button key={k} aria-pressed={k === tab} disabled={playing && k !== tab && tab !== 'all'} onClick={() => setTab(k)}>
+              <button key={k} aria-pressed={k === tab} disabled={!daily && playing && k !== tab} onClick={() => setTab(k)}>
                 {team ? formatName(k as TeamFormat, show.tournamentId) : k}{mineKeys.has(k) && <span className="mine">{'\u00a0'}●</span>}
               </button>
             ))}
