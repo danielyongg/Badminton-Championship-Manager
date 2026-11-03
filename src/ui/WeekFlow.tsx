@@ -335,7 +335,8 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
         <div className="controls roundbar daybar">
           {playing
             ? <button onClick={onSkipRest}>{t(daily ? 'simDay' : 'simRound')}</button>
-            : <button className="primary" onClick={onNext}>{!done ? t(daily ? 'playDay' : 'playRound') : final ? t('doneEvent') : t(daily ? 'nextDay' : 'nextRound')}</button>}
+            // Mulai hari: kembali ke tab Semua (urut lapangan) agar semua laga yang dimainkan terlihat.
+            : <button className="primary" onClick={() => { if (daily && !done) setTab('all'); onNext(); }}>{!done ? t(daily ? 'playDay' : 'playRound') : final ? t('doneEvent') : t(daily ? 'nextDay' : 'nextRound')}</button>}
           {!(done && final) && <button onClick={onSkipEvent}>{t('simEvent')}</button>}
         </div>
     </section>
