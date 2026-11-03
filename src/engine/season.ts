@@ -700,7 +700,11 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
     if (taken || e.playerIds.some((id) => injured.has(id) || playerDisc.has(`${id}:${d}`))) continue;
     const rank = ranks.get(d)!.get(e.id);
     const prot = protectedOf(e, d, rank);
-    const fixed = e.playerIds.map((id) => playerEvent.get(id)).find(Boolean);
+    // Atlet yang sudah terikat ke turnamen minggu ini (nomor lain): pasangan ikut turnamen itu; bila kedua atletnya terikat
+    // ke turnamen berbeda, pasangan tidak bisa main minggu ini.
+    const bound = new Set(e.playerIds.map((id) => playerEvent.get(id)).filter(Boolean));
+    if (bound.size > 1) continue;
+    const fixed = [...bound][0];
     const cross = isCrossNation(e.playerIds, (id) => playerById.get(id)?.countryId);
     let options = events.filter((ev) => ev.tierId !== 'WTF' && ev.tierId !== 'OG' && tierOf(rs, ev).drawSize[d] > 0 && (!fixed || ev.id === fixed)
       && (!cross || openTier(ev))
@@ -897,7 +901,14 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
     for (const p of state.players) if (isJuniorAge(p, state.date)) junior.busy.add(p.id);
   const entries = chooseEntries(state, unlisted.filter((e) => !isJunior(e)), rs, rng, ranks, junior.busy, world);
   for (const [id, byD] of junior.entries) entries.set(id, byD);
-  for (const [id, byD] of fromList) entries.set(id, byD);
+  // Peserta WTF/Olimpiade (ditetapkan minggu ini, tanpa batas entry) mundur dari turnamen lain minggu yang sama yang
+  // daftarnya sudah terbit: satu atlet, satu turnamen per minggu.
+  const elite = new Set(unlisted.filter((e) => e.tierId === 'WTF' || e.tierId === 'OG')
+    .flatMap((e) => [...entries.get(e.id)!.values()].flat().flatMap((c) => pairs.get(c.id)?.playerIds ?? [c.id])));
+  for (const [id, byD] of fromList) {
+    if (elite.size) for (const [d, list] of byD) byD.set(d, list.filter((c) => !(pairs.get(c.id)?.playerIds ?? [c.id]).some((p) => elite.has(p))));
+    entries.set(id, byD);
+  }
 
   /** Satu turnamen individu; `gated` = kelima nomor bersamaan lewat gerbang babak. */
   const playEvent = async (event: TournamentDef, h: WeekHooks, gated: boolean) => {

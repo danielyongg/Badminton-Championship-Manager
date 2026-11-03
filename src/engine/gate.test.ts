@@ -118,7 +118,8 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
     };
     const state = await weekOf(2, () => ({ chooseEvent: choose([id]), live, round: (r) => { if (r.phase !== 'playing') log.push(`${r.phase}:${r.round}`); return null; } }));
     const lives = log.filter((x) => x.startsWith('live'));
-    expect(lives.length).toBe(state.matches.filter((m) => m.tournamentId === id && m.sides.some((s) => s.startsWith('INA'))).length);
+    // Walkover tidak dimainkan (tanpa Live).
+    expect(lives.length).toBe(state.matches.filter((m) => m.tournamentId === id && !m.walkover && m.sides.some((s) => s.startsWith('INA'))).length);
     expect(lives.every((x) => x.startsWith(`live:${id}:`))).toBe(true);
     // Tiap live match berada di antara pending & done babaknya.
     log.forEach((x, i) => {
