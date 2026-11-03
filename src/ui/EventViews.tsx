@@ -140,12 +140,13 @@ export function GroupView({ rec, matches, plan, ...who }: ViewProps) {
     <div className="groups">
       {groups.map((_, i) => {
         const { games, rows } = groupRows(rec, matches, i), ids = groups[i];
+        const played = (id: string) => games.filter((m) => m.sides.includes(id)).length;
         return (
           <section key={i} className="card group">
             <table>
-              <thead><tr><th>{t('group')} {String.fromCharCode(65 + i)}</th><th className="num" title={t('wins')}>W</th><th className="num" title={'±' + t('games')}>±G</th><th className="num" title={'±' + t('points')}>±P</th></tr></thead>
+              <thead><tr><th>{t('group')} {String.fromCharCode(65 + i)}</th><th className="num" title={t('played')}>P</th><th className="num" title={t('wins')}>W</th><th className="num" title={t('lost')}>L</th><th className="num" title={'±' + t('games')}>±G</th><th className="num" title={'±' + t('points')}>±P</th></tr></thead>
               <tbody>{rows.map((r, k) => (
-                <tr key={r.id} className={who.mine?.(r.id) ? 'sel' : undefined}><td><span className="muted-text">{k + 1}.</span> <Who id={r.id} {...who} /></td><td className="num">{r.wins}</td><td className="num">{r.gameDiff}</td><td className="num">{r.pointDiff}</td></tr>
+                <tr key={r.id} className={who.mine?.(r.id) ? 'sel' : undefined}><td><span className="muted-text">{k + 1}.</span> <Who id={r.id} {...who} /></td><td className="num">{played(r.id)}</td><td className="num">{r.wins}</td><td className="num">{played(r.id) - r.wins}</td><td className="num">{r.gameDiff}</td><td className="num">{r.pointDiff}</td></tr>
               ))}</tbody>
             </table>
             {/* Semua laga grup per hari (urutan round-robin mesin): selesai → skor, belum → "vs" (sama dengan grup beregu). */}

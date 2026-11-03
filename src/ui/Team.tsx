@@ -417,6 +417,7 @@ export function FinalsResult({ r, stage }: { r: TeamResult; stage?: 'groups' | '
   const advance = game.ruleset.team.events.find((e) => e.id === r.eventId)?.finals?.groups?.advance ?? 2;
   const [open, setOpen] = useState<TeamTie>();
   const plan = r.groups && eventDayPlan(game.ruleset, game.state, r.eventId, r.year);
+  const played = (id: string) => r.ties.filter((x) => x.round === 'G' && x.sides.includes(id)).length;
   // Kotak pertandingan beregu: klik → detail tiap partai.
   const tieBox = (x: TeamTie, i: number) => (
     <div key={i} role="button" tabIndex={0} title={t('matchDetail')} className={`match clickable${managed && x.sides.includes(managed) ? ' mine' : ''}`}
@@ -432,10 +433,10 @@ export function FinalsResult({ r, stage }: { r: TeamResult; stage?: 'groups' | '
         <div className="groups">{standingsOf(r).map((s, gi) => (
           <section key={gi} className="card group">
           <table>
-            <thead><tr><th>{t('group')} {String.fromCharCode(65 + gi)}</th><th className="num" title={t('tiesWon')}>W</th><th className="num" title={t('matchDiff')}>±M</th>{r.standings && <th className="num" title={t('gameDiff')}>±G</th>}</tr></thead>
+            <thead><tr><th>{t('group')} {String.fromCharCode(65 + gi)}</th><th className="num" title={t('played')}>P</th><th className="num" title={t('tiesWon')}>W</th><th className="num" title={t('lost')}>L</th><th className="num" title={t('matchDiff')}>±M</th>{r.standings && <th className="num" title={t('gameDiff')}>±G</th>}</tr></thead>
             <tbody>{s.map((row, place) => (
               <tr key={row.id} className={[row.id === managed && 'sel', place < advance && 'adv'].filter(Boolean).join(' ') || undefined}>
-                <td><span className="muted-text">{place + 1}.</span> <Flag id={row.id} />{name(row.id)}</td><td className="num">{row.wins}</td>
+                <td><span className="muted-text">{place + 1}.</span> <Flag id={row.id} />{name(row.id)}</td><td className="num">{played(row.id)}</td><td className="num">{row.wins}</td><td className="num">{played(row.id) - row.wins}</td>
                 <td className="num">{row.gameDiff > 0 ? '+' : ''}{row.gameDiff}</td>{r.standings && <td className="num">{`${row.pointDiff > 0 ? '+' : ''}${row.pointDiff}`}</td>}
               </tr>
             ))}</tbody>
