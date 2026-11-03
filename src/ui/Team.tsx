@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { hostCityId, isHeld, weekOf, lineupStrength, teamFormatsIn, teamStrengths, type TeamResult, type TeamStrength, type TeamTie } from '../engine/season';
+import { eventDayPlan, hostCityId, isHeld, weekOf, lineupStrength, teamFormatsIn, teamStrengths, type TeamResult, type TeamStrength, type TeamTie } from '../engine/season';
 import { ageAt, currentAbility, isPratama } from '../engine/generator';
 import { AD_HOC, adHocEntrants, adHocId, autoLineup, autoSquad, lineupError, rankOrder, squadError, squadPool, type Lineup, type TeamEntrant } from '../engine/team';
 import { isDoubles, isJuniorFormat, type Discipline, type TeamFormat } from '../engine/types';
@@ -8,7 +8,7 @@ import { roundRobin } from '../engine/groups';
 import { ProvisionalBracket } from './EventViews';
 import { pairAbility } from '../engine/match';
 import { dataName, t, type TextKey } from '../i18n';
-import { entrantLabel, eventName, lookup, saveGame, useGame } from './game';
+import { dayLabel, entrantLabel, eventName, lookup, saveGame, useGame } from './game';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
 import { FitStatus, MoraleTag } from './Squad';
@@ -416,6 +416,7 @@ export function FinalsResult({ r, stage }: { r: TeamResult; stage?: 'groups' | '
   // Posisi yang lolos ke babak gugur (ditandai garis hijau di klasemen grup).
   const advance = game.ruleset.team.events.find((e) => e.id === r.eventId)?.finals?.groups?.advance ?? 2;
   const [open, setOpen] = useState<TeamTie>();
+  const plan = r.groups && eventDayPlan(game.ruleset, game.state, r.eventId, r.year);
   // Kotak pertandingan beregu: klik → detail tiap partai.
   const tieBox = (x: TeamTie, i: number) => (
     <div key={i} role="button" tabIndex={0} title={t('matchDetail')} className={`match clickable${managed && x.sides.includes(managed) ? ' mine' : ''}`}
@@ -441,7 +442,7 @@ export function FinalsResult({ r, stage }: { r: TeamResult; stage?: 'groups' | '
           </table>
           {/* Semua pertandingan grup per hari (urutan round-robin yang dimainkan mesin): sudah selesai → skor, belum → "vs". */}
           <ul className="groupgames">{roundRobin(r.groups![gi].length).flatMap((day, d) => [
-            <li key={`d${d}`} className="md">{t('dayN', { n: d + 1 })}</li>,
+            <li key={`d${d}`} className="md">{plan ? dayLabel(plan, plan.day(r.format, 'G', { i: gi, n: r.groups!.length, md: d })) : t('dayN', { n: d + 1 })}</li>,
             ...day.map(([i, j]) => {
               const g = r.groups![gi], x = r.ties.find((y) => y.round === 'G' && y.sides.includes(g[i]) && y.sides.includes(g[j]));
               const mine = managed && (g[i] === managed || g[j] === managed) ? ' mine' : '';

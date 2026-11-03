@@ -7,7 +7,8 @@ import { juniorRecalibration } from '../engine/presets/realPlayers';
 import { writeSave } from '../db/saves';
 import { PRESETS, syncOfficialCalendar, withDefaults } from '../engine/pack';
 import { BWF_2026 } from '../engine/presets/bwf2026';
-import { dataName, t } from '../i18n';
+import { dataName, t, type TextKey } from '../i18n';
+import type { DayPlan } from '../engine/schedule';
 import { makeRng, type Rng } from '../engine/rng';
 import { afterFinals, clearSpanClashes, ensureRankWeeks, playWeek, spreadHosts, teamFormatsIn, weekKey, weekOf, type SeasonState, type WeekHooks } from '../engine/season';
 import { ATTRS, isJuniorFormat, type Ruleset, type Tier, type TournamentDef, type SaveMeta, type World } from '../engine/types';
@@ -282,3 +283,8 @@ export function entrantLabel(state: SeasonState, id: string) {
   // Pasangan beda negara: `country` = "DEN/ENG" (Flag menampilkan dua bendera).
   return { name: ps.map((p) => p?.name).join(' / '), country: [...new Set(ps.map((p) => p?.countryId ?? ps[0]!.countryId))].join('/') };
 }
+
+/** Nama hari ke-`k` dari `n` hari turnamen (hari terakhir = Minggu). */
+export const weekday = (k: number, n: number) => t(`wd${(((7 - (n - 1 - k)) % 7) + 7) % 7}` as TextKey);
+/** "Day 3 (Sat)": hari turnamen sebenarnya dari rencana hari. */
+export const dayLabel = (plan: DayPlan, k: number) => `${t('dayN', { n: k + 1 })} (${weekday(k, plan.days)})`;

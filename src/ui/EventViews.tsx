@@ -5,6 +5,8 @@ import { mainRoundName } from '../engine/knockout';
 import type { EventRecord } from '../engine/tournament';
 import type { DrawStep, Match } from '../engine/types';
 import { t } from '../i18n';
+import type { DayPlan } from '../engine/schedule';
+import { dayLabel } from './game';
 import { Flag } from './Flag';
 import { MatchLink } from './MatchDetail';
 import { useNav } from './nav';
@@ -18,6 +20,7 @@ export interface ViewProps {
   mine?: (id: string) => boolean; // disorot (atlet negara sendiri)
   onOpen?: (id: string) => void; // klik nama → profil
   eventTitle?: string; // judul pop-up detail laga
+  plan?: DayPlan; // rencana hari turnamen: laga grup diberi hari sebenarnya (Day 3 (Sat))
 }
 type WhoProps = Pick<ViewProps, 'name' | 'mine' | 'onOpen' | 'eventTitle'>;
 
@@ -131,7 +134,7 @@ export function ProvisionalBracket({ groups, advance, who }: { groups: number; a
   );
 }
 
-export function GroupView({ rec, matches, ...who }: ViewProps) {
+export function GroupView({ rec, matches, plan, ...who }: ViewProps) {
   const { groups } = rec.groups!;
   return (
     <div className="groups">
@@ -147,7 +150,7 @@ export function GroupView({ rec, matches, ...who }: ViewProps) {
             </table>
             {/* Semua laga grup per hari (urutan round-robin mesin): selesai → skor, belum → "vs" (sama dengan grup beregu). */}
             <ul className="groupgames">{roundRobin(ids.length).flatMap((day, d) => [
-              <li key={`d${d}`} className="md">{t('dayN', { n: d + 1 })}</li>,
+              <li key={`d${d}`} className="md">{plan ? dayLabel(plan, plan.day(rec.discipline, 'G', { i, n: groups.length, md: d })) : t('dayN', { n: d + 1 })}</li>,
               ...day.map(([a, b]) => {
                 const m = games.find((x) => x.sides.includes(ids[a]) && x.sides.includes(ids[b]));
                 const mine = who.mine?.(ids[a]) || who.mine?.(ids[b]) ? ' mine' : '';

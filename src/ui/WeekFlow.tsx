@@ -8,7 +8,7 @@ import { Flag } from './Flag';
 import { EntryPanel, EntryTable, JuniorEntryTable } from './Entries';
 import { endTag, EntryLists } from './EventViews';
 import { seedsOf, type EntriesShow } from '../engine/tournament';
-import { entrantLabel, eventName, saveGame, useGame, TierBadge } from './game';
+import { entrantLabel, eventName, saveGame, useGame, TierBadge, weekday } from './game';
 import { formatName, TieDetail } from './Team';
 import { MatchLink } from './MatchDetail';
 import { PlayerName } from './nav';
@@ -128,7 +128,6 @@ export function BackToTop() {
 export const rowKey = (m: RoundMatch) => `${m.key}:${m.sides.join('-')}`;
 
 /** Nama hari ke-`k` dari `n` hari turnamen (hari terakhir = Minggu). */
-export const weekday = (k: number, n: number) => t(`wd${(((7 - (n - 1 - k)) % 7) + 7) % 7}` as TextKey);
 
 /**
  * Layar babak / hari pertandingan: laga dimainkan satu per satu (baris giliran disorot). Laga atlet sendiri tampil Live,

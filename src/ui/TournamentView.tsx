@@ -1,4 +1,4 @@
-import { hostCityId, liveTeamResults, squadIds, weekOf } from '../engine/season';
+import { eventDayPlan, hostCityId, liveTeamResults, squadIds, weekOf } from '../engine/season';
 import { useState, type ReactNode } from 'react';
 import { DISCIPLINES, type Discipline } from '../engine/types';
 import { dataName, numLocale, t } from '../i18n';
@@ -43,6 +43,7 @@ export function TournamentView({ id, year: startYear, onOpenPlayer, onBack }: { 
     mine: (x: string) => !!managed && (x === managed || squad.has(x)), // pelatnas; beregu: negara manajer
     onOpen: onOpenPlayer, // ganda → profil pasangan
     eventTitle: eventName(ruleset, id, year),
+    plan: eventDayPlan(ruleset, state, id, year),
   };
   // Beregu: hasil yang sudah selesai, atau yang sedang dimainkan (halaman dibuka dari layar babak).
   const team = [...state.teamResults, ...(liveTeamResults.get(state) ?? [])].filter((r) => r.eventId === id && r.year === year);

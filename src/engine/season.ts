@@ -18,7 +18,7 @@ import { juniorEntries, juniorTeamEntrants } from './junior';
 import { AD_HOC, adHocEntrants, autoLineup, rankOrder, autoSquad, lineupError, playOrder, playTie, runTeamEvent, squadError, squadPool, type Lineup, type TeamEntrant } from './team';
 import { newTour, runEvent, seedsOf, simPlay, tournamentWildcards, toRecord, type HotForm, type DrawHook, type DrawShow, type EntriesHook, type EntriesShow, type EventRecord, type LiveHook } from './tournament';
 import { roundGate, type GateSchedule, type RoundHook } from './gate';
-import { dayPlan, teamDayPlan } from './schedule';
+import { dayPlan, teamDayPlan, type DayPlan } from './schedule';
 import { makeScouting, recruit, SCOUTING_DEADLINE_WEEK, withdrawCandidates, type Scouting, type ScoutFocus } from './scouting';
 import { upgradeTo2027 } from './presets/bwf2027';
 import {
@@ -1258,6 +1258,23 @@ export function lockFinalsQualifiers(state: SeasonState, rs: Ruleset, world: Wor
  * `teamResults` (tidak disimpan) agar target, gelar & kualifikasi tidak membaca hasil yang belum selesai.
  */
 export const liveTeamResults = new WeakMap<SeasonState, TeamResult[]>();
+
+/**
+ * Rencana hari turnamen yang sudah diundi (sama dengan yang dipakai saat dimainkan): untuk tampilan, mis. hari laga grup.
+ * Individu: nomor yang punya catatan undian; beregu: format & jumlah tim dari hasilnya.
+ */
+export function eventDayPlan(rs: Ruleset, state: SeasonState, id: string, year: number): DayPlan | undefined {
+  const ev = rs.calendar.find((e) => e.id === id);
+  if (ev) {
+    const ds = DISCIPLINES.filter((d) => state.eventRecords.some((r) => r.tournamentId === id && r.year === year && r.discipline === d));
+    return ds.length ? dayPlan(tierOf(rs, ev), ds) : undefined;
+  }
+  const te = rs.team.events.find((e) => e.id === id);
+  const res = [...state.teamResults, ...(liveTeamResults.get(state) ?? [])].filter((r) => r.eventId === id && r.year === year);
+  if (!te || !res.length) return undefined;
+  const groups = te.confederation || te.countries ? te.finals?.groups : (te.finals ?? rs.team.finals).groups;
+  return teamDayPlan(groups, Math.max(...res.map((r) => r.teams.length)), res.map((r) => r.format), te.days);
+}
 /** Penghubung hasil sementara dengan runTeamEvent: klasemen & bagan gugur langsung tercatat begitu tersedia. */
 const liveStages = (r: TeamResult) => ({
   set standings(v: Standing[][] | undefined) { r.standings = v; }, get standings() { return r.standings; },
