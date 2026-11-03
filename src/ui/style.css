@@ -196,8 +196,9 @@ tr.sel { background: var(--accent-soft); }
 .ranktable tr.mine-row td:nth-child(2) { font-weight: 700; color: var(--accent-strong); }
 .ranktable tr.sel td { background: var(--line); }
 .stars { color: var(--gold); letter-spacing: -1px; }
-.up { color: var(--accent-strong); font-size: .8em; }
-.down { color: var(--danger); font-size: .8em; }
+/* Ukuran tetap di skala (.72rem), bukan .8em: di dalam teks kecil .8em mengecil berlipat (9 px). */
+.up { color: var(--accent-strong); font-size: .72rem; }
+.down { color: var(--danger); font-size: .72rem; }
 .mine { color: var(--accent-strong); font-weight: 600; }
 .muted { opacity: .6; }
 .hint { font-size: .875rem; color: var(--muted); }
@@ -341,9 +342,12 @@ button.wide { width: 100%; text-align: left; }
 .goal-kind { margin-right: 6px; vertical-align: 2px; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; background: var(--accent-soft); color: var(--accent-strong); }
 .goal-kind.challenge { background: var(--gold-soft); color: var(--gold); }
 /* Laporan kuartal: kelompok berjudul kecil, satu baris per atlet. */
-.qreport .qgroup + .qgroup { margin-top: 10px; }
+.recgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 0 16px; align-items: start; } /* papan rekor berisi saja */
+.qreport .qgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 8px 16px; }
+.qreport .drow .grow { display: block; } /* .drow .grow = kolom: di sini nama + usia · kemampuan sebaris */
+.qreport .drow .grow small { white-space: nowrap; }
 .qreport h4 { margin: 0 0 2px; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
-.qreport .drow { padding: 5px 0; border-bottom: 1px solid var(--line); align-items: center; }
+.qreport .drow { padding: 3px 0; border-bottom: 1px solid var(--line); align-items: center; }
 .qreport .drow:last-child { border-bottom: 0; }
 .qreport .drow > .trait-tags { justify-content: flex-end; max-width: 55%; }
 .badge.q-up { background: var(--accent-soft); color: var(--accent-strong); }
@@ -357,6 +361,7 @@ button.wide { width: 100%; text-align: left; }
 .shell { position: sticky; top: 0; background: var(--surface); margin: -16px -16px 12px; padding: 8px 16px; z-index: 2; border-bottom: 1px solid var(--line); }
 .shell .title b { font-size: 1.1rem; font-weight: 800; }
 .shell .meta { display: inline-flex; gap: 12px; align-items: baseline; }
+.shell .meta small { font-size: .72rem; } /* "Tersimpan": skala font, bukan ukuran bawaan small */
 .shell .date { color: var(--accent-strong); font-weight: 800; }
 .shell { align-items: center; }
 .shell small { color: var(--muted); }

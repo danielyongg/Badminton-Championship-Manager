@@ -392,6 +392,8 @@ function QuarterReportCard({ country, onOpen }: { country: string; onOpen: (id: 
   return (
     <section className="card qreport">
       <h3>{t('quarterReport')}</h3>
+      {/* Kelompok berdampingan (kolom otomatis), satu baris per atlet: hemat tempat. */}
+      <div className="qgrid">
       {rows.map(([k, icon, ps]) => (
         <div key={k} className="qgroup">
           <h4>{icon} {t(k)}</h4>
@@ -405,6 +407,7 @@ function QuarterReportCard({ country, onOpen }: { country: string; onOpen: (id: 
           ))}
         </div>
       ))}
+      </div>
     </section>
   );
 }

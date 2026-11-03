@@ -487,7 +487,7 @@ withdrawFrom: 'Withdraw from {d}', withdrewFrom: 'withdrew from {d}', withdrawTw
   v_pairCountry: 'players from different countries (only allowed when both are independent).',
   v_pairGender: 'gender does not match {d}.',
   v_pairBusy: '{name} already has a {d} partner.',
-  analystReport: 'Analyst report', rep_growth: 'Development', rep_growthText: '{ca} ({d} this season)', rep_trend_up: 'still rising last quarter', rep_trend_flat: 'flat last quarter', rep_trend_down: 'declining last quarter',
+  noRecordsYet: 'No records yet', analystReport: 'Analyst report', rep_growth: 'Development', rep_growthText: '{ca} ({d} this season)', rep_trend_up: 'still rising last quarter', rep_trend_flat: 'flat last quarter', rep_trend_down: 'declining last quarter',
   rep_form: 'Recent form', rep_formText: '{w}–{l} (last {n} matches)', rep_form_good: 'convincing', rep_form_mixed: 'up and down', rep_form_poor: 'unconvincing', rep_noMatches: 'No matches yet.',
   rep_rankFrom: 'from #{r} 3 months ago', rep_unranked: 'No senior ranking yet.', rep_verdict: 'Recommendation',
   verdict_keep: 'Keep', verdict_release: 'Release', verdict_promote: 'Promote', verdict_recall: 'Recall', verdict_stayOut: 'No need to recall',

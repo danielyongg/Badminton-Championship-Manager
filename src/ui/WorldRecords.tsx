@@ -160,14 +160,14 @@ export function Records({ state, ruleset, world, onOpenPlayer }: { state: Season
     return (
       <section className="card" key={title}>
         <h3>{t(title)}</h3>
-        {list.length === 0 ? <p className="hint">—</p> : (
-          <table className="fit"><tbody>{list.map(([id, n], i) => (
-            <tr key={id}><td className="num muted-text">{i + 1}</td><td>{who(id)}</td><td className="num"><b>{n}</b>{unit && <small className="muted-text"> {t(unit)}</small>}</td></tr>
-          ))}</tbody></table>
-        )}
+        <table className="fit"><tbody>{list.map(([id, n], i) => (
+          <tr key={id}><td className="num muted-text">{i + 1}</td><td>{who(id)}</td><td className="num"><b>{n}</b>{unit && <small className="muted-text"> {t(unit)}</small>}</td></tr>
+        ))}</tbody></table>
       </section>
     );
   };
+  // Papan rekor yang sudah berisi tampil sebagai kartu (grid); yang masih kosong digabung jadi satu baris keterangan.
+  const boards = ([[data.titles, 'recTitles'], [data.weeks1, 'recWeeks1', 'weeks'], [data.wc, 'recWC'], [data.og, 'recOG'], [data.wtf, 'recWTF'], [data.ae, 'recAE']] as [Map<string, number>, TextKey, TextKey?][]);
   const country = (c: string) => dataName(world.countries.find((x) => x.id === c)?.name) ?? c;
   const teamRows = [...data.team].sort((a, b) => b[1] - a[1]);
   const formats = [...new Set(teamRows.map(([k]) => k.split(':')[0]))];
@@ -199,24 +199,17 @@ export function Records({ state, ruleset, world, onOpenPlayer }: { state: Season
           );
         }))}</tbody></table>
       </section>}
-      <div className="split">
-        {top(data.titles, 'recTitles')}
-        {top(data.weeks1, 'recWeeks1', 'weeks')}
-      </div>
-      <div className="split">
-        {top(data.wc, 'recWC')}
-        {top(data.og, 'recOG')}
-      </div>
-      <div className="split">
-        {top(data.wtf, 'recWTF')}
-        {top(data.ae, 'recAE')}
-      </div>
-      <section className="card">
+      <div className="recgrid">{boards.filter(([m]) => m.size).map(([m, title, unit]) => top(m, title, unit))}</div>
+      {teamRows.length > 0 && <section className="card">
         <h3>{t('recTeam')}</h3>
-        {teamRows.length === 0 ? <p className="hint">—</p> : formats.map((f) => (
+        {formats.map((f) => (
           <p key={f}><b>{formatName(f as TeamFormat)}</b>: {teamRows.filter(([k]) => k.startsWith(`${f}:`)).map(([k, n]) => <span key={k} className="evres"><Flag id={k.split(':')[1]} />{country(k.split(':')[1])} ×{n}</span>)}</p>
         ))}
-      </section>
+      </section>}
+      {(() => {
+        const empty = [...boards.filter(([m]) => !m.size).map(([, title]) => t(title)), ...(teamRows.length ? [] : [t('recTeam')])];
+        return empty.length > 0 && <p className="hint">{t('noRecordsYet')}: {empty.join(' · ')}</p>;
+      })()}
     </section>
   );
 }
