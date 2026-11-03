@@ -554,6 +554,10 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 .announce { font-size: 1.1rem; font-weight: 800; min-height: 1.6em; }
 .drawlayout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .drawboard td { padding: 1px 6px; font-size: .8rem; } /* daftar unggulan */
+/* Grup live draw: ukuran sama dengan seksi undian gugur (.drawq). */
+.drawlayout .groups .card { padding: 6px 8px; }
+.drawlayout .groups h4 { margin: 0 0 4px; }
+.drawlayout .groups li { font-size: .8rem; }
 /* Pot di atas bagan: chip atlet yang belum diundi (yang berikutnya diberi garis). */
 .bowl h4 { margin: 0 0 4px; }
 .bowl ul { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; padding: 0; list-style: none; max-height: 96px; overflow-y: auto; }
@@ -739,7 +743,6 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 @media (max-width: 600px) {
   /* Live drawing grup: dua grup per baris agar semua grup terlihat tanpa banyak menggulir. */
   .drawlayout .groups { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; } /* minmax(0): nama panjang tidak melebarkan kolom melewati layar */
-  .drawlayout .groups .card { padding: 6px 8px; }
   .drawlayout .groups ol { padding-left: 1.4em; margin: 4px 0 0; }
   .drawlayout .groups li { overflow-wrap: anywhere; } /* nama panjang / pasangan turun baris, tetap utuh terlihat */
   /* Bagan undian: satu seksi per baris; nama panjang turun baris agar tidak melewati lebar layar. */
