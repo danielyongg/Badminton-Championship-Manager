@@ -717,6 +717,8 @@ function chooseEntries(state: SeasonState, events: TournamentDef[], rs: Ruleset,
       // Turnamen yang entry-nya sudah di-submit manajer: atlet sendiri yang tidak dicentang tidak diisi AI ke sana (wajib tetap).
       && (!mine(e) || manual[e.id] === ev.id || !submitted(ev) || !!state.commitments[e.id]?.includes(ev.id)));
     const decision = mine(e) ? manual[e.id] : undefined;
+    // Atlet negara manajer tanpa centang: AI hanya mendaftarkan yang diberi prioritas tier (Rencana musim); lainnya istirahat.
+    if (mine(e) && !decision && !state.tierPrefs?.[e.id]?.length) continue;
     if (!decision && e.playerIds.some((id) => (pratama.has(id) && !readyPratama.has(id)) || busy.has(id))) continue;
     if (!decision && e.playerIds.some((id) => pratama.has(id))) options = options.filter((ev) => PRATAMA_SENIOR_TIERS.includes(ev.tierId));
     let choice = decision ? options.find((ev) => ev.id === decision) : options.find((ev) => state.commitments[e.id]?.includes(ev.id));
@@ -1039,10 +1041,10 @@ export async function playWeek(state: SeasonState, rs: Ruleset, world: World, rn
       const inEvent = new Set(entries.get(event.id)!.get(d)!.map((c) => c.id));
       for (const e of entrantsFor(state, d))
         if (state.commitments[e.id]?.includes(event.id) && !inEvent.has(e.id) && !e.playerIds.some((id) => players.get(id)!.injury)
-          // Daftar entry terbit: atlet wajib selalu didaftarkan kecuali cedera saat batas entry → hanya keputusan manajer
-          // (istirahat / turnamen lain di form entry, atau mundur) yang melanggar.
+          // Daftar entry terbit: atlet wajib AI selalu didaftarkan kecuali cedera saat batas entry; atlet manajer melanggar bila
+          // tidak didaftarkan (tidak dicentang & tanpa prioritas tier, istirahat / turnamen lain) atau mundur.
           && (!fromList.has(event.id) || (isManaged(state, released, e) && (!!state.withdrawn?.[`${year}:${event.id}`]?.includes(e.id)
-            || ![undefined, event.id].includes(state.manualEntries[weekKey(state.date)]?.[e.id]))))) {
+            || state.manualEntries[weekKey(state.date)]?.[e.id] !== event.id)))) {
           state.violations.push({ entrantId: e.id, countryId: e.countryId, tournamentId: event.id, year });
           if (state.career && e.countryId === state.career.countryId && !e.playerIds.some((id) => players.get(id)!.released !== undefined))
             state.career.reputation = Math.max(0, state.career.reputation - rs.career.violationPenalty);

@@ -80,6 +80,10 @@ describe('turnamen junior', () => {
   it('hanya U19, kontinental hanya konfederasinya, tanpa poin senior; ranking junior terbentuk; tidak bentrok dengan turnamen senior', async () => {
     const state = newSeason(WORLD, rs, 21, undefined, 'INA');
     const rng = makeRng(21);
+    // Junior INA (termasuk pratama) dicentang manajer untuk Kejuaraan Dunia Junior (AI tidak mendaftarkan atlet manajer).
+    const wjc0 = juniorEvents().find((e) => e.week === 41)!;
+    state.manualEntries[weekKey({ year: 2026, week: 41 })] = Object.fromEntries(state.players
+      .filter((p) => p.countryId === 'INA' && isJuniorAge(p, { year: 2026, week: 41 })).map((p) => [p.id, wjc0.id]));
     while (state.date.week < 42) await playWeek(state, rs, WORLD, rng);
     const conf = new Map(WORLD.countries.map((c) => [c.id, c.confederation]));
     const players = new Map(state.players.map((p) => [p.id, p]));
@@ -162,31 +166,21 @@ describe('spesialis ganda', () => {
   }, 60000);
 });
 
-describe('entry yang sudah di-submit', () => {
-  it('atlet sendiri yang tidak dicentang tidak diisi AI ke turnamen itu; tanpa submit tetap diisi asisten AI', async () => {
+describe('entry atlet negara manajer', () => {
+  it('tanpa centang & tanpa prioritas tier tidak didaftarkan AI (senior & junior); dengan prioritas tier didaftarkan', async () => {
     const state = newSeason(WORLD, rs, 11, undefined, 'INA');
     const rng = makeRng(11);
+    const ina = new Set(state.players.filter((p) => p.countryId === 'INA').map((p) => p.id));
+    const inaListed = () => {
+      const pairIds = new Map(state.pairs.map((p) => [p.id, p.playerIds]));
+      return Object.values(state.entryLists ?? {}).flatMap((l) => Object.values(l).flat())
+        .filter((c) => (pairIds.get(c!.id) ?? [c!.id]).some((x) => ina.has(x))).map((c) => c!.id);
+    };
+    while (state.date.week < 12) await playWeek(state, rs, WORLD, rng);
+    expect(inaListed()).toEqual([]);
+    const top = entrantsFor(state, 'MS').find((e) => e.countryId === 'INA')!;
+    (state.tierPrefs ??= {})[top.id] = rs.tiers.map((t) => t.id);
     while (state.date.week < 20) await playWeek(state, rs, WORLD, rng);
-    // Minggu batas entry dengan turnamen yang (tanpa submit) diikuti atlet INA dari pilihan AI.
-    for (let tries = 0; tries < 30; tries++) {
-      const { year, week } = state.date;
-      const due = rs.calendar.filter((e) => entryDeadline(rs, e.id, year) === week && weekOf(e, year) > week).map((e) => e.id);
-      const free = structuredClone(state);
-      await playWeek(free, rs, WORLD, makeRng(99));
-      const ina = new Set(free.players.filter((p) => p.countryId === 'INA').map((p) => p.id));
-      const pairIds = new Map(free.pairs.map((p) => [p.id, p.playerIds]));
-      const mine = (s: typeof state, id: string) => Object.values(s.entryLists?.[`${year}:${id}`] ?? {}).flat()
-        .filter((c) => (pairIds.get(c!.id) ?? [c!.id]).some((x) => ina.has(x)) && !state.commitments[c!.id]?.length).map((c) => c!.id);
-      const ids = due.filter((id) => mine(free, id).length);
-      if (ids.length) {
-        const done = structuredClone(state);
-        for (const id of ids) (done.entriesSubmitted ??= {})[`${year}:${id}`] = true;
-        await playWeek(done, rs, WORLD, makeRng(99));
-        expect(ids.flatMap((id) => mine(done, id))).toEqual([]);
-        return;
-      }
-      await playWeek(state, rs, WORLD, rng);
-    }
-    throw new Error('tidak ada minggu dengan entry AI atlet INA');
+    expect(new Set(inaListed())).toEqual(new Set([top.id]));
   }, 120000);
 });

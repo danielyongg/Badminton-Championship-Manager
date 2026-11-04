@@ -1,3 +1,4 @@
+import { autoEnter } from './test-utils';
 import { describe, expect, it } from 'vitest';
 import { BWF_2026 } from './presets/bwf2026';
 import { WORLD } from './presets/world';
@@ -78,6 +79,7 @@ describe('promosi junior', () => {
 
   it('Pratama siap ikut turnamen senior grade 3 (IC/IS/FS) saja; Pratama belum siap tidak ke senior', async () => {
     const s = newSeason(WORLD, rs, 6, { year: 2026, week: 1 }, 'INA');
+    autoEnter(s, rs);
     const ps = pratama(s).sort((a, b) => currentAbility(b.attrs) - currentAbility(a.attrs));
     const star = ps[0], weak = ps[ps.length - 1];
     for (const a of ATTRS) star.attrs[a] = 75;

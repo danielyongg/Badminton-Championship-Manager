@@ -1,3 +1,4 @@
+import { autoEnter } from './test-utils';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { BWF_2026 } from './presets/bwf2026';
 import { BWF_2027 } from './presets/bwf2027';
@@ -395,6 +396,7 @@ describe('batas entry (aturan BWF)', () => {
     expect(tier(ev.id)).toBe('S1000');
 
     const state = newSeason(WORLD, rs, 5, undefined, 'INA');
+    autoEnter(state, rs);
     const rng = makeRng(5);
     const d = entryDeadline(rs, ev.id, 2026)!;
     while (state.date.week <= d) {

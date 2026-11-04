@@ -1,3 +1,4 @@
+import { autoEnter } from './test-utils';
 import { describe, expect, it } from 'vitest';
 import { dissolvePair, formPair, peakRange, seasonGoals, potentialStars, promoteJunior, promoteTrial, setTarget, suggestJuniorTargets, suggestTargets, targetReport } from './career';
 import { currentAbility, isJuniorAge as isJunior } from './generator';
@@ -31,6 +32,7 @@ async function playThrough(state: SeasonState, rng: ReturnType<typeof makeRng>, 
 describe('mode karier', () => {
   it('target musim & rapor akhir musim, reputasi berubah', async () => {
     const state = newSeason(WORLD, rs, 1, undefined, 'INA');
+    autoEnter(state, rs);
     const rng = makeRng(1);
     await playWeek(state, rs, WORLD, rng);
     expect(state.career!.goals.map((g) => g.kind)).toEqual(['titles', 'top10', 'team', 'team', 'medals', 'medals', 'olympic', 'team']); // terakhir: Suhandinata (target junior)
@@ -53,6 +55,7 @@ describe('mode karier', () => {
 
   it('istirahatkan atlet Top Committed di turnamen wajib → pelanggaran & reputasi turun; pilihan manual dihormati', async () => {
     const state = newSeason(WORLD, rs, 2, undefined, 'INA');
+    autoEnter(state, rs);
     const rng = makeRng(2);
     const top = computeRanking(state.results, 'MS', absWeek(state.date), rs).find((r) => r.entrantId.startsWith('INA') && r.rank <= 15)!;
     expect(state.commitments[top.entrantId]).toContain('malaysia-open');
@@ -72,6 +75,7 @@ describe('mode karier', () => {
 
   it('cedera terjadi; atlet cedera tidak didaftarkan dan tidak dihitung melanggar', async () => {
     const state = newSeason(WORLD, rs, 3, undefined, 'INA');
+    autoEnter(state, rs);
     const rng = makeRng(3);
     let injuredSeen = 0;
     while (state.date.week < 30) {
@@ -272,6 +276,7 @@ describe('saran target', () => {
 describe('rapor target', () => {
   it('target yang dipasang tercatat setelah turnamen & dirangkum per atlet', async () => {
     const state = newSeason(WORLD, BWF_2026, 4, undefined, 'INA');
+    autoEnter(state, BWF_2026);
     const rng = makeRng(4);
     const ms = state.players.filter((p) => p.countryId === 'INA' && p.gender === 'M' && p.retired === undefined && p.focus !== 'D');
     for (const ev of BWF_2026.calendar) for (const p of ms) setTarget(state, 2026, ev.id, p.id, 'QF');

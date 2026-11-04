@@ -1,3 +1,4 @@
+import { autoEnter } from './test-utils';
 import { describe, expect, it } from 'vitest';
 import { roundOrder, type RoundShow } from './gate';
 import { simulateMatch } from './match';
@@ -10,6 +11,7 @@ import type { DrawShow, LiveRequest } from './tournament';
 const rs = BWF_2026;
 const weekOf = async (week: number, hooks: (s: ReturnType<typeof newSeason>) => WeekHooks = () => ({}), seed = 3) => {
   const state = newSeason(WORLD, rs, seed, undefined, 'INA');
+  autoEnter(state, rs);
   const rng = makeRng(seed);
   while (state.date.week < week) await playWeek(state, rs, WORLD, rng);
   await playWeek(state, rs, WORLD, rng, hooks(state));
@@ -97,6 +99,7 @@ describe('gerbang babak (turnamen dimainkan per babak)', () => {
     const id = ina.sides.find((x) => x.startsWith('INA'))!;
     const run = async (setAtWeek: number) => {
       const state = newSeason(WORLD, rs, 3, undefined, 'INA');
+      autoEnter(state, rs);
       const rng = makeRng(3);
       while (state.date.week <= 2) {
         if (state.date.week === setAtWeek) (state.manualEntries[weekKey({ year: 2026, week: 2 })] ??= {})[id] = 'rest';

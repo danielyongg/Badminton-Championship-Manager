@@ -561,7 +561,7 @@ export function EntryTable({ week: w, eventId, onSubmit, onBack }: { week: numbe
   // Multi-event: hanya anggota kontingen (setelah dikunci) yang bisa didaftarkan.
   const eligible = (e: (typeof rows)[number]) => !injured(e) && !elsewhere(e) && inContingent(state, eventId, country, e.playerIds);
   const required = (e: (typeof rows)[number]) => !!state.commitments[e.id]?.includes(eventId);
-  const checked = (e: (typeof rows)[number]) => decisions[e.id] === eventId || (!decisions[e.id] && required(e) && eligible(e));
+  const checked = (e: (typeof rows)[number]) => decisions[e.id] === eventId;
 
   const sectors = DISCIPLINES.filter((d) => rows.some((e) => e.d === d));
   const [picked, setSector] = useState<Discipline>();

@@ -44,14 +44,13 @@ export function juniorEntries(
   for (const ev of events) {
     const tier = rs.tiers.find((x) => x.id === ev.tierId)!;
     const { quota, play = 1, local, maxAge } = tier.junior!;
-    // Entry sudah di-submit manajer: atlet/pasangan negaranya yang tidak dicentang tidak diisi otomatis.
-    const shut = state.entriesSubmitted?.[`${state.date.year}:${ev.id}`] === true;
-    const free = (id: string) => manual[id] === ev.id || (manual[id] === undefined && !(shut && ownCountry(id)));
     // Atlet yang sudah terdaftar di turnamen junior lain minggu ini tidak ikut lagi.
     const elsewhere = new Set(busy);
     // Pilihan manajer (atlet tunggal / pasangan) untuk turnamen ini: selalu ikut & didahulukan dalam kuota negara.
     const forced = new Set(Object.keys(manual).filter((id) => manual[id] === ev.id));
     const forcedPlayers = new Set([...forced].flatMap((id) => state.pairs.find((x) => x.id === id)?.playerIds ?? [id]));
+    // Negara manajer: hanya yang dicentang manajer (atlet tunggal, atau atlet dari pasangan yang dicentang); AI tidak mengisi.
+    const free = (id: string) => manual[id] === ev.id || forcedPlayers.has(id) || (manual[id] === undefined && !ownCountry(id));
     // Turnamen opsional (Grand Prix/Challenge/Series), sekali per atlet per turnamen: istirahat bila lelah, peluang ikut
     // per tier, dan turnamen lokal sebagian besar diikuti atlet dari benua tuan rumah. Kejuaraan dunia/kontinental &
     // pilihan manajer: selalu ikut.

@@ -1,3 +1,4 @@
+import { autoEnter } from './test-utils';
 import { expect, it } from 'vitest';
 import { weeklyNews } from './news';
 import { BWF_2026 } from './presets/bwf2026';
@@ -11,6 +12,7 @@ import type { Player } from './types';
 
 it('berita mingguan: dari laga minggu lalu, kejutan sesuai ambang ranking', async () => {
   const state = newSeason(WORLD, BWF_2026, 1, { year: 2026, week: 1 }, 'INA');
+  autoEnter(state, BWF_2026);
   const rng = makeRng(2);
   const kinds = new Set<string>();
   while (state.date.week < 12) {
