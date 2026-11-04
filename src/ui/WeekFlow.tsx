@@ -294,8 +294,9 @@ export function RoundScreen({ show, tab: lastTab, onTab, skipped, onNext, onSkip
               <div className="m-meta">
                 {daily && <span className="court" title={t('courtN', { n: m.court! })}>{t('courtShort', { n: m.court! })}</span>}
                 <span className="m-key">{team ? formatName(m.key as TeamFormat, show.tournamentId) : m.key}</span>
-                {(m.round ?? show.round) === 'G' && groupOf(m) && <span>{t('group')} {groupOf(m)}</span>}
-                {(multiRound || !daily) && <span>{nameOf(m.round ?? show.round)}</span>}
+                {(m.round ?? show.round) === 'G' && groupOf(m)
+                  ? <span>{t('group')} {groupOf(m)}</span>
+                  : (multiRound || !daily) && <span>{nameOf(m.round ?? show.round)}</span>}
                 {m.tv && <span className="tv" title={t('tvMatch')}>📺</span>}
                 <span className="m-status">
                   {end ? <span className="badge">{end}</span>
