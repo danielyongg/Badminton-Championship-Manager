@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { absWeek, computeRanking, rankMap } from '../engine/ranking';
-import { aiEventChoice, entrantsFor, entryClosed, entryDeadline, hostCityId, openTo, spanBusy, type SeasonState, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey, withdrawEntry, WITHDRAW_FREE_WEEKS } from '../engine/season';
+import { aiEventChoice, entrantsFor, entryClosed, entryDeadline, hostCityId, openTo, spanBusy, type SeasonState, weekOf, isHeld, isManaged, releasedIds, teamFormatsIn, teamStrengths, weekKey, withdrawEntry, withdrawnFrom, WITHDRAW_FREE_WEEKS } from '../engine/season';
 import { acceptEntries, applyCountryQuota } from '../engine/entry';
 import { makeRng } from '../engine/rng';
 import { EntryLists } from './EventViews';
@@ -361,7 +361,7 @@ function boundElsewhere(state: SeasonState, rs: Ruleset, decisions: Record<strin
   const { pairs } = lookup(state);
   const out = spanBusy(state, rs, state.date.year, w);
   for (const [id, v] of Object.entries(decisions))
-    if (v && v !== 'rest' && v !== eventId) (pairs.get(id)?.playerIds ?? [id]).forEach((x) => out.set(x, v));
+    if (v && v !== 'rest' && v !== eventId && !withdrawnFrom(state, state.date.year, v, id)) (pairs.get(id)?.playerIds ?? [id]).forEach((x) => out.set(x, v));
   return out;
 }
 

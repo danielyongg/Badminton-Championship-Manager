@@ -5,7 +5,7 @@ import { WORLD } from './presets/world';
 import { absWeek, computeRanking } from './ranking';
 import { presetPack, PRESETS } from './pack';
 import { makeRng } from './rng';
-import { aiEventChoice, bestRanks, clearSpanClashes, teamStrengths, spreadHosts, drawHosts, entrantsFor, prActive, protectRanking, entryDeadline, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, weekOf, withdrawEntry, wtfQualifiers } from './season';
+import { aiEventChoice, bestRanks, clearSpanClashes, teamStrengths, spreadHosts, drawHosts, entrantsFor, prActive, protectRanking, entryDeadline, formPairs, HOST_GAP, hostCityId, isHeld, newSeason, playWeek, scheduleYear, spanBusy, weekOf, withdrawEntry, wtfQualifiers } from './season';
 import { seedsOf, type EventRecord } from './tournament';
 import { ATTRS, DISCIPLINES } from './types';
 
@@ -515,4 +515,16 @@ it('skuad beregu didaftarkan lebih awal: atlet yang pulih sebelum turnamen tetap
   const has = (ahead: number) => teamStrengths(state, rs, 'sudirman', ahead).find((x) => x.countryId === 'INA')!.pool.WS.some((e) => e.id === id);
   expect(has(0)).toBe(false);
   expect(has(2)).toBe(true);
+});
+
+it('mundur dari turnamen: atlet tidak lagi terikat ke turnamen itu (bisa didaftarkan ke turnamen lain)', () => {
+  const rs = structuredClone(BWF_2027);
+  const state = newSeason(WORLD, rs, 3);
+  const year = state.date.year;
+  const s = rs.calendar.find((e) => isHeld(e, year) && (rs.tiers.find((t) => t.id === e.tierId)?.spanWeeks ?? 1) > 1)!;
+  const w = weekOf(s, year) + 1, p = state.players[0].id;
+  (state.entryLists ??= {})[`${year}:${s.id}`] = { MS: [{ id: p } as never] };
+  expect(spanBusy(state, rs, year, w).get(p)).toBe(s.id);
+  state.withdrawn = { [`${year}:${s.id}`]: [p] };
+  expect(spanBusy(state, rs, year, w).has(p)).toBe(false);
 });

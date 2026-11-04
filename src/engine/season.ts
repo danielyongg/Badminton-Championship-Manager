@@ -532,6 +532,10 @@ export const entryClosed = (state: SeasonState, rs: Ruleset, id: string) => {
 };
 
 /** Mundur dari daftar entry yang sudah terbit; mundur terlambat tanpa cedera (bukan atlet wajib) → reputasi −1. Hasil: kena penalti. */
+/** Entrant sudah mundur dari turnamen itu (tidak lagi mengikat atletnya minggu itu). */
+export const withdrawnFrom = (state: SeasonState, year: number, eventId: string, entrantId: string) =>
+  !!state.withdrawn?.[`${year}:${eventId}`]?.includes(entrantId);
+
 export function withdrawEntry(state: SeasonState, rs: Ruleset, eventId: string, entrantId: string) {
   const { year, week } = state.date;
   const key = `${year}:${eventId}`;
@@ -558,8 +562,8 @@ export function spanBusy(state: SeasonState, rs: Ruleset, year: number, w: numbe
   for (const e of rs.calendar) {
     const start = weekOf(e, year), span = tierOf(rs, e).spanWeeks ?? 1;
     if (!isHeld(e, year) || start >= w || start + span <= w) continue;
-    for (const c of Object.values(state.entryLists?.[`${year}:${e.id}`] ?? {}).flat()) ids(c!.id).forEach((p) => out.set(p, e.id));
-    for (const [id, v] of Object.entries(state.manualEntries[weekKey({ year, week: start })] ?? {})) if (v === e.id) ids(id).forEach((p) => out.set(p, e.id));
+    for (const c of Object.values(state.entryLists?.[`${year}:${e.id}`] ?? {}).flat()) if (!withdrawnFrom(state, year, e.id, c!.id)) ids(c!.id).forEach((p) => out.set(p, e.id));
+    for (const [id, v] of Object.entries(state.manualEntries[weekKey({ year, week: start })] ?? {})) if (v === e.id && !withdrawnFrom(state, year, e.id, id)) ids(id).forEach((p) => out.set(p, e.id));
   }
   return out;
 }
@@ -588,7 +592,7 @@ function publishEntries(state: SeasonState, rs: Ruleset, world: World, rng: Rng,
     const manual = Object.fromEntries(Object.entries(state.manualEntries[weekKey({ year, week: w })] ?? {})
       .filter(([id]) => !(pairs.get(id)?.playerIds ?? [id]).some((p) => spanning.has(p))));
     const busy = new Set([...spanning.keys(), ...rs.calendar.filter((e) => weekOf(e, year) === w).flatMap((e) => Object.values(lists[`${year}:${e.id}`] ?? {}).flat()
-      .flatMap((c) => pairs.get(c!.id)?.playerIds ?? [c!.id]))]);
+      .filter((c) => !withdrawnFrom(state, year, e.id, c!.id)).flatMap((c) => pairs.get(c!.id)?.playerIds ?? [c!.id]))]);
     const junior = juniorEntries(state, evs.filter((e) => tierOf(rs, e).junior), rs, world, juniorRanks, manual, rng, busy, w - week);
     state.pairs.push(...junior.created);
     store(junior.entries);
