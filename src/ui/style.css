@@ -396,7 +396,7 @@ nav.maintabs { gap: 2px; border-bottom: 1px solid var(--line); }
 .round > .match { margin: 3px 0; } /* margin, bukan gap: posisi tengah tiap babak tepat di antara dua laga sebelumnya */
 .round-col { display: flex; flex-direction: column; gap: 4px; }
 .round-col > .round { flex: 1; }
-.match { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; font-size: .8rem; }
+.match { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 4px 8px; font-size: .8rem; }
 .match.mine { box-shadow: inset 3px 0 var(--accent); color: inherit; font-weight: inherit; }
 .match > div { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* satu baris per peserta: semua kotak sama tinggi */
 .match > div.win { color: var(--fg); font-weight: 700; }
@@ -1112,4 +1112,8 @@ body:has(.livebar) .totop { bottom: calc(120px + env(safe-area-inset-bottom, 0px
   nav.maintabs { gap: 6px; padding-block: 8px; border-bottom: 0; scrollbar-width: none; }
   nav.maintabs button[aria-pressed] { border-radius: 999px; padding: 6px 14px; background: var(--bg); font-size: .875rem; }
   nav.maintabs button[aria-pressed=true], nav.maintabs button[aria-pressed=true]:hover { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+}
+/* HP: baris sub-tab yang bisa digeser memudar di tepi kanan (seperti tab utama), tanda masih ada pilihan lain. */
+@media (max-width: 700px) {
+  nav.controls:not(.maintabs) { padding-right: 24px; mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); }
 }
