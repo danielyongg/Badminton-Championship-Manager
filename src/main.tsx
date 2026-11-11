@@ -1,8 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import '@fontsource/barlow/400.css';
-import '@fontsource/barlow/600.css';
-import '@fontsource/barlow/800.css';
+import '@fontsource-variable/inter';
 import { getLang } from './i18n';
 import { App } from './ui/App';
 import { Splash } from './ui/Splash';

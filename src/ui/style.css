@@ -1,12 +1,14 @@
 /* Tema "Arena" (rapat ala game manajer) dengan palet "Lapangan". Semua warna lewat token; terang = bawaan,
    gelap = mengikuti perangkat (tanpa data-theme) atau dipaksa lewat data-theme="dark" (lihat theme.ts). */
 :root {
-  font-family: Barlow, system-ui, sans-serif; color-scheme: light;
+  font-family: 'Inter Variable', system-ui, sans-serif; color-scheme: light;
   --bg: #f4f6f3; --surface: #ffffff; --fg: #1d2a24; --muted: #6b7a72; --line: #e3e8e4;
   --accent: #0b6b45; --accent-strong: #0b6b45; --accent-soft: #e8f5ee; --on-accent: #ffffff; --fair: #4f9a2e; --fair-soft: #eff8e6;
   --gold: #8a6200; --gold-soft: #fff4d6; --danger: #c0392b; --danger-soft: #fbe9e7;
   --blue: #1d5fa8; --blue-soft: #e6f0fb; --violet: #6b3fa0; --violet-soft: #f1e9fa; --rose: #a8235a; --rose-soft: #fce8f0; --teal: #0f766e; --teal-soft: #e0f4f1;
   --series-1: #2a78d6; --series-2: #eb6834;
+  /* Skala bentuk: --r kontrol & kotak kecil, --r-card kartu; kartu terang pakai bayangan lembut, gelap pakai garis tipis. */
+  --r: 8px; --r-card: 12px; --shadow: 0 1px 2px rgb(0 0 0 / .06), 0 2px 10px rgb(0 0 0 / .04);
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%236b7a72' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 @media (prefers-color-scheme: dark) {
@@ -16,7 +18,7 @@
     --accent: #2fa874; --accent-strong: #5fd39e; --accent-soft: #1b3329; --on-accent: #06120d; --fair: #a9d86e; --fair-soft: #26331a;
     --gold: #f0c35a; --gold-soft: #3a3016; --danger: #ef6a5b; --danger-soft: #3a1d1a;
     --blue: #8cbcf0; --blue-soft: #182a3d; --violet: #c8a8f0; --violet-soft: #2b2140; --rose: #f293ba; --rose-soft: #3a1a29; --teal: #7fd6cb; --teal-soft: #15302d;
-    --series-1: #3987e5; --series-2: #d95926;
+    --series-1: #3987e5; --series-2: #d95926; --shadow: 0 0 0 1px var(--line);
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2387998f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   }
 }
@@ -26,7 +28,7 @@
   --accent: #2fa874; --accent-strong: #5fd39e; --accent-soft: #1b3329; --on-accent: #06120d; --fair: #a9d86e; --fair-soft: #26331a;
   --gold: #f0c35a; --gold-soft: #3a3016; --danger: #ef6a5b; --danger-soft: #3a1d1a;
     --blue: #8cbcf0; --blue-soft: #182a3d; --violet: #c8a8f0; --violet-soft: #2b2140; --rose: #f293ba; --rose-soft: #3a1a29; --teal: #7fd6cb; --teal-soft: #15302d;
-  --series-1: #3987e5; --series-2: #d95926;
+  --series-1: #3987e5; --series-2: #d95926; --shadow: 0 0 0 1px var(--line);
   --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2387998f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
@@ -50,7 +52,7 @@ h4 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: 
 .swatch { display: inline-block; width: 12px; height: 4px; border-radius: 2px; vertical-align: middle; }
 
 /* Kontrol */
-button, select, input { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 4px 10px; }
+button, select, input { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 5px 12px; }
 /* Panah select sendiri (panah bawaan menempel di tepi kanan); warna per tema lewat --chevron. */
 select { appearance: none; padding-right: 32px; background-image: var(--chevron); background-position: right 12px center; background-size: 12px 8px; background-repeat: no-repeat; }
 td select { width: 100%; min-width: 7.5rem; }
@@ -66,7 +68,7 @@ button { cursor: pointer; transition: background-color 150ms, color 150ms, borde
 button:hover:not(:disabled) { border-color: var(--accent); }
 button:disabled { opacity: .5; cursor: default; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 700; }
 .primary:hover:not(:disabled) { filter: brightness(1.08); }
 /* Tab & tombol pilihan: gaya garis bawah */
 button[aria-pressed] { background: transparent; border-color: transparent; color: var(--muted); border-radius: 0; }
@@ -100,7 +102,7 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .ranks summary { cursor: pointer; white-space: nowrap; list-style: none; }
 .ranks summary::-webkit-details-marker { display: none; }
 .ranks > div { white-space: nowrap; }
-.injury-now { display: inline-block; padding: 6px 12px; border: 1px solid var(--danger); border-radius: 6px; background: var(--danger-soft); color: var(--danger); font-weight: 600; }
+.injury-now { display: inline-block; padding: 6px 12px; border: 1px solid var(--danger); border-radius: var(--r); background: var(--danger-soft); color: var(--danger); font-weight: 600; }
 .injury-now.strong { background: var(--danger); color: var(--surface); }
 .btn-go { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); }
 .btn-danger { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
@@ -177,7 +179,7 @@ nav.controls.pages, .page nav.controls.subnav.pages { flex-wrap: nowrap; overflo
 .controls.formpair select, .page .controls.formpair select { flex: 0 1 320px; width: 320px; max-width: 100%; }
 @media (max-width: 700px) { .controls.formpair select, .page .controls.formpair select { flex-basis: 100%; width: 100%; } }
 /* Juara minggu lalu (ranking): blok per turnamen, berdampingan bila layar lebar. */
-.champs { margin-bottom: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.champs { margin-bottom: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
 .champs h4 { margin: 0; }
 .champs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px 24px; }
 .champs-grid b { display: block; margin: 8px 0 0; }
@@ -186,8 +188,8 @@ nav.controls:not(.maintabs) button[aria-pressed] { font-size: .875rem; padding: 
 .scroll { overflow-x: auto; }
 
 /* Tabel */
-table { border-collapse: collapse; width: 100%; font-size: .875rem; }
-th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table { border-collapse: collapse; width: 100%; font-size: .875rem; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 th { position: sticky; top: 0; background: var(--surface); color: var(--muted); font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
 th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
 tr.sel { background: var(--accent-soft); }
@@ -213,9 +215,9 @@ button.wide { width: 100%; text-align: left; }
 
 /* Kartu & tata letak */
 .menu { max-width: 900px; }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; }
+.card { background: var(--surface); border: 1px solid transparent; border-radius: var(--r-card); box-shadow: var(--shadow); padding: 12px 16px; margin-bottom: 12px; }
 .card > :last-child { margin-bottom: 0; } /* tanpa ruang kosong ekstra di bawah isi kartu (padding kartu cukup) */
-.card h2, .card h3 { margin: 4px 0 8px; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.card h2, .card h3 { margin: 2px 0 10px; font-size: 1rem; font-weight: 600; }
 .card h4 { margin: 8px 0 4px; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 @media (min-width: 900px) { .split { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
@@ -262,10 +264,10 @@ button.wide { width: 100%; text-align: left; }
 .titles .drow.champ .grow > a { font-size: .875rem; font-weight: 700; }
 /* Rapor musim: kartu per musim, nilai besar + progress bar per target. */
 .reports { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: 10px; }
-.report { border: 1px solid var(--line); border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+.report { border: 1px solid var(--line); border-radius: var(--r); padding: 10px; display: flex; flex-direction: column; gap: 6px; }
 .report-head { display: flex; align-items: center; gap: 10px; }
 .report-head .grow { flex: 1; min-width: 0; }
-.report .grade { font-size: 2.2rem; font-weight: 800; line-height: 1; width: 1.4em; text-align: center; border-radius: 6px; padding: 4px 0; background: var(--line); }
+.report .grade { font-size: 2.2rem; font-weight: 800; line-height: 1; width: 1.4em; text-align: center; border-radius: var(--r); padding: 4px 0; background: var(--line); }
 .grade-A .grade, .grade-B .grade { background: var(--accent-soft); color: var(--accent-strong); }
 .grade-D .grade, .grade-E .grade { background: var(--danger-soft); color: var(--danger); }
 .grade-C .grade { background: var(--gold-soft); color: var(--gold); }
@@ -290,7 +292,7 @@ td small { font-size: .72rem; } /* keterangan kecil di sel tabel: skala font (bu
 .tc-legend { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 /* Kotak angka ringkas (Federasi). */
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.stats > div { background: var(--line); border-radius: 4px; padding: 6px 8px; display: flex; flex-direction: column; }
+.stats > div { background: var(--bg); border-radius: var(--r); padding: 8px 10px; display: flex; flex-direction: column; }
 .stats b { font-size: 1.3rem; line-height: 1.2; }
 .stats small { color: var(--muted); font-size: .72rem; }
 .stats small.sub { font-size: .68rem; opacity: .85; }
@@ -316,7 +318,7 @@ td small { font-size: .72rem; } /* keterangan kecil di sel tabel: skala font (bu
 .cal-list .calwk { flex: none; width: var(--tierw); display: flex; flex-direction: column; align-items: stretch; gap: 1px; }
 .cal-list .calwk small { font-size: .68rem; font-weight: 700; color: var(--muted); text-align: center; }
 .cal-list .drow { align-items: center; } /* minggu + badge di tengah tinggi nama & kota */
-.cal-list .drow.now { background: var(--accent-soft); border-radius: 6px; padding-left: 6px; padding-right: 6px; margin: 0 -6px; }
+.cal-list .drow.now { background: var(--accent-soft); border-radius: var(--r); padding-left: 6px; padding-right: 6px; margin: 0 -6px; }
 .cal-list .drow .grow > small { display: block; }
 .cal-champs { margin-top: 3px; font-size: .875rem; }
 .cal-champs summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; list-style: none; }
@@ -490,7 +492,7 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 @media (max-width: 699px) { .ed-rhead { font-size: .68rem; } .ed-rhead, .ed-row { gap: 6px; } }
 .ed-tools.json { grid-template-columns: minmax(0, 1fr) auto; }
 @media (min-width: 600px) { .ed-tools.pick { grid-template-columns: minmax(0, 1fr) auto; } } /* laptop: pilihan + tombol sebaris; HP: bertumpuk */
-.ed-json { width: 100%; box-sizing: border-box; min-height: 320px; font-family: ui-monospace, monospace; font-size: .8rem; line-height: 1.45; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+.ed-json { width: 100%; box-sizing: border-box; min-height: 320px; font-family: ui-monospace, monospace; font-size: .8rem; line-height: 1.45; padding: 10px; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg); color: var(--fg); }
 /* Statistik laga (MatchStatsView): warna sisi 0/1 (atlet sendiri = aksen), baris nilai · label · nilai + bar perbandingan. */
 .mstats { --c0: var(--series-1); --c1: var(--series-2); font-size: .875rem; }
 .mstats.mine-0 { --c0: var(--accent); }
@@ -502,7 +504,7 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 .ms-name::before { content: ''; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
 .ms-name.s1 { flex-direction: row-reverse; text-align: right; }
 .ms-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 4px; }
-.ms-facts > div { background: var(--bg); border-radius: 6px; padding: 6px 10px; }
+.ms-facts > div { background: var(--bg); border-radius: var(--r); padding: 6px 10px; }
 .ms-facts dt { line-height: 1.3; min-height: 2.6em; font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .ms-facts dd { margin: 2px 0 0; font-size: 1.3rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.2; }
 .ms-facts small { font-size: .72rem; font-weight: 500; color: var(--muted); }
@@ -665,7 +667,7 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
   /* Baris tabel & daftar sedikit lebih tinggi: tautan nama mudah diketuk. */
   td { padding-top: 6px; padding-bottom: 6px; }
   .drow { padding: 7px 0; }
-  .card { padding: 8px 10px; }
+  .card { padding: 12px; }
   /* Kolom sekunder disembunyikan di HP agar kolom penting (status, poin) tidak terpotong. */
   .hide-sm { display: none; }
   .show-sm { display: inline; }
@@ -692,7 +694,7 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 }
 /* Jadwal turnamen (individu & beregu): kartu laga gaya papan skor, tanpa gulir horizontal di lebar berapa pun. */
 .matchlist { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 4px; }
-.mcard { border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px 4px; font-size: .875rem; background: var(--surface); min-width: 0; }
+.mcard { border: 1px solid var(--line); border-radius: var(--r); padding: 3px 8px 4px; font-size: .875rem; background: var(--surface); min-width: 0; }
 .mcard.mine { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
 .mcard.current { background: var(--gold-soft); border-color: var(--gold); }
 /* Baris info: lapangan · nomor · babak · 📺 di kiri, status / tombol Live-Lewati di kanan (tinggi tetap, sejajar di semua kartu). */
@@ -815,7 +817,7 @@ button.danger { color: var(--danger); border-color: var(--danger); background: v
 @media (max-width: 700px) { .rankcell small { display: block; min-width: 0; text-align: right; line-height: 1; } }
 /* Detail pertandingan beregu: kartu per partai (papan skor), muat di HP tanpa geser. */
 .rubbers { display: grid; gap: 8px; }
-.rubber { border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+.rubber { border: 1px solid var(--line); border-radius: var(--r); padding: 6px 10px; }
 .rubber .rhead { display: flex; align-items: center; gap: 6px; font-size: .8rem; margin-bottom: 4px; }
 .rubber .rhead a { margin-left: auto; }
 .rubber .rrow { display: grid; align-items: center; gap: 4px; padding: 2px 0; }
@@ -857,7 +859,7 @@ table.fit td.num { white-space: nowrap; }
   main > .shell .menu-btn { position: fixed; left: 12px; bottom: 16px; width: 176px; z-index: 3; }
   nav.maintabs { grid-column: 1; grid-row: 2; position: sticky; top: var(--shell-h, 53px); align-self: start; height: calc(100vh - var(--shell-h, 53px)); box-sizing: border-box;
     flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 2px; margin: 0; padding: 12px 12px 72px; border-bottom: none; border-right: 1px solid var(--line); background: var(--surface); overflow-y: auto; }
-  nav.maintabs button { text-align: left; padding: 8px 12px; border-radius: 6px; font-size: .875rem; }
+  nav.maintabs button { text-align: left; padding: 8px 12px; border-radius: var(--r); font-size: .875rem; }
   nav.maintabs button[aria-pressed=true] { box-shadow: inset 3px 0 var(--accent); background: var(--accent-soft); color: var(--accent-strong); }
   main > .page { grid-column: 2; grid-row: 2; width: 100%; max-width: 1200px; margin: 0 auto; padding: 12px 24px 40px; box-sizing: border-box; }
   /* Sub-tab di laptop: font sedikit lebih besar & rapat (seperti bilah tab), tanpa ruang kosong di atas. */
@@ -1035,7 +1037,7 @@ button.attrrow.ca[aria-pressed=true] { box-shadow: inset 3px 0 var(--series-1); 
 /* Profil → Statistik pribadi: kotak angka utama + kelompok baris (bar persentase, komposisi winner & reli). */
 .pstats { --w0: var(--accent); --w1: var(--series-1); --w2: var(--series-2); --w3: var(--gold); --w4: var(--violet); }
 .ps-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }
-.ps-tiles > div { background: var(--bg); border-radius: 6px; padding: 8px 10px; }
+.ps-tiles > div { background: var(--bg); border-radius: var(--r); padding: 8px 10px; }
 .ps-tiles dt { font-size: .68rem; line-height: 1.3; min-height: 2.6em; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .ps-tiles dd { margin: 2px 0 0; font-size: 1.3rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.2; }
 .ps-tiles dd small { font-size: .72rem; font-weight: 500; color: var(--muted); }
@@ -1093,3 +1095,10 @@ body:has(.livebar) .totop { bottom: calc(120px + env(safe-area-inset-bottom, 0px
 .who-cell > span { overflow-wrap: break-word; } /* lebar minimum = kata terpanjang: tabel melebar (bisa digeser) alih-alih memotong nama */
 
 .warn-text { color: var(--danger); }
+
+/* Tab utama tanpa sidebar (HP & tablet): pil yang bisa digeser; tab aktif terisi warna aksen. */
+@media (max-width: 1023px) {
+  nav.maintabs { gap: 6px; padding-block: 8px; border-bottom: 0; scrollbar-width: none; }
+  nav.maintabs button[aria-pressed] { border-radius: 999px; padding: 6px 14px; background: var(--bg); font-size: .875rem; }
+  nav.maintabs button[aria-pressed=true], nav.maintabs button[aria-pressed=true]:hover { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+}
