@@ -76,7 +76,7 @@ button[aria-pressed=true] { color: var(--accent-strong); font-weight: 600; backg
 button[aria-pressed]:hover:not(:disabled) { border-color: transparent; color: var(--fg); }
 
 .controls { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 12px; align-items: end; }
-.controls label { display: flex; flex-direction: column; font-size: .8rem; gap: 2px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.controls label { max-width: 100%; min-width: 0; display: flex; flex-direction: column; font-size: .8rem; gap: 2px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 .controls label select, .controls label input { text-transform: none; letter-spacing: normal; font-size: .875rem; }
 .controls > .count { align-self: center; color: var(--muted); font-size: .875rem; }
 .controls select { max-width: 100%; min-width: 0; } /* nama atlet panjang (HP): kotak pilihan tidak melewati kartu */
@@ -145,8 +145,8 @@ th.sortable:hover, th[aria-sort] { color: var(--fg); }
 .cond-energy { display: flex; align-items: center; gap: 6px; font-size: .875rem; }
 .cond-energy .bar { flex: 1; min-width: 40px; }
 .cond-energy small { color: var(--muted); white-space: nowrap; }
-.cond-player { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: .8rem; }
-.cond-name { flex-basis: 100%; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cond-player { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-size: .8rem; min-width: 0; }
+.cond-name { flex-basis: 100%; min-width: 0; max-width: 100%; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pre-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 12px; margin: 0; }
 .pre-grid dt { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .pre-grid dd { margin: 0; }
@@ -969,7 +969,7 @@ table.fit td.num { white-space: nowrap; }
 .attrchart svg { display: block; max-width: 640px; }
 .attrlist { display: flex; flex-direction: column; }
 .attrlist .hint { margin: 8px 0 0; }
-.attrrow { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) 2.2rem 2.6rem; align-items: center; gap: 10px; width: 100%;
+.attrrow { box-sizing: border-box; display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) 2.2rem 2.6rem; align-items: center; gap: 10px; width: 100%;
   text-align: left; padding: 6px 8px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--fg); }
 button.attrrow[aria-pressed] { color: var(--fg); background: transparent; border-bottom: 1px solid var(--line); border-radius: 0; box-shadow: none; }
 button.attrrow[aria-pressed]:hover:not(:disabled) { background: var(--surface-2, rgba(127,127,127,.08)); border-color: var(--line); }
@@ -1115,5 +1115,9 @@ body:has(.livebar) .totop { bottom: calc(120px + env(safe-area-inset-bottom, 0px
 }
 /* HP: baris sub-tab yang bisa digeser memudar di tepi kanan (seperti tab utama), tanda masih ada pilihan lain. */
 @media (max-width: 700px) {
+  /* Daftar save di menu: tiga tombol (Load/Export/Delete) muat selebar HP; nama save boleh turun baris. */
+  .menu td { padding: 7px 4px; }
+  .menu td:first-child { white-space: normal; }
+  .menu td button { padding: 4px 9px; }
   nav.controls:not(.maintabs) { padding-right: 24px; mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); }
 }
